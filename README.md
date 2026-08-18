@@ -125,4 +125,7 @@ flowchart LR
   agents, hooks, and file tree.
 - [`skills/pave-init/references/pave-spec.md`](skills/pave-init/references/pave-spec.md)
   — the PAVE language specification.
+- [`skills/pave-init/references/technique-selection.md`](skills/pave-init/references/technique-selection.md)
+  — when debate, monitors, audits, and ledgers earn their cost, and when
+  they hurt.
 - [`skills/pave-init/VERSION`](skills/pave-init/VERSION) — the changelog.

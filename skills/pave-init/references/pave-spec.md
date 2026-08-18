@@ -221,6 +221,10 @@ should be visible, and so should the meaning of the stop. See §9.13.
 Some rules need only a reminder. Others need independent review, durable
 state, or a blocking mechanism. The cost of a violation should guide the
 strength of enforcement.
+
+The companion document `technique-selection.md` (shipped beside this spec)
+describes battle-tested review and evidence techniques, with the conditions
+under which each earns its cost and the conditions under which it hurts.
  
 ### 4.10 Improve the graph from operational experience
  
@@ -992,6 +996,8 @@ Choose enforcement strength based on the cost of violation.
 Not every workflow needs the strongest level. Mechanical enforcement suits a
 violation that is likely, costly, and precisely detectable. It is a poor
 substitute for domain judgment, and a wrong match can strand a run.
+`technique-selection.md` gives the selection guidance for the review-shaped
+rungs: when debate, an advisory monitor, or a stage audit earns its cost.
  
 #### 9.14.1 The enforcement record
  

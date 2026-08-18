@@ -1,6 +1,6 @@
 # PAVE Init
 
-Version: `2.1.0`
+Version: `2.2.0`
 
 Turn a goal into a reviewed workflow and a ready-to-use Claude Code plugin: a lead workflow skill plus its roles as registered agents. Load a delivered package with `claude --plugin-dir <package-root>` for a session, or install it from a marketplace for permanence.
 
@@ -265,6 +265,7 @@ check in the recorded traversal history. Both are declared in
     │   ├── pave-yaml.md                  # the PAVE YAML contract
     │   ├── pave.schema.json              # the PAVE JSON Schema
     │   ├── pave-spec.md                  # THE PAVE design language: vocabulary, node sizing, patterns, smells
+    │   ├── technique-selection.md        # when debate / monitor / audit / ledger earn their cost — and when they hurt
     │   ├── pave-composition.md           # child-profile contract and depth-2 cap
     │   ├── pave-composition.schema.json  # composition schema
     │   ├── pave-revisions.md             # v0/v1+ revisions and evolution tiers
@@ -280,6 +281,7 @@ check in the recorded traversal history. Both are declared in
     │   ├── validate_traceability.py      # traceability-row checker
     │   ├── validate_run_state.py         # run-state instance checker (stdlib fallback; --frontier mode)
     │   ├── freeze_revision.py            # v1+ freeze / verify / rollback derivation
+    │   ├── transcript_filter.py          # advisory-monitor read side: incremental .jsonl digest (reference impl)
     │   └── test_validate_pave_composition.py  # validator tests
     ├── evaluations/                      # eval scenarios: multi-boundary port, trivial single node, resume
     ├── hooks/

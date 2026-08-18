@@ -1,4 +1,4 @@
-version: 2.1.1
+version: 2.2.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,28 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.2.0 (2026-08-18)
+
+New — `references/technique-selection.md`: a decision aid for choosing
+review and supervision techniques (adversarial debate, advisory monitor,
+stage audit by reconstruction, doer/tester split, one terminal metric,
+rejection ledger, edge-triggered reminders). Each entry states when the
+technique earns its cost, when it hurts, its price, and a minimal graph
+shape to copy.
+  - The spec stays normative; this doc carries the judgment layer. Node
+    planners are pointed at it when weighing enforcement strength
+    (spec §4.9 and §9.14 cross-reference it), and the material reviewer
+    challenges technique mismatches against it — considerations, never
+    compliance.
+
+New — `scripts/transcript_filter.py`: a working reference implementation
+of the advisory monitor's read side. It digests a Claude Code `.jsonl`
+transcript incrementally (noise filtering, resume offsets, safe stop at
+the write frontier, subagent discovery) so a generated monitor does not
+reinvent undocumented transcript parsing.
+  - Pinned to current harness internals; its header says how to verify it
+    against the harness version before shipping it in a generated workflow.
 
 ### 2.1.1 (2026-08-18)
 

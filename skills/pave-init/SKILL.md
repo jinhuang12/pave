@@ -71,6 +71,7 @@ Read only the resource needed for the active stage:
 | Clean-room test | `orchestration/review-and-build.md` |
 | User approval gates, delivered README/VERSION | `references/approval-briefs.md` |
 | PAVE concepts | `references/pave-yaml.md` for fields and validity; load `references/pave-spec.md` — the design language: node, outcome, evidence, guard, edge, control endpoint, node sizing, patterns, smells — for any design choice; load `references/pave-composition.md` only when a plan composes nodes into child profiles |
+| Technique selection | `references/technique-selection.md` — when a plan weighs debate, an advisory monitor, a stage audit, or other supervision: what each costs and when it hurts |
 | Revisions and evolution | `references/pave-revisions.md` — at delivery (v0 manifest), on an update run (lineage), and whenever the plan records an `evolving` tier |
 
 `references/pave-init.pave.yaml` is this skill's own canonical graph, and `references/pave-init-traceability.md` maps each of its objects to the file that realizes it. Read them only when routing is ambiguous — an unexpected outcome, a recovery choice, or a resume. A linear happy-path run does not need them. The graph alone carries the recovery routing; when one of these outcomes occurs, route it as declared:
