@@ -1,0 +1,601 @@
+version: 2.1.1
+
+## How changelog entries are written
+
+Write this changelog for people who use `pave-init`. Start with user impact.
+Put implementation details in an indented sub-bullet.
+
+Start each top-level entry with one tag:
+
+- New — a capability is available.
+- Improved — existing behavior is more reliable or easier to use.
+- Fixed — incorrect behavior now works.
+- Changed — a default or contract changed.
+- Updated — a dependency or runtime requirement changed.
+
+Add each release at the top of `## Changelog`, newest first. Bump the `version:`
+line and use the release date.
+
+## Changelog
+
+### 2.1.1 (2026-08-18)
+
+Changed — the stop-alignment hook now cools down: it blocks at most one stop
+in three while a run is active (before: every other stop could block).
+Generated workflows inherit the same counter through the hook template.
+  - The session marker now holds a countdown instead of a flag. Override the
+    cadence with `PAVE_INIT_STOP_EVERY` (minimum 2; the breaker always keeps
+    one free pass after a nudge). Claude Code has no native hook throttle,
+    so the counter lives in the script.
+
+Improved — the stop nudge now also asks the lead to retire finished or
+unneeded subagents and teammates: an idle agent costs tokens, and a late
+message from one can derail the run.
+
+### 2.1.0 (2026-08-18)
+
+Changed — pave-init now delivers a Claude Code plugin, not a bare skill. The
+package ships a `.claude-plugin/plugin.json` manifest, role contracts as
+registered agents under `agents/` (the role contract becomes the agent's
+system prompt, dispatched by `subagent_type: <plugin>:<role>`, so generated
+briefs carry only task context), and the lead skill under `skills/<name>/` —
+the same shape as pave-init itself. Install with `claude --plugin-dir
+<package-root>` for a session, or a marketplace for permanence.
+  - Validation adds a plugin structure check (`plugin-dev:plugin-validator`
+    when available, hand-check recorded otherwise); the clean-room forward
+    test loads the package via a fresh headless `claude -p --plugin-dir`
+    session so registered agent types resolve; builders follow the
+    `plugin-dev` `plugin-structure` and `agent-development` skills for
+    manifest and agent file formats.
+
+New — generated workflows now get a default recovery loop for failures the
+graph has no edge for: retry once if transient, investigate until root cause
+with a persisted investigation record, match fix process weight to how
+well-understood the fix is, then re-prove by the world. Two honest exits:
+replan when the plan itself is the cause, pause/blocked when investigation
+is blocked (`pave-spec.md` §9.8).
+
+Changed — repair loops may now be unbounded by operator choice: the bound is
+a declared counter, or unlimited attempts backed by the persisted
+investigation record plus a designed stop the operator controls
+(`pave-spec.md` §9.8; planner and reviewer contracts updated to match).
+
+New — the enforcement record now carries a per-node evidence-gameability
+judgment: could the doer mint, narrow, or stale-date its own success
+evidence? Harden-first ladder: unfakeable provenance, then a check the doer
+does not run, then practical adversarial review only when hardening is
+impossible or a false pass is severe. "Not gameable" is recorded too, so
+the plan reviewer challenges every omission (`pave-spec.md` §9.14.1).
+
+New — every document a human reviews or approves from (briefs, delivery
+report, generated README) now carries one writing rule: simple, plain
+English, as concise as the content allows — short sentences, common words,
+terms defined at first use, point first and detail after
+(`approval-briefs.md` §Write for the reader). Enforced as prose, not a
+hook: the reference is re-read at every gate, and a PostToolUse hook can
+only observe after the write, so a hook would be over-enforcement.
+
+New — the plan brief and README open the workflow section with a small
+at-a-glance diagram: the happy path as a few plain-language stage groupings
+(explicitly not graph node ids), before the full faithful Mermaid, so the
+reader holds the workflow's shape before the detail. Loops and recovery stay
+in the full diagram. pave-init's own README already renders this section;
+generated docs now must.
+
+Improved — pave-init's own README now follows the Write-for-the-reader rule
+itself: the planning and enforcement sections are rewritten in plain English
+with short sentences, and terms like boundary, frontier, and adversarial
+reviewer are defined at first use.
+
+New — node identifiers get naming guidance (`pave-yaml.md` §6): verb-first
+plain words a reader can decode without context, outcome codes that state
+what happened, and no sequence numbers in identifiers — edges carry order
+and the brief's at-a-glance diagram shows the sequence.
+
+Fixed — the staleness-reminder hook was inert on Linux: it tried the
+macOS `stat -f %m` form first, whose failure output on GNU coreutils
+pollutes stdout and crashes the script under `set -u` before any reminder
+fires. The GNU form now runs first (both platforms still covered); all 17
+hook tests pass, previously 4 failed on Linux.
+
+Changed — Stage 2 explorers now persist their own reports: each
+`pave-init:system-explorer` writes its assigned `exploration/<lens>.md`
+directly and returns only the path and a short summary, instead of the
+report round-tripping through the lead's context to be saved. The lead
+confirms the file exists on return and verifies claims by reading the
+persisted file, never the summary.
+
+- The staleness-reminder hook no longer names `exploration/<lens>.md` as a
+  lead-persisted artifact, so it cannot prompt the lead to overwrite an
+  explorer's report with a summary-derived copy.
+
+Changed — the node planner opens every dispatch with an uncertainty ledger
+(facts with sources, assumptions, open questions) and returns it with the
+draft; the material reviewer starts claim identification from that ledger
+and prioritizes thinnest-evidence claims (`agents/node-planner.md`,
+`agents/pave-material-reviewer.md`).
+
+### 2.0.0 (2026-08-17)
+
+Changed — pave-init is now a Claude Code plugin. Stage flow and authority are
+unchanged; what changed is how worker roles are enforced. The `agents/*.md`
+role contracts, formerly prompt attachments a worker was told to read, are
+registered agent types at the plugin root, dispatched as `pave-init:<name>` —
+each contract is its worker's system prompt, loaded by the harness on every
+dispatch, so it cannot be skimmed or skipped.
+
+- New — `agents/pave-material-reviewer.md` removes the external
+  `adversarial-investigator` dependency: it merges that agent's investigation
+  method (failure hierarchy, claim decomposition, parallel evidence
+  sub-agents, evidence mandate, re-dispatch rules) with the full
+  material-reviewer contract. `agents/research-delegate.md` ships as its
+  evidence-gathering sub-agent.
+- Changed — dispatch types: `pave-init:system-explorer` (sonnet/medium),
+  `pave-init:node-planner` (opus/high), `pave-init:skill-builder`
+  (opus/medium), `pave-init:forward-tester` (unpinned — clean room at session
+  defaults). Model and effort ride on the definitions; the one per-dispatch
+  override left is escalating the planner to the session's top model for the
+  root and high-risk nodes.
+- Changed — the reviewer's materiality and proportionality warnings live in
+  its pinned system prompt; the restate-in-every-brief rule is deleted.
+- Changed — the skill's internal `agents/` directory is removed; traceability
+  `agents/` rows resolve at the plugin root (noted in the table intro).
+- Changed — recorded losses, because the Agent tool has no per-dispatch
+  effort override: per-lens explorer effort (`low` for pure search) is a
+  single `medium` pin, and the root planner runs `high`, not `xhigh`.
+- Neither new agent carries `memory`: cross-run memory could leak prior-run
+  findings into a clean gate.
+- Unchanged: the three skill-frontmatter hooks still register at invocation
+  and die with the skill — plugin `hooks.json` was deliberately not used, so
+  nothing runs outside an active run.
+
+### 1.3.0 (2026-08-17)
+
+One theme: the Stage 3 planning workspace — the only multi-writer,
+session-crossing state in a run — gets the same machinery every other run
+artifact already had: a schema, a validator, a layout reference, and a hook.
+Driven by one recorded dry run (2026-08-15, the Llama-3.1-8B vLLM-to-CS-3
+port goal) that surfaced eight process failures, four of them in the planning
+files. Self-consistency was the tell: `agents/material-reviewer.md` already
+named "session-crossing state with no machine-checkable schema" and "a
+multi-writer artifact set with no layout reference" as findings — pave-init
+now passes its own reviewer's check.
+
+- New — planning files have a shape authority. `schemas/run-state.schema.json`
+  gains `$defs.frontier` and `$defs.fragment`, strict throughout
+  (`additionalProperties: false`) with explicit free-form `notes` homes where
+  prose belongs. `scripts/validate_run_state.py --frontier <path>` validates
+  the frontier and every dispatched entry's fragment, then applies four hand
+  rules: unique draft path per dispatch, draft named past `pending`, no
+  re-authored dispatched node (frozen fields are referenced, never copied),
+  no planner-minted `c<N>` ids (node-local labels stay legal).
+  - Absorbs three and a half of the eight dry-run failures: the
+    zombie-session path collision, the conflict-id collision, and the
+    frozen-field copy fully; staleness-on-resync gets machine support (the
+    `stale` status and `dependencies` field) while the rule itself stays
+    behavioral in `orchestration/explore-and-plan.md` §4.4.
+  - Evidence for the gap: the dry run's own `frontier.yaml`, written with no
+    schema, was not even parseable YAML, and its stale survey fragment fails
+    the new checks on exactly the two defects the reviewer had found by hand.
+  - Frontier mode fails closed without pyyaml + jsonschema, like the graph
+    validators; plain run-state mode keeps its never-fail-closed contract.
+- New — `references/planning-layout.md`: the `planning/` tree, write
+  ownership per actor, which-file-wins precedence, and prohibited patterns.
+  `orchestration/explore-and-plan.md` §4.2–4.3 and `agents/node-planner.md`
+  now point at the schema and layout instead of restating field lists.
+- New — `hooks/planning-layout-warn.sh` (PostToolUse on Write|Edit,
+  observing): a non-blocking warning when a write lands under `planning/` at
+  a disallowed path, a subagent writes `frontier.yaml`, or a draft mints a
+  `c<N>` id. Third registered hook; the frontmatter description now
+  discloses all three — nothing registers silently.
+- Changed — a check guarding an outcome's only edge MUST declare
+  `on_failure_route` (a declared node or control endpoint), and a terminal
+  endpoint used as a route MUST declare `terminal_status`.
+  `references/pave.schema.json`, `scripts/validate_pave.py`,
+  `references/pave-yaml.md` §9 and §13. Sixteen checks in
+  `references/pave-init.pave.yaml` gained routes; the rule mechanically
+  catches the dry run's "designed stop with no destination" class (three
+  instances by two authors).
+  - Design-language halves, so designers write it right before the validator
+    runs: `references/pave-spec.md` §5.4 (designed-stop paragraph), §11 Edge
+    card (failure-route line) and Memory card (superseded-files and
+    counter-route lines), review question 6; routing sentences in
+    `agents/node-planner.md` step 5 and `agents/material-reviewer.md`.
+- Changed — PAVE YAML format version 0.2.0 → 0.3.0, because the rule above
+  tightens validity: a document valid under 0.2.0 can fail 0.3.0, and a
+  format that fails documents its own version number blesses is lying to
+  the reader. Bumped together: `references/pave-yaml.md` (header, validity
+  text, new Format history in §18), `references/pave.schema.json` version
+  const, `scripts/validate_pave.py` VERSION, all three shipped graphs,
+  `references/pave-composition.md` "Applies to". Migration for existing
+  documents: set `version: "0.3.0"` and add the routes the validator flags.
+  - The design-language version in `references/pave-spec.md` (0.3) and this
+    format version track different contracts and move independently; both
+    headers now record the pairing explicitly so a mismatch reads as
+    information, not drift.
+- Changed — removed `references/pave-spec.md` §13 ("Sketch: Neuron-native
+  vLLM model porting"; later sections renumbered). A pre-drawn port topology
+  inside the spec is design authority the spec itself forbids (§9.12.2:
+  source binds behavior, never structure) — a planner reading the spec
+  mid-port would inherit its shape without a sizing judgment. The AMMO
+  worked example (§12) stays: it illustrates the design process, not a
+  target domain's decomposition.
+- Changed — acceptance evidence written by the doer must be bound to the
+  world: an outside identifier (job id, commit, run id) persisted in a
+  second artifact the doer does not write. `references/pave-spec.md` §5.3.1,
+  `agents/material-reviewer.md`.
+- Changed — a layout reference must name the repair-re-entry archive rule
+  (current revision at the declared path, superseded files at a declared
+  archive path): SKILL.md build mapping, `agents/material-reviewer.md`.
+  Design boundaries gain the shared-budget rule: a counter with more than
+  one increment route gets per-route counters or an explicit shared-budget
+  note (`orchestration/explore-and-plan.md` §4.7).
+- New — `evaluations/`: three source-of-truth scenarios (decomposing port
+  goal, trivial single-node anti-inflation goal, resume mid-planning). The
+  2026-08-15 dry run is recorded as the first execution of scenario 01; the
+  evidence base for this release is that one run, so the other two scenarios
+  are unexecuted specifications until run.
+- Improved — Contents sections atop `references/pave-spec.md`,
+  `references/pave-yaml.md`, `references/lead-alignment-hooks.md`,
+  `references/pave-composition.md`, so partial reads see full scope. Skipped
+  for `references/pave-init-traceability.md`: one flat table, nothing to
+  index.
+- Recorded, not done: a multi-model evaluation matrix (future work); gerund
+  file renames from the skill-authoring guidance (reference churn across the
+  package for zero behavior change).
+
+### 1.2.0 (2026-08-14)
+
+Three change sets in one release: a node-sizing doctrine revision (from a port
+run that mirrored source complexity), the promotion of `references/pave-spec.md`
+to the single design-language home, and a structural verbosity reduction across
+the package. No graph-topology, hook, script, schema, or test change.
+
+Doctrine changes (all now homed in `references/pave-spec.md`, PAVE 0.3):
+
+- Changed — node sizing is now the **one-agent test, applied recursively**:
+  can one agent understand, achieve, and verify this purpose in one bounded
+  context? Yes — atomic. No — decompose into independently verifiable
+  subgoals and re-apply the test to each; child results integrate upward and
+  are verified against the parent purpose. "The burden of proof is on
+  decomposing" is retired; both wrong-sizings carry equal weight, and the
+  realization ladder now chooses only the *form* of a justified
+  decomposition. The depth-2 composition cap stays; its rationale now names
+  the test as the real stopping rule.
+  - `references/pave-spec.md` §9.12, `agents/node-planner.md`,
+    SKILL.md Stage 3, `references/pave-composition.md` §6.5.
+- New — **existing systems are evidence, not blueprints**: a port,
+  migration, or re-design binds the source's behavior (acceptance,
+  invariants, failure modes), never its topology; structure is re-derived
+  from the goal with the one-agent test. Reviewer teeth: a child profile
+  whose only support is "the source has this boundary" is a finding.
+  - `references/pave-spec.md` §9.12.2, `agents/node-planner.md`,
+    `agents/material-reviewer.md`, `orchestration/explore-and-plan.md`
+    §4.1, SKILL.md Stage 3.
+- Changed — root planners receive **`references/workflow-minimal.pave.yaml`**
+  (new: the validating floor, 1 role / 1 node / 1 outcome / 1 edge /
+  1 terminal) as the default starting graph.
+  `workflow-template.pave.yaml` is re-labeled a construct showcase, sent
+  only when the frozen root contract already names branching, recovery, or
+  fan-out.
+  - `orchestration/explore-and-plan.md` §4.2; header comments in both
+    template files; README file tree.
+- Changed — `atomic` verdicts are now falsifiable claims, symmetric with
+  decompositions: every elaboration mark records `verdict` plus a
+  one-line `justification` (what one agent does, how it verifies) citing
+  system-map evidence. An atomic mark the evidence does not support is a
+  review finding.
+  - `agents/node-planner.md` (sizing rule and output contract),
+    `agents/material-reviewer.md`, `orchestration/explore-and-plan.md`
+    §4.8, `references/pave-spec.md` §9.12.
+- Changed — the one-agent test is answered by writing the node contract and
+  checking five conditions (one definition of done, enumerable inputs, local
+  verification, routine steps, bounded context), not by intuition. A contract
+  field that can only be filled vaguely is the decomposition signal; the
+  `atomic` justification answers conditions 2–4 in one line. "One definition of
+  done" permits a conjunction — faster AND still correct — when every part is
+  settled by the same act on the node's own evidence; it splits when one
+  criterion gates another or they fail to different recovery routes.
+  - `references/pave-spec.md` §9.12,
+    `agents/material-reviewer.md`, `agents/node-planner.md`.
+- Changed — the **Node definition** now states what a node is: one goal plus
+  the smallest contract that lets one actor achieve it and prove it. Five named
+  parts (purpose, inputs, effects, outcomes, roles), a worked example carrying
+  all of them, and the rule that the contract is the sizing
+  artifact. The old definition — "one coherent unit of work" with six loose
+  questions and an example showing neither a standard of done nor how the node
+  verifies — is what let node sizing rest on taste.
+  - `references/pave-spec.md` §5.1 and the §11 node card.
+- Changed — the contract condensed from nine parts to five. The standard of
+  done, its verification, and the success outcome were one fact written three
+  times; they merge into a **definition of done** carried by the outcome that
+  means success, written *condition — settled by act on world-produced
+  evidence* — an unverifiable acceptance condition is now unwritable rather
+  than merely discouraged. `Produces` folded into Effects (creating an
+  artifact is an effect), and intent demoted to a label read from the purpose.
+  A node run ends by reporting exactly one declared outcome, and only the
+  settling act selects success. YAML fields are unchanged: `intent` stays
+  required, `produces`, `allowed_effects`, and `forbidden_effects` stay
+  separate. No schema or validator change.
+  - `references/pave-spec.md` §5.1, §5.2 rule 3, §9.12 conditions 1 and 3,
+    §11 node card; `agents/material-reviewer.md`.
+- Changed — the definition of done names its evidence source, not just its
+  check. Every definition of done is acceptance-bearing, so the acceptance
+  ladder binds it — a condition whose only evidence is the doer's report that
+  it finished is a finding. Naming an act was not enough if the act only read
+  the actor's own claim. §5.3.1's exemption now names what it covers
+  (control-flow outcomes) instead of reading as exempting node success. The
+  actor settles the verdict; the persisted evidence lets a reviewer re-run the
+  act and re-settle it — a definition of done a reviewer cannot re-settle from
+  the artifacts is not verifiable, and the guard on the success edge is that
+  re-settling built into the graph.
+  - `references/pave-spec.md` §5.1, §5.3.1, §11 node card;
+    `agents/node-planner.md`, `agents/material-reviewer.md`.
+- New — acceptance evidence ladder: evidence for an acceptance-bearing
+  outcome is produced by the world, never asserted by the doer. Rung 1 is a
+  measurement against a declared threshold; rung 2 is LLM-as-judge, only for
+  qualitative properties and only with a plan-time rubric, a non-doer judge,
+  and persisted artifacts. Doer self-report is never sole acceptance
+  evidence; an invented metric is a finding; control-flow outcomes stay
+  evidence-free.
+  - `references/pave-spec.md` §5.3.1, new Acceptance evidence section in
+    `agents/material-reviewer.md`.
+- Fixed — the planning frontier can no longer lose a node in transit:
+  planners record each child's mark in the draft file they write, under the
+  root `extensions.x_planning.elaboration` mapping keyed by node id, and the
+  lead derives `planning/frontier.yaml` from that file, never from reply text.
+  Assembly strips the `x_planning` block.
+  - The marks deliberately do NOT live on the nodes themselves:
+    `scripts/validate_pave.py` rejects unknown node fields (verified by test),
+    so per-node marks would make every planning draft fail validation and
+    tempt a lead to delete the frontier's own source of truth. A root
+    extension validates cleanly.
+  - `agents/node-planner.md` output contract (with the YAML shape),
+    `orchestration/explore-and-plan.md` §4.3/§4.7/§4.8.
+
+Single design-language home:
+
+- Changed — **`references/pave-spec.md` replaces `references/pave-patterns.md`**
+  and is now what planners and reviewers read. The patterns file was a
+  condensed derivative of the spec that had drifted: it never defined Node,
+  Outcome, Evidence, Guard, Edge, or Control endpoint, carried no design
+  procedure or smell list, and duplicated the enforcement spectrum. Two
+  documents describing one design language is how they diverge, which is the
+  defect that produced this release's vague sizing rule. `pave-patterns.md`
+  is deleted after its rules were absorbed, and an adversarial rule-by-rule
+  audit of the merge closed the residual gaps it found — the questions and
+  pointers rather than the doctrine. Two mattered: the prohibition on a
+  proposal defining its own validating evidence (§9.2, with the matching
+  rubric-authorship condition added to §5.3.1), and the per-planning-boundary
+  scope of the knowledge sort (§10 step 2).
+  - Absorbed into the spec (now PAVE 0.3, §17.1 lists them): the one-agent
+    test, the acceptance evidence ladder, existing-systems-as-evidence, the
+    six decomposition questions, the contribution chain, the four knowledge
+    states, the four shapes of parallel work, the investigation loop, bounded
+    review repair, evidence authority, independent proposal, and the advisory
+    monitor.
+  - Moved to `references/lead-alignment-hooks.md` (now "Hooks in generated
+    skills — doctrine and the default lead-alignment pair"): the three hook
+    uses, the always-on-invariant test, actor scoping by placement,
+    lead-only events, and identity gate, plus the registration and consent
+    rules. Per the spec's own four-layer rule, mechanism is a Runtime
+    Binding concern; the spec keeps only the rung choice (§9.14).
+  - Re-pointed: SKILL.md required-resources table and Stages 3 and 5,
+    `agents/node-planner.md`, `agents/material-reviewer.md`,
+    `orchestration/explore-and-plan.md` §4.2/§4.4,
+    `orchestration/review-and-build.md` §3, `references/pave-yaml.md`
+    (layer table and intro), `references/pave-init-traceability.md`
+    (`plan_root_skeleton`), README file tree and source-of-truth list.
+
+Verbosity reduction (every rule keeps its meaning; lead-read files state
+each rule once and cite its home file; dispatched role contracts keep their
+obligations inline):
+
+- Changed — two lead-guidance files merged into the orchestration files that
+  carried the same procedure (neither was ever dispatched, and neither is a
+  graph role):
+  - `agents/requirements-interviewer.md` → `orchestration/interview-and-fitness.md`.
+  - `agents/graph-integrator.md` → `orchestration/explore-and-plan.md` §4,
+    which is now the single full telling of the planning-frontier procedure.
+  - Traceability rows re-pointed to the new homes; the canonical graph is
+    unchanged.
+- Changed — single-home doctrine across lead-read files: design meaning and
+  the enforcement spectrum in `references/pave-spec.md`; hook doctrine and
+  lead-alignment invariants in `references/lead-alignment-hooks.md`; rendered-view and brief rules in
+  `references/approval-briefs.md`; revision rules in
+  `references/pave-revisions.md`; composition boundary rules in
+  `references/pave-composition.md`; the workflow-script compile mapping in
+  `agents/skill-builder.md`. Other files cite these homes instead of
+  restating them.
+- Improved — SKILL.md stage sections shrink to product, gate, run-state
+  duties, and a pointer to the orchestration procedure that carries the full
+  steps.
+- Improved — references rewritten in short active sentences (ASD-STE100).
+  Validity rules, enums, thresholds, bash templates, section-order lists,
+  and both materiality warnings are byte-identical to 1.1.0.
+- Changed — the canonical YAML's `x_review_policy.materiality_warning` now
+  cites `agents/material-reviewer.md` (Materiality rule) instead of
+  restating the warning text. `blocking_severities` and
+  `unsupported_finding_disposition` are unchanged.
+  - Package prose, measured: `pave-patterns.md` (2,452 words) is deleted;
+    `pave-spec.md` grows 7,175 → 8,875 words absorbing it plus the new
+    doctrine; `lead-alignment-hooks.md` grows 2,186 → 2,841 with the hook
+    doctrine it received. The refactor's own −7.1% figure and per-file table
+    are in word-delta-report.md in the refactor workspace (a different
+    counting basis: it included `.yaml` files and excluded the then-orphaned
+    spec).
+
+### 1.1.0 (2026-08-13)
+
+#### Why this release exists
+
+An operator delivered a generated long-horizon workflow, then had to
+retrofit two lead-alignment hooks onto it by hand. The question "why does
+pave-init not generate these?" exposed the gap: pave-init derived hooks only
+from workflow-specific prohibitions. Universal failure modes of the
+generated lead — context decay causing premature stops and unrecorded
+traversal drift — had no derivation path. The same review found two more
+unstated defaults: run-state schemas and artifact layout.
+
+Principles behind every change (each converged on independently by
+long-horizon agent systems in the field):
+
+1. Instructions decay. A lead follows its contract until the prose leaves
+   the context window. Always-on duties need reinjection at the moments they
+   bind, not louder repetition.
+2. The file system is the durable working memory. Externalized state with
+   event history lets interrupted, compacted, or parallel sessions act as
+   one continuing process. Recorded dead ends stay closed.
+3. Compact structured state is the first-order cost control. Accumulated
+   context traffic dominates long-run spend.
+4. Oversight must be priced. A mechanism earns its place by the failure it
+   prevents.
+
+Design rule throughout: every new default is keyed to a structural workflow
+property (crosses a session boundary; multiple writing roles) and has
+recorded omission conditions. Conditional defaults with opt-outs, never
+unconditional mandates, and never wording specific to one generated
+workflow.
+
+#### Changes
+
+- New — long-horizon leads get the **lead-alignment hook pair** by default:
+  a Stop-event socratic check (blocks a stop once via a one-shot circuit
+  breaker, then passes) and a throttled run-state staleness reminder. The
+  pair covers the two windows user-event reinjection cannot see: the
+  decision to stop, and long autonomous stretches with no user prompt or
+  compaction. Omission requires recording one of the listed conditions (no
+  persisted state, single-session, all-user-gate, no lead, no hooks
+  runtime).
+  - `references/lead-alignment-hooks.md` (new): rationale, load-bearing
+    invariants, registration and disclosure duties, omission conditions, and
+    genericized templates for all three scripts with ADAPT markers.
+  - SKILL.md touchpoints: Stage 3 enforcement-record paragraph, Stage 5
+    mapping bullet, Stage 6 invariant tests.
+- New — **enforcement derivation prose** for planners: no two workflows
+  share a failure surface, so the enforcement record is derived, not
+  copied. Planners ask what THIS workflow's evidence says goes wrong and
+  propose enforcement for exactly that. The default pair is a worked
+  example of the derivation, never a checklist.
+  - `agents/node-planner.md`; reviewer teeth in
+    `agents/material-reviewer.md` (imported guards without a local failure
+    mode = over-enforced; a credible local failure mode with no entry =
+    under-enforced).
+- Changed — **file-system-as-memory** is now a stated principle: the working
+  memory of a long-horizon workflow is the file system; context is a
+  decaying cache. Three commitments: persist event history (not just
+  position); state points, artifacts prove (bulky evidence at declared
+  paths, never inline); resume is reconciliation of state against on-disk
+  artifacts. Scoped out for single-session workflows.
+  - SKILL.md Stage 5; root-dispatch state-contract duty in
+    `agents/node-planner.md`.
+- Changed — **state-schema default flipped** for session-crossing state: it
+  now gets one machine-checkable schema as the single shape authority plus a
+  validation helper, and prose never restates the field list (two
+  authorities is how they diverge). Single-session state stays in prose.
+  - SKILL.md Stage 5 mapping bullet; reviewer teeth in
+    `agents/material-reviewer.md`.
+- New — multi-writer workflows get an **artifact-layout reference** rendered
+  from the graph's declared evidence paths: tree, write ownership per role,
+  which-file-wins precedence, scratch location. The graph stays the path
+  authority. Single-writer or few-artifact workflows skip it.
+  - SKILL.md Stage 5 mapping bullet; reviewer teeth.
+- New — user approval gates present a rendered **approval brief** instead of
+  raw artifacts. Approving a plan meant reading a formal YAML graph, a
+  traceability table, and a package plan through one compact
+  AskUserQuestion — not reviewable by a human. Now each gate renders a
+  fixed-structure brief (intro, Mermaid workflow visual, planned file tree,
+  agents table, hooks/enforcement table, tradeoffs, appendix links to the
+  raw artifacts), persists it under `reviews/`, presents it in full in the
+  conversation, then collects explicit approval via AskUserQuestion. The
+  brief is a rendered view, never a second authority: the plan brief is
+  submitted with the bundle to the whole-bundle review round, and a brief
+  claim the bundle does not support is a finding.
+  - `references/approval-briefs.md` (new): section orders for the Stage 1
+    requirements brief and Stage 4 plan brief, Mermaid conventions, the
+    rendered-view rule, and drift-review duties. SKILL.md Stage 1/4;
+    orchestration gate sections; rendered-view review section in
+    `agents/material-reviewer.md`.
+- Changed — generated skills now ship **`README.md` + `VERSION`** (the old
+  rule prohibited a README as unowned duplicated policy). The README is the
+  approved plan brief grown into permanent documentation, rendered from the
+  bundle and updated to what was actually built; `VERSION` is the package
+  changelog seeded at `1.0.0`, appended by update runs, separate from the
+  `v0`/`v1+` revision machinery. Both are drift-checked at the Stage 6
+  final gate; the chat delivery report shrinks to pointers. The brief
+  pattern also propagates as a conditional default: a generated workflow
+  with a user gate over a multi-artifact bundle inherits it, with recorded
+  omission conditions.
+  - Same reference; SKILL.md Stage 5 package list and Final delivery;
+    `orchestration/review-and-build.md` §2/§4/§5.
+
+#### Fixed — pave-init now satisfies its own defaults (self-audit)
+
+This release first prescribed the defaults for generated skills only. A
+same-day self-audit (mechanical gates, four independent exploration lenses,
+two independent adversarial reviewers, three review rounds) found the
+recursion gap. Repairs, in finding order:
+
+- **HIGH, round 1 (both reviewers):** the graph's declared run state and
+  resume path were unrealized. The resume endpoint pointed at a traversal
+  history nothing wrote; approvals were never persisted while resume was
+  forbidden from inferring approval from file existence; review-round bounds
+  lived only in context. Realized now:
+  - `run-state.json` written at initialization, appended at every checkpoint
+    moment; `schemas/run-state.schema.json` is the single shape authority;
+    `scripts/validate_run_state.py` checks it (stdlib fallback, never fails
+    closed on a missing dependency).
+  - Explorer reports persist to `exploration/<lens>.md`; approval, review,
+    validation, and forward-test records persist at the graph's declared
+    `reviews/` paths; `run-contract.md` written at initialization.
+  - Resume rewritten as reconciliation of state against artifacts.
+- **HIGH, round 1 (one reviewer):** the hook pair now registers in
+  pave-init's own frontmatter — stop-alignment check and staleness reminder,
+  adapted from the new reference, disclosed in the description, with
+  `tests/test_hooks.sh` covering every invariant (17/17).
+- **HIGH, round 2:** the blocking Stop hook could fire on runs the session
+  does not own. Hardened:
+  - Hooks are marker-authoritative: they act only on run state found via the
+    `.pave-init-run` ownership marker the lead writes at initialization. A
+    newest-by-mtime scan hit may belong to an abandoned run or another
+    session; it never blocks or nudges, and survives only for lead-driven
+    resume.
+  - Abandon/pause duty: the lead sets `terminal_classification.status`
+    (cleared on real resume), so a walked-away run cannot stay active
+    forever.
+  - Both hooks fail open explicitly on unparsable payloads via a parse
+    sentinel (a failed parse defaulted to an empty dict is indistinguishable
+    from a valid minimal payload).
+  - Both invariants folded into `references/lead-alignment-hooks.md` and its
+    templates, so generated skills inherit them.
+- **LOW repairs:** stale traceability rows re-pointed at the files that
+  carry the behavior (recovery edges now realized by an unexpected-outcomes
+  routing table in SKILL.md); `delivery_manifest_valid` re-styled `reviewed`
+  (nothing can mechanically validate a v0 manifest); the validation-runtime
+  check moved to Stage 1 so missing pyyaml/jsonschema surfaces before
+  planning spend; `pave_definition_valid`'s question no longer names the
+  wrong artifact; README brought current; stray caches removed.
+- **Recorded residuals (non-blocking, both reviewers concur):**
+  evolution-tier machinery legitimately excludes pave-init itself;
+  `validate_traceability.py` verifies row existence, not content;
+  the root-skeleton model pin has no recorded fallback; the
+  produced-but-never-consumed audit-trail evidences are intentional.
+
+#### Governance note
+
+The 1.1.0 defaults were adversarially reviewed after edit via the self-audit
+above, which is also their first exercised application. Their effect on
+generated skills stays unexercised until the next live pave-init run. The
+only graph changes are two check-level corrections (`pave_definition_valid`
+question wording; `delivery_manifest_valid` style) — no topology change.
+
+### 1.0.0 (2026-08-11)
+- New — generated skills now record an enforcement strength for every run-wide prohibition and costly-transition guard, and ship hooks when a prohibition must outlive its prose. Under- and over-enforcement are both review findings.
+  - Enforcement record in `skill-package-plan.md`; hook uses (observing, reinjection, blocking), trigger test, and actor scoping in `references/pave-patterns.md`; verbatim implementation in `agents/skill-builder.md`; per-hook pass/fail validation in Stage 6.
+- New — Stage 3 plans recursively across bounded contexts: a root skeleton, a planning frontier, and one Node Planner per boundary, with a persistent reviewer checking each boundary as it closes.
+  - `agents/node-planner.md` (replaces `agents/graph-planner.md`), `agents/graph-integrator.md` (lead guidance), frontier state in `planning/frontier.yaml`, five new canonical-graph nodes. An empty frontier costs nothing.
+- New — generated workflows are versioned: `v0` approved draft at delivery, immutable digest-pinned `v1` frozen immediately before first real execution, append-only `v2+` successors. Rollback derives a new successor from an older revision; `active_revision` never moves backward.
+  - `references/pave-revisions.md`, `scripts/freeze_revision.py` (freeze, verify, `--from-revision` rollback, symlink/hard-link rejection). v1 timing and rollback semantics converged with the Codex variant.
+- New — each generated skill declares an evolution tier: `static` (default, no revision machinery) or `evolving` (justified by a named usage loop; ships the freeze machinery and a bounded autonomous-revision envelope).
+  - Tier recorded at the root dispatch, reviewed symmetrically like the enforcement record, implemented verbatim by builders, validated in Stage 6.
+- New — `README.md` and this `VERSION` file. Package versions are separate from generated workflow `v0`/`v1+` revisions.

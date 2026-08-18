@@ -1,0 +1,886 @@
+pave:
+  version: "0.3.0"
+  name: pave_init
+  status: active
+  purpose: >-
+    Assess whether a system fits PAVE, design an approved concrete Graph Profile,
+    and build a validated Claude Code plugin (lead skill plus registered role
+    agents) that preserves the approved graph.
+  entrypoints: [initialize_run]
+
+  scope:
+    in:
+      - requirements interview and PAVE fitness judgment
+      - independent evidence collection from a system or process
+      - formal PAVE YAML planning and whole-bundle user approval
+      - Claude Code plugin construction, validation, adversarial review, and forward test
+    out:
+      - implicit invocation
+      - execution of the generated domain workflow during skill construction
+      - invention of missing domain capabilities or evidence
+      - automatic approval of a plan or fitness override
+
+  principles:
+    - interview before designing
+    - inspect available evidence before asking the user for discoverable facts
+    - keep the approved PAVE YAML authoritative during skill construction
+    - use the smallest sufficient realization for every node in the generated graph
+    - isolate independent exploration and non-overlapping build units
+    - reward accurate adversarial review rather than issue count
+    - require evidence and material impact for every blocking review finding
+    - distinguish package validation from domain correctness
+    - auto-complete only after final review and clean-room forward testing
+
+  roles:
+    lead:
+      purpose: Maintain run state, verify evidence, route outcomes, integrate outputs, and deliver the final skill.
+      authority: authoritative_for_run_state
+      avoids:
+        - approving the graph for the user
+        - changing approved graph meaning during construction
+    requirements_interviewer:
+      purpose: Establish the goal and classify the requirements it implies through short adaptive interview rounds.
+      authority: advisory
+      avoids:
+        - designing the graph before requirements approval
+    system_explorer:
+      purpose: Investigate one bounded system lens and report primary evidence without shared-file edits.
+      authority: evidentiary
+      avoids:
+        - writing approval artifacts
+        - proposing the complete graph
+    node_planner:
+      purpose: Plan one bounded parent contract and all its immediate children, proposing sibling interfaces together.
+      authority: authorship
+      avoids:
+        - changing ancestor or sibling interfaces
+        - writing approval artifacts or the frontier
+        - approving its own plan
+        - inventing missing runtime capability
+    material_reviewer:
+      purpose: Find only evidence-backed material defects in the plan or integrated skill.
+      authority: advisory_gate
+      independence:
+        - must not author the artifact under review
+      avoids:
+        - style preferences
+        - speculative risks
+        - invented requirements
+        - unsupported findings
+    skill_builder:
+      purpose: Implement one non-overlapping package unit without changing approved graph meaning.
+      authority: scoped_writer
+      avoids:
+        - editing files assigned to another builder
+        - resolving semantic gaps by assumption
+    forward_tester:
+      purpose: Use the generated skill in a clean room and report transferable instruction defects.
+      authority: evidentiary
+      independence:
+        - must not receive the intended answer or suspected defect
+    user_authority:
+      purpose: Approve requirements, fitness overrides, and the complete graph plan.
+      authority: final_for_scope_and_plan
+
+  evidence:
+    run_contract:
+      kind: observation
+      produced_by: initialize_run
+      subject: pave_init_run
+      artifact: run-contract.md
+    requirements_record:
+      kind: derivation
+      produced_by: interview_system
+      subject: requested_workflow
+      artifact: requirements.md
+    fitness_decision:
+      kind: judgment
+      produced_by: assess_pave_fitness
+      subject: requested_workflow
+      artifact: requirements.md#pave-fitness
+    fitness_override_record:
+      kind: judgment
+      produced_by: approve_fitness_override
+      subject: fitness_decision
+      artifact: requirements.md#fitness-override
+    exploration_reports:
+      kind: observation
+      produced_by: explore_system
+      subject: target_system
+      artifacts:
+        - exploration/*.md
+    system_map:
+      kind: derivation
+      produced_by: synthesize_exploration
+      subject: target_system
+      artifact: system-map.md
+    root_skeleton:
+      kind: derivation
+      produced_by: plan_root_skeleton
+      subject: requested_workflow
+      artifact: planning/root-skeleton.pave.yaml
+      scope: root contract plus every root-level node interface; working state, never approved by existence
+    frontier_record:
+      kind: observation
+      produced_by:
+        - plan_root_skeleton
+        - resynchronize_skeleton
+      subject: planning_frontier
+      artifact: planning/frontier.yaml
+    boundary_drafts:
+      kind: derivation
+      produced_by: elaborate_boundary
+      subject: root_skeleton
+      artifacts:
+        - planning/boundaries/*
+    boundary_reviews:
+      kind: judgment
+      produced_by: review_boundary
+      subject: boundary_drafts
+      artifacts:
+        - reviews/boundary-*.md
+    workflow_definition:
+      kind: derivation
+      produced_by:
+        - assemble_graph_plan
+        - repair_graph_plan
+      subject: requested_workflow
+      artifact: workflow.draft.pave.yaml
+      scope: root draft Graph Profile plus any child draft profiles justified through the realization ladder; approved as v0, frozen at delivery
+    traceability_record:
+      kind: derivation
+      produced_by:
+        - assemble_graph_plan
+        - repair_graph_plan
+      subject: workflow_definition
+      artifact: traceability.md
+    package_plan:
+      kind: derivation
+      produced_by:
+        - assemble_graph_plan
+        - repair_graph_plan
+      subject: generated_skill
+      artifact: skill-package-plan.md
+    plan_review:
+      kind: judgment
+      produced_by: review_graph_plan
+      subject: approval_bundle
+      artifact: reviews/plan-review.md
+    plan_approval:
+      kind: judgment
+      produced_by: approve_graph_plan
+      subject: approval_bundle
+      artifact: reviews/user-plan-approval.md
+    build_unit_results:
+      kind: observation
+      produced_by: build_skill_component
+      subject: generated_skill
+      artifacts:
+        - generated-skill-units/*
+    generated_skill_package:
+      kind: observation
+      produced_by: integrate_skill
+      subject: generated_skill
+      artifact: generated-skill/
+    validation_results:
+      kind: observation
+      produced_by: validate_integrated_skill
+      subject: generated_skill_package
+      artifact: reviews/validation.md
+    final_skill_review:
+      kind: judgment
+      produced_by: review_integrated_skill
+      subject: generated_skill_package
+      artifact: reviews/final-review.md
+    forward_test_result:
+      kind: observation
+      produced_by: forward_test_skill
+      subject: generated_skill_package
+      artifact: reviews/forward-test.md
+    delivery_manifest:
+      kind: observation
+      produced_by: finalize_delivery
+      subject: workflow_definition
+      artifact: workflow-manifest.yaml
+      scope: v0 draft record with no active revision; v1 freezes before first real execution per references/pave-revisions.md
+
+  checks:
+    manually_invoked:
+      style: mechanical
+      question: Did the user explicitly invoke /pave-init?
+      on_failure_route: closed_unaccepted
+    requirements_complete:
+      style: socratic
+      question: Are topology-changing and acceptance-changing requirements resolved or explicitly recorded as gaps?
+      evaluated_by: requirements_interviewer
+      on_failure_route: interview_system
+    requirements_and_fit_approved:
+      style: reviewed
+      question: Did the user explicitly approve the requirements and a fit or fit-with-gaps verdict?
+      evaluated_by: user_authority
+      on_failure_route: pause_for_user_authority
+    fitness_override_approved:
+      style: reviewed
+      question: >-
+        Did the user explicitly approve the requirements record, original not-fit verdict,
+        override rationale, and accepted risks?
+      evaluated_by: user_authority
+      on_failure_route: pause_for_user_authority
+    exploration_coverage_complete:
+      style: reviewed
+      question: Did every selected exploration lens return evidence or a clearly scoped gap?
+      evaluated_by: lead
+      on_failure_route: wait_for_exploration_join
+    skeleton_complete:
+      style: socratic
+      question: Does every root node have an interface and routed outcomes, with acceptance distinct from closure, recovery routes present, and the run-wide enforcement record drafted?
+      evaluated_by: lead
+      on_failure_route: plan_root_skeleton
+    boundary_review_passed:
+      style: reviewed
+      question: Did the planning reviewer pass this boundary unit against the frozen root contract and previously reviewed siblings?
+      evaluated_by: material_reviewer
+      on_failure_route: elaborate_boundary
+    frontier_closed:
+      style: mechanical
+      question: Is every frontier entry reviewed, or its exhaustion recorded with a routed blocked or replan outcome?
+      on_failure_route: wait_for_frontier_join
+    pave_definition_valid:
+      style: mechanical
+      question: Does the graph definition (workflow.draft.pave.yaml at plan time; the frozen copy an update run starts from) pass the PAVE schema and graph-reference validator, including every referenced child profile and composition boundary?
+      on_failure_route: assemble_graph_plan
+    plan_material_review_passed:
+      style: reviewed
+      question: Did a separate material reviewer find no verified BLOCKING or HIGH plan defect?
+      evaluated_by: material_reviewer
+      on_failure_route: repair_graph_plan
+    whole_bundle_approved:
+      style: reviewed
+      question: Did the user explicitly approve the complete requirements, map, YAML, traceability, and package plan bundle?
+      evaluated_by: user_authority
+      on_failure_route: pause_for_user_authority
+    all_build_units_complete:
+      style: mechanical
+      question: Did every approved non-overlapping build unit report a terminal result?
+      on_failure_route: wait_for_build_join
+    integrated_validation_passed:
+      style: mechanical
+      question: Did skill, PAVE, traceability, helper, and reference validation pass?
+      on_failure_route: repair_integrated_skill
+    final_material_review_passed:
+      style: reviewed
+      question: Did a fresh material reviewer find no verified BLOCKING or HIGH integrated-skill defect?
+      evaluated_by: material_reviewer
+      on_failure_route: repair_integrated_skill
+    forward_test_acceptable:
+      style: reviewed
+      question: Did the clean-room test complete without a transferable BLOCKING or HIGH skill defect?
+      evaluated_by: lead
+      on_failure_route: repair_integrated_skill
+    delivery_manifest_valid:
+      style: reviewed
+      question: Does the manifest record the approved v0 draft with no active revision and an empty history, and does the generated skill state its v1 freeze boundary?
+      evaluated_by: lead
+      on_failure_route: finalize_delivery
+
+  nodes:
+    initialize_run:
+      intent: execute
+      purpose: Confirm manual invocation and establish the run workspace and output boundary.
+      roles: [lead]
+      produces: [run_contract]
+      outcomes:
+        run_ready: {}
+        resumable_run_found: {}
+        output_conflict: {}
+
+    interview_system:
+      intent: explore
+      purpose: Establish the user's goal and close its sufficiency gaps through source inspection and adaptive interview.
+      roles: [requirements_interviewer, lead]
+      produces: [requirements_record]
+      outcomes:
+        requirements_ready: {}
+        more_answers_needed: {}
+        evidence_gap: {}
+
+    assess_pave_fitness:
+      intent: review
+      purpose: Decide whether PAVE is useful for the requested system and disclose gaps.
+      roles: [lead]
+      consumes: [requirements_record]
+      produces: [fitness_decision]
+      outcomes:
+        fit: {}
+        fit_with_gaps: {}
+        not_fit: {}
+
+    approve_requirements_and_fit:
+      intent: review
+      purpose: Obtain user authority for requirements and a fit or fit-with-gaps verdict.
+      roles: [user_authority]
+      consumes: [requirements_record, fitness_decision]
+      outcomes:
+        approved: {}
+        revision_requested: {}
+        stopped: {}
+
+    approve_fitness_override:
+      intent: review
+      purpose: Obtain explicit user authority to continue after a not-fit verdict.
+      roles: [user_authority]
+      consumes: [requirements_record, fitness_decision]
+      produces: [fitness_override_record]
+      outcomes:
+        override_approved: {}
+        revision_requested: {}
+        stopped: {}
+
+    explore_system:
+      intent: explore
+      purpose: Investigate one approved evidence lens without shared-file edits.
+      roles: [system_explorer]
+      consumes: [requirements_record]
+      produces: [exploration_reports]
+      instance_per: exploration_lenses
+      outcomes:
+        findings_ready: {}
+        bounded_gap: {}
+        critical_gap: {}
+
+    synthesize_exploration:
+      intent: plan
+      purpose: Verify explorer claims and produce one evidence-grounded system map.
+      roles: [lead]
+      consumes: [exploration_reports]
+      produces: [system_map]
+      outcomes:
+        map_ready: {}
+        contradiction_requires_research: {}
+        planning_blocked: {}
+
+    plan_root_skeleton:
+      intent: plan
+      purpose: Freeze the root contract and produce the root skeleton with every child marked atomic or needs_elaboration.
+      roles: [node_planner, lead]
+      consumes: [requirements_record, system_map]
+      produces: [root_skeleton, frontier_record]
+      outcomes:
+        skeleton_ready: {}
+        more_evidence_needed: {}
+        fitness_changed: {}
+
+    elaborate_boundary:
+      intent: plan
+      purpose: Plan one frontier boundary — one frozen parent contract and its immediate children — without changing ancestor or sibling interfaces.
+      roles: [node_planner]
+      consumes: [root_skeleton, frontier_record]
+      produces: [boundary_drafts]
+      instance_per: frontier_entries
+      outcomes:
+        boundary_planned: {}
+        interface_conflict: {}
+        more_evidence_needed: {}
+
+    review_boundary:
+      intent: review
+      purpose: Judge one closed boundary unit against the frozen root contract and previously reviewed siblings.
+      roles: [material_reviewer]
+      consumes: [boundary_drafts, root_skeleton]
+      produces: [boundary_reviews]
+      instance_per: frontier_entries
+      outcomes:
+        boundary_passed: {}
+        boundary_revision_required: {}
+
+    resynchronize_skeleton:
+      intent: plan
+      purpose: Resolve a reported interface conflict at the skeleton level and mark dependent reviewed boundaries stale.
+      roles: [lead]
+      consumes: [root_skeleton, frontier_record, boundary_drafts]
+      produces: [frontier_record]
+      outcomes:
+        resynchronized: {}
+        root_contract_change_required: {}
+        frontier_exhausted: {}
+      activities:
+        - receive interface conflicts, later-stage semantic gaps, and requested revisions
+        - resolve at the skeleton level and mark dependent reviewed boundaries stale
+        - redispatch only the narrowest affected boundaries
+
+    assemble_graph_plan:
+      intent: plan
+      purpose: Merge reviewed boundaries with the skeleton, run the global simplicity pass, mark runtime bindings, merge the enforcement record, and produce the complete approval bundle.
+      roles: [lead]
+      consumes: [root_skeleton, boundary_drafts, boundary_reviews, frontier_record]
+      produces: [workflow_definition, traceability_record, package_plan]
+      outcomes:
+        bundle_ready: {}
+        integration_conflict_found: {}
+
+    review_graph_plan:
+      intent: review
+      purpose: Find only evidence-backed material defects in the approval bundle.
+      roles: [material_reviewer]
+      consumes: [workflow_definition, traceability_record, package_plan]
+      produces: [plan_review]
+      outcomes:
+        passed: {}
+        revision_required: {}
+
+    repair_graph_plan:
+      intent: plan
+      purpose: Repair verified material plan defects without hiding semantic changes.
+      roles: [node_planner, lead]
+      consumes: [plan_review]
+      produces: [workflow_definition, traceability_record, package_plan]
+      outcomes:
+        repaired: {}
+        semantic_change_required: {}
+        repair_blocked: {}
+
+    approve_graph_plan:
+      intent: review
+      purpose: Obtain explicit user approval for the complete reviewed bundle.
+      roles: [user_authority]
+      consumes: [workflow_definition, traceability_record, package_plan, plan_review]
+      produces: [plan_approval]
+      outcomes:
+        approved: {}
+        revision_requested: {}
+        rejected: {}
+
+    build_skill_component:
+      intent: execute
+      purpose: Implement one approved non-overlapping skill package unit.
+      roles: [skill_builder]
+      consumes: [workflow_definition, traceability_record, package_plan]
+      instance_per: build_units
+      outcomes:
+        unit_ready: {}
+        build_failed: {}
+        semantic_gap_found: {}
+
+    integrate_skill:
+      intent: execute
+      purpose: Integrate all build units with one writer for shared files.
+      roles: [lead]
+      consumes: [build_unit_results]
+      produces: [generated_skill_package]
+      outcomes:
+        package_ready: {}
+        integration_conflict: {}
+        semantic_gap_found: {}
+
+    validate_integrated_skill:
+      intent: review
+      purpose: Run mechanical package, graph, traceability, reference, and helper checks.
+      roles: [lead]
+      consumes: [generated_skill_package]
+      produces: [validation_results]
+      outcomes:
+        validation_passed: {}
+        repair_required: {}
+        validation_blocked: {}
+
+    review_integrated_skill:
+      intent: review
+      purpose: Find only evidence-backed material defects in the exact integrated skill.
+      roles: [material_reviewer]
+      consumes: [generated_skill_package, validation_results]
+      produces: [final_skill_review]
+      outcomes:
+        passed: {}
+        revision_required: {}
+
+    repair_integrated_skill:
+      intent: execute
+      purpose: Repair verified package or review defects without changing approved graph meaning.
+      roles: [skill_builder, lead]
+      consumes: [validation_results, final_skill_review, forward_test_result]
+      outcomes:
+        repaired: {}
+        semantic_change_required: {}
+        repair_blocked: {}
+
+    forward_test_skill:
+      intent: explore
+      purpose: Use the generated skill in a clean room and identify transferable instruction defects.
+      roles: [forward_tester]
+      consumes: [generated_skill_package]
+      produces: [forward_test_result]
+      outcomes:
+        passed: {}
+        transferable_defect: {}
+        external_gap_only: {}
+
+    finalize_delivery:
+      intent: execute
+      purpose: Record the approved v0 draft in the manifest, publish the validated skill, and report evidence, reviews, tests, and known gaps.
+      roles: [lead]
+      consumes: [generated_skill_package, validation_results, final_skill_review, forward_test_result, workflow_definition]
+      produces: [delivery_manifest]
+      activities:
+        - write workflow-manifest.yaml recording the v0 draft with no active revision
+        - state the v1 freeze boundary; clean-room testing creates no revision and claims no real-use evidence
+        - never freeze v1 at delivery; the executor freezes immediately before the first real execution
+      outcomes:
+        delivered: {}
+        reporting_failed: {}
+
+  edges:
+    - id: initialize_ready_to_interview
+      from: initialize_run.run_ready
+      to: interview_system
+      checks: [manually_invoked]
+    - id: initialize_resume_to_checkpoint
+      from: initialize_run.resumable_run_found
+      to: resume_from_checkpoint
+      checks: [manually_invoked]
+    - id: initialize_conflict_to_pause
+      from: initialize_run.output_conflict
+      to: pause_for_user_authority
+
+    - id: interview_ready_to_fitness
+      from: interview_system.requirements_ready
+      to: assess_pave_fitness
+      checks: [requirements_complete]
+    - id: interview_more_answers
+      from: interview_system.more_answers_needed
+      to: interview_system
+    - id: interview_evidence_gap
+      from: interview_system.evidence_gap
+      to: interview_system
+
+    - id: fitness_fit_to_approval
+      from: assess_pave_fitness.fit
+      to: approve_requirements_and_fit
+    - id: fitness_gaps_to_approval
+      from: assess_pave_fitness.fit_with_gaps
+      to: approve_requirements_and_fit
+    - id: fitness_not_fit_to_override
+      from: assess_pave_fitness.not_fit
+      to: approve_fitness_override
+
+    - id: requirements_approved_to_exploration
+      from: approve_requirements_and_fit.approved
+      to:
+        fan_out: explore_system
+        for_each: exploration_lenses
+      checks: [requirements_and_fit_approved]
+    - id: requirements_revision_to_interview
+      from: approve_requirements_and_fit.revision_requested
+      to: interview_system
+    - id: requirements_stopped_to_close
+      from: approve_requirements_and_fit.stopped
+      to: closed_unaccepted
+
+    - id: override_approved_to_exploration
+      from: approve_fitness_override.override_approved
+      to:
+        fan_out: explore_system
+        for_each: exploration_lenses
+      checks: [fitness_override_approved]
+    - id: override_revision_to_interview
+      from: approve_fitness_override.revision_requested
+      to: interview_system
+    - id: override_stopped_to_close
+      from: approve_fitness_override.stopped
+      to: closed_unaccepted
+
+    - id: exploration_ready_to_join
+      from: explore_system.findings_ready
+      to: wait_for_exploration_join
+    - id: exploration_gap_to_join
+      from: explore_system.bounded_gap
+      to: wait_for_exploration_join
+    - id: exploration_critical_gap_to_pause
+      from: explore_system.critical_gap
+      to: pause_for_user_authority
+
+    - id: synthesis_ready_to_skeleton
+      from: synthesize_exploration.map_ready
+      to: plan_root_skeleton
+      checks: [exploration_coverage_complete]
+    - id: synthesis_contradiction_to_explore
+      from: synthesize_exploration.contradiction_requires_research
+      to: explore_system
+    - id: synthesis_blocked_to_pause
+      from: synthesize_exploration.planning_blocked
+      to: pause_for_user_authority
+
+    - id: skeleton_ready_to_frontier
+      from: plan_root_skeleton.skeleton_ready
+      to:
+        fan_out: elaborate_boundary
+        for_each: frontier_entries
+      checks: [skeleton_complete]
+      notes: An empty frontier routes directly to assemble_graph_plan through the join.
+    - id: skeleton_evidence_gap_to_explore
+      from: plan_root_skeleton.more_evidence_needed
+      to: explore_system
+    - id: skeleton_fitness_changed_to_assess
+      from: plan_root_skeleton.fitness_changed
+      to: assess_pave_fitness
+
+    - id: boundary_planned_to_review
+      from: elaborate_boundary.boundary_planned
+      to: review_boundary
+    - id: boundary_conflict_to_resync
+      from: elaborate_boundary.interface_conflict
+      to: resynchronize_skeleton
+    - id: boundary_evidence_gap_to_explore
+      from: elaborate_boundary.more_evidence_needed
+      to: explore_system
+
+    - id: boundary_passed_to_join
+      from: review_boundary.boundary_passed
+      to: wait_for_frontier_join
+      checks: [boundary_review_passed]
+    - id: boundary_revision_to_elaborate
+      from: review_boundary.boundary_revision_required
+      to: elaborate_boundary
+
+    - id: resync_done_to_elaborate
+      from: resynchronize_skeleton.resynchronized
+      to: elaborate_boundary
+      notes: Redispatch only stale and still-pending boundaries.
+    - id: resync_root_change_to_pause
+      from: resynchronize_skeleton.root_contract_change_required
+      to: pause_for_user_authority
+    - id: resync_exhausted_to_pause
+      from: resynchronize_skeleton.frontier_exhausted
+      to: pause_for_user_authority
+
+    - id: assembly_ready_to_review
+      from: assemble_graph_plan.bundle_ready
+      to: review_graph_plan
+      checks: [frontier_closed, pave_definition_valid]
+    - id: assembly_conflict_to_resync
+      from: assemble_graph_plan.integration_conflict_found
+      to: resynchronize_skeleton
+
+    - id: plan_review_pass_to_approval
+      from: review_graph_plan.passed
+      to: approve_graph_plan
+      checks: [plan_material_review_passed]
+    - id: plan_review_revision_to_repair
+      from: review_graph_plan.revision_required
+      to: repair_graph_plan
+
+    - id: plan_repair_ready_to_review
+      from: repair_graph_plan.repaired
+      to: review_graph_plan
+      checks: [pave_definition_valid]
+    - id: plan_repair_semantic_change_to_resync
+      from: repair_graph_plan.semantic_change_required
+      to: resynchronize_skeleton
+    - id: plan_repair_blocked_to_pause
+      from: repair_graph_plan.repair_blocked
+      to: pause_for_user_authority
+
+    - id: plan_approved_to_build
+      from: approve_graph_plan.approved
+      to:
+        fan_out: build_skill_component
+        for_each: build_units
+      checks: [whole_bundle_approved]
+    - id: plan_revision_to_resync
+      from: approve_graph_plan.revision_requested
+      to: resynchronize_skeleton
+    - id: plan_rejected_to_close
+      from: approve_graph_plan.rejected
+      to: closed_unaccepted
+
+    - id: build_unit_ready_to_join
+      from: build_skill_component.unit_ready
+      to: wait_for_build_join
+    - id: build_failure_retry
+      from: build_skill_component.build_failed
+      to: build_skill_component
+    - id: build_semantic_gap_to_resync
+      from: build_skill_component.semantic_gap_found
+      to: resynchronize_skeleton
+
+    - id: integration_ready_to_validation
+      from: integrate_skill.package_ready
+      to: validate_integrated_skill
+      checks: [all_build_units_complete]
+    - id: integration_conflict_to_repair
+      from: integrate_skill.integration_conflict
+      to: repair_integrated_skill
+    - id: integration_semantic_gap_to_resync
+      from: integrate_skill.semantic_gap_found
+      to: resynchronize_skeleton
+
+    - id: validation_pass_to_final_review
+      from: validate_integrated_skill.validation_passed
+      to: review_integrated_skill
+      checks: [integrated_validation_passed]
+    - id: validation_repair_to_repair
+      from: validate_integrated_skill.repair_required
+      to: repair_integrated_skill
+    - id: validation_blocked_to_pause
+      from: validate_integrated_skill.validation_blocked
+      to: pause_for_user_authority
+
+    - id: final_review_pass_to_forward_test
+      from: review_integrated_skill.passed
+      to: forward_test_skill
+      checks: [final_material_review_passed]
+    - id: final_review_revision_to_repair
+      from: review_integrated_skill.revision_required
+      to: repair_integrated_skill
+
+    - id: skill_repair_ready_to_validation
+      from: repair_integrated_skill.repaired
+      to: validate_integrated_skill
+    - id: skill_repair_semantic_change_to_resync
+      from: repair_integrated_skill.semantic_change_required
+      to: resynchronize_skeleton
+    - id: skill_repair_blocked_to_pause
+      from: repair_integrated_skill.repair_blocked
+      to: pause_for_user_authority
+
+    - id: forward_pass_to_delivery
+      from: forward_test_skill.passed
+      to: finalize_delivery
+      checks: [forward_test_acceptable]
+    - id: forward_defect_to_repair
+      from: forward_test_skill.transferable_defect
+      to: repair_integrated_skill
+    - id: forward_external_gap_to_delivery
+      from: forward_test_skill.external_gap_only
+      to: finalize_delivery
+
+    - id: delivery_complete
+      from: finalize_delivery.delivered
+      to: complete
+      checks: [delivery_manifest_valid]
+    - id: delivery_retry
+      from: finalize_delivery.reporting_failed
+      to: finalize_delivery
+
+  control_endpoints:
+    resume_from_checkpoint:
+      kind: return
+      meaning: Reopen the node or edge after the last satisfied check in persisted traversal history.
+      state_pointer: traversal_history
+    wait_for_exploration_join:
+      kind: join
+      meaning: Wait until every selected exploration lens returns findings or a bounded gap.
+      resume_at: synthesize_exploration
+    wait_for_frontier_join:
+      kind: join
+      meaning: Wait until every frontier entry is reviewed or its exhaustion is recorded; an empty frontier passes immediately.
+      resume_at: assemble_graph_plan
+    wait_for_build_join:
+      kind: join
+      meaning: Wait until every approved build unit reports a terminal result.
+      resume_at: integrate_skill
+    pause_for_user_authority:
+      kind: pause
+      meaning: Preserve the run until a user decision or missing critical input is available.
+      resumable: true
+    closed_unaccepted:
+      kind: terminal
+      meaning: Close without generating a skill because the user stopped or rejected the plan.
+      terminal_status: closed_unaccepted
+    complete:
+      kind: terminal
+      meaning: The generated skill passed validation, material review, and clean-room forward testing.
+      terminal_status: accepted
+
+  state:
+    required:
+      - run_identity
+      - target_system
+      - planning_workspace
+      - generated_skill_name
+      - generated_skill_output
+      - requirements_status
+      - fitness_verdict
+      - fitness_override
+      - exploration_lenses
+      - explorer_results
+      - frontier_entries
+      - boundary_review_results
+      - approval_bundle_revisions
+      - plan_review_rounds
+      - user_plan_approval
+      - build_units
+      - validation_results
+      - final_review_rounds
+      - forward_test_result
+      - delivery_manifest_state
+      - terminal_classification
+      - traversal_history
+    checkpoint:
+      after:
+        - every user decision
+        - every agent result
+        - every review round
+        - every integrated validation run
+    authority:
+      writer: lead
+      approval_source: explicit_user_response
+
+  completion:
+    accepted_when:
+      - requirements and fitness received explicit user approval
+      - material-reviewed approval bundle received explicit user approval
+      - generated skill preserves the approved graph
+      - skill, PAVE, traceability, and helper validation pass
+      - final material review has no verified BLOCKING or HIGH finding
+      - clean-room forward test has no transferable BLOCKING or HIGH defect
+      - the manifest records the approved v0 draft, its freeze boundary is stated, and history is untouched
+    closed_unaccepted_when:
+      - user stops after a not-fit verdict
+      - user rejects the graph plan
+
+  x_concurrency:
+    exploration:
+      cardinality: 2_to_4
+      isolation: read_only_no_shared_writes
+      join: all_selected_lenses_terminal
+    boundary_planning:
+      cardinality: derived_from_frontier_entries
+      isolation: one_planner_per_boundary_frozen_sibling_interfaces
+      join: all_frontier_entries_reviewed_or_exhausted
+    construction:
+      cardinality: derived_from_non_overlapping_build_units
+      isolation: one_writer_per_file
+      join: all_approved_units_terminal
+    review:
+      plan_and_final_reviewers: fresh_between_gates
+      reviewer_reuse: same_reviewer_within_gate_repair_rounds
+
+  x_join_semantics:
+    wait_for_exploration_join:
+      resume_at: synthesize_exploration
+      condition: every selected exploration instance returned findings_ready or bounded_gap
+    wait_for_frontier_join:
+      resume_at: assemble_graph_plan
+      condition: every frontier entry reached reviewed, or exhaustion recorded and routed; empty frontier passes immediately
+    wait_for_build_join:
+      resume_at: integrate_skill
+      condition: every approved build unit returned unit_ready
+
+  x_runtime_binding:
+    runtime: claude_code
+    dispatch:
+      one_shot_workers: Agent tool with subagent_type and prompt, no name
+      gate_reviewers: named pave-init:pave-material-reviewer, run_in_background, continued via SendMessage within one gate
+      builder_isolation: worktree when the output directory is inside a git repository
+    user_authority: AskUserQuestion for bounded decisions and approvals, free text for open discovery
+    invocation: manual-only /pave-init, implicit triggering forbidden in the skill description
+    validators:
+      pave: scripts/validate_pave.py
+      traceability: scripts/validate_traceability.py
+      revision: scripts/freeze_revision.py
+      dependencies: [python3, jsonschema, pyyaml]
+
+  x_review_policy:
+    materiality_warning: carried by the pave-material-reviewer agent definition (plugin agents/pave-material-reviewer.md), pinned as its system prompt
+    blocking_severities: [BLOCKING, HIGH]
+    unsupported_finding_disposition: FALSE_POSITIVE

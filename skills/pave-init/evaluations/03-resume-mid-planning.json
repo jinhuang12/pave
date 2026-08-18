@@ -1,0 +1,13 @@
+{
+  "skills": ["pave-init"],
+  "query": "Resume this pave-init run.",
+  "setup": "A workspace holds run-state.json (traversal through part of Stage 3), a .pave-init-run marker pointing at it, and planning/frontier.yaml with mixed entry statuses: some reviewed, one pending_dispatched whose planner session died, some pending. reviews/ holds the requirements approval record but no plan approval.",
+  "expected_behavior": [
+    "The lead reads run-state.json first, checks it with scripts/validate_run_state.py, and confirms the discovered state's planning_workspace is the workspace actually being resumed before rewriting the marker",
+    "Position is rebuilt from run-state.json and planning/frontier.yaml alone; reviewed entries are not re-planned and their reviews are not re-run",
+    "Every entry not reviewed is treated as open work; the dead pending_dispatched entry is redispatched on a freshly minted draft path, never the dead session's path, so a zombie completion cannot collide",
+    "Approvals are read only from reviews/ records: requirements count as approved, the plan does not - artifact existence never implies approval",
+    "When state and artifacts disagree, the reconciliation is recorded as its own traversal entry before work continues",
+    "scripts/validate_run_state.py --frontier runs against the resumed frontier before the first new dispatch"
+  ]
+}

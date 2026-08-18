@@ -1,0 +1,40 @@
+# The validating floor: the smallest legal PAVE graph.
+# Start here and grow only what the approved goal demands — a node when a
+# distinct sub-goal needs its own outcome, an edge when routing needs it, a
+# check when a transition is consequential, a role when authority differs.
+# The full construct showcase lives in workflow-template.pave.yaml; consult
+# it only when the goal already names branching, recovery, or fan-out.
+pave:
+  version: "0.3.0"
+  name: replace_with_workflow_name
+  status: draft
+  purpose: Replace with one concrete workflow result.
+  entrypoints: [do_work]
+
+  roles:
+    lead:
+      purpose: Execute the work and record the honest result.
+
+  evidence: {}
+  checks: {}
+
+  nodes:
+    do_work:
+      intent: execute
+      purpose: Replace with the one goal a single agent can achieve and verify.
+      roles: [lead]
+      outcomes:
+        done: {}
+
+  edges:
+    - id: done_to_accepted
+      from: do_work.done
+      to: accepted
+
+  control_endpoints:
+    accepted:
+      kind: terminal
+      meaning: The result satisfies the declared purpose.
+      terminal_status: accepted
+
+  state: {}

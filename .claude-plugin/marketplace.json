@@ -1,0 +1,15 @@
+{
+  "name": "jinhuang12-plugins",
+  "description": "Plugins by jinhuang12: pave-init builds validated, graph-based Claude Code workflow plugins.",
+  "owner": {
+    "name": "jinhuang12"
+  },
+  "plugins": [
+    {
+      "name": "pave-init",
+      "source": "./",
+      "description": "Create a PAVE-based Claude Code workflow plugin (a lead skill plus registered role agents) from a stated goal, with adversarial review gates.",
+      "version": "2.1.1"
+    }
+  ]
+}

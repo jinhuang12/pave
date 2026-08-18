@@ -1,0 +1,193 @@
+# Construct showcase, NOT the default starting shape. This file demonstrates
+# every major PAVE construct — multiple roles, evidence, checks, a review
+# loop, failure investigation, recovery routing — as one connected graph.
+# Do not adapt it by renaming nodes: the validating floor is 1 role / 1 node /
+# 1 outcome / 1 edge / 1 terminal (references/workflow-minimal.pave.yaml).
+# Start from the floor and add a construct only when the approved goal
+# demands it; consult this file to see how that construct is expressed.
+pave:
+  version: "0.3.0"
+  name: replace_with_workflow_name
+  status: draft
+  purpose: Replace with one concrete workflow result.
+  entrypoints: [understand_target]
+
+  scope:
+    in: []
+    out: []
+
+  principles: []
+
+  roles:
+    lead:
+      purpose: Maintain workflow state and route declared outcomes.
+    investigator:
+      purpose: Gather evidence without approving the final result.
+    implementer:
+      purpose: Produce or repair the candidate.
+    reviewer:
+      purpose: Judge consequential claims from current evidence.
+
+  evidence:
+    target_record:
+      kind: observation
+      produced_by: understand_target
+      subject: requested_target
+      artifact: artifacts/target.md
+    candidate_revision:
+      kind: observation
+      produced_by: implement_candidate
+      subject: current_candidate
+      artifact: artifacts/candidate.json
+    review_verdict:
+      kind: judgment
+      produced_by: review_candidate
+      subject: current_candidate
+      artifact: artifacts/review.md
+
+  checks:
+    target_is_clear:
+      style: socratic
+      question: Is the target concrete enough to guide work and acceptance?
+      evaluated_by: lead
+      # A check on an outcome's only edge is a designed stop when it fails:
+      # it must name the route the run takes instead (pave-yaml.md section 9).
+      on_failure_route: understand_target
+    evidence_is_current:
+      style: reviewed
+      question: Does the evidence apply to the exact current candidate and target?
+      evaluated_by: reviewer
+      on_failure_route: understand_target
+
+  nodes:
+    understand_target:
+      intent: explore
+      purpose: Establish the target, scope, and available evidence.
+      roles: [lead, investigator]
+      produces: [target_record]
+      outcomes:
+        target_ready: {}
+        more_information_needed: {}
+        unsuitable: {}
+
+    plan_candidate:
+      intent: plan
+      purpose: Select an evidence-backed candidate approach.
+      roles: [lead]
+      consumes: [target_record]
+      outcomes:
+        plan_ready: {}
+        more_evidence_needed: {}
+
+    implement_candidate:
+      intent: execute
+      purpose: Implement the approved candidate approach.
+      roles: [implementer]
+      produces: [candidate_revision]
+      outcomes:
+        candidate_ready: {}
+        implementation_failed: {}
+
+    investigate_failure:
+      intent: explore
+      purpose: Determine why implementation or review failed.
+      roles: [investigator]
+      outcomes:
+        repair_known: {}
+        replan_required: {}
+        cause_unresolved: {}
+
+    review_candidate:
+      intent: review
+      purpose: Decide whether current evidence supports acceptance.
+      roles: [reviewer]
+      consumes: [candidate_revision]
+      produces: [review_verdict]
+      outcomes:
+        accepted: {}
+        repair_needed: {}
+        investigation_needed: {}
+        blocked: {}
+
+  edges:
+    - id: target_ready_to_plan
+      from: understand_target.target_ready
+      to: plan_candidate
+      checks: [target_is_clear]
+    - id: target_more_information
+      from: understand_target.more_information_needed
+      to: understand_target
+    - id: target_unsuitable_to_close
+      from: understand_target.unsuitable
+      to: closed_unaccepted
+    - id: plan_ready_to_implement
+      from: plan_candidate.plan_ready
+      to: implement_candidate
+    - id: plan_more_evidence_to_target
+      from: plan_candidate.more_evidence_needed
+      to: understand_target
+    - id: candidate_ready_to_review
+      from: implement_candidate.candidate_ready
+      to: review_candidate
+      checks: [evidence_is_current]
+    - id: implementation_failure_to_investigation
+      from: implement_candidate.implementation_failed
+      to: investigate_failure
+    - id: known_repair_to_implementation
+      from: investigate_failure.repair_known
+      to: implement_candidate
+    - id: failure_replan_to_plan
+      from: investigate_failure.replan_required
+      to: plan_candidate
+    - id: unresolved_cause_to_pause
+      from: investigate_failure.cause_unresolved
+      to: paused
+    - id: review_accept_to_terminal
+      from: review_candidate.accepted
+      to: accepted
+    - id: review_repair_to_implementation
+      from: review_candidate.repair_needed
+      to: implement_candidate
+    - id: review_investigate_to_failure
+      from: review_candidate.investigation_needed
+      to: investigate_failure
+    - id: review_blocked_to_terminal
+      from: review_candidate.blocked
+      to: blocked
+
+  control_endpoints:
+    accepted:
+      kind: terminal
+      meaning: The exact candidate satisfies declared acceptance conditions.
+      terminal_status: accepted
+    closed_unaccepted:
+      kind: terminal
+      meaning: The workflow closed without accepting a candidate.
+      terminal_status: closed_unaccepted
+    blocked:
+      kind: terminal
+      meaning: Required evidence, capability, resource, or authority is unavailable.
+      terminal_status: blocked
+    paused:
+      kind: pause
+      meaning: Preserve state until the unresolved cause or authority is available.
+      resumable: true
+
+  state:
+    required:
+      - workflow_identity
+      - frozen_target
+      - active_node_runs
+      - completed_outcomes
+      - evidence_references
+      - traversal_history
+      - open_questions
+      - terminal_classification
+    checkpoint:
+      after_every_consequential_transition: true
+
+  completion:
+    acceptance: Exact candidate passes declared review under the frozen target.
+    closure: Workflow records an honest terminal result and preserves open risks.
+
+  extensions: {}

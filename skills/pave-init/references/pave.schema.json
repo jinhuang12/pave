@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pave.dev/schema/0.3.0/pave.schema.json",
+  "title": "PAVE Workflow Definition",
+  "type": "object",
+  "required": ["pave"],
+  "additionalProperties": false,
+  "properties": {
+    "pave": {"$ref": "#/$defs/workflow"}
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stringList": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "identifierList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/identifier"},
+      "uniqueItems": true
+    },
+    "workflow": {
+      "type": "object",
+      "required": [
+        "version",
+        "name",
+        "purpose",
+        "entrypoints",
+        "roles",
+        "evidence",
+        "checks",
+        "nodes",
+        "edges",
+        "control_endpoints",
+        "state"
+      ],
+      "properties": {
+        "version": {"const": "0.3.0"},
+        "name": {"$ref": "#/$defs/identifier"},
+        "purpose": {"$ref": "#/$defs/nonEmptyString"},
+        "status": {"type": "string"},
+        "scope": {"type": "object"},
+        "principles": {"$ref": "#/$defs/stringList"},
+        "entrypoints": {
+          "allOf": [
+            {"$ref": "#/$defs/identifierList"},
+            {"minItems": 1}
+          ]
+        },
+        "roles": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/$defs/identifier"},
+          "additionalProperties": {"$ref": "#/$defs/role"}
+        },
+        "evidence": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/$defs/identifier"},
+          "additionalProperties": {"$ref": "#/$defs/evidence"}
+        },
+        "checks": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/$defs/identifier"},
+          "additionalProperties": {"$ref": "#/$defs/check"}
+        },
+        "nodes": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/$defs/identifier"},
+          "additionalProperties": {"$ref": "#/$defs/node"}
+        },
+        "edges": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/edge"}
+        },
+        "control_endpoints": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/$defs/identifier"},
+          "additionalProperties": {"$ref": "#/$defs/controlEndpoint"}
+        },
+        "state": {"type": "object"},
+        "completion": {"type": "object"},
+        "extensions": {"type": "object"}
+      },
+      "patternProperties": {
+        "^x_[a-z][a-z0-9_]*$": {}
+      },
+      "additionalProperties": false
+    },
+    "role": {
+      "type": "object",
+      "required": ["purpose"],
+      "properties": {
+        "purpose": {"$ref": "#/$defs/nonEmptyString"},
+        "authority": {"type": ["string", "array", "object"]},
+        "permitted_intents": {
+          "type": "array",
+          "items": {"enum": ["plan", "explore", "execute", "review"]},
+          "uniqueItems": true
+        },
+        "permitted_effects": {"$ref": "#/$defs/stringList"},
+        "forbidden_effects": {"$ref": "#/$defs/stringList"},
+        "independence": {"type": ["string", "array", "object"]}
+      },
+      "additionalProperties": true
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["kind", "produced_by"],
+      "properties": {
+        "kind": {"$ref": "#/$defs/identifier"},
+        "produced_by": {
+          "oneOf": [
+            {"$ref": "#/$defs/identifier"},
+            {"$ref": "#/$defs/identifierList"}
+          ]
+        },
+        "subject": {},
+        "sources": {"type": "array"},
+        "artifact": {"type": "string"},
+        "artifacts": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "check": {
+      "type": "object",
+      "required": ["style", "question"],
+      "properties": {
+        "style": {"enum": ["reflective", "socratic", "reviewed", "mechanical"]},
+        "question": {"$ref": "#/$defs/nonEmptyString"},
+        "evaluated_by": {"type": "string"},
+        "requires": {"type": "array"},
+        "guidance": {"type": "array", "items": {"type": "string"}},
+        "on_failure": {"type": "string"},
+        "on_failure_route": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "outcome": {
+      "type": "object",
+      "properties": {
+        "meaning": {"type": "string"},
+        "required_evidence": {"$ref": "#/$defs/identifierList"},
+        "data_schema": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "node": {
+      "type": "object",
+      "required": ["intent", "purpose", "roles", "outcomes"],
+      "properties": {
+        "intent": {"enum": ["plan", "explore", "execute", "review"]},
+        "purpose": {"$ref": "#/$defs/nonEmptyString"},
+        "roles": {
+          "allOf": [
+            {"$ref": "#/$defs/identifierList"},
+            {"minItems": 1}
+          ]
+        },
+        "consumes": {"type": "array", "items": {"type": "string"}},
+        "produces": {"type": "array", "items": {"type": "string"}},
+        "activities": {"type": "array", "items": {"type": "string"}},
+        "allowed_effects": {"type": "array", "items": {"type": "string"}},
+        "forbidden_effects": {"type": "array", "items": {"type": "string"}},
+        "outcomes": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/$defs/identifier"},
+          "additionalProperties": {"$ref": "#/$defs/outcome"}
+        }
+      },
+      "additionalProperties": true
+    },
+    "fanOut": {
+      "type": "object",
+      "required": ["fan_out", "for_each"],
+      "properties": {
+        "fan_out": {"$ref": "#/$defs/identifier"},
+        "for_each": {"$ref": "#/$defs/identifier"},
+        "pair_each_with": {"$ref": "#/$defs/identifier"}
+      },
+      "additionalProperties": false
+    },
+    "edge": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "from": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+        },
+        "to": {
+          "oneOf": [
+            {"$ref": "#/$defs/identifier"},
+            {"$ref": "#/$defs/fanOut"}
+          ]
+        },
+        "checks": {"$ref": "#/$defs/identifierList"},
+        "rationale": {"type": "string"},
+        "state_effects": {"type": "array"}
+      },
+      "additionalProperties": true
+    },
+    "controlEndpoint": {
+      "type": "object",
+      "required": ["kind", "meaning"],
+      "properties": {
+        "kind": {"enum": ["pause", "join", "return", "control", "terminal"]},
+        "meaning": {"$ref": "#/$defs/nonEmptyString"},
+        "terminal_status": {
+          "enum": ["accepted", "closed_unaccepted", "blocked", "incomplete", "exhausted"]
+        },
+        "resumable": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    }
+  }
+}

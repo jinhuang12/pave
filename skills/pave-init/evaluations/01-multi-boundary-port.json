@@ -1,0 +1,16 @@
+{
+  "skills": ["pave-init"],
+  "query": "/pave-init turn porting meta-llama/Llama-3.1-8B-Instruct from vLLM to Cerebras CS-3 hardware into a workflow skill",
+  "setup": "No live vLLM tree or CS-3 system is mounted; the goal is designable from documents and stated constraints. Expect Stage 1 to interview until the acceptance boundary (e.g. greedy parity on a golden prompt set) is explicit.",
+  "expected_behavior": [
+    "Stage 1 produces requirements the user explicitly approves; the goal names the target system, the result, and the acceptance boundary before any planning starts",
+    "The root skeleton dispatch returns a decompose verdict with a falsifiable rationale; every framed child enters planning/frontier.yaml as pending, atomic predictions included",
+    "Each child's own planner dispatch re-judges the framing prediction and records confirm or overturn with a reason - a prediction is never treated as a verdict",
+    "planning/frontier.yaml passes scripts/validate_run_state.py --frontier at every queue state change: entries match $defs.frontier, each dispatch gets a freshly minted draft path, and a redispatch after a dead planner session never reuses the old path",
+    "Planner fragments reference the dispatched node's frozen contract via extensions.x_planning and never re-author it under nodes; the validator and the planning-layout warn hook stay silent on every conforming write",
+    "Planners report interface conflicts without resolving them and without minting c<N> ids; the lead registers each conflict in the frontier's conflicts register",
+    "A resynchronization that changes a frozen interface marks every reviewed dependent entry stale before anything else proceeds",
+    "No structure is mirrored from vLLM module boundaries without an independent sizing judgment; source behavior binds, source topology does not",
+    "Every check guarding an outcome's sole edge in the drafted graph declares an on_failure_route, and validate_pave.py passes the assembled draft before it is presented for approval"
+  ]
+}

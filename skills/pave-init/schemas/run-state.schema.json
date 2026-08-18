@@ -1,0 +1,248 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "pave-init-run-state",
+  "title": "pave-init run state (run-state.json)",
+  "description": "Single shape authority for a pave-init run's persisted state, realizing the state contract in references/pave-init.pave.yaml. State points; artifacts prove: fields hold positions, statuses, counters, and artifact paths - never artifact content. $defs.frontier and $defs.fragment are the shape authorities for the Stage 3 planning files (planning/frontier.yaml and planner draft fragments); scripts/validate_run_state.py --frontier checks instances of them plus the hand rules a shape schema cannot express (see references/planning-layout.md).",
+  "type": "object",
+  "required": [
+    "run_identity",
+    "target_system",
+    "planning_workspace",
+    "generated_skill_name",
+    "generated_skill_output",
+    "requirements_status",
+    "fitness_verdict",
+    "fitness_override",
+    "exploration_lenses",
+    "explorer_results",
+    "frontier_entries",
+    "boundary_review_results",
+    "approval_bundle_revisions",
+    "plan_review_rounds",
+    "user_plan_approval",
+    "build_units",
+    "validation_results",
+    "final_review_rounds",
+    "forward_test_result",
+    "delivery_manifest_state",
+    "terminal_classification",
+    "traversal_history"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "run_identity": {
+      "type": "object",
+      "required": ["run_id"],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1},
+        "started": {"type": "string"},
+        "pave_init_version": {"type": "string"}
+      }
+    },
+    "target_system": {"type": ["string", "null"]},
+    "planning_workspace": {"type": ["string", "null"]},
+    "generated_skill_name": {"type": ["string", "null"]},
+    "generated_skill_output": {"type": ["string", "null"]},
+    "requirements_status": {
+      "type": "string",
+      "enum": ["pending", "approved", "declined", "override_approved"]
+    },
+    "fitness_verdict": {
+      "type": ["string", "null"],
+      "enum": ["fit", "fit_with_gaps", "not_fit", null]
+    },
+    "fitness_override": {
+      "type": ["object", "null"],
+      "description": "Free-form record of a not_fit override: original verdict, missing characteristics, user rationale, accepted risks. Intentionally loose."
+    },
+    "exploration_lenses": {"type": "array", "items": {"type": "string"}},
+    "explorer_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["lens"],
+        "additionalProperties": false,
+        "properties": {
+          "lens": {"type": "string"},
+          "artifact": {"type": "string", "description": "Path of the persisted exploration/<lens>.md report."},
+          "status": {"type": "string"}
+        }
+      }
+    },
+    "frontier_entries": {
+      "type": ["string", "null"],
+      "description": "Path of planning/frontier.yaml, which is the authority for entries and their lifecycle; null before Stage 3. Its shape authority is $defs.frontier in this schema; check it with scripts/validate_run_state.py --frontier."
+    },
+    "boundary_review_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "boundary": {"type": "string"},
+          "verdict": {"type": "string"},
+          "artifact": {"type": "string"}
+        }
+      }
+    },
+    "approval_bundle_revisions": {"type": "integer", "minimum": 0},
+    "plan_review_rounds": {"type": "integer", "minimum": 0},
+    "user_plan_approval": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "approved": {"type": "boolean"},
+        "recorded_at": {"type": "string", "description": "Path of reviews/user-plan-approval.md."}
+      }
+    },
+    "build_units": {
+      "type": ["array", "string", "null"],
+      "description": "Unit list or a pointer to the section of skill-package-plan.md that enumerates them."
+    },
+    "validation_results": {
+      "type": ["string", "null"],
+      "description": "Path of reviews/validation.md; null before Stage 6."
+    },
+    "final_review_rounds": {"type": "integer", "minimum": 0},
+    "forward_test_result": {
+      "type": ["string", "null"],
+      "description": "Path of reviews/forward-test.md; null before the forward test."
+    },
+    "delivery_manifest_state": {"type": ["string", "null"]},
+    "terminal_classification": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {"type": ["string", "null"]},
+        "reason": {"type": "string"}
+      }
+    },
+    "traversal_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["node", "outcome"],
+        "additionalProperties": false,
+        "properties": {
+          "node": {"type": "string", "minLength": 1},
+          "outcome": {"type": "string", "minLength": 1},
+          "at": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "notes": {
+      "description": "Free-form prose home for anything the fields above do not carry. Intentionally unconstrained."
+    }
+  },
+  "$defs": {
+    "frontier": {
+      "type": "object",
+      "title": "planning/frontier.yaml",
+      "description": "The Stage 3 planning queue. The lead is the only writer. A shape schema cannot express the write-ownership and lifecycle rules; those live in references/planning-layout.md and the hand rules of validate_run_state.py --frontier.",
+      "required": ["entries"],
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "type": "object",
+          "description": "One entry per frontier node, keyed by node id.",
+          "additionalProperties": {"$ref": "#/$defs/frontierEntry"}
+        },
+        "conflicts": {
+          "type": "array",
+          "description": "The run's conflict register. Conflict ids are lead-assigned here and nowhere else; a planner fragment that mints one is a validator error.",
+          "items": {"$ref": "#/$defs/conflict"}
+        },
+        "notes": {
+          "description": "Free-form prose home: run lessons, assembly items, scratch notes. Intentionally unconstrained."
+        }
+      }
+    },
+    "frontierEntry": {
+      "type": "object",
+      "required": ["status", "contract"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": ["pending", "pending_dispatched", "planned", "reviewed", "stale"],
+          "description": "pending -> pending_dispatched (planner sent) -> planned (draft on disk) -> reviewed (reviewer PASS); stale when a resynchronization touches an interface the entry depends on."
+        },
+        "contract": {
+          "type": "string",
+          "description": "Frozen contract reference: a lead-authored contract file for the root, else <parent-draft-path>#<node-id>."
+        },
+        "draft": {
+          "type": "string",
+          "description": "Workspace-relative draft path, minted by the lead at dispatch. One path per dispatch, never reused; a redispatch mints a new path. Required from pending_dispatched onward (validator hand rule)."
+        },
+        "prediction": {
+          "type": "string",
+          "description": "The framing planner's sizing prediction with its one-line rationale; the node's own dispatch confirms or overturns it."
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Sibling entry keys whose frozen interfaces this node consumes. A resynchronization that changes an interface marks every reviewed dependent stale (orchestration/explore-and-plan.md section 4.4)."
+        },
+        "risk": {"type": "string"},
+        "notes": {
+          "description": "Free-form entry prose: dispatch notes, review summaries, retractions. Intentionally unconstrained."
+        }
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "required": ["id", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^c[0-9]+$",
+          "description": "Lead-assigned, unique across the run. Planners report conflicts without ids; the lead registers and numbers them here."
+        },
+        "summary": {"type": "string", "minLength": 1},
+        "status": {"enum": ["open", "resolved", "deferred_to_user"]},
+        "raised_by": {"type": "string", "description": "Frontier entry key that reported it."}
+      }
+    },
+    "fragment": {
+      "type": "object",
+      "title": "planner draft fragment (*.draft.pave.yaml for a dispatched boundary)",
+      "description": "A node planner's draft for one dispatched node: authored child node bodies plus planning marks. The dispatched node's own five-part contract is frozen in the parent draft; the fragment references it via extensions.x_planning and never carries slots for it - a fragment that re-authors its dispatched node under nodes is a validator error. The root skeleton draft is a full profile, not a fragment; validate_pave.py owns it.",
+      "required": ["pave"],
+      "additionalProperties": false,
+      "properties": {
+        "pave": {
+          "type": "object",
+          "required": ["name", "status", "nodes"],
+          "additionalProperties": false,
+          "properties": {
+            "version": {"type": "string"},
+            "name": {
+              "type": "string",
+              "description": "The dispatched node's id. Must not reappear as a key under nodes (validator hand rule)."
+            },
+            "status": {"const": "draft"},
+            "nodes": {
+              "type": "object",
+              "description": "Authored child node bodies only. Node shape is references/pave.schema.json's authority, not this schema's.",
+              "additionalProperties": {"type": "object"}
+            },
+            "extensions": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "x_planning": {
+                  "type": "object",
+                  "description": "Planning marks: dispatched_node, frozen_contract_reference (path + node), elaboration verdicts and predictions, evidence questions, interface findings. Intentionally loose - except that no mapping under it may carry an 'id' key in the lead-owned conflict namespace (c<N>): those ids are lead-assigned in frontier.yaml's conflict register; node-local labels (n1, e1, ...) are fine (validator hand rule)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

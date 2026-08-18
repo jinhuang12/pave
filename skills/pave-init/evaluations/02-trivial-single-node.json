@@ -1,0 +1,13 @@
+{
+  "skills": ["pave-init"],
+  "query": "/pave-init turn 'run our lint script and open a ticket when it fails' into a workflow skill",
+  "setup": "A one-command goal with an obvious mechanical acceptance signal. The correct graph is small; the run must cost almost nothing beyond it.",
+  "expected_behavior": [
+    "The root dispatch confirms atomic; the frontier closes after its single root entry with no children framed and no extra ceremony",
+    "The graph carries no role, guard, branch, or state field without an approved requirement or a credible material failure behind it - the simplicity pass removes anything that changes no required routing, authority, evidence, recovery, or acceptance",
+    "No layout reference ships: a single-writer workflow with a handful of artifacts is a recorded omission, not a silent one",
+    "The lead-alignment hook pair ships only if the generated workflow crosses compaction or session boundaries; otherwise the applicable omission condition from references/lead-alignment-hooks.md is recorded in the enforcement record",
+    "The generated package contains no state schema for state that lives and dies inside one session - prose carries it, per SKILL.md's mapping rules",
+    "Total planning overhead stays proportional: one frontier entry, one review gate, no empty scaffolding directories"
+  ]
+}
