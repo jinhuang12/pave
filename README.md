@@ -88,7 +88,7 @@ object to the file that implements it.
 ## Install
 
 ```text
-/plugin marketplace add jinhuang12/pave-init
+/plugin marketplace add jinhuang12/pave
 /plugin install pave-init@jinhuang12-plugins
 ```
 
