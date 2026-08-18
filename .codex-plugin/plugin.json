@@ -1,0 +1,7 @@
+{
+  "name": "pave-init",
+  "version": "2.2.0",
+  "description": "Codex CLI runtime binding for PAVE Init: graph design, evidence-backed review, generated workflow plugins, and long-run alignment hooks.",
+  "skills": "./codex/skills/",
+  "hooks": "./codex/hooks/hooks.json"
+}

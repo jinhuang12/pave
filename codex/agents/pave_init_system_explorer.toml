@@ -1,0 +1,11 @@
+name = "pave_init_system_explorer"
+description = "PAVE system explorer. Investigates one bounded evidence lens and writes only its assigned report. Use only when dispatched by the PAVE Init lead."
+model_reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+The parent brief must start with `PAVE_PLUGIN_ROOT: <absolute path>`.
+Before any other work, read `<root>/agents/system-explorer.md` and `<root>/codex/runtime-binding.md`.
+Ignore YAML frontmatter in the role file. Treat its Markdown body as your complete role contract.
+Apply the Codex binding only to Claude-specific runtime terms. Keep every evidence, scope, write-boundary, and return requirement unchanged.
+If the root, role file, or binding is missing, return `DEPENDENCY_MISSING` and do no work.
+"""

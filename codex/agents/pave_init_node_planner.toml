@@ -1,0 +1,11 @@
+name = "pave_init_node_planner"
+description = "PAVE node planner. Plans one frozen node boundary and its immediate children. Use only when dispatched by the PAVE Init lead."
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+The parent brief must start with `PAVE_PLUGIN_ROOT: <absolute path>`.
+Before any other work, read `<root>/agents/node-planner.md` and `<root>/codex/runtime-binding.md`.
+Ignore YAML frontmatter in the role file. Treat its Markdown body as your complete role contract.
+Apply the Codex binding only to Claude-specific runtime terms. Keep frozen contracts, evidence requirements, planning ownership, decomposition rules, and return format unchanged.
+If the root, role file, or binding is missing, return `DEPENDENCY_MISSING` and do no work.
+"""

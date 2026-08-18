@@ -1,0 +1,363 @@
+from __future__ import annotations
+
+import contextlib
+import io
+import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import time
+import tomllib
+import unittest
+from unittest import mock
+
+from codex import install_agents
+from codex.hooks import post_tool_use_router
+from codex.hooks import subagent_activity
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+AGENT_NAMES = {
+    "pave_init_forward_tester",
+    "pave_init_material_reviewer",
+    "pave_init_node_planner",
+    "pave_init_research_delegate",
+    "pave_init_skill_builder",
+    "pave_init_system_explorer",
+}
+
+
+@contextlib.contextmanager
+def changed_directory(path: Path):
+    previous = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(previous)
+
+
+class PackageStructureTests(unittest.TestCase):
+    def test_plugin_manifest_paths_exist(self) -> None:
+        manifest_path = REPO_ROOT / ".codex-plugin" / "plugin.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["name"], "pave-init")
+        self.assertEqual(manifest["version"], "2.2.0")
+        for key in ("skills", "hooks"):
+            value = manifest[key]
+            self.assertTrue(value.startswith("./"), (key, value))
+            resolved = (REPO_ROOT / value).resolve()
+            self.assertTrue(resolved.is_relative_to(REPO_ROOT.resolve()))
+            self.assertTrue(resolved.exists(), resolved)
+
+    def test_hook_config_has_expected_events_and_commands(self) -> None:
+        path = REPO_ROOT / "codex" / "hooks" / "hooks.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        hooks = data["hooks"]
+        self.assertEqual(
+            set(hooks),
+            {"SubagentStart", "SubagentStop", "PostToolUse", "Stop"},
+        )
+        commands: list[str] = []
+        for groups in hooks.values():
+            for group in groups:
+                for handler in group["hooks"]:
+                    self.assertEqual(handler["type"], "command")
+                    commands.append(handler["command"])
+        self.assertTrue(all("${PLUGIN_ROOT}" in command for command in commands))
+        joined = "\n".join(commands)
+        self.assertIn("post_tool_use_router.py\" staleness", joined)
+        self.assertIn("post_tool_use_router.py\" layout", joined)
+        self.assertIn("stop_alignment_check.sh", joined)
+
+    def test_custom_agents_parse_and_cover_every_role(self) -> None:
+        files = sorted((REPO_ROOT / "codex" / "agents").glob("*.toml"))
+        self.assertEqual(len(files), 6)
+        names: set[str] = set()
+        for path in files:
+            with path.open("rb") as handle:
+                data = tomllib.load(handle)
+            for field in ("name", "description", "developer_instructions"):
+                self.assertTrue(data.get(field), (path, field))
+            self.assertEqual(path.stem, data["name"])
+            self.assertIn(data.get("sandbox_mode"), {"read-only", "workspace-write"})
+            self.assertIn("PAVE_PLUGIN_ROOT", data["developer_instructions"])
+            self.assertIn("runtime-binding.md", data["developer_instructions"])
+            names.add(data["name"])
+        self.assertEqual(names, AGENT_NAMES)
+
+    def test_loader_keeps_canonical_skill_as_authority(self) -> None:
+        text = (REPO_ROOT / "codex" / "skills" / "pave-init" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("name: pave-init", text)
+        self.assertIn("Manual-only", text)
+        self.assertIn("skills/pave-init/SKILL.md", text)
+        self.assertIn("runtime-binding.md", text)
+        self.assertIn("cannot change PAVE meaning", text)
+
+
+class PatchAdapterTests(unittest.TestCase):
+    def test_extracts_multi_file_add_update_delete_and_move(self) -> None:
+        patch = """*** Begin Patch
+*** Add File: planning/a.draft.pave.yaml
++id: n1
++kind: node
+*** Update File: planning/frontier.yaml
+@@
+-old
++new
+*** Delete File: planning/obsolete.draft.pave.yaml
+*** Update File: planning/a.draft.pave.yaml
+*** Move to: planning/b.draft.pave.yaml
+@@
+-old: value
++id: c7
+*** End Patch
+"""
+        sections = post_tool_use_router.extract_patch_sections(patch)
+        self.assertEqual(
+            sections,
+            [
+                ("planning/a.draft.pave.yaml", "id: n1\nkind: node\nid: c7\n"),
+                ("planning/frontier.yaml", "new\n"),
+                ("planning/obsolete.draft.pave.yaml", ""),
+                ("planning/b.draft.pave.yaml", "id: c7\n"),
+            ],
+        )
+
+    def test_direct_subagent_identity_survives_expansion(self) -> None:
+        payload = {
+            "session_id": "s",
+            "agent_id": "a1",
+            "agent_type": "pave_init_node_planner",
+            "tool_input": {
+                "command": "*** Begin Patch\n*** Add File: x\n+hello\n*** End Patch"
+            },
+        }
+        adapted = post_tool_use_router._canonical_layout_payloads(payload)
+        self.assertEqual(len(adapted), 1)
+        self.assertEqual(adapted[0]["agent_id"], "a1")
+        self.assertEqual(adapted[0]["agent_type"], "pave_init_node_planner")
+        self.assertEqual(adapted[0]["tool_input"]["file_path"], "x")
+        self.assertEqual(adapted[0]["tool_input"]["content"], "hello\n")
+
+    def test_ambiguous_legacy_call_fails_open_during_worker_activity(self) -> None:
+        payload = {
+            "session_id": "legacy",
+            "tool_input": {
+                "command": "*** Begin Patch\n*** Add File: x\n+hello\n*** End Patch"
+            },
+        }
+        with mock.patch.object(
+            post_tool_use_router, "active_agent_ids", return_value={"a1"}
+        ):
+            self.assertEqual(post_tool_use_router._canonical_layout_payloads(payload), [])
+
+    def test_staleness_uses_direct_identity_and_latch_only_as_fallback(self) -> None:
+        direct = {
+            "session_id": "s",
+            "agent_id": "a1",
+            "agent_type": "pave_init_node_planner",
+        }
+        legacy = {"session_id": "s"}
+        with mock.patch.object(
+            post_tool_use_router, "active_agent_ids", return_value={"a1"}
+        ), mock.patch.object(
+            post_tool_use_router, "_run_canonical", return_value=(0, "", "")
+        ) as run:
+            post_tool_use_router._run_staleness(direct)
+            run.assert_called_once()
+            run.reset_mock()
+            post_tool_use_router._run_staleness(legacy)
+            run.assert_not_called()
+
+
+class ActivityLatchTests(unittest.TestCase):
+    def test_tracks_multiple_agents_per_session(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            with mock.patch.dict(os.environ, {"TMPDIR": temp}):
+                subagent_activity.update_activity("session", "a", True)
+                subagent_activity.update_activity("session", "b", True)
+                self.assertEqual(
+                    subagent_activity.active_agent_ids("session"), {"a", "b"}
+                )
+                subagent_activity.update_activity("session", "a", False)
+                self.assertEqual(subagent_activity.active_agent_ids("session"), {"b"})
+                subagent_activity.update_activity("session", "b", False)
+                self.assertEqual(subagent_activity.active_agent_ids("session"), set())
+
+
+class InstallerTests(unittest.TestCase):
+    def invoke(self, argv: list[str]) -> int:
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+            io.StringIO()
+        ):
+            return install_agents.main(argv)
+
+    def test_install_check_reject_modified_and_atomic_uninstall(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            args = ["--project", str(project)]
+            self.assertEqual(self.invoke(args), 0)
+            self.assertEqual(self.invoke(args), 0)
+            self.assertEqual(self.invoke(args + ["--check"]), 0)
+
+            target = project / ".codex" / "agents"
+            files = sorted(target.glob("pave_init_*.toml"))
+            self.assertEqual(len(files), 6)
+            modified = files[0]
+            original = modified.read_text(encoding="utf-8")
+            modified.write_text(original + "\n# local change\n", encoding="utf-8")
+
+            self.assertEqual(self.invoke(args + ["--check"]), 1)
+            self.assertEqual(self.invoke(args), 2)
+            before = {path.name for path in target.glob("pave_init_*.toml")}
+            self.assertEqual(self.invoke(args + ["--uninstall"]), 2)
+            after = {path.name for path in target.glob("pave_init_*.toml")}
+            self.assertEqual(before, after, "blocked uninstall must not remove other files")
+
+            self.assertEqual(self.invoke(args + ["--uninstall", "--force"]), 0)
+            self.assertFalse(target.exists())
+
+
+class CanonicalHookIntegrationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.hook_dir = REPO_ROOT / "skills" / "pave-init" / "hooks"
+        cls.have_canonical = all(
+            (cls.hook_dir / name).is_file()
+            for name in (
+                "_find_run_state.sh",
+                "planning-layout-warn.sh",
+                "state_staleness_reminder.sh",
+                "stop_alignment_check.sh",
+            )
+        )
+
+    def setUp(self) -> None:
+        if not self.have_canonical:
+            self.skipTest("canonical PAVE hook files are not present in this isolated port tree")
+
+    def _run_router(
+        self, mode: str, payload: dict[str, object], cwd: Path, env: dict[str, str]
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                "python3",
+                str(REPO_ROOT / "codex" / "hooks" / "post_tool_use_router.py"),
+                mode,
+            ],
+            input=json.dumps(payload),
+            text=True,
+            capture_output=True,
+            cwd=cwd,
+            env=env,
+            check=False,
+        )
+
+    def _workspace(self, root: Path) -> tuple[Path, Path]:
+        run_dir = root / ".pave" / "test-run"
+        planning = run_dir / "planning"
+        planning.mkdir(parents=True)
+        state = run_dir / "run-state.json"
+        state.write_text(
+            json.dumps(
+                {
+                    "run_identity": {"run_id": "test-run"},
+                    "traversal_history": [{"node": "n1", "outcome": "active"}],
+                    "terminal_classification": {},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (root / ".pave-init-run").write_text(str(state) + "\n", encoding="utf-8")
+        return state, planning
+
+    def test_layout_and_staleness_wire_translation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state, planning = self._workspace(root)
+            env = os.environ.copy()
+            env.update(
+                {
+                    "PLUGIN_ROOT": str(REPO_ROOT),
+                    "TMPDIR": str(root / "tmp"),
+                    "PAVE_INIT_STALE_SECONDS": "1",
+                }
+            )
+            (root / "tmp").mkdir()
+
+            bad_path = planning / "rogue.txt"
+            patch = (
+                "*** Begin Patch\n"
+                f"*** Add File: {bad_path}\n"
+                "+bad\n"
+                "*** End Patch"
+            )
+            payload = {
+                "session_id": "layout-session",
+                "agent_id": "planner-1",
+                "agent_type": "pave_init_node_planner",
+                "tool_input": {"command": patch},
+            }
+            layout = self._run_router("layout", payload, root, env)
+            self.assertEqual(layout.returncode, 0, layout.stderr)
+            self.assertIn("matches no allowed planning/ pattern", layout.stdout)
+
+            old = time.time() - 60
+            os.utime(state, (old, old))
+            stale = self._run_router(
+                "staleness",
+                {"session_id": "stale-session", "tool_input": {"command": "true"}},
+                root,
+                env,
+            )
+            self.assertEqual(stale.returncode, 0, stale.stderr)
+            self.assertIn("run-state.json last written", stale.stdout)
+
+    def test_stop_hook_continues_once_then_accepts_active_flag(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self._workspace(root)
+            env = os.environ.copy()
+            env.update({"TMPDIR": str(root / "tmp")})
+            (root / "tmp").mkdir()
+            script = self.hook_dir / "stop_alignment_check.sh"
+            first = subprocess.run(
+                [str(script)],
+                input=json.dumps(
+                    {
+                        "session_id": "stop-session",
+                        "stop_hook_active": False,
+                    }
+                ),
+                text=True,
+                capture_output=True,
+                cwd=root,
+                env=env,
+                check=False,
+            )
+            self.assertEqual(first.returncode, 2, first.stderr)
+            self.assertIn("Socratic check", first.stderr)
+
+            active = subprocess.run(
+                [str(script)],
+                input=json.dumps(
+                    {
+                        "session_id": "stop-session",
+                        "stop_hook_active": True,
+                    }
+                ),
+                text=True,
+                capture_output=True,
+                cwd=root,
+                env=env,
+                check=False,
+            )
+            self.assertEqual(active.returncode, 0, active.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()

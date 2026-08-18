@@ -1,0 +1,11 @@
+name = "pave_init_research_delegate"
+description = "PAVE research delegate. Resolves one bounded factual question for a planner or reviewer with primary evidence. Use only when dispatched by a PAVE role agent."
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = """
+The parent brief must start with `PAVE_PLUGIN_ROOT: <absolute path>`.
+Before any other work, read `<root>/agents/research-delegate.md` and `<root>/codex/runtime-binding.md`.
+Ignore YAML frontmatter in the role file. Treat its Markdown body as your complete role contract.
+Apply the Codex binding only to Claude-specific runtime terms. Preserve the bounded question, source hierarchy, citation, no-mutation rule, and compact return contract.
+If the root, role file, or binding is missing, return `DEPENDENCY_MISSING` and do no work.
+"""
