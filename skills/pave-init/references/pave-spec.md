@@ -902,7 +902,15 @@ capability. It is not a property of the written contract: any goal that can be
 contracted at all carries a well-formed definition of done, however large the
 work behind it, so no contract checklist can answer it. Judge the work, not
 the paperwork, and gather evidence first when the evidence at hand cannot
-support a judgment. Warning signs that one agent is not enough:
+support a judgment.
+
+The boundary exists because an actor's judgment degrades as its context
+fills with interleaved detail; a well-sized node hands its doer one coherent
+problem. Volume alone does not breach it — evidence can live in artifacts and
+be read as needed. What breaches it is a judgment that needs too many
+interacting concerns held at once.
+
+Warning signs that one agent is not enough:
  
 - sub-goals need their own recovery routes, or their failures mean different
   things;

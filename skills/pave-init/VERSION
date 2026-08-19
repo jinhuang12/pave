@@ -1,4 +1,4 @@
-version: 2.2.3
+version: 2.2.4
 
 ## How changelog entries are written
 
@@ -17,6 +17,31 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.2.4 (2026-08-19)
+
+Fixed — SKILL.md's Multi-agent contract no longer lists stale per-agent
+model/effort pins or a per-dispatch planner escalation rule; both
+contradicted the agent frontmatter, which has pinned the planner at the
+top tier since the pins moved there. Pins now live in frontmatter alone,
+with the forward tester deliberately unpinned so the clean-room test
+predicts behavior at real session defaults.
+  - `orchestration/explore-and-plan.md` dispatch and assembly steps
+    updated to match: no per-dispatch override, and "the escalation
+    rule" disambiguated to the builder's verify-retry rule.
+
+New — the node planner now carries a Model and effort section for the
+workflows it plans: always assign `model` (an unset model inherits the
+lead's, silently running every worker on the session's top model and
+inviting throttling), match the tier to the seat, and set `effort` only
+when a level buys something, calibrated to Anthropic's published effort
+guidance. Replaces the old "leave both unset" advice.
+
+Improved — pave-spec §9.12 now states the mechanism behind the
+one-agent test: an actor's judgment degrades as its context fills with
+interleaved detail, volume alone does not force a split when evidence
+can live in artifacts, and what forces one is a judgment needing too
+many interacting concerns held at once.
 
 ### 2.2.3 (2026-08-19)
 

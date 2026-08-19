@@ -81,7 +81,7 @@ Every node a planner frames enters the queue — atomic predictions included, be
 
 ### 4.3 Dispatch the queue
 
-Order entries by risk and dependency: a node others depend on, or whose failure would force reframing its siblings, goes first. Dispatch one node planner per entry as `subagent_type: pave-init:node-planner`; independent entries dispatch concurrently in one message. The agent definition carries model and effort; escalate the root node and any high-risk node via the Agent tool's `model` parameter per the Multi-agent contract in SKILL.md.
+Order entries by risk and dependency: a node others depend on, or whose failure would force reframing its siblings, goes first. Dispatch one node planner per entry as `subagent_type: pave-init:node-planner`; independent entries dispatch concurrently in one message. The agent definition carries model and effort — do not override them per dispatch.
 
 Each brief contains: the node's frozen contract, the chain of ancestor purposes, read-only sibling interfaces, the system map, the framing planner's prediction and rationale, the relevant references (`pave-yaml.md`, `pave-spec.md`, `pave-composition.md`, `planning-layout.md`) resolved under the pave-init installation path, and the draft path to write. Mint the draft path fresh for this dispatch — never a path any earlier dispatch used, even a dead one's — record it in the entry, and mark the entry `pending_dispatched` (`references/planning-layout.md`). Give planners the Agent tool: a planner decides for itself whether it needs more evidence and spawns read-only explorers with one bounded question each. Planners never change ancestor or sibling interfaces; they report conflicts — without ids: the lead assigns `c<N>` ids in the frontier's conflict register.
 
@@ -102,7 +102,7 @@ The queue closes when every entry is `reviewed`. A node that cannot close after 
 1. Merge the node drafts into one flat PAVE root `workflow.draft.pave.yaml` — the editable `v0` subject that delivery later freezes per `references/pave-revisions.md`. Decomposition lineage flattens into one graph; add a child `*.draft.pave.yaml` only for a subgraph whose packaging met a §9.12.1 condition. Strip the `x_planning` extension block; the marks are planning state, not graph meaning.
 2. Run the global simplicity pass: remove every element — including any child profile — whose absence changes no required routing, authority, evidence, recovery, or acceptance.
 3. Mark runtime bindings (section 4.8). Bindings need the whole-subgraph view, which is why planners do not mark them.
-4. Reconcile model and effort assignments across nodes; keep the escalation rule uniform.
+4. Reconcile model and effort assignments across nodes; keep the verify-retry escalation rule uniform (a check that fails twice at assigned effort retries once one tier up before the failure edge).
 5. Finalize the run-wide enforcement record in `skill-package-plan.md`: merge the node-local entries planners proposed with your own run-wide entries; deduplicate guards proposed for the same prohibition.
 6. Validate the root with `scripts/validate_pave.py` — it follows composition references and validates every child profile and boundary. Then send the assembled whole bundle to the same planning reviewer as the whole-graph round.
 
