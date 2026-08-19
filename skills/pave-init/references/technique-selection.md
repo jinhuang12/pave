@@ -24,18 +24,28 @@ outcome-selected transition.
 ## Adversarial debate
 
 Several actors propose candidates independently, critique each other's
-proposals with evidence, and a non-participant selects.
+proposals with evidence, and a non-participant keeps what survives.
 
-**Consider when** the graph must commit to one candidate among several,
-the commitment is expensive — a long implementation, scarce hardware, an
-effect that is hard to undo — and evidence gathered beforehand can tell
-the candidates apart. Debate buys a stress-tested choice before the spend.
+Debate is a filter, not a vote: its job is to disprove candidates at
+arguing cost instead of building cost. Whatever survives — several
+candidates, one, or none — advances. A debate that ends with no survivor
+is the technique working, not failing.
 
-**Skip when** trying a candidate is cheap, or when nobody knows yet what
-will work and the job is to try, measure, and change course. Debate
-converges the group on one plan; if that plan is a dead end, every actor
-is locked onto it. Independent actors that pivot on their own feedback do
-better there.
+**Consider when** several options or paths look viable on the surface,
+committing to a wrong one is expensive — a long implementation, scarce
+hardware, an effect that is hard to undo — and digging deeper can
+actually find the caveats before building: evidence to cite, a small
+probe to run, a flaw a rival can demonstrate. Proposers battle-test each
+other's candidates, and the unviable ones fall out early.
+
+**Skip when** the path is straightforward or the candidates are few and
+obvious — there is nothing to filter, and debate is pure token and
+wall-clock cost. Skip it too when trying a candidate is cheap: actors
+that try, measure, and pivot on their own feedback learn faster than a
+panel, and debate converges everyone on the surviving plan — if that
+plan is a dead end, every actor is locked onto it. And debate can only
+test what evidence reaches before building; when only building a
+candidate reveals its caveat, debate is opinion against opinion.
 
 **Cost:** several actors' worth of tokens and wall-clock before any real
 work starts. The materiality contract still applies: a critique names a
@@ -45,9 +55,9 @@ material defect, never a preference (§9.4).
 flowchart TD
     E["Gather evidence - Explore"] --> P1["Propose A - Plan"]
     E --> P2["Propose B - Plan"]
-    P1 -->|"proposal ready"| C["Critique and select - Review"]
+    P1 -->|"proposal ready"| C["Critique and filter - Review"]
     P2 -->|"proposal ready"| C
-    C -->|"winner selected"| X["Execute winner - Execute"]
+    C -->|"survivors advance"| X["Execute survivors - Execute"]
     C -->|"no candidate survives"| R["Replan - Plan"]
 ```
 

@@ -1,4 +1,4 @@
-version: 2.2.2
+version: 2.2.3
 
 ## How changelog entries are written
 
@@ -17,6 +17,18 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.2.3 (2026-08-19)
+
+Changed — the adversarial-debate entry in `technique-selection.md` is
+reframed from selection to filtration, matching the technique's original
+intent: debate exists to disprove surface-viable candidates at arguing
+cost instead of building cost, and whatever survives — several, one, or
+none — advances. A no-survivor debate is the technique working.
+  - Consider-when now keys on options that look viable at the surface
+    with caveats findable before building; skip-when adds the
+    straightforward-path case (nothing to filter) and the boundary that
+    debate cannot test what only building reveals.
 
 ### 2.2.2 (2026-08-19)
 
