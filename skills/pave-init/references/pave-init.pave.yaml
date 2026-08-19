@@ -191,7 +191,7 @@ pave:
       kind: judgment
       produced_by: review_integrated_skill
       subject: generated_skill_package
-      artifact: reviews/final-review.md
+      artifact: reviews/final-skill-review.md
     forward_test_result:
       kind: observation
       produced_by: forward_test_skill

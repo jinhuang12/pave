@@ -113,7 +113,15 @@ skill-package-plan.md
 workflow-manifest.yaml
 history/
 reviews/
+assembly-checklist.md
+build/
 ```
+
+`assembly-checklist.md` and `build/` are lead working state, never part of the
+approval bundle: the checklist tracks what each build unit must integrate, and
+`build/` holds the per-unit integration records the lead writes while assembling
+Stage 5. Both are free-form — record the paths a run actually uses in
+`run-state.json` so a resume can find them.
 
 `run-state.json` is the run's compact position-and-history record:
 
@@ -229,7 +237,7 @@ If an output folder exists, inspect it and propose an update. When the target's 
 Procedures for every step: `orchestration/review-and-build.md` §§4–6.
 
 1. Run the integration validation battery (`orchestration/review-and-build.md` §4): the plugin structure check, the system `skill-creator` quick validator, `scripts/validate_pave.py`, `scripts/validate_traceability.py`, generated helper tests, script and hook and evolution-tier checks, and the delivered-docs presence check. When the lead-alignment hook pair ships, its tests must exercise the invariants in `references/lead-alignment-hooks.md` §Invariants any adaptation must preserve. Record the outputs in `reviews/validation.md`.
-2. Spawn a fresh named material reviewer for the integrated skill with the same evidence standard as plan review. Fix verified `BLOCKING` and `HIGH` findings and resubmit via `SendMessage` until it passes. Record each round in `reviews/final-review.md` (`final_review_rounds` in run state keeps the loop bounded).
+2. Spawn a fresh named material reviewer for the integrated skill with the same evidence standard as plan review. Fix verified `BLOCKING` and `HIGH` findings and resubmit via `SendMessage` until it passes. Record each round in `reviews/final-skill-review.md` (`final_review_rounds` in run state keeps the loop bounded).
 3. Run the clean-room forward test (`orchestration/review-and-build.md` §6) and record the result in `reviews/forward-test.md`. Repair and repeat affected gates when the test exposes a transferable defect.
 
 Auto-complete after these gates pass. Do not ask for another approval.

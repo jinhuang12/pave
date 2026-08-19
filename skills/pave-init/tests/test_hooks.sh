@@ -9,6 +9,9 @@
 #   staleness: fresh state is silent, stale state fires additionalContext
 #              once, throttles within the window, skips subagent payloads,
 #              stays silent on terminal runs
+#   layout:    every allowlisted planning/ path is silent for the lead, an
+#              undeclared path warns, and a lead-owned path warns when a
+#              subagent writes it
 # Also: validate_run_state.py passes a well-formed instance and fails a
 # broken one.
 #
@@ -21,6 +24,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 SKILL="$(cd "$HERE/.." && pwd)"
 STOP_HOOK="$SKILL/hooks/stop_alignment_check.sh"
 STALE_HOOK="$SKILL/hooks/state_staleness_reminder.sh"
+LAYOUT_HOOK="$SKILL/hooks/planning-layout-warn.sh"
 VALIDATOR="$SKILL/scripts/validate_run_state.py"
 
 PASS=0
@@ -197,6 +201,43 @@ write_state "" minimal
 OUT="$(python3 "$VALIDATOR" "$STATE" 2>&1)"; RC=$?
 ok=0; [ "$RC" = "1" ] && printf '%s' "$OUT" | grep -q "missing required field" && ok=1
 report "validator: missing required fields fail" "$ok" "rc=$RC out=$OUT"
+
+# --- planning-layout-warn ---------------------------------------------------
+# Allowlist regression: root-contract.md is lead-owned planning state
+# (references/planning-layout.md). It was missing from the allowlist, so
+# every correct write to it warned -- 10 of 14 firings in a real run.
+
+write_state "" complete
+printf '%s\n' "$STATE" > "$RUN_MARKER"
+PLANNING="$(dirname "$STATE")/planning"
+mkdir -p "$PLANNING"
+
+layout_payload() { # $1 = filename, $2 = agent_type ("" for lead), $3 = content
+  python3 - "$PLANNING/$1" "$2" "${3:-}" <<'PY'
+import json, sys
+path, agent, content = sys.argv[1], sys.argv[2], sys.argv[3]
+payload = {"tool_name": "Write", "tool_input": {"file_path": path, "content": content}}
+if agent:
+    payload["agent_type"] = agent
+print(json.dumps(payload))
+PY
+}
+
+OUT="$(layout_payload root-contract.md "" | bash "$LAYOUT_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "layout: lead writing root-contract.md is silent" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(layout_payload frontier.yaml "" | bash "$LAYOUT_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "layout: lead writing frontier.yaml is silent" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(layout_payload assembly-checklist.md "" | bash "$LAYOUT_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "matches no allowed planning/ pattern" && ok=1
+report "layout: an undeclared planning/ path warns" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(layout_payload root-contract.md node-planner | bash "$LAYOUT_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "a subagent wrote planning/root-contract.md" && ok=1
+report "layout: a subagent writing root-contract.md warns" "$ok" "rc=$RC out=$OUT"
 
 echo
 echo "$PASS passed, $FAIL failed"

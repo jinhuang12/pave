@@ -1,6 +1,6 @@
 # PAVE Init
 
-Version: `2.2.0`
+Version: `2.2.1`
 
 Turn a goal into a reviewed workflow and a ready-to-use Claude Code plugin: a lead workflow skill plus its roles as registered agents. Load a delivered package with `claude --plugin-dir <package-root>` for a session, or install it from a marketplace for permanence.
 

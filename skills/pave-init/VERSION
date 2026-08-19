@@ -1,4 +1,4 @@
-version: 2.2.0
+version: 2.2.1
 
 ## How changelog entries are written
 
@@ -17,6 +17,28 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.2.1 (2026-08-19)
+
+Fixed — the planning-layout warning no longer fires on `root-contract.md`.
+The root contract is a lead-owned planning file, but the hook's allowlist
+did not name it, so every write to it drew a warning that a correct file
+was misplaced. An audit of two real runs found 10 of 14 warnings were this
+false positive, which trains the lead to ignore the 4 that were real.
+  - `references/planning-layout.md` now lists `root-contract.md` in the
+    layout tree and in the lead's row of the write-ownership table; the
+    hook allows it and still warns when a subagent writes it, the same
+    ownership check `frontier.yaml` already had.
+
+Fixed — `build/` and `assembly-checklist.md` are declared run artifacts.
+Both are lead working state that runs already produced, but no rule placed
+them, so a reviewer reading `SKILL.md` alone would score them as stray.
+
+Fixed — the final-skill review record is named `reviews/final-skill-review.md`
+everywhere. `SKILL.md`, `references/pave-init.pave.yaml`, and
+`references/pave-init-traceability.md` said `final-review.md` while runs
+wrote `final-skill-review.md`, so a resume looking for the declared name
+would find nothing and could conclude the gate never ran.
 
 ### 2.2.0 (2026-08-18)
 

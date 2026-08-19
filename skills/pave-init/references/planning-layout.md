@@ -6,6 +6,7 @@ Single path-and-ownership authority for `planning/` under the run workspace, act
 
 ```text
 <run-workspace>/planning/
+  root-contract.md                 lead       frozen five-part contract for the root
   frontier.yaml                    lead       queue, lifecycle, conflict register
   root.draft.pave.yaml             planner    root skeleton (full profile)
   <node>.draft.pave.yaml           planner    one fragment per dispatched boundary
@@ -16,7 +17,7 @@ Single path-and-ownership authority for `planning/` under the run workspace, act
 
 | Actor | Writes | Never writes |
 |---|---|---|
-| Lead | `frontier.yaml`: entries, lifecycle, the conflict register and its `c<N>` ids. Mints each dispatch's draft path before dispatch and records it in the entry. | Draft content — a defective return goes back to a planner dispatch. |
+| Lead | `root-contract.md`: the root's frozen contract, written before the queue opens. `frontier.yaml`: entries, lifecycle, the conflict register and its `c<N>` ids. Mints each dispatch's draft path before dispatch and records it in the entry. | Draft content — a defective return goes back to a planner dispatch. |
 | Node planner | Exactly the one draft path its brief names. | `frontier.yaml`, any sibling or parent draft, any second path. |
 | Reviewer, planner-spawned explorers | Nothing under `planning/`. Findings return in the reply; the lead records. | Everything here. |
 

@@ -1,6 +1,6 @@
 {
   "name": "pave-init",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "PAVE Init as a Claude Code plugin: the pave-init skill plus its dispatched agent roles registered as agent types.",
   "author": {
     "name": "jinhuang12"

@@ -32,7 +32,7 @@ Paths under `agents/` resolve at the plugin root — they are registered agent t
 | evidence | build_unit_results | agents/skill-builder.md<br>orchestration/review-and-build.md | Per-builder terminal result |
 | evidence | generated_skill_package | agents/skill-builder.md<br>orchestration/review-and-build.md | Integrated generated skill |
 | evidence | validation_results | SKILL.md<br>scripts/validate_pave.py<br>scripts/validate_traceability.py | Mechanical validation records, recorded in reviews/validation.md |
-| evidence | final_skill_review | SKILL.md<br>agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Integrated-skill verdict, recorded in reviews/final-review.md |
+| evidence | final_skill_review | SKILL.md<br>agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Integrated-skill verdict, recorded in reviews/final-skill-review.md |
 | evidence | forward_test_result | SKILL.md<br>agents/forward-tester.md<br>orchestration/review-and-build.md | Clean-room behavior evidence, recorded in reviews/forward-test.md |
 | evidence | delivery_manifest | references/pave-revisions.md<br>scripts/freeze_revision.py | v0 manifest record; v1 freezes before first real execution |
 | check | manually_invoked | SKILL.md | Explicit invocation gate |

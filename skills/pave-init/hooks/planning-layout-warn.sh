@@ -6,11 +6,12 @@
 # followed until their prose leaves the context window. This hook re-injects
 # them at the moment they are broken: when a write lands under the active
 # run's planning/ directory at a path matching no allowed pattern, when a
-# subagent writes frontier.yaml (the lead is its only writer), or when a
-# draft's written content mints a lead-owned conflict id (c<N>). It warns via
-# non-blocking additionalContext and never blocks: layout drift is detectable
-# and cheap to repair, so an observing rung is sufficient -- content checks
-# beyond the c<N> heuristic belong to validate_run_state.py --frontier.
+# subagent writes a lead-owned file (frontier.yaml or root-contract.md), or
+# when a draft's written content mints a lead-owned conflict id (c<N>). It
+# warns via non-blocking additionalContext and never blocks: layout drift is
+# detectable and cheap to repair, so an observing rung is sufficient --
+# content checks beyond the c<N> heuristic belong to
+# validate_run_state.py --frontier.
 #
 # Silent exit 0 when: interpreter missing, payload unparsable, no marker-
 # discovered run state, write outside that run's planning/ directory, or the
@@ -97,10 +98,10 @@ is_subagent = bool(find(payload, "agent_type") not in ("", "main", "lead", "root
 warnings = []
 
 name = str(relative)
-if name == "frontier.yaml":
+if name in ("frontier.yaml", "root-contract.md"):
     if is_subagent:
         warnings.append(
-            "a subagent wrote planning/frontier.yaml - the lead is its only "
+            f"a subagent wrote planning/{name} - the lead is its only "
             "writer; planners write exactly the one draft path their brief "
             "names and report everything else in their reply"
         )
@@ -114,9 +115,9 @@ elif re.fullmatch(r"[A-Za-z0-9_.-]+\.draft\.pave\.yaml", name):
         )
 else:
     warnings.append(
-        f"'{name}' matches no allowed planning/ pattern (frontier.yaml or "
-        "*.draft.pave.yaml) - the layout and its write ownership are in "
-        "references/planning-layout.md"
+        f"'{name}' matches no allowed planning/ pattern (root-contract.md, "
+        "frontier.yaml, or *.draft.pave.yaml) - the layout and its write "
+        "ownership are in references/planning-layout.md"
     )
 
 if not warnings:
