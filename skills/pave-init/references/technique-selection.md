@@ -127,6 +127,8 @@ directly — reading the artifact is then already the audit.
 The recipe, in order:
 
 1. Reconstruct: from state and artifacts alone, derive what should exist.
+   Do this before reading any checklist — a checklist read first anchors
+   the auditor to the expected items instead of to the artifacts.
 2. Check the invariants a schema cannot express (cross-field, cross-round).
 3. Reconcile the reconstruction against the claimed state.
 4. Verdict: accept, or findings ranked by severity. The auditor holds no
@@ -145,12 +147,28 @@ flowchart TD
 
 Spec: §7 auditor role; §8.3 existence is not approval.
 
-## Four smaller techniques
+## Six smaller techniques
 
 **The doer never writes its own acceptance check.** A doer that writes
 both the work and the check that accepts it will drift the check toward
 what was built. Have another actor produce the check, blind to the doer's
-own tests. This is rung 2 of the harden-first ladder (§9.14.1).
+own tests. This is rung 2 of the harden-first ladder (§9.14.1). Freeze
+what the check applies — thresholds, rubrics, references — before the
+attempt starts: a doer who can retune the standard after a failing check
+has written its own acceptance after all.
+
+**An authored mechanism, not a knob flip.** Under iteration pressure, an
+actor can produce a steady stream of "progress" by tuning parameters,
+flags, and configs. Each tweak satisfies the check; the work the goal
+names never happens. When the goal names a mechanism, require the change
+to be that mechanism — authored work a reviewer can point at — and route
+config-only output back as not the work (§9.1).
+
+**Scripts own derived numbers.** When a number is computed from evidence
+— a speedup, a pass rate, a diff count — have a deterministic script
+compute it, and record the recompute command inside the artifact that
+carries it. An actor deriving the number by hand can err, or drift toward
+the answer it wants, and nobody can re-check it cheaply (§5.3.1).
 
 **One terminal metric.** Judge progress against one system-level
 measurement, produced by an instrument the doer did not author and cannot

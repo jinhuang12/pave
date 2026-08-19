@@ -1,4 +1,4 @@
-version: 2.2.1
+version: 2.2.2
 
 ## How changelog entries are written
 
@@ -17,6 +17,23 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.2.2 (2026-08-19)
+
+Improved — `technique-selection.md` names two invariants generated
+workflows previously had to rediscover on their own: an authored
+mechanism, not a knob flip (config-only output satisfies checks without
+doing the named work), and scripts own derived numbers (a deterministic
+script computes every evidence-derived number and records its recompute
+command in the artifact).
+  - Found by a doctrine audit against the source system's intent map:
+    both were absent from doctrine yet present in the first generated
+    package — rediscovered by luck, now explicit.
+
+Improved — two smaller hardenings in the same doc: the stage-audit recipe
+now orders reconstruction before any checklist is read, and acceptance
+standards (thresholds, rubrics, references) freeze before the attempt
+they judge.
 
 ### 2.2.1 (2026-08-19)
 
