@@ -1,4 +1,4 @@
-version: 2.2.4
+version: 2.2.6
 
 ## How changelog entries are written
 
@@ -17,6 +17,74 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.2.6 (2026-08-21)
+
+Improved — node planning and plan review now state what a decomposition
+*is* before working with one: it rewrites the parent's definition of done
+as an AND (all children) or OR (alternative children) of smaller
+evidence-gated predicates, each settleable by world-produced evidence,
+checked in both directions — a missing conjunct lets every child pass
+while the parent fails; an unneeded child is inflation (§4.11).
+
+- `agents/node-planner.md` step 5 opens with the framing (the planner's
+  self-check while framing children); the completeness attack lands in
+  `agents/pave-material-reviewer.md`'s "Is every element earned?" bullet
+  (the independent detection): construct the run where every child
+  succeeds while the parent's definition of done still fails.
+- Placement was adversarially swept: 13 other candidate sites rejected
+  as duplication under the skill's own doctrine (§4.7 reinjection at the
+  binding moment, §4.11 smallest sufficient, §9.14.2 no always-on text
+  for a rule one transition evaluates).
+- A blind A/B review (planted-defect and clean fixtures, old vs new
+  prompts) judged the change mixed → keep with revision. Planner half
+  helps: the new-prompt plan covered a definition-of-done conjunct the
+  old plan chartered no child to achieve, and was the less bloated of
+  the pair. Reviewer detection was already at ceiling (both arms found
+  the planted missing conjunct 2/2, sole BLOCKING). One probe-exhibited
+  harm — a manufactured BLOCKING-shaped coverage finding on a clean
+  plan — plus two doctrine gaps drove the two hardenings below.
+- Hardenings: the entailment boundary is now one general rule — only
+  the parent's definition of done decides what the entailment covers,
+  and each clause needs a child that settles it, whether by build,
+  disproof, or justified stop (§9.11); routing, ordering, and recovery
+  that no clause names are machinery, and a gap there is a different
+  finding. The reviewer's missing-conjunct attack requires quoting the
+  unsettled clause and naming the short-stopping child — no findings
+  built from actors the plan does not charter.
+  - Replaces an earlier exception-shaped fix (special cases for
+    exhaustion and disproof children); the general rule makes both
+    cases fall out and stays scenario-free.
+- Recorded, not done: a clean-fixture re-probe (4 reps per arm, scoring
+  HIGH-severity inventions) — both arms currently over-fire on clean
+  plans, a pre-existing calibration issue; and a PAVE 0.4 candidate
+  paragraph for `references/pave-spec.md` §9.12 stating the entailment
+  meaning of "child results integrate upward", a deliberate spec
+  revision left for its own release.
+
+### 2.2.5 (2026-08-19)
+
+Fixed — the model/effort doctrine is consistent across planner, builder,
+and assembly prose. A whole-skill consistency review found four conflicts
+left by the 2.2.4 half-migration:
+
+- The effort guidance no longer claims "unset means high": an unset
+  `effort` inherits the session's effort — the same hazard as an unset
+  model — so generated roles pin effort in frontmatter, with `high` as
+  the default pin.
+- Assignments are stated at the granularity the runtime can express:
+  per-role frontmatter pins for lead-bound dispatches (the Agent tool
+  has no per-dispatch effort override), per-`agent()` values inside
+  workflow scripts. A role that needs two tiers on different nodes is
+  two roles.
+- The verify-retry escalation rule (a check that fails twice retries
+  once one tier up) is scoped to workflow-script compilation, the only
+  binding that can express it; the assembly step no longer states it as
+  a graph-wide duty.
+- The material reviewer no longer overrides `model` when dispatching
+  research delegates (frontmatter pins are the authority), and the
+  research delegate pins `effort: high` — every agent is now pinned
+  except the deliberately-unpinned forward tester, as SKILL.md claims.
 
 ### 2.2.4 (2026-08-19)
 

@@ -102,7 +102,7 @@ The queue closes when every entry is `reviewed`. A node that cannot close after 
 1. Merge the node drafts into one flat PAVE root `workflow.draft.pave.yaml` — the editable `v0` subject that delivery later freezes per `references/pave-revisions.md`. Decomposition lineage flattens into one graph; add a child `*.draft.pave.yaml` only for a subgraph whose packaging met a §9.12.1 condition. Strip the `x_planning` extension block; the marks are planning state, not graph meaning.
 2. Run the global simplicity pass: remove every element — including any child profile — whose absence changes no required routing, authority, evidence, recovery, or acceptance.
 3. Mark runtime bindings (section 4.8). Bindings need the whole-subgraph view, which is why planners do not mark them.
-4. Reconcile model and effort assignments across nodes; keep the verify-retry escalation rule uniform (a check that fails twice at assigned effort retries once one tier up before the failure edge).
+4. Reconcile model and effort assignments across nodes — one value per role; a role that needs two tiers is two roles.
 5. Finalize the run-wide enforcement record in `skill-package-plan.md`: merge the node-local entries planners proposed with your own run-wide entries; deduplicate guards proposed for the same prohibition.
 6. Validate the root with `scripts/validate_pave.py` — it follows composition references and validates every child profile and boundary. Then send the assembled whole bundle to the same planning reviewer as the whole-graph round.
 

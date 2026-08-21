@@ -2,6 +2,7 @@
 name: research-delegate
 description: Fast, focused research sub-agent that receives a single specific question from an investigator and returns evidence-backed findings. Dispatched by the pave-material-reviewer — do not trigger from an implicit match.
 model: sonnet
+effort: high
 ---
 
 ## How You Work
