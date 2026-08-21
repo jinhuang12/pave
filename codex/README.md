@@ -20,8 +20,7 @@ codex/runtime-binding.md              exact semantic substitution contract
 codex/agents/*.toml                   custom-agent adapters for canonical roles
 codex/install_agents.py               explicit project/user agent installer
 codex/hooks/hooks.json                Codex lifecycle registration
-codex/hooks/subagent_activity.py      conservative lead/worker activity latch
-codex/hooks/post_tool_use_router.py   apply_patch and scope adapter
+codex/hooks/post_tool_use_router.py   apply_patch wire adapter
 codex/tests/test_codex_port.py        stdlib validation and hook tests
 ```
 
@@ -87,8 +86,8 @@ The complete table is in `runtime-binding.md`. The load-bearing changes are:
 - Role reasoning effort is preserved, but Claude model names are not copied.
 - Plugin-level `hooks/hooks.json` replaces skill-frontmatter hook registration.
 - `apply_patch` needs a path/content adapter for the planning-layout hook.
-- Direct Codex caller identity is preserved when present. A session
-  activity latch fails safe when a runtime omits it from `PostToolUse`.
+- Direct Codex caller identity is preserved so the canonical hooks remain the
+  only authority for lead-versus-worker policy.
 - `codex_exec_script` is the compiled-subgraph equivalent of a Claude
   `Workflow` script.
 - A clean-room test installs the package and runs `codex exec --ephemeral
@@ -106,7 +105,7 @@ The Codex plugin registers:
 3. A Socratic stop-alignment check with the canonical cooldown.
 
 The canonical Bash scripts remain the policy implementations. The Codex Python
-files adapt only the wire format and lead/worker scope.
+file adapts only the `apply_patch` wire format and preserves caller identity.
 
 Codex requires explicit trust for non-managed hooks. A disabled or untrusted
 hook is a recorded enforcement degradation. The canonical resume, checkpoint,
@@ -124,8 +123,8 @@ bash -n skills/pave-init/hooks/*.sh
 ```
 
 The unit suite checks plugin and hook structure, custom-agent TOML, installer
-safety, apply-patch expansion, activity tracking, and integration with the
-canonical PAVE hooks.
+safety, apply-patch expansion, caller-identity preservation, and integration
+with the canonical PAVE hooks.
 
 ## Clean-room forward test
 
@@ -155,10 +154,11 @@ generic child and report an equivalent pass.
 
 ### PostToolUse identity
 
-Current Codex source schemas include optional `agent_id` and `agent_type`
-on `PostToolUse`, although the release documentation can lag those fields. The
-adapter preserves direct identity. On a runtime that omits it, the activity
-latch suppresses the lead-only staleness reminder and skips the advisory
-layout check during an active PAVE-worker interval. This can defer a reminder
-or warning. It avoids assigning sole-writer duties to the wrong actor or
-raising a false worker-write finding against the lead.
+Current Codex source attaches `agent_id` and `agent_type` to `PostToolUse`
+events from spawned workers. Root calls omit them. The adapter preserves these
+fields and delegates all lead-versus-worker decisions to the canonical hooks.
+
+A runtime that omits worker identity cannot preserve the identity-sensitive
+parts of the policy: a worker can receive the lead-only staleness reminder, and
+its `frontier.yaml` write can look lead-owned. Record that runtime as degraded
+instead of claiming equivalent hook enforcement.

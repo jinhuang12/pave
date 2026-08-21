@@ -130,8 +130,12 @@ PostToolUse controls across these wire differences:
 
 - `apply_patch` carries patch text rather than Claude `file_path` and
   `content`; and
-- PostToolUse caller identity is preserved when the runtime supplies it; a
-  session-scoped activity latch fails safe when it does not.
+- PostToolUse caller identity is preserved and the canonical scripts apply the
+  lead-versus-worker policy.
+
+If the active runtime omits identity from spawned-worker PostToolUse events,
+record degraded hook enforcement. Do not claim that the lead-only staleness or
+worker-only `frontier.yaml` checks are equivalent on that runtime.
 
 The controls remain observing or Socratic at the same enforcement rung. Hook
 trust refusal or runtime absence follows the canonical prose-and-resume

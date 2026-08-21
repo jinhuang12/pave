@@ -1,30 +1,6 @@
 {
   "description": "PAVE Init long-run alignment and planning-layout hooks for Codex CLI.",
   "hooks": {
-    "SubagentStart": [
-      {
-        "matcher": "^pave_init_.*$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"${PLUGIN_ROOT}/codex/hooks/subagent_activity.py\" start",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "^pave_init_.*$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"${PLUGIN_ROOT}/codex/hooks/subagent_activity.py\" stop",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Bash|Write|Edit",

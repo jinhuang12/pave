@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Adapt Codex PostToolUse payloads to the canonical PAVE hooks.
 
-Two wire-level differences require an adapter:
+One wire-level difference requires an adapter:
 
-* Current Codex source schemas carry optional subagent identity on normal
-  tool hooks, while some release documentation omits those fields.
-  ``subagent_activity.py`` supplies a fail-safe session latch for runtimes that
-  omit them.
 * Codex reports file edits as ``apply_patch`` with the patch text in
   ``tool_input.command``.  The canonical Claude hook expects one ``file_path``
   plus written ``content`` or ``new_string``.  This module expands one patch
   into one canonical payload per affected file and combines the warnings.
+
+Current Codex PostToolUse payloads carry direct ``agent_id`` and ``agent_type``
+for spawned workers.  Expanded payloads preserve those fields so the canonical
+hooks remain the only authority for lead-versus-worker policy.
 
 The hooks are observing controls.  Any adapter failure exits 0 and emits no
 context; the canonical prose and validators remain the decline path.
@@ -27,11 +27,6 @@ import re
 import subprocess
 import sys
 from typing import Any, Iterable
-
-try:
-    from .subagent_activity import active_agent_ids
-except ImportError:  # Executed as a script rather than a package module.
-    from subagent_activity import active_agent_ids  # type: ignore
 
 _PATCH_FILE = re.compile(r"^\*\*\* (Add|Update|Delete) File: (.+?)\s*$")
 _MOVE_TO = re.compile(r"^\*\*\* Move to: (.+?)\s*$")
@@ -173,22 +168,7 @@ def _emit_context(parts: Iterable[str]) -> None:
     )
 
 
-def _payload_has_subagent_identity(payload: dict[str, Any]) -> bool:
-    agent_id = str(payload.get("agent_id") or "")
-    agent_type = str(payload.get("agent_type") or "")
-    return bool(agent_id or agent_type)
-
-
 def _run_staleness(payload: dict[str, Any]) -> int:
-    session_id = str(payload.get("session_id") or "")
-    # Current Codex hook schemas include optional agent_id/agent_type on normal
-    # tool hooks.  The canonical script consumes those fields directly.  The
-    # activity latch is only a fail-safe for a runtime that omits them: while a
-    # PAVE worker is active, silence this lead-only reminder rather than send a
-    # sole-writer duty to an unknown caller.
-    if not _payload_has_subagent_identity(payload) and active_agent_ids(session_id):
-        return 0
-
     _, stdout, _ = _run_canonical(
         _canonical_script("state_staleness_reminder.sh"), payload
     )
@@ -212,15 +192,6 @@ def _canonical_layout_payloads(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
     sections = extract_patch_sections(command)
     if not sections:
-        return []
-
-    session_id = str(payload.get("session_id") or "")
-    active = sorted(active_agent_ids(session_id))
-    direct_identity = _payload_has_subagent_identity(payload)
-    # On a legacy runtime with no caller identity, an active-worker interval is
-    # ambiguous.  Skip this advisory check instead of inventing worker identity
-    # and producing a false sole-writer warning against a concurrent lead edit.
-    if active and not direct_identity:
         return []
 
     adapted: list[dict[str, Any]] = []

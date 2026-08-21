@@ -14,7 +14,6 @@ from unittest import mock
 
 from codex import install_agents
 from codex.hooks import post_tool_use_router
-from codex.hooks import subagent_activity
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -55,10 +54,7 @@ class PackageStructureTests(unittest.TestCase):
         path = REPO_ROOT / "codex" / "hooks" / "hooks.json"
         data = json.loads(path.read_text(encoding="utf-8"))
         hooks = data["hooks"]
-        self.assertEqual(
-            set(hooks),
-            {"SubagentStart", "SubagentStop", "PostToolUse", "Stop"},
-        )
+        self.assertEqual(set(hooks), {"PostToolUse", "Stop"})
         commands: list[str] = []
         for groups in hooks.values():
             for group in groups:
@@ -70,6 +66,7 @@ class PackageStructureTests(unittest.TestCase):
         self.assertIn("post_tool_use_router.py\" staleness", joined)
         self.assertIn("post_tool_use_router.py\" layout", joined)
         self.assertIn("stop_alignment_check.sh", joined)
+        self.assertNotIn("subagent_activity.py", joined)
 
     def test_custom_agents_parse_and_cover_every_role(self) -> None:
         files = sorted((REPO_ROOT / "codex" / "agents").glob("*.toml"))
@@ -143,50 +140,33 @@ class PatchAdapterTests(unittest.TestCase):
         self.assertEqual(adapted[0]["tool_input"]["file_path"], "x")
         self.assertEqual(adapted[0]["tool_input"]["content"], "hello\n")
 
-    def test_ambiguous_legacy_call_fails_open_during_worker_activity(self) -> None:
+    def test_identity_free_call_reaches_canonical_layout_policy(self) -> None:
         payload = {
-            "session_id": "legacy",
+            "session_id": "s",
             "tool_input": {
                 "command": "*** Begin Patch\n*** Add File: x\n+hello\n*** End Patch"
             },
         }
-        with mock.patch.object(
-            post_tool_use_router, "active_agent_ids", return_value={"a1"}
-        ):
-            self.assertEqual(post_tool_use_router._canonical_layout_payloads(payload), [])
+        adapted = post_tool_use_router._canonical_layout_payloads(payload)
+        self.assertEqual(len(adapted), 1)
+        self.assertEqual(adapted[0]["tool_input"]["file_path"], "x")
+        self.assertFalse(hasattr(post_tool_use_router, "active_agent_ids"))
 
-    def test_staleness_uses_direct_identity_and_latch_only_as_fallback(self) -> None:
+    def test_staleness_delegates_caller_identity_to_canonical_policy(self) -> None:
         direct = {
             "session_id": "s",
             "agent_id": "a1",
             "agent_type": "pave_init_node_planner",
         }
-        legacy = {"session_id": "s"}
+        lead = {"session_id": "s"}
         with mock.patch.object(
-            post_tool_use_router, "active_agent_ids", return_value={"a1"}
-        ), mock.patch.object(
             post_tool_use_router, "_run_canonical", return_value=(0, "", "")
         ) as run:
             post_tool_use_router._run_staleness(direct)
-            run.assert_called_once()
-            run.reset_mock()
-            post_tool_use_router._run_staleness(legacy)
-            run.assert_not_called()
-
-
-class ActivityLatchTests(unittest.TestCase):
-    def test_tracks_multiple_agents_per_session(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            with mock.patch.dict(os.environ, {"TMPDIR": temp}):
-                subagent_activity.update_activity("session", "a", True)
-                subagent_activity.update_activity("session", "b", True)
-                self.assertEqual(
-                    subagent_activity.active_agent_ids("session"), {"a", "b"}
-                )
-                subagent_activity.update_activity("session", "a", False)
-                self.assertEqual(subagent_activity.active_agent_ids("session"), {"b"})
-                subagent_activity.update_activity("session", "b", False)
-                self.assertEqual(subagent_activity.active_agent_ids("session"), set())
+            post_tool_use_router._run_staleness(lead)
+            self.assertEqual(run.call_count, 2)
+            self.assertEqual(run.call_args_list[0].args[1], direct)
+            self.assertEqual(run.call_args_list[1].args[1], lead)
 
 
 class InstallerTests(unittest.TestCase):
@@ -316,6 +296,30 @@ class CanonicalHookIntegrationTests(unittest.TestCase):
             )
             self.assertEqual(stale.returncode, 0, stale.stderr)
             self.assertIn("run-state.json last written", stale.stdout)
+
+    def test_identity_free_lead_edit_reaches_layout_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _, planning = self._workspace(root)
+            env = os.environ.copy()
+            env.update({"PLUGIN_ROOT": str(REPO_ROOT), "TMPDIR": str(root / "tmp")})
+            (root / "tmp").mkdir()
+
+            bad_path = planning / "rogue.txt"
+            patch = (
+                "*** Begin Patch\n"
+                f"*** Add File: {bad_path}\n"
+                "+bad\n"
+                "*** End Patch"
+            )
+            result = self._run_router(
+                "layout",
+                {"session_id": "lead-session", "tool_input": {"command": patch}},
+                root,
+                env,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("matches no allowed planning/ pattern", result.stdout)
 
     def test_stop_hook_continues_once_then_accepts_active_flag(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

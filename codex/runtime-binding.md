@@ -51,7 +51,7 @@ approval meaning.
 | Skill-frontmatter `hooks` | Plugin-level `hooks/hooks.json`, referenced by `.codex-plugin/plugin.json` | Codex does not use skill frontmatter to register lifecycle hooks. Keep scripts visible, trust-reviewed, marker-gated, and disclosed in the skill description. |
 | `CLAUDE_PLUGIN_ROOT` / `CLAUDE_SKILL_DIR` | `PLUGIN_ROOT` for plugin hooks; an absolute skill path in model instructions | Codex also exposes Claude compatibility variables to plugin hook processes, but new code uses `PLUGIN_ROOT`. |
 | Claude `Write` / `Edit` payload | Codex `apply_patch` payload | Codex reports patch text in `tool_input.command`. `codex/hooks/post_tool_use_router.py` expands it into the canonical path/content shape. |
-| Lead identity on `PostToolUse` | Session-scoped PAVE subagent activity latch | Current Codex source schemas include optional `agent_id` and `agent_type` on `PostToolUse`, although the release documentation may omit them. Use direct identity when present. A session latch fails safe on runtimes that omit it. See §6. |
+| Lead/worker identity on `PostToolUse` | Direct Codex `agent_id` and `agent_type` fields | Current Codex source attaches these fields to spawned-worker events and omits them for root calls. Preserve them and let the canonical hooks apply their identity gates. A runtime that omits worker identity is degraded. See §6. |
 | Claude `Workflow` tool script | `codex_exec_script` or lead-driven subagents | See §5. The PAVE graph remains the authority. |
 | `plugin-dev` structure/agent helpers | `$plugin-creator` when installed, plus direct checks against current Codex plugin and custom-agent formats | Absence of `$plugin-creator` does not waive structural validation. |
 | System `skill-creator` quick validator | `$skill-creator` validator when installed, plus local frontmatter and path tests | Record a missing optional validator. Do not waive graph, traceability, script, hook, or generated test failures. |
@@ -150,16 +150,17 @@ root-only.
 
 The two `PostToolUse` controls use adapters:
 
-- `state_staleness_reminder.sh` remains canonical. The adapter passes direct Codex `agent_id` and `agent_type` fields to the
-  canonical identity gate when present. On a runtime that omits them, it
-  suppresses this lead-only reminder while any PAVE custom agent is active.
-  This can delay one valid lead reminder, but it avoids giving a sole-writer
-  lead duty to an unknown caller.
+- `state_staleness_reminder.sh` remains canonical. The adapter passes direct
+  Codex `agent_id` and `agent_type` fields to its identity gate. Root calls
+  omit those fields; spawned-worker calls include them.
 - `planning-layout-warn.sh` remains canonical. The adapter parses Codex
-  `apply_patch` text into one path/content payload per file. Direct Codex caller identity remains intact in each expanded payload. On
-  a runtime that omits identity during an active PAVE-worker interval, the
-  adapter skips this advisory check rather than invent a role and raise a false
-  sole-writer warning.
+  `apply_patch` text into one path/content payload per file and preserves direct
+  Codex caller identity in each expanded payload.
+
+If a Codex runtime omits identity from spawned-worker `PostToolUse` events, the
+canonical hooks must treat that caller as the lead. This can send a staleness
+reminder to a worker and miss the worker-only `frontier.yaml` warning. Record
+that runtime as degraded instead of claiming equivalent hook enforcement.
 
 These controls remain advisory. Schema validation and the canonical prose are
 the decline paths when the hook runtime is disabled, untrusted, or unable to
@@ -209,8 +210,8 @@ checks:
    existence.
 5. Test `apply_patch` expansion with multi-file add, update, delete, and rename
    fixtures.
-6. Exercise the activity latch through `SubagentStart`, `PostToolUse`, and
-   `SubagentStop` fixtures.
+6. Confirm worker identity survives `apply_patch` expansion and identity-free
+   root payloads still reach the canonical hooks.
 7. Exercise the stop hook with an active marker-owned run and confirm one
    continuation followed by its cooldown pass.
 8. Search generated files for literal Claude-only launch commands,
