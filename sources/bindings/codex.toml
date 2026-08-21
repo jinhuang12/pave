@@ -1,0 +1,62 @@
+version = 1
+harness = "codex"
+skill_output = "codex/skills/pave-init/SKILL.md"
+agent_output_kind = "toml"
+
+[slots]
+FRONTMATTER = '''---
+name: pave-init
+description: >-
+  Create a PAVE-based Codex workflow plugin from a goal the user states.
+  Manual-only: use only after explicit $pave-init invocation or selection
+  through /skills. This long campaign clarifies the goal, explores the system,
+  designs and reviews a PAVE graph, and builds and tests the plugin. The plugin
+  registers disclosed stop-alignment, stale-state, and planning-layout hooks.
+---'''
+PRODUCT_INTRO = '''Turn a system or engineering process into a validated PAVE Graph Profile and a Codex plugin: a lead workflow skill plus custom role agents. Resolve `PAVE_PLUGIN_ROOT` as the absolute path three directories above this file (`<root>/codex/skills/pave-init/SKILL.md` → `<root>`) and resolve every `orchestration/...`, `references/...`, `schemas/...`, and `scripts/...` path below under `<PAVE_PLUGIN_ROOT>/skills/pave-init/`. The user's stated goal drives the run: clarify it until it is designable, then design. Treat the approved PAVE YAML as the workflow authority.'''
+MULTI_AGENT_CONTRACT = '''Every worker role is a named Codex custom agent installed from this plugin. Its TOML contains the complete role contract. Start every brief with `PAVE_PLUGIN_ROOT: <absolute plugin root>`.
+
+- Dispatch one-shot workers with `spawn_agent` and the mapped `pave_init_<role>` custom-agent name. Start independent workers together and close each thread after its terminal result.
+- Retain one exact `pave_init_material_reviewer` thread through every repair round at a gate. Continue it with `send_input`; a fresh thread is a new reviewer. Start a fresh reviewer for the final-skill gate.
+- Use the active Codex model and the role's configured reasoning effort. The forward tester inherits session defaults. Reserve `xhigh`, or the highest supported effort, for the root planner or an approved high-risk planner.
+- Ask bounded user questions in plain text or with `request_user_input` when it is available. Present approval briefs in full and require an explicit response that names what the user approves.
+
+Before Stage 1, verify that all six `pave_init_*` agents resolve, Python 3 is available, `yaml` and `jsonschema` import, shared resources are readable, and the user reviewed plugin hooks through `/hooks`. If a required custom agent is absent or cannot be selected by name, pause and report the explicit installation check from `codex/README.md`. Do not use a generic worker and claim equivalent review.'''
+PACKAGE_IDENTITY = '''The delivered unit is a Codex plugin — the native Codex shape of pave-init.'''
+MANIFEST_COMPONENT = '''the plugin manifest (`.codex-plugin/plugin.json`: name, description, version); the plugin name is `<workflow-name>` — one string serving as the manifest name, lead-skill directory, and custom-agent prefix;'''
+ROLE_COMPONENT = '''custom-agent TOML sources plus an explicit consented installer under the plugin root, when authority or context differs;'''
+HOOK_COMPONENT = '''hook scripts plus plugin-level `hooks/hooks.json` registration per the approved enforcement record;'''
+ROLE_RUNTIME_BINDING = '''Roles map to named custom-agent TOML contracts only when they need distinct authority or context. The lead dispatches the mapped custom-agent name and pauses when it is unavailable; it never substitutes a generic worker. Installation is explicit and must not hide inside a hook.'''
+HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement record. Register it in plugin-level `hooks/hooks.json`; a payload adapter may change wire format but not policy, actor scope, or enforcement strength.'''
+SCRIPT_RUNTIME_BINDING = '''A subgraph with an approved `workflow_script` binding maps to one deterministic Python or TypeScript `codex_exec_script` per the native `skill-builder` contract, with lead-driven custom-agent dispatch as fallback when the script runtime is unavailable.'''
+DELIVERY_INSTALL_BULLET = '''- install or enable the Codex plugin, run its explicit custom-agent installer, review hooks through `/hooks`, then invoke `$<workflow-name>`; marketplace installation alone is incomplete while agents remain outside the manifest;'''
+
+[roles.forward-tester]
+reasoning_effort = "inherit"
+sandbox_mode = "workspace-write"
+runtime = '''Install or enable the generated plugin and its custom agents in the temporary project, then run `codex exec --ephemeral --sandbox workspace-write "<request>"`. A launch that cannot load the plugin or resolve a custom agent is degraded evidence.'''
+
+[roles.node-planner]
+reasoning_effort = "high"
+sandbox_mode = "workspace-write"
+runtime = '''When more evidence is needed, use `spawn_agent` with the `pave_init_research_delegate` custom agent when available, one bounded read-only question per worker. Start independent questions together and close each worker after its result.'''
+
+[roles.pave-material-reviewer]
+reasoning_effort = "high"
+sandbox_mode = "read-only"
+runtime = '''Use `spawn_agent` with `pave_init_research_delegate` for independent bounded questions and start them together. Return findings on this exact reviewer thread. The lead continues this thread with `send_input` through repair rounds.'''
+
+[roles.research-delegate]
+reasoning_effort = "medium"
+sandbox_mode = "read-only"
+runtime = '''Return the bounded research result to the parent thread. Do not modify files.'''
+
+[roles.skill-builder]
+reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+runtime = '''Generate a Codex plugin with `.codex-plugin/plugin.json`, a lead under `skills/<workflow-name>/`, custom-agent TOML plus an explicit installer, and plugin-level `hooks/hooks.json`. Use named custom agents through `spawn_agent`, retain reviewers with `send_input`, ask explicit user gates in plain text or `request_user_input`, and apply model, effort, and sandbox per role. When the approved plan selects `workflow_script`, generate a deterministic Python or TypeScript `codex_exec_script` that launches `codex exec --json --ephemeral` per node with structured outcomes and keeps lead-driven custom-agent dispatch as fallback.'''
+
+[roles.system-explorer]
+reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+runtime = '''Return the bounded exploration result to the parent thread and write only the assigned report.'''

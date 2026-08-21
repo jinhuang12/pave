@@ -78,12 +78,12 @@ every workflow can reuse them (spec §4 and §9).
 
 ## What's Included
 
-`pave-init` is a meta-skill — a workflow that builds workflows. Bundled as a 
-ready-to-use Claude Code plugin: a lead workflow skill, its worker roles as
-registered agents, alignment hooks, a run-state schema, and a README rendered
-from the approved plan. Plus the plan itself: the workflow graph, the system
-evidence it was designed from, and a traceability table that links every graph
-object to the file that implements it.
+`pave-init` is a meta-skill — a workflow that builds workflows. It ships native
+Claude Code and Codex packages generated from one maintained workflow source.
+Each package contains a lead skill, native role agents, alignment hooks, a
+run-state schema, and a README rendered from the approved plan. The shared PAVE
+graph, system evidence, references, scripts, and traceability record remain one
+physical source.
 
 ## Install
 
@@ -99,6 +99,19 @@ Then invoke it by name — it never starts on its own:
 ```text
 /pave-init turn <goal> for <target system> into a workflow skill
 ```
+
+For Codex, install or enable `.codex-plugin/plugin.json`, install the required
+custom agents, review the hooks, and invoke the native skill:
+
+```bash
+python3 codex/install_agents.py --project /path/to/target-repository
+```
+
+```text
+$pave-init turn <goal> for <target system> into a workflow skill
+```
+
+See `codex/README.md` for project and user installation details.
 
 ## How a run flows
 

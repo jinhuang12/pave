@@ -5,6 +5,7 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import time
@@ -42,7 +43,12 @@ class PackageStructureTests(unittest.TestCase):
         manifest_path = REPO_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], "pave-init")
-        self.assertEqual(manifest["version"], "2.2.0")
+        claude_manifest = json.loads(
+            (REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(manifest["version"], claude_manifest["version"])
         for key in ("skills", "hooks"):
             value = manifest[key]
             self.assertTrue(value.startswith("./"), (key, value))
@@ -80,19 +86,114 @@ class PackageStructureTests(unittest.TestCase):
             self.assertEqual(path.stem, data["name"])
             self.assertIn(data.get("sandbox_mode"), {"read-only", "workspace-write"})
             self.assertIn("PAVE_PLUGIN_ROOT", data["developer_instructions"])
-            self.assertIn("runtime-binding.md", data["developer_instructions"])
+            self.assertIn("complete role contract", data["developer_instructions"])
+            self.assertNotIn("runtime-binding.md", data["developer_instructions"])
+            self.assertNotIn("read `<root>/agents/", data["developer_instructions"])
             names.add(data["name"])
         self.assertEqual(names, AGENT_NAMES)
 
-    def test_loader_keeps_canonical_skill_as_authority(self) -> None:
-        text = (REPO_ROOT / "codex" / "skills" / "pave-init" / "SKILL.md").read_text(
+    def test_generated_native_skills_and_roles_are_current(self) -> None:
+        result = subprocess.run(
+            ["python3", str(REPO_ROOT / "scripts" / "build_packages.py"), "--check"],
+            text=True,
+            capture_output=True,
+            cwd=REPO_ROOT,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        claude = (REPO_ROOT / "skills" / "pave-init" / "SKILL.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("name: pave-init", text)
-        self.assertIn("Manual-only", text)
-        self.assertIn("skills/pave-init/SKILL.md", text)
-        self.assertIn("runtime-binding.md", text)
-        self.assertIn("cannot change PAVE meaning", text)
+        codex = (
+            REPO_ROOT / "codex" / "skills" / "pave-init" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        for heading in (
+            "## Authority",
+            "## Required resources",
+            "## Run workspace",
+            "## Multi-agent contract",
+            "## Stage 1: Goal and fitness",
+            "## Stage 6: Validate, review, and forward-test",
+            "## Final delivery",
+            "## Resume",
+        ):
+            self.assertIn(heading, claude)
+            self.assertIn(heading, codex)
+        self.assertIn("name: pave-init", codex)
+        self.assertIn("Manual-only", codex)
+        self.assertNotIn("runtime-binding.md", codex)
+        self.assertNotIn("Read `<root>/skills/pave-init/SKILL.md`", codex)
+        self.assertNotIn("Claude Code", codex)
+
+    def test_binding_schema_and_source_inventory_are_complete(self) -> None:
+        schema = json.loads(
+            (REPO_ROOT / "sources" / "bindings" / "schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(schema["properties"]["version"]["const"], 1)
+        role_sources = sorted((REPO_ROOT / "sources" / "roles").glob("*.md.tmpl"))
+        self.assertEqual(len(role_sources), 6)
+        self.assertEqual(
+            {path.name for path in (REPO_ROOT / "sources" / "bindings").glob("*.toml")},
+            {"claude.toml", "codex.toml"},
+        )
+
+    def test_check_rejects_missing_binding_and_orphaned_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            clone = Path(temp) / "repo"
+            shutil.copytree(
+                REPO_ROOT,
+                clone,
+                ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"),
+            )
+            codex_binding = clone / "sources" / "bindings" / "codex.toml"
+            original_binding = codex_binding.read_text(encoding="utf-8")
+            codex_binding.unlink()
+            missing = subprocess.run(
+                ["python3", str(clone / "scripts" / "build_packages.py"), "--check"],
+                text=True,
+                capture_output=True,
+                cwd=clone,
+                check=False,
+            )
+            self.assertEqual(missing.returncode, 2)
+            self.assertIn("binding files differ", missing.stderr)
+
+            codex_binding.write_text(original_binding, encoding="utf-8")
+            orphan = clone / "codex" / "agents" / "pave_init_retired.toml"
+            orphan.write_text(
+                "# Generated by scripts/build_packages.py; source-sha256: retired\n",
+                encoding="utf-8",
+            )
+            stale = subprocess.run(
+                ["python3", str(clone / "scripts" / "build_packages.py"), "--check"],
+                text=True,
+                capture_output=True,
+                cwd=clone,
+                check=False,
+            )
+            self.assertEqual(stale.returncode, 1)
+            self.assertIn("ORPHAN codex/agents/pave_init_retired.toml", stale.stderr)
+
+            orphan.unlink()
+            shared = clone / "skills" / "pave-init" / "orchestration" / "review-and-build.md"
+            shared.write_text(
+                shared.read_text(encoding="utf-8")
+                + "\nUse spawn_agent with pave_init_skill_builder, then run codex exec.\n",
+                encoding="utf-8",
+            )
+            leaked = subprocess.run(
+                ["python3", str(clone / "scripts" / "build_packages.py"), "--check"],
+                text=True,
+                capture_output=True,
+                cwd=clone,
+                check=False,
+            )
+            self.assertEqual(leaked.returncode, 2)
+            self.assertIn("harness mechanics remain in shared runtime sources", leaked.stderr)
 
 
 class PatchAdapterTests(unittest.TestCase):

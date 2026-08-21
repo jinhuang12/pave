@@ -157,7 +157,7 @@ The state contract of `pave-yaml.md` section 14 extends as follows:
 
 ## 12. Runtime Binding responsibilities
 
-The executing runtime — for a generated Claude Code skill, the lead agent — owns:
+The executing runtime — for a generated workflow skill, the lead agent — owns:
 
 - opening the child run when the parent node run starts;
 - passing `inputs`;
@@ -166,7 +166,7 @@ The executing runtime — for a generated Claude Code skill, the lead agent — 
 - failing closed on ambiguous or invalid child returns;
 - honoring declared limits and depth bounds.
 
-One profile is one orchestration boundary. When a subgraph binds to a generated Workflow tool script, the script covers nodes of one profile only; a composed node inside a script is handed back to the lead, which orchestrates the child profile itself. Scripts never nest.
+One profile is one orchestration boundary. When a subgraph binds to a generated harness-native workflow script, the script covers nodes of one profile only; a composed node inside a script is handed back to the lead, which orchestrates the child profile itself. Scripts never nest.
 
 ## 13. Validation
 

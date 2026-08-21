@@ -1,9 +1,9 @@
 # PAVE Init for Codex CLI
 
-This directory is a Codex Runtime Binding for the canonical PAVE Init
-meta-skill. It does not fork the workflow prose. The Codex lead skill reads the
-canonical files under `skills/pave-init/` and applies only the platform
-substitutions in `runtime-binding.md`.
+This directory contains the native Codex package for PAVE Init. One shared,
+stage-oriented source under `sources/` generates the complete Claude Code and
+Codex lead skills and role definitions. The installed Codex skill does not load
+or translate the Claude skill at run time.
 
 That structure follows PAVE's own layer model:
 
@@ -15,18 +15,22 @@ That structure follows PAVE's own layer model:
 
 ```text
 .codex-plugin/plugin.json             Codex plugin manifest
-codex/skills/pave-init/SKILL.md       manual-only Codex lead loader
-codex/runtime-binding.md              exact semantic substitution contract
-codex/agents/*.toml                   custom-agent adapters for canonical roles
+codex/skills/pave-init/SKILL.md       generated native Codex lead skill
+codex/agents/*.toml                   generated native custom-agent contracts
 codex/install_agents.py               explicit project/user agent installer
 codex/hooks/hooks.json                Codex lifecycle registration
 codex/hooks/post_tool_use_router.py   apply_patch wire adapter
 codex/tests/test_codex_port.py        stdlib validation and hook tests
+sources/pave-init/SKILL.md.tmpl       shared workflow source
+sources/roles/*.md.tmpl               shared role sources
+sources/bindings/*.toml               narrow harness mechanics
+scripts/build_packages.py             deterministic materializer and drift check
 ```
 
-The canonical role prose remains in `agents/*.md`. Each custom-agent adapter
-loads its matching role body before work. This prevents two platform copies of
-review, evidence, and planning policy from drifting.
+The committed native outputs are installation artifacts. Change the shared
+sources or binding records, run `python3 scripts/build_packages.py`, and commit
+the resulting outputs. `--check` fails when an output was edited directly or
+was not regenerated.
 
 ## Install for one project
 
@@ -74,7 +78,8 @@ It refuses to overwrite or remove an unowned modified file unless you pass
 
 ## What changed from Claude Code
 
-The complete table is in `runtime-binding.md`. The load-bearing changes are:
+The narrow harness binding is `sources/bindings/codex.toml`. Its load-bearing
+differences are:
 
 - `$pave-init` replaces `/pave-init`.
 - `.codex-plugin/plugin.json` replaces `.claude-plugin/plugin.json`.
@@ -117,6 +122,7 @@ From the repository root:
 
 ```bash
 python3 -m unittest codex.tests.test_codex_port
+python3 scripts/build_packages.py --check
 python3 -m json.tool .codex-plugin/plugin.json >/dev/null
 python3 -m json.tool codex/hooks/hooks.json >/dev/null
 bash -n skills/pave-init/hooks/*.sh

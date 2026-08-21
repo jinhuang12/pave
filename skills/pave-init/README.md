@@ -2,7 +2,7 @@
 
 Version: `2.2.5`
 
-Turn a goal into a reviewed workflow and a ready-to-use Claude Code plugin: a lead workflow skill plus its roles as registered agents. Load a delivered package with `claude --plugin-dir <package-root>` for a session, or install it from a marketplace for permanence.
+Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
 
 You provide the outcome and target system. `pave-init` investigates the system,
 designs the workflow, reviews it, builds the skill, tests it, and reports any
@@ -242,15 +242,18 @@ check in the recorded traversal history. Both are declared in
 
 ```
 <plugin-root>/                            # installed as the pave-init plugin
-├── .claude-plugin/
-│   └── plugin.json                       # plugin manifest
-├── agents/                               # registered agent types, dispatched as pave-init:<name>
+├── .claude-plugin/plugin.json             # Claude Code manifest
+├── .codex-plugin/plugin.json              # Codex manifest
+├── agents/                                # generated Claude Code role definitions
 │   ├── system-explorer.md                # investigates one angle of the system; writes only its own report
 │   ├── node-planner.md                   # one-boundary planning authorship
 │   ├── pave-material-reviewer.md         # adversarial method + materiality and severity contract, both gates
 │   ├── research-delegate.md              # the reviewer's evidence-gathering sub-agent
 │   ├── skill-builder.md                  # scoped package construction + workflow-script compile mapping
 │   └── forward-tester.md                 # clean-room skill use
+├── codex/agents/                          # generated Codex custom-agent contracts
+├── codex/skills/pave-init/SKILL.md        # generated native Codex lead
+├── sources/                               # shared workflow and role sources + harness bindings
 └── skills/pave-init/
     ├── SKILL.md                          # lead contract: stages, gates, state duties, hook registration
     ├── README.md                         # this rendered view of the package

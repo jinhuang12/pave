@@ -26,6 +26,14 @@ except ImportError as exc:  # pragma: no cover - Python 3.11+ is expected.
 
 MANIFEST_NAME = ".pave-init-codex-agents.json"
 REQUIRED_FIELDS = ("name", "description", "developer_instructions")
+EXPECTED_AGENT_NAMES = (
+    "pave_init_forward_tester",
+    "pave_init_material_reviewer",
+    "pave_init_node_planner",
+    "pave_init_research_delegate",
+    "pave_init_skill_builder",
+    "pave_init_system_explorer",
+)
 
 
 def _sha256(path: Path) -> str:
@@ -58,9 +66,16 @@ def _load_toml(path: Path) -> dict[str, Any]:
 
 def _sources() -> list[Path]:
     source = _source_dir()
-    paths = sorted(source.glob("pave_init_*.toml"))
-    if not paths:
-        raise FileNotFoundError(f"no PAVE agent TOMLs under {source}")
+    paths = [source / f"{name}.toml" for name in EXPECTED_AGENT_NAMES]
+    missing = [path.name for path in paths if not path.is_file()]
+    actual = {path.name for path in source.glob("pave_init_*.toml")}
+    expected = {path.name for path in paths}
+    unexpected = sorted(actual - expected)
+    if missing or unexpected:
+        raise FileNotFoundError(
+            f"invalid PAVE agent source set under {source}: "
+            f"missing={missing}, unexpected={unexpected}"
+        )
     names: set[str] = set()
     for path in paths:
         data = _load_toml(path)

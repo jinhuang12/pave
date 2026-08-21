@@ -2,7 +2,7 @@
 
 Each row maps one canonical graph object to its owning skill file. Several graph objects can share one implementation file.
 
-Paths under `agents/` resolve at the plugin root — they are registered agent types, dispatched as `pave-init:<name>`. Every other path resolves inside this skill directory.
+Native role outputs are generated from the shared role sources under `sources/roles/`. Every other path resolves inside the shared skill directory.
 
 | Type | ID | Implementation | Authority or purpose |
 |---|---|---|---|

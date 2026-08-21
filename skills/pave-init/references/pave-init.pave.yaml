@@ -4,8 +4,8 @@ pave:
   status: active
   purpose: >-
     Assess whether a system fits PAVE, design an approved concrete Graph Profile,
-    and build a validated Claude Code plugin (lead skill plus registered role
-    agents) that preserves the approved graph.
+    and build a validated native workflow plugin (lead skill plus role agents)
+    for the active harness while preserving the approved graph.
   entrypoints: [initialize_run]
 
   scope:
@@ -13,7 +13,7 @@ pave:
       - requirements interview and PAVE fitness judgment
       - independent evidence collection from a system or process
       - formal PAVE YAML planning and whole-bundle user approval
-      - Claude Code plugin construction, validation, adversarial review, and forward test
+      - native harness plugin construction, validation, adversarial review, and forward test
     out:
       - implicit invocation
       - execution of the generated domain workflow during skill construction
@@ -867,13 +867,13 @@ pave:
       condition: every approved build unit returned unit_ready
 
   x_runtime_binding:
-    runtime: claude_code
+    runtime: generated_native_harness
     dispatch:
-      one_shot_workers: Agent tool with subagent_type and prompt, no name
-      gate_reviewers: named pave-init:pave-material-reviewer, run_in_background, continued via SendMessage within one gate
+      one_shot_workers: native role dispatch with a complete prompt and terminal cleanup
+      gate_reviewers: retained pave-material-reviewer identity continued within one gate
       builder_isolation: worktree when the output directory is inside a git repository
-    user_authority: AskUserQuestion for bounded decisions and approvals, free text for open discovery
-    invocation: manual-only /pave-init, implicit triggering forbidden in the skill description
+    user_authority: bounded native questions for decisions and approvals, free text for open discovery
+    invocation: manual-only explicit pave-init selection, implicit triggering forbidden in the skill description
     validators:
       pave: scripts/validate_pave.py
       traceability: scripts/validate_traceability.py
