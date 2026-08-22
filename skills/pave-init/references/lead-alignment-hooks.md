@@ -100,7 +100,7 @@ find_run_state() {
   FOUND_STATE_VIA=""
   # Quoted iteration: root paths may contain spaces.
   local root marker candidate
-  local project_root=""  # ADAPT: native project-root environment value, when available
+  local project_root="${PROJECT_ROOT:-}"  # ADAPT: bind to the native project-root environment value
   for root in "$project_root" "$(cd "$skill_dir/../.." 2>/dev/null && pwd)" "$PWD"; do
     [ -n "$root" ] || continue
     marker="$root/.<workflow-name>-run"            # ADAPT: marker file name

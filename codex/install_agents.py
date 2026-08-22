@@ -153,6 +153,15 @@ def install(target: Path, force: bool) -> int:
     return 0
 
 
+def is_current(target: Path) -> bool:
+    sources = _sources()
+    for source in sources:
+        destination = target / source.name
+        if not destination.is_file() or _sha256(destination) != _sha256(source):
+            return False
+    return True
+
+
 def check(target: Path) -> int:
     sources = _sources()
     missing_or_changed: list[str] = []

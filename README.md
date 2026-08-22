@@ -85,6 +85,16 @@ run-state schema, and a README rendered from the approved plan. The shared PAVE
 graph, system evidence, references, scripts, and traceability record remain one
 physical source.
 
+The 14 native lead and role files are generated installation artifacts. Do not
+edit them directly. Change `sources/` or a shared reference, inspect
+`python3 scripts/build_packages.py --check`, then regenerate explicitly with
+`python3 scripts/build_packages.py --force`.
+
+The Codex package uses V1 nested agents with `agents.max_depth = 2`. Claude
+`fable` and `opus` roles map to `gpt-5.6-sol`; `sonnet` roles map to
+`gpt-5.6-terra`. A persisted-thread preflight must prove the depth-2 chain
+before release.
+
 ## Install
 
 ```text

@@ -20,6 +20,27 @@ line and use the release date.
 
 ### 2.2.6 (2026-08-21)
 
+Codex port follow-up — the native roles now preserve the Claude role model and
+effort intent: `fable` and `opus` map to `gpt-5.6-sol`, `sonnet` maps to
+`gpt-5.6-terra`, and each role keeps its approved effort. Codex V1 requires
+`agents.max_depth = 2` for the reviewer and planner research delegates.
+
+- Added a fail-closed release preflight that verifies the current generated
+  source hash and the persisted root → reviewer → research-delegate thread
+  chain. Model-written success prose cannot satisfy the gate.
+- Added deterministic release stamping from this file to both plugin manifests,
+  the marketplace entry, and the delivered README.
+- Hardened shared-source generation: role templates reject every unresolved
+  placeholder; normal builds refuse to overwrite a differing generated file;
+  all 14 outputs carry `DO NOT EDIT`; CI checks drift, tests, stamps, and hooks.
+- Restored doctrine lost during harness neutralization: concrete model mappings,
+  reviewer continuity, explicit approval semantics, observing-first enforcement,
+  generated-role and hook disclosure, stop-block cadence, and project-root
+  discovery in the hook template.
+- Codex CLI 0.149.0 still fails the first named V1 child request on the tested
+  Bedrock runtime with `Invalid 'input': value did not match any expected
+  variant`. The preflight records this as a release failure.
+
 Improved — node planning and plan review now state what a decomposition
 *is* before working with one: it rewrites the parent's definition of done
 as an AND (all children) or OR (alternative children) of smaller

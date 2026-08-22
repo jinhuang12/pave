@@ -12,7 +12,8 @@ description: >-
   campaign clarifies the goal, explores the system, designs and reviews a PAVE
   graph, and builds and tests the plugin. It registers three disclosed
   skill-lifetime hooks: stop alignment, stale run-state reminder, and planning
-  layout warning.
+  layout warning. While a run is active, the stop check blocks at most one stop
+  in three; nothing registers silently.
 compatibility: >-
   Requires Claude Code skill-frontmatter hooks, registered pave-init agent
   types, bash, and Python 3. PAVE validation also requires pyyaml and
@@ -46,6 +47,7 @@ MANIFEST_COMPONENT = '''the plugin manifest (`.claude-plugin/plugin.json`: name,
 ROLE_COMPONENT = '''role contracts as registered Markdown agents under the plugin root's `agents/`, when authority or context differs;'''
 HOOK_COMPONENT = '''hook scripts under `skills/<workflow-name>/hooks/`, registered in generated skill frontmatter per the approved enforcement record, plus one consent-gated settings fragment only for rules frontmatter cannot carry;'''
 ROLE_RUNTIME_BINDING = '''Roles map to registered plugin agents (`agents/<role>.md`) only when they need distinct authority or context. The lead dispatches `subagent_type: <workflow-name>:<role>` and pauses when it is unavailable; it never substitutes an ordinary worker.'''
+MODEL_RUNTIME_BINDING = '''Map the approved capability tier to Claude model slugs explicitly: top-capability planning roles use `fable`, strong judgment roles use `opus`, and small, fast evidence roles use `sonnet`. Preserve the approved effort in agent frontmatter and each scripted agent call.'''
 HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement record. Register it at the recorded skill or agent frontmatter scope, with a settings fragment only behind the generated skill's run-start consent gate.'''
 SCRIPT_RUNTIME_BINDING = '''A subgraph with an approved `workflow_script` binding maps to one Claude Agent SDK `@beta` workflow script per the native `skill-builder` contract, with lead-driven Agent calls as fallback when the script runtime is unavailable.'''
 DELIVERY_INSTALL_BULLET = '''- the one-line install: `claude --plugin-dir <package-root>` loads it for a session; a marketplace install makes it permanent;'''

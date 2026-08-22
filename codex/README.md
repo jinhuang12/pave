@@ -27,26 +27,50 @@ sources/bindings/*.toml               narrow harness mechanics
 scripts/build_packages.py             deterministic materializer and drift check
 ```
 
-The committed native outputs are installation artifacts. Change the shared
-sources or binding records, run `python3 scripts/build_packages.py`, and commit
-the resulting outputs. `--check` fails when an output was edited directly or
-was not regenerated.
+The committed native outputs are installation artifacts and say `DO NOT EDIT`.
+Change the shared sources or binding records, run
+`python3 scripts/build_packages.py --check`, inspect the diff, then run
+`python3 scripts/build_packages.py --force`. A normal build refuses to replace
+any differing generated file, so a hand edit cannot disappear silently.
 
 ## Install for one project
 
 1. Install or enable this repository as a local Codex plugin. The manifest is
    `.codex-plugin/plugin.json`.
-2. Install the required custom agents into the target project:
+2. Configure Codex V1 at project scope in `.codex/config.toml`:
+
+   ```toml
+   [features]
+   multi_agent_v2 = false
+
+   [agents]
+   max_depth = 2
+   ```
+
+   Codex layers user, project, profile, and command-line configuration. The live
+   preflight below is the authority for the effective runtime.
+3. Install the required custom agents into the target project:
 
    ```bash
    python3 codex/install_agents.py --project /path/to/target-repository
    ```
 
-3. Restart Codex in the target project. Codex loads custom-agent TOML files at
+4. Restart Codex in the target project. Codex loads custom-agent TOML files at
    session start.
-4. Open `/hooks`, review the three PAVE controls, and trust them when their
+5. Open `/hooks`, review the three PAVE controls, and trust them when their
    paths and commands match this package.
-5. Invoke the skill explicitly:
+6. Run the effective-config preflight before the first campaign:
+
+   ```bash
+   python3 codex/preflight.py \
+     --project /path/to/target-repository \
+     --evidence-dir /tmp/pave-init-preflight
+   ```
+
+   This command must prove `root → pave_init_material_reviewer →
+   pave_init_research_delegate` from the three persisted Codex thread records.
+   A model-written success message is not enough.
+7. Invoke the skill explicitly:
 
    ```text
    $pave-init turn <system> into a workflow skill
@@ -63,7 +87,8 @@ python3 codex/install_agents.py --user
 ```
 
 User-scoped agents apply to every Codex project. Project scope is safer when
-you use PAVE only in selected repositories.
+you use PAVE only in selected repositories. Put the same V1 settings under
+`[features]` and `[agents]` in `$CODEX_HOME/config.toml` before user installation.
 
 Check or remove the installed files:
 
@@ -88,7 +113,9 @@ differences are:
   `subagent_type`, and `SendMessage`.
 - Plain-text bounded questions replace `AskUserQuestion`; explicit approval
   remains mandatory.
-- Role reasoning effort is preserved, but Claude model names are not copied.
+- Role reasoning effort is preserved. Claude `fable` and `opus` map to
+  `gpt-5.6-sol`; Claude `sonnet` maps to `gpt-5.6-terra`.
+- Nested dispatch uses Codex V1 with effective `agents.max_depth = 2`.
 - Plugin-level `hooks/hooks.json` replaces skill-frontmatter hook registration.
 - `apply_patch` needs a path/content adapter for the planning-layout hook.
 - Direct Codex caller identity is preserved so the canonical hooks remain the
@@ -122,29 +149,36 @@ From the repository root:
 
 ```bash
 python3 -m unittest codex.tests.test_codex_port
+python3 -m unittest codex.tests.test_release_tools
 python3 scripts/build_packages.py --check
+python3 scripts/stamp_version.py --check
 python3 -m json.tool .codex-plugin/plugin.json >/dev/null
 python3 -m json.tool codex/hooks/hooks.json >/dev/null
 bash -n skills/pave-init/hooks/*.sh
 ```
 
-The unit suite checks plugin and hook structure, custom-agent TOML, installer
-safety, apply-patch expansion, caller-identity preservation, and integration
-with the canonical PAVE hooks.
+The unit suites check plugin and hook structure, custom-agent model and effort
+mapping, nested-rollout proof, release stamps, installer safety, apply-patch
+expansion, caller-identity preservation, and integration with the canonical
+PAVE hooks.
 
 ## Clean-room forward test
 
-Create a temporary git repository. Install the generated plugin and its custom
-agents there. Then run from that repository:
+Create a temporary git repository. Install the current generated plugin and its
+custom agents there. Then run the release proof from this repository:
 
 ```bash
-codex exec --ephemeral --sandbox workspace-write \
-  '$pave-init <representative approved request>'
+python3 codex/preflight.py \
+  --release \
+  --project /path/to/temporary-repository \
+  --evidence-dir /tmp/pave-init-release-preflight
 ```
 
-Do not use the user's live target as the clean room. A run that cannot load the
-plugin, custom agents, hooks, or write permissions is degraded evidence. It is
-not a clean pass.
+`--release` forces `features.multi_agent_v2=false` and `agents.max_depth=2` for
+the probe. It does not change durable user configuration. Do not use the user's
+live target as the clean room. A run that cannot load the current source hash,
+resolve both named agents, and prove the depth-2 thread chain is a release
+failure, not degraded evidence.
 
 ## Known runtime limitation
 
@@ -157,6 +191,11 @@ custom-agent TOML, sandbox, effort, or developer instructions loaded.
 PAVE Init therefore fails closed when it cannot select a role by name. It
 does not replace the material reviewer or another registered role with a
 generic child and report an equivalent pass.
+
+On the tested Codex CLI 0.149.0 Bedrock runtime, the release preflight loads the
+exact `2.2.6` skill and its source hash, then the first named V1 spawn fails with
+`Invalid 'input': value did not match any expected variant`. This is a Codex
+runtime blocker. It is not a passing PAVE Init release result.
 
 ### PostToolUse identity
 

@@ -100,6 +100,8 @@ Stage 5. Both are free-form — record the paths a run actually uses in
 
 {{MULTI_AGENT_CONTRACT}}
 
+Reviewer continuity is part of the gate's evidence. Never re-brief a fresh reviewer mid-gate and present it as the same reviewer; continue the retained reviewer through the native harness mechanism. A tool-forced selection is not approval of anything its visible option label did not state. Require an explicit response that names the artifact and decision being approved.
+
 ## Stage 1: Goal and fitness
 
 Product: one clear goal statement the rest of the run serves, its requirements in `requirements.md`, and a PAVE fitness verdict — all explicitly approved by the user. The lead runs the whole stage itself per `orchestration/interview-and-fitness.md`: establish the goal, close sufficiency gaps, write requirements, judge fitness, render the requirements brief, and collect approval.
@@ -171,12 +173,15 @@ A long-horizon workflow's working memory is the file system, not the context win
 Map graph elements as follows:
 
 - {{ROLE_RUNTIME_BINDING}}
+- {{MODEL_RUNTIME_BINDING}}
 - Nodes map to lead stages or role procedures. Several nodes may use one role.
 - Mechanical checks map to scripts or runtime enforcement when feasible.
+- Choose observing or reinjection by default for runtime enforcement. Blocking requires the enforcement record to justify that the violation is likely, costly, irreversible before the next required gate, and precisely detectable.
 - {{HOOK_RUNTIME_BINDING}}
 - Socratic and reviewed checks map to review procedures.
 - Edges map to lead routing.
 - The lead's long-horizon routing duty maps to the standard lead-alignment hook pair from `references/lead-alignment-hooks.md`, adapted to the generated skill's run-state location and terminal signal — unless the enforcement record carries a recorded omission condition. The generated `description` discloses the pair's blocks-a-stop-once behavior.
+- Any generated package that registers hooks declares the hook runtime dependency in native compatibility metadata and discloses the registration in its lead-skill `description`; nothing registers silently.
 - State that must survive a session boundary maps to one machine-checkable schema as the single authority for its shape, plus a validation helper — prose never restates the field list. State that lives and dies inside one session stays in prose.
 - When more than one role writes artifacts, render the graph's declared evidence paths into one layout reference: the tree, write ownership per role, which-file-wins precedence, and where non-indexed intermediates go. When a repair round re-enters a node, the declared evidence path keeps only the current revision's output and superseded files move to a declared archive path — the layout reference names both. The graph stays the path authority — the reference adds only what the graph cannot carry (ownership, precedence, archive, scratch). A single-writer workflow with a handful of artifacts skips it.
 - {{SCRIPT_RUNTIME_BINDING}}
