@@ -1,0 +1,89 @@
+version = 1
+harness = "claude"
+skill_output = "skills/pave-init/SKILL.md"
+agent_output_kind = "markdown"
+
+[slots]
+FRONTMATTER = '''---
+name: pave-init
+description: >-
+  Create a PAVE-based Claude Code workflow plugin from a goal the user states.
+  Manual-only: use only when the user explicitly invokes /pave-init. This long
+  campaign clarifies the goal, explores the system, designs and reviews a PAVE
+  graph, and builds and tests the plugin. It registers three disclosed
+  skill-lifetime hooks: stop alignment, stale run-state reminder, and planning
+  layout warning. While a run is active, the stop check blocks at most one stop
+  in three; nothing registers silently.
+compatibility: >-
+  Requires Claude Code skill-frontmatter hooks, registered pave-init agent
+  types, bash, and Python 3. PAVE validation also requires pyyaml and
+  jsonschema and fails closed without them.
+hooks:
+  PostToolUse:
+    - matcher: "Bash|Write|Edit"
+      hooks:
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/state_staleness_reminder.sh"
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/planning-layout-warn.sh"
+  Stop:
+    - hooks:
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/stop_alignment_check.sh"
+---'''
+PRODUCT_INTRO = '''Turn a system or engineering process into a validated PAVE Graph Profile and a Claude Code plugin: a lead workflow skill plus registered role agents. The user's stated goal drives the run: clarify it until it is designable, then design. Treat the approved PAVE YAML as the workflow authority.'''
+MULTI_AGENT_CONTRACT = '''Every worker role is a registered agent type from this plugin. Its role contract is the harness-loaded system prompt, so a brief carries task context, not a role file to read. Resolve this skill's absolute installation path before dispatch and include it in briefs so workers can resolve `references/...`, `schemas/...`, and `scripts/...`.
+
+- Dispatch one-shot workers with the Agent tool and `subagent_type: pave-init:<role>`. Give each a complete prompt and no `name`. Start independent workers together.
+- Start each gate reviewer with `subagent_type: pave-init:pave-material-reviewer`, a unique `name`, and `run_in_background: true`. Continue that same reviewer through repair rounds with `SendMessage`. Start a fresh reviewer for the final-skill gate.
+- Use the model and effort in agent frontmatter. The forward tester intentionally inherits session defaults.
+- Use `AskUserQuestion` for bounded decisions and approval gates. Use free text for open discovery. If the tool is unavailable, ask the same bounded questions in plain text.
+
+If a required `pave-init:*` agent type is unavailable, pause and report an incomplete plugin installation. Do not substitute an ordinary worker and claim equivalent review.'''
+PACKAGE_IDENTITY = '''The delivered unit is a Claude Code plugin — the same shape as pave-init itself.'''
+MANIFEST_COMPONENT = '''the plugin manifest (`.claude-plugin/plugin.json`: name, description, version); the plugin name is `<workflow-name>` — one string serving as the manifest name, lead-skill directory, and `subagent_type` prefix;'''
+ROLE_COMPONENT = '''role contracts as registered Markdown agents under the plugin root's `agents/`, when authority or context differs;'''
+HOOK_COMPONENT = '''hook scripts under `skills/<workflow-name>/hooks/`, registered in generated skill frontmatter per the approved enforcement record, plus one consent-gated settings fragment only for rules frontmatter cannot carry;'''
+ROLE_RUNTIME_BINDING = '''Roles map to registered plugin agents (`agents/<role>.md`) only when they need distinct authority or context. The lead dispatches `subagent_type: <workflow-name>:<role>` and pauses when it is unavailable; it never substitutes an ordinary worker.'''
+MODEL_RUNTIME_BINDING = '''Map the approved capability tier to Claude model slugs explicitly: top-capability planning roles use `fable`, strong judgment roles use `opus`, and small, fast evidence roles use `sonnet`. Preserve the approved effort in agent frontmatter and each scripted agent call.'''
+HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement record. Register it at the recorded skill or agent frontmatter scope, with a settings fragment only behind the generated skill's run-start consent gate.'''
+SCRIPT_RUNTIME_BINDING = '''A subgraph with an approved `workflow_script` binding maps to one Claude Agent SDK `@beta` workflow script per the native `skill-builder` contract, with lead-driven Agent calls as fallback when the script runtime is unavailable.'''
+DELIVERY_INSTALL_BULLET = '''- the one-line install: `claude --plugin-dir <package-root>` loads it for a session; a marketplace install makes it permanent;'''
+
+[roles.forward-tester]
+sandbox_mode = "workspace-write"
+model = "inherit"
+effort = "inherit"
+runtime = '''Use a fresh headless Claude Code session with the generated plugin loaded: `claude -p "<request>" --plugin-dir <package-root> --permission-mode bypassPermissions`. Run it from the temporary output directory. The permission mode is required because a bare headless session cannot approve needed writes or dispatches.'''
+
+[roles.node-planner]
+sandbox_mode = "workspace-write"
+model = "fable"
+effort = "xhigh"
+runtime = '''When more evidence is needed, dispatch read-only workers with the Agent tool: use `subagent_type: Explore` for pure search and `general-purpose` only when a command must run.'''
+
+[roles.pave-material-reviewer]
+sandbox_mode = "read-only"
+model = "opus"
+effort = "high"
+runtime = '''Dispatch `pave-init:research-delegate` workers with the Agent tool and `run_in_background: true`, starting independent questions together. Return findings through `SendMessage` and remain the same named background reviewer through repairs at this gate.'''
+
+[roles.research-delegate]
+sandbox_mode = "read-only"
+model = "sonnet"
+effort = "high"
+runtime = '''Return the bounded research result to the parent agent. Do not modify files.'''
+
+[roles.skill-builder]
+sandbox_mode = "workspace-write"
+model = "opus"
+effort = "medium"
+runtime = '''Generate a Claude Code plugin with `.claude-plugin/plugin.json`, a lead under `skills/<workflow-name>/`, and role contracts under `agents/`. Use Agent calls with `subagent_type: <workflow-name>:<role>`, `AskUserQuestion` gates, named reviewers continued with `SendMessage`, agent-frontmatter model and effort pins, skill-frontmatter hooks, and Claude Agent SDK `@beta` workflow scripts when the approved plan selects `workflow_script`. A script uses one `agent()` call per node, `pipeline()` or `parallel()` for fan-out, structured outcomes, and lead-driven Agent calls as fallback.'''
+
+[roles.system-explorer]
+sandbox_mode = "workspace-write"
+model = "sonnet"
+effort = "high"
+runtime = '''Return the bounded exploration result through the normal Claude agent result channel and write only the assigned report.'''

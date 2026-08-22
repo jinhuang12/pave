@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PAVE Init harness binding",
+  "type": "object",
+  "required": [
+    "version",
+    "harness",
+    "skill_output",
+    "agent_output_kind",
+    "slots",
+    "roles"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": 1},
+    "harness": {"enum": ["claude", "codex"]},
+    "skill_output": {"type": "string"},
+    "agent_output_kind": {"enum": ["markdown", "toml"]},
+    "slots": {
+      "type": "object",
+      "required": [
+        "FRONTMATTER",
+        "PRODUCT_INTRO",
+        "MULTI_AGENT_CONTRACT",
+        "PACKAGE_IDENTITY",
+        "MANIFEST_COMPONENT",
+        "ROLE_COMPONENT",
+        "HOOK_COMPONENT",
+        "ROLE_RUNTIME_BINDING",
+        "MODEL_RUNTIME_BINDING",
+        "HOOK_RUNTIME_BINDING",
+        "SCRIPT_RUNTIME_BINDING",
+        "DELIVERY_INSTALL_BULLET"
+      ],
+      "additionalProperties": false
+    },
+    "roles": {"type": "object"}
+  }
+}

@@ -12,7 +12,7 @@ The lead runs this whole stage itself: only the lead can reach the user, so the 
 
 ## 1. Establish the goal
 
-Confirm that the user explicitly invoked `/pave-init`. Then obtain the goal — the single statement the whole run serves:
+Confirm that the user explicitly invoked pave-init through the active harness mechanism. Then obtain the goal — the single statement the whole run serves:
 
 - If the invocation text states a goal, extract it and every requirement it implies. Record each as a `USER REQUIREMENT`.
 - If the user invoked the skill bare, ask for the goal directly in plain text before any other question: what system, what workflow it should produce, and what "done" means.
@@ -32,7 +32,7 @@ For a repository, default the planning workspace to `.pave/<workflow-name>/`. If
 
 ## 2. Close sufficiency gaps
 
-Inspect local sources before asking anything: they answer most sufficiency gaps without a question. Then interview in rounds of one `AskUserQuestion` call with two to four questions, re-inspecting between rounds. Stop interviewing as soon as the goal is sufficient — the interview exists to make the goal designable, not to fill a form. Never ask what the invocation or the sources already answered. Confirm an extracted requirement only when it is ambiguous.
+Inspect local sources before asking anything: they answer most sufficiency gaps without a question. Then interview in rounds of one bounded user-question interaction with two to four questions, using the active harness mechanism in the lead contract, and re-inspect between rounds. Stop interviewing as soon as the goal is sufficient — the interview exists to make the goal designable, not to fill a form. Never ask what the invocation or the sources already answered. Confirm an extracted requirement only when it is ambiguous.
 
 Lead with gaps that can change graph topology or acceptance. A goal statement usually settles purpose, target, and naming but rarely authority, recovery, acceptance, or forbidden effects — check those first.
 
@@ -53,12 +53,12 @@ Sufficiency checklist — a gap in any category blocks graph design only if the 
 | Parallel work | Independent lenses, build units, joins, and resource isolation |
 | State | Resume data, ownership, schema, and history |
 | Completion | Accepted, closed-unaccepted, blocked, incomplete, and exhausted |
-| Runtime | Claude Code features, external services, hardware, and deployment |
+| Runtime | Harness features, external services, hardware, and deployment |
 | Risk | Costly failures and proportionate enforcement |
 
 Mark a category irrelevant or default-resolved with a one-line reason in `requirements.md`; only open topology-changing or acceptance-changing gaps earn a question.
 
-Separate four statement classes: `USER REQUIREMENT`, `OBSERVED FACT`, `ASSUMPTION`, `OPEN QUESTION`. Do not convert an assumption into a fact through repetition. An `AskUserQuestion` selection is a `USER REQUIREMENT` only for what the selected option actually stated.
+Separate four statement classes: `USER REQUIREMENT`, `OBSERVED FACT`, `ASSUMPTION`, `OPEN QUESTION`. Do not convert an assumption into a fact through repetition. A bounded-choice selection is a `USER REQUIREMENT` only for what the selected option actually stated.
 
 ## 3. Write requirements
 
@@ -113,7 +113,7 @@ Explain which characteristics matter, cite observed facts, and identify the simp
 
 Render the requirements brief per `references/approval-briefs.md` — goal verbatim, what this approval covers, requirements summary table, fitness verdict with the deciding characteristics, open gaps — persist it to `reviews/requirements-brief.md`, and present it in full in the conversation before asking. The brief is a rendered view of `requirements.md`, never a second authority; self-check it against the file before presenting (no reviewer exists yet at this gate).
 
-Then ask one `AskUserQuestion` whose options state exactly what is being approved — for example "Approve goal, requirements, and fit verdict", "Request changes", "Stop". The approval option label must name the artifact and the verdict; a generic "Continue" is not approval. The approved goal is frozen: later stages serve it, and changing it returns here.
+Then ask one bounded approval question through the active harness mechanism. Its options state exactly what is being approved — for example "Approve goal, requirements, and fit verdict", "Request changes", "Stop". The approval option label must name the artifact and the verdict; a generic "Continue" is not approval. The approved goal is frozen: later stages serve it, and changing it returns here.
 
 For a `not_fit` override, present the verdict and risks first, then ask a separate approval question. Record:
 

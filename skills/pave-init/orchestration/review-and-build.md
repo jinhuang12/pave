@@ -11,11 +11,11 @@
 
 ## 1. Material-only review
 
-Spawn the gate's reviewer as a `pave-init:pave-material-reviewer` with a unique `name` (for example `plan-reviewer-r1`) and `run_in_background: true`. Its scope, materiality, and severity contract is its system prompt — the brief carries only the approved goal, the gate's artifacts, and the installation path. Repair rounds at the same gate continue the same named reviewer with `SendMessage`, so it keeps its earlier findings and the repair history in context. Use a fresh name and a fresh agent at the final skill gate. Retire each reviewer when its gate closes.
+Start the gate's `pave-material-reviewer` through the active harness mechanism and retain that exact reviewer identity. Its scope, materiality, and severity contract is its native role prompt — the brief carries only the approved goal, the gate's artifacts, and the installation path. Continue the same reviewer through repair rounds so it keeps its earlier findings and repair history in context. Use a fresh reviewer at the final skill gate. Retire each reviewer when its gate closes.
 
-The plan gate opens early: spawn its reviewer when the first planning boundary closes, not when the bundle is assembled. Each closed boundary goes to it via `SendMessage` as one unit — frozen parent contract, child graph, uncertainty ledger, ladder justification, contribution statement — so cross-boundary conflicts surface before deeper elaboration, and the reviewer arrives at the whole-bundle round with every boundary already in context. A boundary marked `stale` by a skeleton resynchronization reopens only that boundary's review; per the reviewer's reuse rule, unchanged boundary judgments stand. The whole-bundle review is the same gate, same reviewer, continued.
+The plan gate opens early: start its reviewer when the first planning boundary closes, not when the bundle is assembled. Send each closed boundary to that retained reviewer through the active harness continuation mechanism as one unit — frozen parent contract, child graph, uncertainty ledger, ladder justification, contribution statement — so cross-boundary conflicts surface before deeper elaboration, and the reviewer arrives at the whole-bundle round with every boundary already in context. A boundary marked `stale` by a skeleton resynchronization reopens only that boundary's review; per the reviewer's reuse rule, unchanged boundary judgments stand. The whole-bundle review is the same gate, same reviewer, continued.
 
-If the `pave-init:pave-material-reviewer` agent type is unavailable, the plugin is not installed correctly — pause. Do not substitute a default worker and claim the adversarial gate passed.
+If the native `pave-material-reviewer` role is unavailable, the plugin is not installed correctly — pause. Do not substitute a default worker and claim the adversarial gate passed.
 
 Start every brief — initial and every repair round — with the approved goal statement from `requirements.md`: the reviewer anchors every severity judgment to it. Do not restate the materiality and proportionality warnings; they are the reviewer's system prompt, pinned for its whole life.
 
@@ -63,7 +63,7 @@ After the plan reviewer passes, present the reviewer-verified plan approval brie
 - agents and hooks tables: authority rules, enforcement record, runtime bindings (including any `workflow_script` recommendation);
 - tradeoffs and open decisions: extensions, runtime dependencies, known evidence gaps.
 
-Then ask one `AskUserQuestion` whose approval option states that it approves the complete bundle. A request for changes returns to the narrowest affected planning node, then repeats review — re-render the brief after the repair, never patch it by hand.
+Then ask one bounded approval question through the active harness mechanism. Its approval option must state that it approves the complete bundle. A request for changes returns to the narrowest affected planning node, then repeats review — re-render the brief after the repair, never patch it by hand.
 
 ## 3. Parallel construction
 
@@ -79,15 +79,15 @@ Safe fan-out rules:
 - builders cannot change graph meaning;
 - semantic gaps return to the lead instead of being guessed — including any need to flatten, bypass, or change a composition boundary.
 
-Spawn all builders in one message as one-shot `pave-init:skill-builder` subagents; the agent definition carries model and effort. When the output directory is inside a git repository, add `isolation: worktree` to each builder so parallel writes cannot conflict; the lead merges the worktrees at integration. Outside a repository, the non-overlapping file contract is the isolation.
+Dispatch all `skill-builder` workers together through the active harness role mechanism; the native role definition carries model and effort. When the output directory is inside a git repository, give each builder a separate worktree through the active harness isolation mechanism so parallel writes cannot conflict; the lead integrates those worktrees. Outside a repository, the non-overlapping file contract is the isolation.
 
-Generated packages are Claude Code plugins: a `.claude-plugin/plugin.json` manifest, the lead skill under `skills/<workflow-name>/` with `name` and `description` frontmatter, role contracts as registered agents under the plugin root's `agents/` (frontmatter `name`, `description` carrying the dispatched-by-the-lead-only warning, `model`, `effort`), and dispatch instructions that use the Agent tool with `subagent_type: <workflow-name>:<role>` — the plugin name is `<workflow-name>`: one string serving as the manifest `name`, the lead skill's directory name, and the dispatch prefix, so the builder owning the manifest and the builder owning the lead cannot diverge — `AskUserQuestion` gates, and `SendMessage` continuity where the graph requires them. A builder assigned the manifest or agent files follows the `plugin-dev` plugin's `plugin-structure` and `agent-development` skills for the file formats. For a manual-only generated skill, write the prohibition into its `description` the way this skill's own frontmatter does.
+Generated packages use the active harness package shape from the lead and `skill-builder` role contracts: a native manifest, a lead skill under `skills/<workflow-name>/`, native role definitions when authority or context differs, explicit user gates, and retained-reviewer continuity where the graph requires them. The plugin name, lead-skill directory, and role prefix use one `<workflow-name>`, so separate builders cannot diverge. Every generated role `description` carries its dispatched by the lead only warning and rejects implicit triggering. For a manual-only generated skill, put the explicit-invocation prohibition in its `description`.
 
-When the approved enforcement record plans hooks, the package ships each hook script under the lead skill's `skills/<workflow-name>/hooks/` and registers it at the recorded placement and actor scope, per the hook doctrine in `references/lead-alignment-hooks.md` §Hook doctrine (placement, identity gates, settings fragments with consent gate and decline path). Declare the hook runtime dependency in the generated skill's `compatibility` frontmatter field, and say in its `description` that it registers hooks — a skill's contents must not surprise the user who invokes it. Never register anything silently.
+When the approved enforcement record plans hooks, the package ships each hook script under the lead skill's `skills/<workflow-name>/hooks/` and registers it at the recorded native placement and actor scope, per the hook doctrine in `references/lead-alignment-hooks.md` §Hook doctrine. Declare the hook runtime dependency through the active harness compatibility metadata and say in the generated skill's `description` that it registers hooks — a skill's contents must not surprise the user who invokes it. Never register anything silently.
 
 A generated skill whose graph composes nodes instructs its lead to orchestrate each child profile itself, with the Runtime Binding duties of `references/pave-composition.md` section 12: open the child run, hold the parent pending, apply the terminal map, fail closed on an ambiguous return. Scripts never nest across profile boundaries.
 
-For each approved `workflow_script` binding, the assigned builder compiles the subgraph to one script per the compile mapping in its own agent definition (plugin `agents/skill-builder.md`), applying the plan's per-node `model` and `effort` assignments verbatim. The generated `SKILL.md` must state both bindings for the subgraph: run the script when the Workflow tool is available, otherwise the lead runs the same subgraph with parallel Agent calls. The graph, not the script, stays the authority. A generated skill that runs multi-agent orchestration must say so in its `description`, so the user opts in by invoking it.
+For each approved `workflow_script` binding, the assigned builder compiles the subgraph to one harness-native script per its native role contract, applying the plan's per-node model, reasoning effort, and sandbox assignments verbatim. The generated `SKILL.md` must state both bindings: run the script when its runtime is available, otherwise the lead runs the same subgraph through concurrent native role dispatch. The graph, not the script, stays the authority. A generated skill that runs multi-agent orchestration must say so in its `description`, so the user opts in by invoking it.
 
 The lead integrates builder outputs and removes placeholders or unused directories.
 
@@ -95,7 +95,7 @@ The lead integrates builder outputs and removes placeholders or unused directori
 
 Run:
 
-1. The plugin structure check: run the `plugin-dev:plugin-validator` agent on the package root (manifest validity, component discovery, path references). When that agent type is unavailable, check the manifest and layout by hand against the `plugin-dev` `plugin-structure` skill and record the substitution in `reviews/validation.md`.
+1. The plugin structure check: use the active harness's plugin validator when available (manifest validity, component discovery, path references). Otherwise check the manifest and layout against current harness documentation and record the substitution in `reviews/validation.md`.
 2. The system `skill-creator` `quick_validate.py` on the generated skill. Its frontmatter allow-list can lag the runtime's current keys: when the only failure is an unexpected `hooks` key that the approved enforcement record placed there, record the validator lag and continue. Every other failure blocks.
 3. `scripts/validate_pave.py` on the generated canonical graph; it follows composition references and validates every child profile, terminal map, and boundary in the tree.
 4. `scripts/validate_traceability.py` on the canonical graph, traceability table, and generated skill root, including qualified child-profile rows and one `realization` row per composed node.
@@ -112,7 +112,7 @@ Validation proves package coherence. It does not prove that domain judgment is c
 
 Spawn a fresh named material reviewer with the approved goal statement and absolute paths to the integrated skill, approved plan bundle, and comparison sources.
 
-Fix verified `BLOCKING` and `HIGH` findings. Resubmit to the same reviewer via `SendMessage`. Stop and reconsider after four rounds with recurring material findings.
+Fix verified `BLOCKING` and `HIGH` findings. Continue the same reviewer through the active harness mechanism. Stop and reconsider after four rounds with recurring material findings.
 
 ## 6. Clean-room forward test
 
@@ -123,7 +123,7 @@ Create a temporary output directory. Spawn a fresh one-shot forward tester with 
 - temporary output directory;
 - no-live-mutation rule.
 
-A generated plugin's agent types resolve only when the plugin is loaded, so the tester drives the packaged workflow through a fresh headless session run from the temporary output directory — `claude -p "<representative prompt>" --plugin-dir <package-root> --permission-mode bypassPermissions` — and inspects that session's output and emitted artifacts. The permission mode is required: a bare `-p` session starts reads-only, so its writes and dispatches are never approved and the run produces a false defect or a false clean; the no-live-mutation rule and the temporary working directory are the guard. Run the session in the background and poll — a long workflow outlives a single foreground command timeout. A session that could not start, timed out, or ran with its writes denied is a degraded result: recorded as such, never silently claimed clean; only then does the tester fall back to following the lead skill directly, recording that agent dispatches could not resolve.
+A generated plugin's role agents resolve only through a complete harness installation. The tester drives the packaged workflow through the fresh headless launch defined in its native role contract, from the temporary output directory, and inspects output and emitted artifacts. The no-live-mutation rule and temporary directory are the guard. Run the session in the background and poll because a long workflow can outlive one foreground timeout. A session that cannot start, times out, cannot resolve a role agent, or has required writes denied is degraded evidence, never a silent clean pass; only then may the tester follow the lead skill directly and record why native dispatch could not run.
 
 Do not tell the tester the expected answer or suspected defect. Inspect its artifacts after completion. Repair only transferable skill defects, then repeat affected validation and final review.
 
