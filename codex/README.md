@@ -37,7 +37,19 @@ any differing generated file, so a hand edit cannot disappear silently.
 
 1. Install or enable this repository as a local Codex plugin. The manifest is
    `.codex-plugin/plugin.json`.
-2. Configure Codex V1 at project scope in `.codex/config.toml`:
+2. Trust the target project before relying on project-scoped Codex files.
+   Accept the Codex trust prompt, or add the absolute target path to
+   `~/.codex/config.toml`:
+
+   ```toml
+   [projects."/absolute/path/to/target-repository"]
+   trust_level = "trusted"
+   ```
+
+   Codex ignores project-scoped `.codex/` configuration, hooks, rules, and
+   custom agents while the project is untrusted. Trust only repositories you
+   have reviewed.
+3. Configure Codex V1 at project scope in `.codex/config.toml`:
 
    ```toml
    [features]
@@ -49,17 +61,17 @@ any differing generated file, so a hand edit cannot disappear silently.
 
    Codex layers user, project, profile, and command-line configuration. The live
    preflight below is the authority for the effective runtime.
-3. Install the required custom agents into the target project:
+4. Install the required custom agents into the target project:
 
    ```bash
    python3 codex/install_agents.py --project /path/to/target-repository
    ```
 
-4. Restart Codex in the target project. Codex loads custom-agent TOML files at
+5. Restart Codex in the target project. Codex loads custom-agent TOML files at
    session start.
-5. Open `/hooks`, review the three PAVE controls, and trust them when their
+6. Open `/hooks`, review the three PAVE controls, and trust them when their
    paths and commands match this package.
-6. Run the effective-config preflight before the first campaign:
+7. Run the effective-config preflight before the first campaign:
 
    ```bash
    python3 codex/preflight.py \
@@ -70,7 +82,7 @@ any differing generated file, so a hand edit cannot disappear silently.
    This command must prove `root → pave-init:pave-material-reviewer →
    pave-init:research-delegate` from the three persisted Codex thread records.
    A model-written success message is not enough.
-7. Invoke the skill explicitly:
+8. Invoke the skill explicitly:
 
    ```text
    $pave-init:pave-init turn <system> into a workflow skill
