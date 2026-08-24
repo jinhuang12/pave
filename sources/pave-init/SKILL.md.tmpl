@@ -194,7 +194,7 @@ If an output folder exists, inspect it and propose an update. When the target's 
 
 Procedures for every step: `orchestration/review-and-build.md` §§4–6.
 
-1. Run the integration validation battery (`orchestration/review-and-build.md` §4): the plugin structure check, the system `skill-creator` quick validator, `scripts/validate_pave.py`, `scripts/validate_traceability.py`, generated helper tests, script and hook and evolution-tier checks, and the delivered-docs presence check. When the lead-alignment hook pair ships, its tests must exercise the invariants in `references/lead-alignment-hooks.md` §Invariants any adaptation must preserve. Record the outputs in `reviews/validation.md`.
+1. Run the integration validation battery (`orchestration/review-and-build.md` §4): the plugin structure check, {{SKILL_VALIDATION_BINDING}}, `scripts/validate_pave.py`, `scripts/validate_traceability.py`, generated helper tests, script and hook and evolution-tier checks, and the delivered-docs presence check. When the lead-alignment hook pair ships, its tests must exercise the invariants in `references/lead-alignment-hooks.md` §Invariants any adaptation must preserve. Record the outputs in `reviews/validation.md`.
 2. Start a fresh retained material reviewer for the integrated skill with the same evidence standard as plan review. Fix verified `BLOCKING` and `HIGH` findings and continue that reviewer until it passes. Record each round in `reviews/final-skill-review.md` (`final_review_rounds` in run state keeps the loop bounded).
 3. Run the clean-room forward test (`orchestration/review-and-build.md` §6) and record the result in `reviews/forward-test.md`. Repair and repeat affected gates when the test exposes a transferable defect.
 

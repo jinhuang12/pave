@@ -1,4 +1,4 @@
-version: 2.2.6
+version: 2.2.7
 
 ## How changelog entries are written
 
@@ -17,6 +17,23 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.2.7 (2026-08-24)
+
+- Fixed — shared-package generation now rejects malformed lead placeholders,
+  quotes generated Markdown frontmatter safely, detects only real generated
+  orphans across the full file, reports invalid UTF-8 without a traceback, and
+  rolls back all outputs when an atomic replacement fails.
+- Fixed — Codex now uses the native `$pave-init:pave-init` skill name and
+  `pave-init:<role>` custom-agent names. The lead must run the live nested-agent
+  preflight before Stage 1.
+- Fixed — skill-quality validation now binds to the active harness:
+  `skill-creator:skill-creator` for Claude Code and `$skill-creator` for Codex.
+- Improved — CI parses generated Markdown frontmatter, validates binding schema
+  values, checks placeholder and orphan edge cases, and tests atomic rollback.
+- Known limit — the installed 2.2.7 plugin and namespaced roles load on Codex
+  CLI 0.149.0, but the tested Bedrock runtime still rejects the first named V1
+  spawn with `Invalid 'input': value did not match any expected variant`.
 
 ### 2.2.6 (2026-08-21)
 

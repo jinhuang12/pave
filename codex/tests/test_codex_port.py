@@ -19,12 +19,12 @@ from codex.hooks import post_tool_use_router
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 AGENT_NAMES = {
-    "pave_init_forward_tester",
-    "pave_init_material_reviewer",
-    "pave_init_node_planner",
-    "pave_init_research_delegate",
-    "pave_init_skill_builder",
-    "pave_init_system_explorer",
+    "pave-init:forward-tester",
+    "pave-init:pave-material-reviewer",
+    "pave-init:node-planner",
+    "pave-init:research-delegate",
+    "pave-init:skill-builder",
+    "pave-init:system-explorer",
 }
 
 
@@ -83,7 +83,7 @@ class PackageStructureTests(unittest.TestCase):
                 data = tomllib.load(handle)
             for field in ("name", "description", "developer_instructions"):
                 self.assertTrue(data.get(field), (path, field))
-            self.assertEqual(path.stem, data["name"])
+            self.assertTrue(path.stem.startswith("pave_init_"))
             self.assertIn(data.get("sandbox_mode"), {"read-only", "workspace-write"})
             self.assertIn("PAVE_PLUGIN_ROOT", data["developer_instructions"])
             self.assertIn("complete role contract", data["developer_instructions"])
@@ -122,6 +122,10 @@ class PackageStructureTests(unittest.TestCase):
             self.assertIn(heading, codex)
         self.assertIn("name: pave-init", codex)
         self.assertIn("Manual-only", codex)
+        self.assertIn("$pave-init:pave-init", codex)
+        self.assertIn("pave-init:<role>", codex)
+        self.assertIn("codex/preflight.py", codex)
+        self.assertNotIn("skill-creator:skill-creator", codex)
         self.assertNotIn("runtime-binding.md", codex)
         self.assertNotIn("Read `<root>/skills/pave-init/SKILL.md`", codex)
         self.assertNotIn("Claude Code", codex)
@@ -229,7 +233,7 @@ class PatchAdapterTests(unittest.TestCase):
         payload = {
             "session_id": "s",
             "agent_id": "a1",
-            "agent_type": "pave_init_node_planner",
+            "agent_type": "pave-init:node-planner",
             "tool_input": {
                 "command": "*** Begin Patch\n*** Add File: x\n+hello\n*** End Patch"
             },
@@ -237,7 +241,7 @@ class PatchAdapterTests(unittest.TestCase):
         adapted = post_tool_use_router._canonical_layout_payloads(payload)
         self.assertEqual(len(adapted), 1)
         self.assertEqual(adapted[0]["agent_id"], "a1")
-        self.assertEqual(adapted[0]["agent_type"], "pave_init_node_planner")
+        self.assertEqual(adapted[0]["agent_type"], "pave-init:node-planner")
         self.assertEqual(adapted[0]["tool_input"]["file_path"], "x")
         self.assertEqual(adapted[0]["tool_input"]["content"], "hello\n")
 
@@ -257,7 +261,7 @@ class PatchAdapterTests(unittest.TestCase):
         direct = {
             "session_id": "s",
             "agent_id": "a1",
-            "agent_type": "pave_init_node_planner",
+            "agent_type": "pave-init:node-planner",
         }
         lead = {"session_id": "s"}
         with mock.patch.object(
@@ -380,7 +384,7 @@ class CanonicalHookIntegrationTests(unittest.TestCase):
             payload = {
                 "session_id": "layout-session",
                 "agent_id": "planner-1",
-                "agent_type": "pave_init_node_planner",
+                "agent_type": "pave-init:node-planner",
                 "tool_input": {"command": patch},
             }
             layout = self._run_router("layout", payload, root, env)

@@ -30,10 +30,30 @@
         "MODEL_RUNTIME_BINDING",
         "HOOK_RUNTIME_BINDING",
         "SCRIPT_RUNTIME_BINDING",
-        "DELIVERY_INSTALL_BULLET"
+        "DELIVERY_INSTALL_BULLET",
+        "SKILL_VALIDATION_BINDING"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "properties": {
+        "FRONTMATTER": {"type": "string"},
+        "PRODUCT_INTRO": {"type": "string"},
+        "MULTI_AGENT_CONTRACT": {"type": "string"},
+        "PACKAGE_IDENTITY": {"type": "string"},
+        "MANIFEST_COMPONENT": {"type": "string"},
+        "ROLE_COMPONENT": {"type": "string"},
+        "HOOK_COMPONENT": {"type": "string"},
+        "ROLE_RUNTIME_BINDING": {"type": "string"},
+        "MODEL_RUNTIME_BINDING": {"type": "string"},
+        "HOOK_RUNTIME_BINDING": {"type": "string"},
+        "SCRIPT_RUNTIME_BINDING": {"type": "string"},
+        "DELIVERY_INSTALL_BULLET": {"type": "string"},
+        "SKILL_VALIDATION_BINDING": {"type": "string"}
+      }
     },
-    "roles": {"type": "object"}
+    "roles": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "object"}
+    }
   }
 }

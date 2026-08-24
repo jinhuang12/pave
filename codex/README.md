@@ -67,16 +67,16 @@ any differing generated file, so a hand edit cannot disappear silently.
      --evidence-dir /tmp/pave-init-preflight
    ```
 
-   This command must prove `root → pave_init_material_reviewer →
-   pave_init_research_delegate` from the three persisted Codex thread records.
+   This command must prove `root → pave-init:pave-material-reviewer →
+   pave-init:research-delegate` from the three persisted Codex thread records.
    A model-written success message is not enough.
 7. Invoke the skill explicitly:
 
    ```text
-   $pave-init turn <system> into a workflow skill
+   $pave-init:pave-init turn <system> into a workflow skill
    ```
 
-Selecting `pave-init` through `/skills` is also an explicit invocation. A
+Selecting `pave-init:pave-init` through `/skills` is also an explicit invocation. A
 plain request such as “make a workflow” does not start this manual-only
 campaign.
 
@@ -97,16 +97,17 @@ python3 codex/install_agents.py --project /path/to/repo --check
 python3 codex/install_agents.py --project /path/to/repo --uninstall
 ```
 
-The installer owns only the six `pave_init_*.toml` files listed in its manifest.
-It refuses to overwrite or remove an unowned modified file unless you pass
-`--force`.
+The installer owns only the six safe file names `pave_init_*.toml` listed in
+its manifest. Each file declares its namespaced `pave-init:<role>` runtime
+name. The installer refuses to overwrite or remove an unowned modified file
+unless you pass `--force`.
 
 ## What changed from Claude Code
 
 The narrow harness binding is `sources/bindings/codex.toml`. Its load-bearing
 differences are:
 
-- `$pave-init` replaces `/pave-init`.
+- `$pave-init:pave-init` replaces `/pave-init`.
 - `.codex-plugin/plugin.json` replaces `.claude-plugin/plugin.json`.
 - Codex custom-agent TOML files replace registered Markdown agent manifests.
 - Codex subagent spawning and thread steering replace `Agent`,
@@ -193,7 +194,7 @@ does not replace the material reviewer or another registered role with a
 generic child and report an equivalent pass.
 
 On the tested Codex CLI 0.149.0 Bedrock runtime, the release preflight loads the
-exact `2.2.6` skill and its source hash, then the first named V1 spawn fails with
+exact `2.2.7` skill and its source hash, then the first named V1 spawn fails with
 `Invalid 'input': value did not match any expected variant`. This is a Codex
 runtime blocker. It is not a passing PAVE Init release result.
 

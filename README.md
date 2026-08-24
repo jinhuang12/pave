@@ -118,7 +118,7 @@ python3 codex/install_agents.py --project /path/to/target-repository
 ```
 
 ```text
-$pave-init turn <goal> for <target system> into a workflow skill
+$pave-init:pave-init turn <goal> for <target system> into a workflow skill
 ```
 
 See `codex/README.md` for project and user installation details.

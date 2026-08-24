@@ -23,8 +23,8 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_PATH = ROOT / "codex" / "skills" / "pave-init" / "SKILL.md"
 SOURCE_HASH = re.compile(r"source-sha256:\s*([0-9a-f]{64})")
-PARENT_AGENT = "pave_init_material_reviewer"
-DELEGATE_AGENT = "pave_init_research_delegate"
+PARENT_AGENT = "pave-init:pave-material-reviewer"
+DELEGATE_AGENT = "pave-init:research-delegate"
 
 
 class PreflightError(RuntimeError):
@@ -200,7 +200,7 @@ def verify_rollout_chain(
 
 
 def prompt(nonce: str) -> str:
-    return f"""Use $pave-init only for its Codex V1 nested-agent release preflight.
+    return f"""Use $pave-init:pave-init only for its Codex V1 nested-agent release preflight.
 Read the generated source-sha256 marker from the loaded PAVE Init skill. You may
 use a read-only shell command to read that installed skill file. Spawn the
 named {PARENT_AGENT} agent. Include that marker and nonce {nonce} in its brief.

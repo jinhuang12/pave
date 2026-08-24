@@ -1,17 +1,33 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import tomllib
 import unittest
+from unittest import mock
+
+import yaml
 
 from codex import preflight
+from scripts import build_packages
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def markdown_frontmatter(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---\n") or "\n---\n" not in text[4:]:
+        raise AssertionError(f"{path} has no closed frontmatter")
+    frontmatter = text[4:].split("\n---\n", 1)[0]
+    parsed = yaml.safe_load(frontmatter)
+    if not isinstance(parsed, dict):
+        raise AssertionError(f"{path} frontmatter is not a mapping")
+    return parsed
 
 
 def write_rollout(path: Path, records: list[dict]) -> None:
@@ -86,12 +102,12 @@ def spawn_records(
 class ReleaseContractTests(unittest.TestCase):
     def test_role_model_and_effort_mappings(self) -> None:
         expected = {
-            "pave_init_forward_tester": (None, "inherit"),
-            "pave_init_material_reviewer": ("gpt-5.6-sol", "high"),
-            "pave_init_node_planner": ("gpt-5.6-sol", "xhigh"),
-            "pave_init_research_delegate": ("gpt-5.6-terra", "high"),
-            "pave_init_skill_builder": ("gpt-5.6-sol", "medium"),
-            "pave_init_system_explorer": ("gpt-5.6-terra", "high"),
+            "pave-init:forward-tester": (None, "inherit"),
+            "pave-init:pave-material-reviewer": ("gpt-5.6-sol", "high"),
+            "pave-init:node-planner": ("gpt-5.6-sol", "xhigh"),
+            "pave-init:research-delegate": ("gpt-5.6-terra", "high"),
+            "pave-init:skill-builder": ("gpt-5.6-sol", "medium"),
+            "pave-init:system-explorer": ("gpt-5.6-terra", "high"),
         }
         for path in sorted((REPO_ROOT / "codex" / "agents").glob("*.toml")):
             with path.open("rb") as handle:
@@ -204,15 +220,138 @@ class BuildSafetyTests(unittest.TestCase):
         )
 
     def test_role_template_placeholder_fails_build_and_check(self) -> None:
+        for placeholder in (
+            "{{UNKNOWN_SLOT}}",
+            "{{weird-slot}}",
+            "{{}}",
+            "{{A\nB}}",
+            "{{{UNKNOWN_SLOT}}}",
+            "{{UNKNOWN_SLOT",
+            "UNKNOWN_SLOT}}",
+        ):
+            with self.subTest(placeholder=placeholder), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp) / "repo"
+                self.copy_repo(root)
+                role = root / "sources" / "roles" / "node-planner.md.tmpl"
+                role.write_text(role.read_text() + f"\n{placeholder}\n", encoding="utf-8")
+                for args in ((), ("--check",)):
+                    result = self.run_build(root, *args)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("role templates do not accept placeholders", result.stderr)
+
+    def test_skill_template_placeholder_fails_build_and_check(self) -> None:
+        for placeholder in (
+            "{{UNKNOWN_SLOT}}",
+            "{{weird-slot}}",
+            "{{}}",
+            "{{A\nB}}",
+            "{{{UNKNOWN_SLOT}}}",
+            "{{UNKNOWN_SLOT",
+            "UNKNOWN_SLOT}}",
+        ):
+            with self.subTest(placeholder=placeholder), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp) / "repo"
+                self.copy_repo(root)
+                template = root / "sources" / "pave-init" / "SKILL.md.tmpl"
+                template.write_text(
+                    template.read_text(encoding="utf-8") + f"\n{placeholder}\n",
+                    encoding="utf-8",
+                )
+                for args in (("--force",), ("--check",)):
+                    result = self.run_build(root, *args)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn("invalid placeholders", result.stderr)
+
+    def test_generated_markdown_frontmatter_is_valid_yaml(self) -> None:
+        paths = [
+            REPO_ROOT / "skills" / "pave-init" / "SKILL.md",
+            REPO_ROOT / "codex" / "skills" / "pave-init" / "SKILL.md",
+            *sorted((REPO_ROOT / "agents").glob("*.md")),
+        ]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertTrue(markdown_frontmatter(path))
+
+    def test_role_description_with_colon_stays_valid_yaml(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "repo"
             self.copy_repo(root)
             role = root / "sources" / "roles" / "node-planner.md.tmpl"
-            role.write_text(role.read_text() + "\n{{UNKNOWN_SLOT}}\n", encoding="utf-8")
-            for args in ((), ("--check",)):
-                result = self.run_build(root, *args)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("role templates do not accept placeholders", result.stderr)
+            role.write_text(
+                role.read_text(encoding="utf-8").replace(
+                    "description: ",
+                    "description: Risk: ",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_build(root, "--force")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            parsed = markdown_frontmatter(root / "agents" / "node-planner.md")
+            self.assertTrue(parsed["description"].startswith("Risk: "))
+            skill = markdown_frontmatter(root / "skills" / "pave-init" / "SKILL.md")
+            self.assertIn("hooks", skill)
+
+    def test_binding_schema_rejects_invalid_binding_value(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            self.copy_repo(root)
+            binding = root / "sources" / "bindings" / "codex.toml"
+            binding.write_text(
+                binding.read_text(encoding="utf-8").replace(
+                    "version = 1",
+                    'version = "1"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_build(root, "--check")
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("schema validation failed", result.stderr)
+
+    def test_reference_marker_does_not_create_orphan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            self.copy_repo(root)
+            reference = (
+                root
+                / "skills"
+                / "pave-init"
+                / "references"
+                / "approval-briefs.md"
+            )
+            reference.write_text(
+                "<!-- Generated by scripts/build_packages.py; "
+                "source-sha256: prose-example -->\n"
+                + reference.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            result = self.run_build(root, "--check")
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_late_generated_marker_still_detects_orphan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            self.copy_repo(root)
+            orphan = root / "codex" / "agents" / "retired.toml"
+            orphan.write_text(
+                "x" * 5000
+                + "\n# Generated by scripts/build_packages.py; source-sha256: late\n",
+                encoding="utf-8",
+            )
+            result = self.run_build(root, "--check")
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("ORPHAN codex/agents/retired.toml", result.stderr)
+
+    def test_invalid_utf8_reports_build_error_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            self.copy_repo(root)
+            (root / "agents" / "node-planner.md").write_bytes(b"\xff\xfe\xfd")
+            result = self.run_build(root)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("not valid UTF-8", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
 
     def test_normal_build_refuses_to_overwrite_generated_hand_edit(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -246,6 +385,84 @@ class BuildSafetyTests(unittest.TestCase):
         self.assertIn("build_packages.py --check", text)
         self.assertIn("unittest discover -s codex/tests", text)
 
+    def test_atomic_write_rolls_back_all_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = root / "first.md"
+            second = root / "second.md"
+            first.write_text("old-first\n", encoding="utf-8")
+            second.write_text("old-second\n", encoding="utf-8")
+            outputs = {first: "new-first\n", second: "new-second\n"}
+            real_replace = os.replace
+
+            def fail_second_install(source: str | Path, destination: str | Path) -> None:
+                source_path = Path(source)
+                destination_path = Path(destination)
+                if (
+                    destination_path == second
+                    and source_path.name.startswith(f".{second.name}.new.")
+                ):
+                    raise OSError("injected replace failure")
+                real_replace(source, destination)
+
+            with (
+                mock.patch.object(build_packages, "ROOT", root),
+                mock.patch.object(build_packages, "marked_generated_files", return_value=set()),
+                mock.patch.object(
+                    build_packages.os,
+                    "replace",
+                    side_effect=fail_second_install,
+                ),
+            ):
+                with self.assertRaisesRegex(OSError, "injected replace failure"):
+                    build_packages.write_outputs(outputs, force=True)
+
+            self.assertEqual(first.read_text(encoding="utf-8"), "old-first\n")
+            self.assertEqual(second.read_text(encoding="utf-8"), "old-second\n")
+
+    def test_backup_cleanup_failure_preserves_new_outputs_and_backup(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = root / "first.md"
+            second = root / "second.md"
+            first.write_text("old-first\n", encoding="utf-8")
+            second.write_text("old-second\n", encoding="utf-8")
+            outputs = {first: "new-first\n", second: "new-second\n"}
+            real_unlink = Path.unlink
+            backup_unlinks: dict[Path, int] = {}
+            injected = False
+
+            def fail_one_backup_cleanup(
+                path: Path, missing_ok: bool = False
+            ) -> None:
+                nonlocal injected
+                if ".backup." in path.name:
+                    backup_unlinks[path] = backup_unlinks.get(path, 0) + 1
+                    if backup_unlinks[path] == 2 and not injected:
+                        injected = True
+                        raise OSError("injected backup cleanup failure")
+                real_unlink(path, missing_ok=missing_ok)
+
+            with (
+                mock.patch.object(build_packages, "ROOT", root),
+                mock.patch.object(build_packages, "marked_generated_files", return_value=set()),
+                mock.patch.object(Path, "unlink", new=fail_one_backup_cleanup),
+            ):
+                with self.assertRaisesRegex(
+                    build_packages.BuildError,
+                    "backup cleanup was incomplete",
+                ):
+                    build_packages.write_outputs(outputs, force=True)
+
+            self.assertEqual(first.read_text(encoding="utf-8"), "new-first\n")
+            self.assertEqual(second.read_text(encoding="utf-8"), "new-second\n")
+            backups = list(root.glob(".*.backup.*"))
+            self.assertEqual(len(backups), 1)
+            self.assertIn(
+                backups[0].read_text(encoding="utf-8"),
+                {"old-first\n", "old-second\n"},
+            )
+
 
 class PreflightProofTests(unittest.TestCase):
     def make_chain(self, home: Path, source_hash: str, nonce: str) -> str:
@@ -259,7 +476,7 @@ class PreflightProofTests(unittest.TestCase):
             0,
             "root",
             "root-call",
-            "pave_init_material_reviewer",
+            "pave-init:pave-material-reviewer",
             f"source-sha256: {source_hash}; nonce: {nonce}",
             parent_id,
         )
@@ -271,9 +488,9 @@ class PreflightProofTests(unittest.TestCase):
             parent_id,
             root_id,
             1,
-            "pave_init_material_reviewer",
+            "pave-init:pave-material-reviewer",
             "parent-call",
-            "pave_init_research_delegate",
+            "pave-init:research-delegate",
             f"return nonce {nonce}",
             delegate_id,
         )
@@ -288,7 +505,7 @@ class PreflightProofTests(unittest.TestCase):
                             "thread_spawn": {
                                 "parent_thread_id": parent_id,
                                 "depth": 2,
-                                "agent_role": "pave_init_research_delegate",
+                                "agent_role": "pave-init:research-delegate",
                             }
                         }
                     },

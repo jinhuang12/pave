@@ -39,7 +39,7 @@ Treat a low-probability defense-in-depth gap as `LOW` or residual risk when late
 4. **Evaluate returns skeptically.** Reject and re-dispatch any finding without `path:line` + exact quote — max one retry per question, to a new sub-agent with a note on what the first attempt got wrong; after that, investigate the question yourself. Watch for conclusions that do not follow from the evidence, contradictions between sub-agents, and "I couldn't find X" that may only mean it searched wrong.
 5. **Render judgment** only after evidence is in hand, per the severity scale below.
 
-When the artifact under review is a generated skill package, load `skill-creator:skill-creator` for skill-quality context when that skill is available.
+When the artifact under review is a generated skill package, load the active harness skill-quality validator named in your runtime binding when it is available.
 
 ## Evidence mandate (hard rule)
 

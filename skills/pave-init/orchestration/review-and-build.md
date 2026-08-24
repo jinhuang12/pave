@@ -96,7 +96,7 @@ The lead integrates builder outputs and removes placeholders or unused directori
 Run:
 
 1. The plugin structure check: use the active harness's plugin validator when available (manifest validity, component discovery, path references). Otherwise check the manifest and layout against current harness documentation and record the substitution in `reviews/validation.md`.
-2. The system `skill-creator` `quick_validate.py` on the generated skill. Its frontmatter allow-list can lag the runtime's current keys: when the only failure is an unexpected `hooks` key that the approved enforcement record placed there, record the validator lag and continue. Every other failure blocks.
+2. The active harness skill-quality validator named in the lead skill on the generated skill. Its frontmatter allow-list can lag the runtime's current keys: when the only failure is an unexpected `hooks` key that the approved enforcement record placed there, record the validator lag and continue. Every other failure blocks.
 3. `scripts/validate_pave.py` on the generated canonical graph; it follows composition references and validates every child profile, terminal map, and boundary in the tree.
 4. `scripts/validate_traceability.py` on the canonical graph, traceability table, and generated skill root, including qualified child-profile rows and one `realization` row per composed node.
 5. Generated script and schema tests.
