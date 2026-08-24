@@ -9,7 +9,7 @@
       "name": "pave-init",
       "source": "./",
       "description": "Create a PAVE-based Claude Code workflow plugin (a lead skill plus registered role agents) from a stated goal, with adversarial review gates.",
-      "version": "2.2.5"
+      "version": "2.2.7"
     }
   ]
 }

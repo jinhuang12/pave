@@ -102,7 +102,8 @@ The monitor is entered by pairing: it starts when its Execute node starts
 and ends with it (§6.4). Escalations go to whoever owns routing — usually
 the lead.
 
-**Wiring it in Claude Code.** Watching live work means reading the doer's
+<!-- harness-specific:claude:start -->
+**Claude Code binding.** Watching live work means reading the doer's
 session transcript, and the transcript format is undocumented — do not
 write this from scratch. `scripts/transcript_filter.py` (shipped beside
 this doc) is a working reference implementation of the read side: it
@@ -117,6 +118,12 @@ concern by message to the doer or the lead. The loop design — cadence,
 what counts as a concern, who receives it — is still yours. The script is
 pinned to current harness internals: verify it once on a live transcript
 before shipping it in a generated workflow (its header says how).
+
+This transcript binding is harness-specific. A Codex workflow can select an
+advisory monitor only when it has a verified live-work evidence source with
+equivalent timing and coverage. Do not claim parity from a different artifact
+or from post-run output alone.
+<!-- harness-specific:claude:end -->
 
 Spec: §6.4 pairing an advisory monitor with execution; §7 roles.
 

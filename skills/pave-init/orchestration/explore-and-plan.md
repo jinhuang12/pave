@@ -23,7 +23,7 @@ State one bounded question for each lens. Define exact repository paths or resea
 
 ## 2. Dispatch explorers
 
-Spawn all explorers in one message with the Agent tool so they run concurrently. Explorers are one-shot; give no `name`. Use `subagent_type: pave-init:system-explorer` for every lens — its role contract, model, and effort ride on the agent definition.
+Dispatch all explorers together through the active harness role mechanism so they run concurrently. Explorers are one-shot. Use the `system-explorer` role for every lens; its role contract, model, and effort ride on the native role definition.
 
 Each prompt must include:
 
@@ -81,9 +81,9 @@ Every node a planner frames enters the queue — atomic predictions included, be
 
 ### 4.3 Dispatch the queue
 
-Order entries by risk and dependency: a node others depend on, or whose failure would force reframing its siblings, goes first. Dispatch one node planner per entry as `subagent_type: pave-init:node-planner`; independent entries dispatch concurrently in one message. The agent definition carries model and effort — do not override them per dispatch.
+Order entries by risk and dependency: a node others depend on, or whose failure would force reframing its siblings, goes first. Dispatch one `node-planner` per entry; dispatch independent entries together. The native role definition carries model and effort — do not override them per dispatch.
 
-Each brief contains: the node's frozen contract, the chain of ancestor purposes, read-only sibling interfaces, the system map, the framing planner's prediction and rationale, the relevant references (`pave-yaml.md`, `pave-spec.md`, `pave-composition.md`, `planning-layout.md`) resolved under the pave-init installation path, and the draft path to write. Mint the draft path fresh for this dispatch — never a path any earlier dispatch used, even a dead one's — record it in the entry, and mark the entry `pending_dispatched` (`references/planning-layout.md`). Give planners the Agent tool: a planner decides for itself whether it needs more evidence and spawns read-only explorers with one bounded question each. Planners never change ancestor or sibling interfaces; they report conflicts — without ids: the lead assigns `c<N>` ids in the frontier's conflict register.
+Each brief contains: the node's frozen contract, the chain of ancestor purposes, read-only sibling interfaces, the system map, the framing planner's prediction and rationale, the relevant references (`pave-yaml.md`, `pave-spec.md`, `pave-composition.md`, `planning-layout.md`) resolved under the pave-init installation path, and the draft path to write. Mint the draft path fresh for this dispatch — never a path any earlier dispatch used, even a dead one's — record it in the entry, and mark the entry `pending_dispatched` (`references/planning-layout.md`). A planner decides for itself whether it needs more evidence and dispatches read-only research workers through its native role contract, one bounded question each. Planners never change ancestor or sibling interfaces; they report conflicts — without ids: the lead assigns `c<N>` ids in the frontier's conflict register.
 
 On return, verify the draft against the node's contract, run `scripts/validate_run_state.py --frontier`, and mark the entry `planned`. Send the return to the planning reviewer as one unit — every return is reviewed before its verdict solidifies (reviewer mechanics in `orchestration/review-and-build.md` §1). On PASS, mark the entry `reviewed` and append the return's framed children to the queue as `pending`. On REVISE, re-dispatch that node's planner with the findings.
 
@@ -130,10 +130,10 @@ Check these before review:
 
 A subgraph is script-eligible when it contains no user-approval gate, no `pause` endpoint waiting on a human, and no `return` endpoint. For each maximal script-eligible subgraph, recommend one binding:
 
-- `lead`: the lead orchestrates with Agent tool calls. The default.
-- `workflow_script`: the generated skill compiles the subgraph to one Workflow tool script. Recommend this only when the subgraph has real fan-out or loops — enough agent traffic that routing it through the lead's context would be wasteful. A two-agent hop does not qualify.
+- `lead`: the lead orchestrates through the active harness role-dispatch mechanism. The default.
+- `workflow_script`: the generated skill compiles the subgraph to one harness-native workflow script. Recommend this only when the subgraph has real fan-out or loops — enough agent traffic that routing it through the lead's context would be wasteful. A two-agent hop does not qualify.
 
-A `workflow_script` binding never changes graph meaning: the YAML stays the authority (compile mapping in the `pave-init:skill-builder` agent definition, plugin `agents/skill-builder.md`). Record each recommendation with its subgraph node list and rationale in `skill-package-plan.md`.
+A `workflow_script` binding never changes graph meaning: the YAML stays the authority (compile mapping in the native `skill-builder` role contract). Record each recommendation with its subgraph node list and rationale in `skill-package-plan.md`.
 
 ### 4.9 Boundaries of this procedure
 
@@ -155,14 +155,14 @@ Give every edge a stable `id`. Write `traceability.md` with one row for every ro
 
 Write `skill-package-plan.md` with:
 
-- final directory tree — a plugin package: `.claude-plugin/plugin.json`, role agents under `agents/`, the lead skill under `skills/<workflow-name>/`;
+- final directory tree — the active harness's native plugin manifest and role layout, plus the lead skill under `skills/<workflow-name>/`;
 - one owner for every file;
 - parallel build units with no overlapping files;
 - graph IDs implemented by each unit;
 - copied, condensed, generated, and excluded resources;
 - runtime bindings: each script-eligible subgraph with its recommended binding and rationale;
 - the profile dependency tree and the §9.12.1 packaging condition each child profile meets, when packaging is used;
-- the enforcement record: each run-wide prohibition and costly-transition guard with its chosen strength, the reason a stronger rung is unnecessary, and — for each planned hook — its event, matcher, script, actor scope with its mechanism (frontmatter placement, lead-only event, or identity gate), and decline path; plus the evidence-gameability judgment for every node whose success evidence the doer produces — gameable or not, with the hardening choice (`references/pave-spec.md` §9.14.1);
+- the enforcement record: each run-wide prohibition and costly-transition guard with its chosen strength, the reason a stronger rung is unnecessary, and — for each planned hook — its event, matcher, script, actor scope with its harness-native placement or identity gate, and decline path; plus the evidence-gameability judgment for every node whose success evidence the doer produces — gameable or not, with the hardening choice (`references/pave-spec.md` §9.14.1);
 - the evolution tier (`static` or `evolving`) with its reason, per `references/pave-revisions.md`;
 - scripts and tests required by mechanical checks;
 - runtime dependencies and installation boundary;

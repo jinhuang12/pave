@@ -14,7 +14,7 @@ Read this when a plan chooses a hook as its enforcement mechanism, and when plan
 
 ## Hook doctrine
 
-A generated skill can ship Claude Code hooks. Instructions decay as a long-horizon run consumes context; a hook fires on tool events regardless of what any agent still remembers. Choose the enforcement rung first on the spectrum in `pave-spec.md` §9.14 — this section covers the mechanism once a hook is the chosen rung.
+A generated skill can ship hooks when its active harness exposes the needed events and payload. Instructions decay as a long-horizon run consumes context; a hook fires on tool events regardless of what any agent still remembers. Choose the enforcement rung first on the spectrum in `pave-spec.md` §9.14 — this section covers the semantic mechanism once a hook is the chosen rung. Use the native lead contract for registration, trust, and wire-format details.
 
 Three uses, in order of preference:
 
@@ -26,13 +26,13 @@ A hook is a candidate only for an always-on invariant — a rule that must hold 
 
 Scoping: tool events fire in every actor's loop — subagents included — so a run-wide guard covers every hand by default, and the actor most likely to violate a prohibition is a worker that never read the lead contract. Three mechanisms narrow a hook to specific actors:
 
-1. **Placement.** A hook declared in the generated skill's frontmatter lives and dies with the skill. Frontmatter in an agent definition fires only inside that agent — this works for installed agent types (`.claude/agents/*.md` or a plugin's root `agents/` directory, invoked by `subagent_type`), and generated role agents are registered at the plugin root's `agents/`, so agent-frontmatter placement scopes a role's hook by default. The identity gate covers only a role dispatched through a generic agent type.
+1. **Placement.** Use the narrowest native registration scope the active harness supports. A skill-lifetime hook ends with the skill; a plugin-level hook needs explicit run ownership and terminal gates to preserve the same effective boundary. Use role-scoped registration only when the harness supports it. Otherwise use an identity gate.
 2. **Lead-only events.** User prompt submit, compaction, and session start fire only in the main session. Bind role reinjection there.
 3. **Identity gate.** Inside a subagent, hook input carries `agent_type` and `agent_id`; in the main session both are absent. A hook that must ride a tool event but target one actor reads those fields and exits silently otherwise. When every role dispatches through the same generic agent type, `agent_type` cannot tell roles apart — dispatch each role with a distinct Agent-tool `name` and gate on the `agentName` recorded in the transcript the hook input points to.
 
 A worker whose own role contract decays within its node is mis-sized work — a node-sizing finding (`pave-spec.md` §9.12), not a reinjection target.
 
-Register by placement first: a frontmatter hook cleans up automatically and needs no settings change — invoking the skill is the user's opt-in. Reach for project settings only for a rule frontmatter cannot carry, such as `permissions.deny`; ship that as one fragment the generated lead presents at run start behind one `AskUserQuestion`, with the decline path stated: which guards degrade to instructions and which prohibitions become review-only.
+Register by native placement first. Prefer a scope that cleans up automatically and treats explicit skill invocation as opt-in. Reach for project settings only for a rule the native hook surface cannot carry, such as a deny rule; ship that as one fragment the generated lead presents at run start behind one bounded approval question, with the decline path stated: which guards degrade to instructions and which prohibitions become review-only.
 
 ## Why this pair exists
 
@@ -100,7 +100,8 @@ find_run_state() {
   FOUND_STATE_VIA=""
   # Quoted iteration: root paths may contain spaces.
   local root marker candidate
-  for root in "${CLAUDE_PROJECT_DIR:-}" "$(cd "$skill_dir/../.." 2>/dev/null && pwd)" "$PWD"; do
+  local project_root="${PROJECT_ROOT:-}"  # ADAPT: bind to the native project-root environment value
+  for root in "$project_root" "$(cd "$skill_dir/../.." 2>/dev/null && pwd)" "$PWD"; do
     [ -n "$root" ] || continue
     marker="$root/.<workflow-name>-run"            # ADAPT: marker file name
     if [ -f "$marker" ]; then
@@ -113,7 +114,7 @@ find_run_state() {
   # Scan fallback: NOT ownership evidence — the hooks act only on
   # FOUND_STATE_VIA="marker". The scan exists for lead-driven resume.
   FOUND_STATE_LABEL="newest run by mtime — may not be this run"
-  for root in "${CLAUDE_PROJECT_DIR:-}" "$(cd "$skill_dir/../.." 2>/dev/null && pwd)" "$PWD"; do
+  for root in "$project_root" "$(cd "$skill_dir/../.." 2>/dev/null && pwd)" "$PWD"; do
     [ -n "$root" ] || continue
     [ -d "$root/<runs-dir>" ] || continue           # ADAPT: runs directory
     candidate="$(ls -t "$root"/<runs-dir>/*/run-state.json 2>/dev/null | head -n 1)"  # ADAPT: state file name

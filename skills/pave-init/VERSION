@@ -1,4 +1,4 @@
-version: 2.2.6
+version: 2.2.7
 
 ## How changelog entries are written
 
@@ -18,7 +18,45 @@ line and use the release date.
 
 ## Changelog
 
+### 2.2.7 (2026-08-24)
+
+- Fixed — shared-package generation now rejects malformed lead placeholders,
+  quotes generated Markdown frontmatter safely, detects only real generated
+  orphans across the full file, reports invalid UTF-8 without a traceback, and
+  rolls back all outputs when an atomic replacement fails.
+- Fixed — Codex now uses the native `$pave-init:pave-init` skill name and
+  `pave-init:<role>` custom-agent names. The lead must run the live nested-agent
+  preflight before Stage 1.
+- Fixed — skill-quality validation now binds to the active harness:
+  `skill-creator:skill-creator` for Claude Code and `$skill-creator` for Codex.
+- Improved — CI parses generated Markdown frontmatter, validates binding schema
+  values, checks placeholder and orphan edge cases, and tests atomic rollback.
+- Known limit — the installed 2.2.7 plugin and namespaced roles load on Codex
+  CLI 0.149.0, but the tested Bedrock runtime still rejects the first named V1
+  spawn with `Invalid 'input': value did not match any expected variant`.
+
 ### 2.2.6 (2026-08-21)
+
+Codex port follow-up — the native roles now preserve the Claude role model and
+effort intent: `fable` and `opus` map to `gpt-5.6-sol`, `sonnet` maps to
+`gpt-5.6-terra`, and each role keeps its approved effort. Codex V1 requires
+`agents.max_depth = 2` for the reviewer and planner research delegates.
+
+- Added a fail-closed release preflight that verifies the current generated
+  source hash and the persisted root → reviewer → research-delegate thread
+  chain. Model-written success prose cannot satisfy the gate.
+- Added deterministic release stamping from this file to both plugin manifests,
+  the marketplace entry, and the delivered README.
+- Hardened shared-source generation: role templates reject every unresolved
+  placeholder; normal builds refuse to overwrite a differing generated file;
+  all 14 outputs carry `DO NOT EDIT`; CI checks drift, tests, stamps, and hooks.
+- Restored doctrine lost during harness neutralization: concrete model mappings,
+  reviewer continuity, explicit approval semantics, observing-first enforcement,
+  generated-role and hook disclosure, stop-block cadence, and project-root
+  discovery in the hook template.
+- Codex CLI 0.149.0 still fails the first named V1 child request on the tested
+  Bedrock runtime with `Invalid 'input': value did not match any expected
+  variant`. The preflight records this as a release failure.
 
 Improved — node planning and plan review now state what a decomposition
 *is* before working with one: it rewrites the parent's definition of done

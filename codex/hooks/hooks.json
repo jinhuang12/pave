@@ -1,0 +1,40 @@
+{
+  "description": "PAVE Init long-run alignment and planning-layout hooks for Codex CLI.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex/hooks/post_tool_use_router.py\" staleness",
+            "timeout": 10,
+            "additionalContextLimit": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex/hooks/post_tool_use_router.py\" layout",
+            "timeout": 10,
+            "additionalContextLimit": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${PLUGIN_ROOT}/skills/pave-init/hooks/stop_alignment_check.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

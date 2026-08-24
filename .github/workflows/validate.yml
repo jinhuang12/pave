@@ -1,0 +1,25 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  generated-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python3 -m pip install -r requirements-test.txt
+      - name: Run Codex port tests
+        run: python3 -m unittest discover -s codex/tests
+      - name: Check generated packages
+        run: python3 scripts/build_packages.py --check
+      - name: Check release stamps
+        run: python3 scripts/stamp_version.py --check
+      - name: Test canonical hooks
+        run: bash skills/pave-init/tests/test_hooks.sh
