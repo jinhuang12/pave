@@ -1,4 +1,4 @@
-version: 2.2.7
+version: 2.2.8
 
 ## How changelog entries are written
 
@@ -17,6 +17,28 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.2.8 (2026-08-24)
+
+Improved — the default recovery loop opens investigation with cheap
+priors, and exhaustion is judged over evidence channels, not source
+lists. Driven by a live generated-campaign incident: 34 triage
+iterations exhausted eleven on-disk sources while the answer sat in a
+public issue tracker, because three individually correct rules —
+unverified claims are non-evidence, workers never improvise beyond
+grant, cite the record — composed into "never consult external sources
+at all." The acceptance bar (§5.3.1) binds acceptance, never
+investigation inputs; the generated culture had over-applied it.
+
+- `references/pave-spec.md` §9.8 investigation step: open with
+  documentation, release notes, issue trackers, and the failure text
+  searched in public sources — priors that settle nothing but direct
+  which expensive measurement runs first.
+- §9.9 genuine pivot: a source list exhausted is not an investigation
+  exhausted while an evidence channel stands untried.
+- The same fix is applied to the live vllm-neuron-model-port skill
+  (its 1.0.3) so the running campaign inherits it without waiting for
+  a regeneration.
 
 ### 2.2.7 (2026-08-24)
 

@@ -820,7 +820,11 @@ loop:
 2. Investigate until the root cause is identified, and persist the
    investigation record as you go: what was checked, what was ruled out,
    what was found. The record is the loop's memory — without it, every
-   later iteration repeats closed ground.
+   later iteration repeats closed ground. Open with the cheap priors:
+   documentation, release notes, issue trackers, the failure text
+   searched in public sources. A claim found there settles nothing —
+   §5.3.1 binds acceptance, not investigation inputs — but it is a prior
+   that directs which expensive measurement to run first.
 3. Match the process weight to what the investigation found:
    - One credible fix, mechanical to apply: implement and verify.
    - A fix that needs design, or several candidates: plan the fix and
@@ -842,6 +846,9 @@ to a pause or blocked endpoint rather than guessing.
 When an approach is exhausted, change the mechanism or framing. Avoid
 repeating the same failed approach with different wording. Keep exhaustion
 memory, so a later round can tell an untried approach from a closed one.
+Judge exhaustion over channels as well as items: a source list exhausted is
+not an investigation exhausted while an evidence channel — documentation,
+issue trackers, another instrument class — stands untried.
  
 ### 9.10 Evidence refresh
  
