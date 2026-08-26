@@ -1,4 +1,4 @@
-version: 2.2.8
+version: 2.2.9
 
 ## How changelog entries are written
 
@@ -17,6 +17,19 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.2.9 (2026-08-26)
+
+Improved — an evolving-tier successor revision must justify itself as a
+general fix, not an incident patch. The semantic diff's why now names
+the gap the predecessor's plan missed and states why the change holds
+for runs in general; a reason that cannot be stated apart from the
+triggering run is a review finding.
+
+- `references/pave-revisions.md` evolution contract rule 4: a successor
+  ships to every future run, so a fix shaped to one run's particulars
+  degrades all the others. The existing independent-review gate (rule 5)
+  enforces the claim — unfalsifiable reasons were already findings.
 
 ### 2.2.8 (2026-08-24)
 
