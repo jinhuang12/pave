@@ -1,0 +1,206 @@
+# Planner fragment — dispatched boundary: verify_run_preconditions
+# Frozen contract lives in planning/root.v6.draft.pave.yaml (never copied here).
+# Verdict: ATOMIC (confirms the framing prediction). No child nodes.
+pave:
+  name: verify_run_preconditions
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: verify_run_preconditions
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#verify_run_preconditions
+      elaboration:
+        verify_run_preconditions:
+          verdict: atomic
+          justification: >
+            One investigator agent, with the lead freezing run inputs into
+            state, runs the whole read-only preflight battery — gh branch
+            query on the fork; per-host one-shot SSH probes for SDK/compiler
+            uniformity, GPU-baseline reachability, per-target weights, and
+            the private-index venv precondition; live-harness delegate
+            resolution probes; one bounded read classifying the adjacent
+            vendor autoport skill; cross-run artifact load with per-row pin
+            re-verification; carry-over surfacing — and settles
+            preconditions_met by the raw command transcripts in
+            artifacts/run/intake-preflight/. Overturned if the invocation
+            names a host roster or a scorecard so large that per-host probes
+            plus per-row re-verification exceed one context — in which case
+            runtime fan-out per host under this same goal is the first
+            remedy, decomposition only after that fails. Every warning sign
+            in pave-spec 9.12 is absent: all preflight failures mean the
+            same thing (a precondition whose remedy is user-owned) and route
+            identically to inputs_missing -> run_paused; no intermediate
+            result needs its own review or resume point (the node is
+            read-only, idempotent, and free to re-run whole); no
+            probe needs a capability the history does not show (one-shot ssh,
+            gh, file reads are the observed patterns).
+      atomic_contract_elaboration:
+        definition_of_done: >
+          Every declared preflight condition holds and the run inputs
+          (pinned release descriptor, release-branch name, SDK/compiler
+          version, target request, instance roster) are frozen in run state
+          — settled by reading the frozen-input record plus one raw command
+          transcript per check in artifacts/run/intake-preflight/, each
+          transcript carrying verbatim command, verbatim output, and the
+          host/repo identity it ran against, and each output matching its
+          declared expected condition. Evidence ladder rung 1 (measurement
+          against a declared threshold): every check is a command whose
+          output settles a binary condition; the doer may run the commands
+          because the values come from the instruments (gh, ssh, pip, the
+          filesystem), not from its judgment. World-bound identifiers the
+          doer cannot mint: the branch head SHA returned by gh, instance
+          identity strings returned by the hosts, and package
+          version/resolution-source lines returned by the index probe.
+        activities:
+          - Read the invocation inputs; lead freezes pinned release
+            descriptor, release-branch name, SDK/compiler version, target
+            request, and instance roster into run state (pinned_release and
+            related fields) with a checkpoint. Values are run inputs, never
+            graph text (pin-generic rule, root-contract amendment).
+          - Fork branch preflight - read-only gh/git query confirming the
+            pinned release branch exists on the fork; record ref and head
+            SHA. Fork sync itself is user-owned and out of scope.
+          - Per named host over one-shot read-only SSH - reachability and
+            identity probe, SDK and compiler version probes, uniformity
+            comparison against the frozen SDK input. DLAMI venv path
+            discovered per host, never hardcoded (path suffix is
+            inconsistent across docs - system-map).
+          - GPU-baseline preflight - reachability, identity, and
+            serving-stack version probe on the named baseline instance.
+          - Per-target weight-artifact existence probes (paths from the
+            target request), recorded with file listings and sizes.
+          - Venv-replication precondition per Neuron host - probe that the
+            private-index-only core dependency resolves from the vendor
+            extra-index or is DLAMI-preinstalled; the transcript must show
+            resolution SOURCE and VERSION so the public-index placeholder
+            cannot pass as a match (system-map ADDENDUM item 3).
+          - Delegate-availability preflight - enumerate the required
+            external delegate skills (deployed to ~/.claude, not
+            bundleable); probe live-harness resolution under BOTH bare and
+            namespaced (suite-prefix) addressing; record the addressing map
+            that actually resolved. Any required delegate absent ->
+            inputs_missing.
+          - Autoport-skill scoping - one bounded read of the adjacent
+            vendor autoport skill's published entry; record a
+            classification (competing tool / prerequisite / irrelevant)
+            with rationale and its consequence for delegate dispatch. If
+            classified prerequisite and absent -> inputs_missing.
+          - Cross-run artifact load - read scorecard, backlog, debt ledger,
+            fingerprint file (initialize empty structures on a first run;
+            no precedent exists); re-verify EVERY scorecard row against the
+            frozen pin - a row whose passing evidence was produced at a
+            different pin is demoted to unverified in the loaded view,
+            never carried forward as passed; write the per-row
+            re-verification table.
+          - Carry-over surfacing - summarize parked campaigns and their
+            live blockers (at amendment time - one parked campaign with two
+            live hardware blockers) into the record, flagged for the
+            gate-1 adopt-or-close decision. Surfacing only; the decision is
+            gate-1 authority, not this node's.
+          - Record the runner-default boundary note (the runner-default
+            change one release above the frozen pin) for the delta scan's
+            entanglement check (root x_planning pin_generic_dependencies
+            expects this recorded at intake).
+          - Assemble artifacts/run/intake-preflight/ - frozen-input record
+            plus one raw transcript per check; report preconditions_met, or
+            inputs_missing naming the exact absent input.
+        enforcement:
+          node_local_guard: >
+            Recommend one mechanical check on the success edge
+            (preconditions_to_delta_scan), evaluated by the lead:
+            'Does artifacts/run/intake-preflight/ carry the frozen-input
+            record plus a raw transcript for every declared preflight, each
+            naming its host or repo and matching its declared condition?'
+            on_failure_route back to verify_run_preconditions (re-run is
+            free - read-only and idempotent). Mechanical rung is
+            sufficient: the run-wide blocking hooks already deny the six
+            costly forbidden effects, all probes are reads, and a defective
+            record is cheap to detect (transcript diff) and cheap to repair
+            (re-probe). Debate, advisory monitor, or stage audit would not
+            earn their cost here - the evidence is mechanical, not
+            judgment-shaped.
+          gameability: >
+            run_input_and_preflight_record - GAMEABLE (doer-run probes,
+            doer-written record), matching the root-level judgment.
+            Hardened first by structure: (1) verbatim
+            command+output+identity transcripts per check, so any
+            non-doer can re-run and diff; (2) the venv probe's expected
+            condition names resolution source and version, so placeholder
+            detection lives in the check, not the doer's summary; (3)
+            world-issued identifiers (branch head SHA, host identity
+            strings) bind the record to the systems probed; (4) the lead's
+            mechanical completeness check on the success edge is a
+            non-doer read; (5) gate 1 re-presents every preflight to the
+            user inside the kickoff contract (root check
+            kickoff_contract_approved), a second non-doer read.
+        model_effort:
+          investigator: >
+            strong model, medium effort - the battery is mechanical
+            transcript collection plus two bounded scoping reads; wrong
+            answers are caught by the lead's completeness check and the
+            gate-1 re-presentation, and re-runs are free. Deliberate
+            step-down from the root's high-effort investigator default
+            under the routine-agentic-work cost rule; the lead may keep
+            high if it prefers one uniform investigator tier.
+          lead: >
+            session top model, high effort per the root assignment - the
+            freeze into run state and the outcome routing are lead-owned;
+            no deviation.
+      evidence_questions:
+        - question: Is delegate addressing bare or suite-namespaced once
+            deployed to ~/.claude?
+          closed: Unresolvable from repo evidence (delegates lens, remaining
+            gaps) - it is a run-time fact by nature; designed into the
+            delegate preflight as a live resolution probe recording the
+            addressing map that resolved.
+        - question: Is the adjacent vendor autoport skill a competing tool,
+            a prerequisite, or irrelevant?
+          closed: Unread in the evidence base (delegates lens explicitly did
+            not read it; system-map ADDENDUM item 7 routes it here) -
+            settled at run time by one bounded read plus a recorded
+            classification with rationale.
+        - question: Does scorecard re-verification need re-measurement or
+            whole-history judgment?
+          closed: No - the requirement text makes it a mechanical per-row
+            rule (no row carries forward as passed across a pin change);
+            re-measurement, where wanted, belongs to campaigns.
+        - question: Could roster size break the one-context bound?
+          closed: Roster is a user invocation input with no fixed fleet;
+            single-digit standing instances in all observed history.
+            Runtime per-host fan-out is the declared first remedy if a
+            future invocation names many hosts.
+        - question: Were explorer dispatches needed?
+          closed: No - the seven lens reports plus the ADDENDUM answered
+            every design-relevant question; the remaining unknowns are
+            exactly what the preflights measure at run time.
+      interface_findings:
+        - >-
+          The success edge preconditions_to_delta_scan currently carries no
+          check; recommend the mechanical preflight_record_complete check
+          described under enforcement (evaluated_by lead, on_failure_route
+          verify_run_preconditions). Assembly-level addition; no new
+          outcome or edge.
+        - >-
+          inputs_missing meaning wording - recommend widening from 'a
+          user-owned input is absent' to 'a precondition fails whose remedy
+          is user-owned' so SDK non-uniformity, an unreachable GPU baseline,
+          absent delegates, missing weights, and a placeholder-only venv
+          index all honestly fit the declared outcome. Routing unchanged
+          (run_paused); text-only clarification, reported to the lead
+          without a conflict id.
+        - >-
+          Content contract of run_input_and_preflight_record for downstream
+          consumers - (a) delegate addressing map -> delegate_dispatcher
+          guardrails; (b) autoport-skill classification -> delegate scoping
+          and, if competing/prerequisite, route costing context; (c)
+          runner-default boundary note -> scan_upstream_delta entanglement
+          check; (d) per-host venv private-index verification ->
+          run_hardware_attempts freeze-replicate precondition; (e) scorecard
+          re-verification table and carry-over summary ->
+          cost_routes_and_rank_backlog and assemble_kickoff_contracts
+          (gate-1 adopt-or-close decision).
+        - >-
+          State touch - the lead writes pinned_release and the frozen input
+          fields at this node and initializes cross-run artifact pointers
+          from the loaded artifacts; single-writer rule holds (lead only).
+      conflicts: []

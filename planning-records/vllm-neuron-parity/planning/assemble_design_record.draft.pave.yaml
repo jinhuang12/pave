@@ -1,0 +1,323 @@
+# Planner draft fragment for the dispatched boundary assemble_design_record
+# (child of design_campaign). Verdict: ATOMIC - nodes is intentionally empty.
+# The dispatched node's five-part contract is frozen in the parent draft and
+# referenced below, never copied.
+pave:
+  name: assemble_design_record
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: assemble_design_record
+      frozen_contract_reference: planning/design_campaign.draft.pave.yaml#assemble_design_record
+      parent_authority: planning/root.v6.draft.pave.yaml#design_campaign
+      parent_revision_note: >
+        design_campaign.v2 (prose-only repair; child node bodies
+        byte-identical to v1) governs the record_incomplete exhaustion idiom
+        (HIGH-1: detector, never a lap counter) and the per-child gameability
+        entries; this fragment realizes both. Delegated duty L1 (outcome
+        precedence for this node's three co-holdable outcomes) is discharged
+        under outcome_precedence below.
+      elaboration:
+        assemble_design_record:
+          verdict: atomic
+          justification: >
+            One agent assembles a pointer-based record from at most five
+            sibling artifacts and settles the definition of done by an
+            enumerated checklist whose every row resolves to a citation into
+            a sibling-authored artifact - bounded reading plus mechanical
+            key-and-hash comparison, no design judgment, no sub-goal needing
+            its own recovery route, evidence, or resume point inside the
+            node. The Runtime Binding already fans out per campaign
+            (instance_per approved_campaigns), so volume never compounds
+            across campaigns in one context. Framing prediction (atomic)
+            CONFIRMED. Falsifier for this verdict: if any checklist row
+            required authoring or repairing design content rather than
+            citing it, that row's work would belong to the owning sibling
+            and the join would no longer be one coherent act - the frozen
+            forbidden_effects (no authoring sibling-owned content) make any
+            such breach visible at review.
+      definition_of_done:
+        record_ready: >
+          Every row of the standard-variant completeness checklist (d1-d8)
+          passes - settled by re-running the itemized self-check table
+          inside campaign_design_record, where each row resolves to a cited
+          location (artifact path plus section or stable id) in a
+          sibling-authored artifact; a reader who did not do the work
+          re-settles the outcome from the citations alone. Acceptance
+          ladder: rung 1 - mechanical re-derivation against world artifacts
+          the assembler does not write. The doer-written table is bound to
+          the world by those citations (second artifacts the doer is
+          forbidden to author - the 5.3.1 provenance binding). The judgment
+          the checklist deliberately does NOT carry - design quality,
+          criteria strength - is settled by the frozen sibling
+          review_campaign_design at gate 2; that reliance is recorded under
+          enforcement, and no duplicate gate is minted.
+        infeasibility_recorded: >
+          All three infeasibility-variant rows (i1-i3) pass with the same
+          citation discipline into pin_feasibility_note and the kickoff
+          contract - also rung 1, re-derivable from the citations. This
+          variant satisfies the parent infeasible_at_pin evidence
+          requirement (campaign_design_record) on the pin_infeasible entry
+          path.
+      variant_selection: >
+        The variant is selected by world evidence, not routing memory:
+        pin_feasibility_note's recorded verdict. A note that names a missing
+        surface with repo evidence selects the infeasibility variant; a
+        screen-passed note selects the standard variant. On the
+        pin_infeasible entry path the sibling design drafts never ran, so
+        the node reads only kickoff_contract_record and pin_feasibility_note
+        - the frozen consumes list is a declared superset on that path
+        (entry-paths-note idiom, per the close-out boundary's v2 precedent
+        and parent delegation L3's use of the same idiom).
+      completeness_checklist:
+        miss_rule: >
+          A failed row emits record_incomplete naming the row's stable key
+          (row label + owning sibling) and the specific gap statement. The
+          key is the detector's identity - a mechanical string match, never
+          a paraphrase.
+        standard_variant:
+          d1:
+            item: Increment plan present; every increment carries its full
+              per-increment contract - stable id, file surface, CPU-mode
+              acceptance command WITH expected result, test-layout
+              additions, single-agent-context sizing.
+            owning_sibling: draft_increment_plan
+          d2:
+            item: Per-increment acceptance is a rung-1 measurement against a
+              declared expected result or threshold - never a bare exit
+              check. Form presence is what this row checks; downstream
+              refusal (plan_unrealizable_as_designed) is what it pre-empts.
+            owning_sibling: draft_increment_plan
+          d3:
+            item: Test layout declared - overlay additions re-applied per
+              rebase, per increment where the plan names them.
+            owning_sibling: draft_increment_plan
+          d4:
+            item: Refined predicted file surface present with collision
+              ranking, feeding the lead's scheduling-holds re-derivation.
+            owning_sibling: draft_increment_plan
+          d5:
+            item: Venv and lease plan present - freeze-replicate recipe and
+              the private-index precondition recorded.
+            owning_sibling: draft_increment_plan
+          d6:
+            item: Comparator registration present - comparator set frozen
+              (identity, configuration, versions, baseline-skew statement)
+              AND marked for run-state commitment. Marked, not committed -
+              the deliberate gap; the committed side is the downstream
+              mechanical check's job (see enforcement reliance).
+            owning_sibling: preregister_acceptance
+          d7:
+            item: Route-conditional regression matrix - upgrade-route
+              campaigns; regression_matrix_draft present, every row a
+              model-by-feature cell with a procedure reference and a
+              verbatim-quotable threshold, risk tiers flagged.
+              Backport-route campaigns; this row records
+              not-applicable-by-route explicitly, never a silent skip.
+            owning_sibling: assemble_regression_matrix
+          d8:
+            item: Adjudicability and route-scoped wording - every criterion
+              adjudicable as written (verbatim-quotable threshold or matrix
+              row with procedure reference; presence of the adjudicable
+              form, not its quality) and every criterion scoped to the
+              kickoff-declared acceptance procedures for this campaign's
+              route.
+            owning_sibling: preregister_acceptance
+        infeasibility_variant:
+          i1:
+            item: The missing capability is named with repo evidence at the
+              pinned release - a citation any later actor can re-check.
+            owning_sibling: screen_pin_and_progress
+          i2:
+            item: Candidate re-scope options listed.
+            owning_sibling: screen_pin_and_progress
+          i3:
+            item: Upstream-issue draft path and close-out needs recorded.
+            owning_sibling: screen_pin_and_progress
+      outcome_precedence: >
+        Delegated duty L1. Three declared outcomes can co-hold on one run;
+        exactly one is reported, by this precedence with reasons. (1)
+        record_incomplete - any failed row on the ACTIVE variant's checklist
+        outranks both evidence-bearing outcomes, because a record with a
+        named gap must loop to its owning sibling before it reaches gate 2
+        or close-out; this is the checklist-mechanical discipline (a miss
+        loops, never ships). (2) infeasibility_recorded - when the variant
+        selector (pin_feasibility_note's recorded verdict) selects the
+        infeasibility variant and i1-i3 pass. (3) record_ready - standard
+        variant with d1-d8 passing. record_ready and infeasibility_recorded
+        can never both be candidates: the selector is a single recorded
+        verdict in one world artifact, so the variants are mutually
+        exclusive by construction. The genuine co-hold pair is
+        record_incomplete versus infeasibility_recorded - an
+        evidence-bare infeasibility claim (i1-i3 miss, owning sibling
+        screen_pin_and_progress) must not reach close-out, so incomplete
+        wins. The detector firing (below) does not change the emitted
+        outcome - it is still record_incomplete; only the routing diverges,
+        and edges own routing.
+      loop_bound_detector: >
+        Realization of the parent v2 loop_bounds (HIGH-1 corrected;
+        implement_increments.v4 precedent). Lap memory: every run of this
+        node appends one assembly-lap entry to a persisted per-campaign
+        design-assembly lap record in the campaign's design artifact
+        directory - the entry records the lap's full gap list (stable keys:
+        row label + owning sibling + gap statement) and a content-hash
+        fingerprint of each owning sibling's produced draft artifact present
+        at assembly time. Detector - fires exactly when BOTH conjuncts hold:
+        the current gap list contains a key identical to a key recorded on a
+        prior lap, AND the owning sibling's produced-artifact fingerprint
+        equals the fingerprint recorded on the lap that named that gap - the
+        sibling produced no new draft artifact since. When it fires, the lap
+        entry marks the stall and names the recurring key; the node still
+        emits record_incomplete (the frozen contract's three outcomes are
+        untouched). Falsifier, inline per the standing rule: a converging
+        design that repairs a DIFFERENT component each lap produces a
+        different gap key each lap and a changed artifact hash for every
+        repaired component - neither conjunct holds and the detector can
+        never fire, so the converging design keeps looping as the parent
+        meaning requires; likewise a sibling that re-drafts the flagged
+        component changes its artifact hash, so the same key with new design
+        evidence keeps looping. Only same key plus unchanged artifact - the
+        literal parent no_progress meaning, "no new design evidence across
+        repair attempts" - fires. Adaptation from the v4 precedent, recorded
+        not copied: the unchanged-conjunct is scoped to the OWNING SIBLING'S
+        PRODUCED draft artifact, never the design directory - sibling nodes
+        may persist investigation notes on stuck laps and unrelated siblings
+        write on every lap, so a directory-unchanged conjunct would be false
+        on exactly the laps this detector must catch and true on laps it
+        must not. No attempt caps: recorded detector only, the v1 lap
+        counter stays withdrawn. Residual gaming direction - cosmetic
+        artifact churn by a sibling defeating the unchanged-conjunct - is
+        bounded by the 9.8 unlimited-attempts form: the persisted lap record
+        is the investigation record, and the run's operator-owned gates are
+        the designed stop; gate-2 review reads the same lap log.
+      evidence_questions:
+        - Does every checklist row cite an artifact location a reader can
+          open, or does any row rest on the assembler's assertion alone?
+        - Can a reader reconstruct the full gap history and the stall
+          verdict from the lap record alone - keys, fingerprints, lap
+          ordering - without trusting the assembler?
+        - Does the record point at sibling artifacts everywhere, inlining no
+          bulk content and authoring no sibling-owned wording?
+        - Is the comparator registration verified as MARKED for run-state
+          commitment only, with the committed side left to the downstream
+          mechanical check rather than duplicated here?
+        - On the infeasibility variant, does the record carry evidence,
+          re-scope options, and the upstream-issue path without importing
+          standard-variant rows?
+      enforcement:
+        self_check_table:
+          gameable: true
+          judgment: >
+            The completeness self-check is doer-written; the assembler could
+            mark every row pass without reading anything.
+          hardening: >
+            Harden-first order (9.14.1). First, provenance the doer cannot
+            fake: every row cites path plus location into artifacts the
+            assembler is forbidden to author (frozen forbidden_effects), so
+            a forged pass is refuted by opening one citation - the 5.3.1
+            second-artifact binding. Second, checks the doer does not run:
+            the frozen mechanical comparators_preregistered check fails
+            closed on a registration that was marked but never committed
+            (recorded RELIANCE - the marked-vs-committed gap is deliberate
+            and no duplicate gate is minted, per 9.14.2), and the frozen
+            sibling review_campaign_design adversarially reads the whole
+            record at gate 2.
+          strength: >
+            Persistent record plus citation provenance; stronger local rung
+            unnecessary because a false record_ready is caught at the frozen
+            gate before any implementation or hardware spend - the miss cost
+            is one review lap, not shipped harm.
+        lap_record_and_stall_marker:
+          gameable: true
+          judgment: >
+            Doer-written, three gaming directions - omit a recurring gap
+            (equivalent to a false pass; the same sibling artifacts refute
+            it at gate 2), forge a fingerprint (content hashes are
+            recomputable by any reader from the cited artifacts -
+            mechanical refutation), suppress or force the stall marker
+            (recomputable from the persisted log by the same two-conjunct
+            rule).
+          strength: >
+            Persistent record plus recomputable hashes; observing, not
+            blocking - a wrong stall verdict routes to first-principles
+            re-derivation, which is recoverable, so a blocking control would
+            risk stranding the run for no gain.
+        assembled_pointers:
+          gameable: false
+          judgment: >
+            The pointer set itself is not usefully gameable - a pointer
+            either resolves or it does not, and resolution is mechanical.
+            Recorded so the reviewer can challenge the judgment rather than
+            meet silence.
+      model_and_effort: >
+        Mid-tier model, effort medium - parent assignment CONFIRMED. Bounded
+        reading plus mechanical key-and-hash comparison; ambiguity is low
+        (enumerated checklist, stable keys); the blast radius of a wrong
+        answer is one loop lap (false miss) or one gate-2 rejection (false
+        pass), never shipped harm.
+      interface_needs: >
+        Lead-owned items at resynchronization; no register ids minted here.
+        (1) Lap memory needs a declared home: preferred - one new
+        graph-level evidence id for the per-campaign design-assembly lap
+        record under the campaign's design artifact directory, added to this
+        node's consumes AND produces (the exact consume-and-produce pairing
+        the implement_increments boundary uses for its lap record);
+        alternative - a carried-forward lap-log section inside
+        campaign_design_record with only a consumes self-read addition,
+        rejected as primary because each lap re-assembles the record and a
+        variant switch or failed write could silently drop history. Either
+        form is the same declarative consumes-addition shape as the open
+        register entries one through four. (2) Two lead-authored, mutually
+        exclusive mechanical checks on the record_incomplete edges, both
+        reading the persisted lap record: stall marker absent - route to the
+        owning sibling the gap names; stall marker present - route to the
+        parent's no_progress realization. Spec sanction: an outcome names
+        the situation and edges respond differently as surrounding state
+        changes; this realizes the parent v2 loop_bounds without a fourth
+        outcome. (3) Entry-paths note in the assembly artifact-layout
+        reference: on the pin_infeasible path this node reads only
+        kickoff_contract_record and pin_feasibility_note; the frozen
+        consumes is a declared superset there.
+      conflicts: >
+        None blocking. The lap-memory consumes-and-produces addition and the
+        record_incomplete edge checks are reported under interface_needs in
+        the register's established declarative-addition shape; identity, if
+        any entry is opened, is lead-assigned.
+      uncertainty_ledger:
+        facts:
+          - Frozen contract and five properties - dispatch brief plus
+            planning/design_campaign.draft.pave.yaml (read in full).
+          - v2 parent prose repair content (detector idiom, withdrawn lap
+            counter, per-child gameability entries, delegations L1/L3) -
+            planning/design_campaign.v2.draft.pave.yaml diff against v1.
+          - Detector precedent and its conjunct-scoping lesson -
+            planning/implement_increments.v4.draft.pave.yaml.
+          - Fragment shape - schemas/run-state.schema.json $defs.fragment;
+            layout duties - references/planning-layout.md.
+          - Consumes-addition-at-resynchronization is the established
+            low-risk shape - frontier conflict register entries one through
+            four (referenced in prose only).
+        assumptions:
+          - Sibling produced-artifact fingerprints are content hashes any
+            reader can recompute; the Runtime Binding provides no better
+            world identifier for a draft file, and a recomputable hash
+            already meets the mechanical-refutation bar.
+          - The d8 adjudicability row checks presence of the adjudicable
+            FORM (verbatim-quotable threshold or procedure-referenced row);
+            criteria quality is gate 2's judgment. A stricter reading would
+            move rung-2 judgment into a mid-tier mechanical node - the
+            wrong seat.
+        open_questions_closed:
+          - Does the detector need a fourth outcome? Closed no - the frozen
+            contract keeps three; same-outcome divergent routing via
+            state-reading edge checks is spec-sanctioned and matches the
+            parent v2 loop_bounds prose.
+          - Where does lap memory live? Closed by design choice (dedicated
+            lap record, v4 pairing idiom) and flagged under interface_needs
+            for the lead's declarative addition.
+          - How does the node know its entry path? Closed - the variant
+            selector is pin_feasibility_note's recorded verdict, world
+            evidence rather than routing memory.
+        explorer_dispatches: none - every question closed from files named
+          under facts.

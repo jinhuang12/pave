@@ -1,0 +1,262 @@
+pave:
+  name: recover_leased_host
+  status: draft
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: recover_leased_host
+      frozen_contract_reference: planning/run_hardware_attempts.v2.draft.pave.yaml#recover_leased_host
+
+      elaboration:
+        recover_leased_host:
+          verdict: atomic
+          justification: One agent runs the frozen hard sequence end to end -
+            derived allowance check, blocking identity pre-check,
+            drain/checkpoint, a two-rung ladder (service restart, then
+            in-band reboot on the leased Neuron host), post-action identity
+            re-verification, and the ordered boot-identifier report to the
+            lead - and settles host_restored on the post-recovery probe
+            transcript in the recovery record. Overturned only if a real
+            recovery episode shows a ladder rung needs its own independent
+            review, its own resume authority, or an out-of-band instance
+            control channel with authority this node does not hold.
+            Confirms the framing prediction.
+
+      uncertainty_ledger:
+        facts:
+          - The dispatched contract is complete and frozen in the parent v2
+            fragment, which passed boundary review; every part reads
+            precisely (source - planning/run_hardware_attempts.v2.draft.pave.yaml,
+            recover_leased_host node plus x_planning revision_deltas and
+            enforcement).
+          - The recovery allowance is a derived predicate over this
+            campaign's recovery records - a prior successful recovery of
+            this host in this campaign's records - never a stored integer
+            (source - contract activities plus revision_deltas
+            high_flap_bound; consistent with the standing no-lap-counters
+            rule).
+          - Pre-recovery identity re-verification was affirmed at boundary
+            review as the strongest-rung case - likely, costly,
+            irreversible, precisely detectable, no downstream catch (source
+            - parent x_planning enforcement entry 1).
+          - One-shot SSH is the only host-action channel evidenced anywhere
+            in campaign history; no out-of-band instance control (cloud
+            API, console) was ever used or recorded (source -
+            exploration/host-and-environment.md section 3d and its
+            assumed-unverified list).
+          - No boot identifier was ever recorded historically; whether
+            roster hosts expose one is a runtime unknown, and the frozen
+            design already degrades gracefully - markers-checked is
+            recorded per event, and the legitimate-delta exception applies
+            only where the marker exists (source - parent x_planning
+            open_questions boot_identifier_obtainability).
+          - Recovery spends no hardware-attempt budget; the flap cycle is
+            bounded by the one-recovery allowance plus the finite roster
+            (source - parent x_planning loop_bounds).
+        assumptions:
+          - Reboot escalation is reachable in-band (an SSH-invoked reboot
+            with sufficient privilege on the leased host). Unverifiable
+            without SSH today. If false on a live host, the ladder simply
+            exhausts one rung earlier and host_unrecoverable carries the
+            evidence - the contract already names that ending, so a wrong
+            assumption degrades honestly rather than stranding the run.
+          - Drain/checkpoint means terminating or waiting out this
+            campaign's own in-flight compile/serve processes and recording
+            their last known state to the attempt log; nothing on the host
+            outside this campaign's lease is touched.
+        open_questions:
+          - question: Can a host that stops answering SSH entirely be
+              recovered at all, given no out-of-band channel is evidenced?
+            closed_by: Design, not investigation - an SSH-dead host leaves
+              no legal ladder rung, so the ladder is exhausted with the
+              unreachability probes logged and the episode exits
+              host_unrecoverable; the roster replacement path owns the
+              rest. Whether the operator later provides an out-of-band
+              channel is a Runtime Binding question flagged for assembly,
+              not a reason to split or block this node.
+          - question: Does the privilege needed for service restart and
+              reboot exist on roster hosts?
+            closed_by: Runtime unknown, same graceful degradation as
+              above - a refused privileged action is a failed ladder rung
+              with its refusal transcript logged. Flagged for the assembly
+              stage's host preflight notes.
+
+      explorer_dispatches: none - the parent fragment, the boundary-review
+        record it carries, and exploration/host-and-environment.md (read
+        directly, sections 3d and the assumed-unverified list) answered
+        every sizing-relevant question; no target-system mutation was
+        needed or performed.
+
+      sizing_notes:
+        runtime_binding_first: No volume problem exists to hand to the
+          binding - the protocol is strictly sequential by frozen design
+          (hard sequence in the purpose), touches one host, and produces
+          a handful of small records per episode; there is nothing to fan
+          out.
+        warning_signs_review: Ladder rungs share one failure meaning and
+          one success, so no sub-goal needs its own recovery route; the
+          one-file-per-event recovery records give resume points without
+          node boundaries; the lead's lease-record write is a role
+          interface on this node (request and confirm, never write), not
+          a separate authority needing a child; evidence volume is tiny.
+
+      definition_of_done:
+        outcome: host_restored
+        ladder_rung: measurement (§5.3.1 rung 1), with §5.3.1
+          doer-written-artifact binding on top
+        statement: The leased host answers over SSH with identity
+          re-verified against the lease record, its Neuron devices
+          enumerate, and the new boot identifier (where the host exposes
+          one) is recorded to the lead for the lease record before the
+          report - settled by re-reading the post-recovery probe
+          transcript in the recovery record together with the lead-written
+          lease record entry, never by the recoverer's claim.
+        world_binding: The boot identifier is minted by the host at boot,
+          not by the doer, and it persists in the lease record written by
+          the lead - a second artifact the doer does not write - so the
+          restored claim traces to an identifier the doer cannot mint.
+          Where no boot identifier exists, the markers-checked record plus
+          the downstream re-execution (venv probes re-run before the loop
+          resumes; the next episode's pre-check re-verifies identity)
+          carry the binding.
+        reviewer_resettle: A reviewer re-runs the identity probe and
+          device enumeration from the transcript commands and compares
+          the lease record's boot identifier against the probe's - same
+          verdict without trusting the doer.
+
+      contract_precedence_note: Item 20 does not bind - the node declares
+        exactly two outcomes, and they cannot co-hold because the frozen
+        hard sequence in the contract text orders every path (allowance
+        check first, then the blocking identity pre-check, then the
+        ladder); the three host_unrecoverable disjuncts are likewise
+        sequenced by that same contract text, not by planning marks. No
+        precedence line needs adding, and none may be added here (the
+        contract is frozen).
+
+      enforcement:
+        pre_recovery_identity_check:
+          strength: blocking in-node precondition (mechanical within the
+            node run - no state-changing command before a fresh logged
+            match)
+          reason_stronger_unnecessary: Affirmed at boundary review as the
+            textbook strongest-rung case - likely (hosts change under
+            lease churn), costly and irreversible (a reboot lands on the
+            wrong machine), precisely detectable (marker comparison
+            against the lease record), and with no downstream catch. The
+            check itself removes the wrong-host blast radius, so no
+            external hook can add protection beyond what the run-wide
+            blocking hooks (GPU baseline, provisioning) already cover.
+            The one legitimate-change marker - a boot-identifier-only
+            delta explained by a logged prior reboot - is kept exactly as
+            reviewed; without it a stale recorded boot identifier would
+            hard-stop a correct host and report it as wrong-host.
+        allowance_check_first:
+          strength: procedural first activity plus persistent record - the
+            allowance is derived at check time from the campaign's
+            recovery records, never read from a counter
+          reason_stronger_unnecessary: The condition is semantic over
+            records and self-auditing - any actor can re-derive it from
+            the same one-file-per-event records, and a violation (a second
+            recovery attempted) is visible in the record sequence and
+            caught at the next derivation. A blocking hook would need to
+            parse record semantics and could strand a legitimate first
+            recovery on a false match.
+        boot_identifier_ordering:
+          strength: procedural ordering plus persistent record - the
+            report to the lead precedes the host_restored report, and the
+            lease record entry plus recovery record sequence make the
+            order checkable after the fact
+          reason_stronger_unnecessary: A slip is non-stranding by
+            design - the forbidden_effects exception (boot-identifier-only
+            delta with a logged prior reboot) means the next episode's
+            pre-check would still classify the delta as legitimate from
+            the logged reboot alone; the ordering exists to keep the lease
+            record current, and its violation is detectable and cheaply
+            repaired, so observation beats blocking.
+        run_wide_prohibitions: GPU baseline, non-leased hosts, provisioning,
+          and shared-compile-cache clearing are the lead's run-wide
+          blocking hooks, restated in this node's frozen forbidden_effects
+          where they bind; nothing new is minted here.
+        delegate_guardrails: The runtime-troubleshooting delegate advises
+          only and never acts on hosts; every dispatch goes through the
+          guardrail wrapper with cache-clear remedies intercepted. Carried
+          from the parent's delegate_guardrails finding; inherited by any
+          runtime sub-agent seat this node uses.
+
+      evidence_gameability:
+        host_restored: Low-moderate raw (the doer writes the recovery
+          record). Hardened first at the evidence rung, per the
+          harden-first order - (1) provenance the doer cannot mint - the
+          boot identifier is issued by the host and persisted in the
+          lead-written lease record, a second artifact outside the doer's
+          hand; (2) checks the doer does not control - the venv node
+          re-runs its verification probes before the loop resumes and the
+          next episode's pre-check re-verifies identity, so a minted
+          "restored" claim fails within one transition. Adversarial review
+          (rung 3) is unnecessary - a false pass is caught cheaply and
+          quickly downstream, and where no boot identifier exists the
+          before/after marker capture plus downstream re-execution still
+          hold.
+        host_unrecoverable: Not acceptance-bearing (routing outcome), but
+          it is a doer's negative claim worth judging. Gameable raw - a
+          doer could claim allowance exhaustion or ladder exhaustion to
+          skip work. Hardened by derivation - the allowance disjunct is
+          falsifiable by searching the campaign's recovery records for a
+          prior successful-recovery event (absence refutes the claim);
+          the ladder disjunct requires each action and its evidence
+          logged per rung; the mismatch disjunct requires the mismatch
+          captured verbatim with zero state-changing actions after the
+          failed pre-check. All three are re-derivable from the
+          one-file-per-event records by a reader who trusts nothing.
+
+      evidence_questions:
+        - Does the recovery record for this episode contain a
+          post-action probe transcript showing SSH answer, identity
+          markers compared against the lease record, and Neuron device
+          enumeration - commands re-runnable as written?
+        - Does the lead-written lease record carry the new boot
+          identifier (or a markers-unavailable note) with an event
+          sequence placing it before the host_restored report?
+        - For an allowance-exhaustion exit, does exactly one prior
+          successful-recovery record for this host exist in this
+          campaign's records?
+        - For a ladder-exhaustion exit, does every rung show its action,
+          its evidence, and its failure - with no rung skipped and no
+          action after an identity-check failure?
+        - For a mismatch exit, is the mismatch recorded verbatim and is
+          the record sequence free of any state-changing command after
+          the failed pre-check?
+
+      model_effort:
+        implementer: strong model, high effort - host actions are
+          irreversible and the identity/allowance judgments must not be
+          rationalized away; consistent with the root
+          model_effort_assignments and the parent fragment's per-child
+          note. Not xhigh - an episode is one bounded protocol, not a
+          long attempt session.
+        lead: inherits the lead's model (queue-service seat - lease
+          release and boot-identifier write).
+        delegate_dispatcher: small fast model, low effort - scoped
+          single-question guardrailed dispatches, per the root
+          assignments.
+
+      assembly_interface_needs:
+        - The lease record needs a boot-identifier field plus per-event
+          markers-checked provenance, and lease events need an ordering
+          (sequence or timestamp) so the record-before-report rule is
+          checkable after the fact. Owner stays the lead (single writer).
+        - The recovery-record shape has two independent readers - this
+          node's allowance derivation and acquire_hardware_lease's
+          "exhausted its recovery allowance" roster filtering - so the
+          shape belongs in the consolidated artifact-layout reference at
+          assembly, defined once, both readers citing it (same pattern
+          the parent fixed for fingerprint records). Falsifier - if the
+          two readers derive allowance state differently, a
+          once-recovered host could be re-leased and re-recovered,
+          voiding the flap bound.
+
+      conflicts: none - no frozen interface needs changing; the two items
+        above are assembly-stage artifact-layout work already anticipated
+        by the parent fragment's pattern, reported here without minting
+        any register entry (register identifiers are lead-assigned).

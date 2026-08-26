@@ -1,0 +1,273 @@
+pave:
+  name: acquire_hardware_lease
+  status: draft
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: acquire_hardware_lease
+      frozen_contract_reference: planning/run_hardware_attempts.v2.draft.pave.yaml#acquire_hardware_lease
+
+      elaboration:
+        acquire_hardware_lease:
+          verdict: atomic
+          justification: One agent runs the whole protocol in one bounded
+            context - read the roster and the recovery records, request a
+            grant from the lead's queue service, probe each candidate's
+            identity markers over read-only one-shot SSH, confirm or refuse
+            per the marker rules, append the lease event - and settles
+            lease_held by reading the lead-written lease record plus its own
+            probe transcript in the attempt log. Confirms the framing
+            prediction. Overturned if lease contention demands multi-round
+            arbitration beyond a request/confirm exchange (the lead's
+            standing scheduling authority owns arbitration, not this node),
+            or if the roster grows past what a per-host probe-and-record
+            sweep holds in one context - neither is credible on a finite,
+            intake-frozen Neuron roster. No warning sign from the sizing
+            guidance fires - refusal routes in-node to the next candidate,
+            roster exhaustion is a declared outcome, no parallel work, no
+            authority split beyond the lead seat the frozen roles already
+            carry, and one-shot SSH capability is preflighted at run
+            preconditions.
+
+      definition_of_done:
+        rung: measurement_with_provenance_binding
+        statement: >
+          lease_held - a lease record written by the lead names this
+          campaign as the exclusive holder of one named host whose live
+          identity markers matched the roster's current values (or whose
+          sole delta is a boot-identifier change explained by a logged
+          reboot in the recovery records) - settled by reading two world
+          artifacts, never the doer's assertion: the lead-written lease
+          record carrying the lead-minted grant reference, and the
+          identity-probe transcript in the attempt log recording the exact
+          one-shot SSH command, its raw output, and which markers were
+          checkable. A reviewer re-settles by re-reading both artifacts and
+          can re-run the recorded probe command verbatim in one step. This
+          is the measurement rung of the acceptance ladder; the doer-written
+          half is bound to the world by the grant reference it cannot mint,
+          persisted in the lead's record it does not write.
+        outcome_count_note: >
+          Two declared outcomes, mutually exclusive by construction (a held
+          lease contradicts an exhausted roster), so the three-co-holdable-
+          outcomes precedence rule is not triggered. Within
+          no_host_available the four disqualifiers can co-hold per host, but
+          they are disjuncts recorded per host inside one outcome, not
+          competing routes.
+
+      uncertainty_ledger:
+        facts:
+          - The frozen contract passed boundary review in the parent v2
+            fragment; the protocol is fully specified including marker
+            precedence (boot-identifier-only delta with logged prior reboot
+            legitimate; instance-identifier or hostname mismatch always a
+            hard stop) and the refusal path. Source - planning/
+            run_hardware_attempts.v2.draft.pave.yaml, lead dispatch brief.
+          - The lead is the sole writer of the lease record; this node
+            requests, verifies, and confirms only. Source - dispatch brief
+            binding context; v2 state_and_evidence.
+          - no_host_available's meaning includes per-host recovery-allowance
+            exhaustion for this campaign, derived from recovery records,
+            never a stored integer; the boundary reviewer credited this
+            widening with closing the front-door flap-restart hole, so it is
+            load-bearing. Source - dispatch brief binding context; v2
+            no_host_available meaning, loop_bounds.
+          - Boot-identifier currency is ordered - recover_leased_host
+            reports the new boot identifier to the lead BEFORE host_restored,
+            so this node's pre-checks always compare against the current
+            recorded value. Source - dispatch brief binding context; v2
+            recover_leased_host purpose and activities.
+          - Boot-identifier obtainability is a runtime unknown with no
+            precedent anywhere in history; the frozen contract degrades
+            gracefully by recording which markers were checkable per event.
+            Source - v2 open_questions; exploration/host-and-environment.md
+            section 4.
+          - instance_roster is a required run-state field frozen at intake,
+            and read-only SSH reachability is preflighted at
+            verify_run_preconditions. Source - root.v6 state.required;
+            root.v6 verify_run_preconditions contract.
+          - The GPU baseline host and non-leased hosts are hard out of
+            scope run-wide. Source - dispatch brief binding context; root.v6
+            forbidden_effects.
+        assumptions:
+          - The roster is a small, fixed set of Neuron instances for the
+            run; the per-host probe-and-record sweep fits one context.
+            Bears on the atomic verdict; its failure is the named overturn
+            condition in the elaboration.
+          - Recovery and reboot records are discoverable per host run-wide
+            for the logged-reboot legitimate-delta check, while allowance
+            derivation reads only this campaign's records (allowance is per
+            host per campaign). Bears on settling no_host_available;
+            carried as assembly interface need i3.
+          - The request/confirm exchange is realized by the runtime binding
+            as a lead-mediated exchange that yields a lead-minted grant
+            reference. Bears on the definition-of-done provenance binding;
+            carried as assembly interface need i2.
+          - Re-entry after re-derivation re-runs this same protocol; the
+            queue service treats re-validation of a still-held lease as a
+            cheap grant (v2 routing), so no extra outcome or branch is
+            needed for re-entry.
+        open_questions:
+          - Boot-identifier obtainability - closed by the frozen contract's
+            graceful degradation (markers-checkable recorded per event); no
+            sizing effect.
+          - Queue-service exchange mechanism and grant-reference format -
+            no sizing effect; routed to assembly as interface needs i1/i2.
+          - Cross-campaign reboot-log discoverability for the
+            legitimate-delta check - no sizing effect; smallest resolution
+            is the lead keeping the roster/lease record's boot identifier
+            current, which the ordered post-recovery report already
+            provides; routed to assembly as interface need i3.
+
+      evidence_questions:
+        explorer_dispatches: none
+        reason: The dispatch brief, the v2 parent fragment, root.v6, and
+          the cited exploration report (exploration/host-and-environment.md
+          section 4) answer every sizing-bearing question; each remaining
+          unknown is a runtime unknown already routed, with its landing
+          place named in the uncertainty ledger.
+
+      enforcement:
+        g1_pre_confirm_identity_check:
+          rule: No grant confirmation without a fresh logged identity-probe
+            match against the roster's current markers; on any mismatch
+            other than the one legitimate-change marker, refuse the host,
+            report the mismatch evidence verbatim, and request the next
+            roster candidate.
+          strength: Procedural blocking precondition inside the node, with
+            a persistent record (probe transcript plus verbatim mismatch
+            evidence in the lease event).
+          why_no_stronger_rung: The probe is read-only, so a wrong
+            evaluation cannot damage any host at this node; refusal is a
+            designed in-node route, not a strand; the condition is a
+            semantic marker comparison (legitimate-delta logic) that a
+            pattern-matching hook cannot evaluate; and recover_leased_host
+            independently re-verifies identity against the lease record
+            before any state-changing action, so the wrong-host blast
+            radius is removed before harm. The strongest-rung case in this
+            family is the pre-RECOVERY check (affirmed at boundary review),
+            where actions mutate hosts - this node's check feeds it, not
+            replaces it.
+          falsifier_inline: Without the boot-identifier-only
+            legitimate-delta marker, a stale recorded boot identifier would
+            hard-stop a CORRECT host and report it as wrong-host. And a
+            probe transcript that omits which markers were checkable can
+            "match" on zero markers - so the markers-checked and
+            markers-unavailable fields are mandatory in the lease event,
+            making that failure visible instead of silent.
+        g2_single_writer_lease_record:
+          rule: This node never writes the hardware queue or the lease
+            record (frozen forbidden_effect; the lead is the single
+            writer).
+          strength: Forbidden-effect prose plus structural settle-time
+            detection - lease_held settles only on the LEAD-written record,
+            and a doer-forged record lacks the lead-minted grant reference,
+            so the forgery fails the settling act itself. Run-wide
+            mechanical hooks are the lead's enforcement record; no
+            node-local hook added.
+          why_no_stronger_rung: The violation is precisely detectable at
+            settle time from record provenance, and the request/confirm
+            exchange is the only channel the node has to the record.
+          falsifier_inline: If the grant reference were doer-assignable, a
+            forged lease event would settle lease_held - which is why the
+            grant reference must be lead-minted (assembly interface need
+            i2); a reviewer checks the reference in the doer's event
+            resolves to the lead's record.
+
+      evidence_gameability:
+        lease_held:
+          judgment: Composite. The lead-written lease record is not
+            doer-produced - not gameable by the doer. The doer-written half
+            (probe transcript, lease event) is gameable raw - a transcript
+            can be fabricated or run against the wrong target.
+          hardening: Provenance first - the lease event cites the
+            lead-minted grant reference persisted in the lead's lease
+            record (an identifier the doer cannot mint, in a second
+            artifact the doer does not write); the transcript records the
+            exact one-shot SSH command line and raw output verbatim so a
+            reviewer re-runs it in one command; markers-checked and
+            markers-unavailable are mandatory fields so an unchecked marker
+            cannot pass silently. Downstream catch - recover_leased_host
+            re-verifies identity against the lease record before any
+            state-changing action.
+          post_hardening: Low. No independent-review rung added - a false
+            pass is bounded by read-only probes here plus the downstream
+            re-verification.
+        no_host_available:
+          judgment: Gameable raw - it is the doer's negative claim, and a
+            bare "nothing available" is also a lazy exit that skips
+            hardware work entirely.
+          hardening: >
+            Require a positive per-host enumeration over the finite
+            roster - every roster host matching the target appears with
+            exactly one recorded disqualifier and its evidence:
+            leased-elsewhere (the lead's queue answer with its reference),
+            identity-mismatch (verbatim probe transcript), allowance
+            exhausted (the specific recovery records the derivation cites -
+            never a stored integer), or unreachable (probe transcript).
+            Falsifiable against the roster - a missing host or an
+            evidence-free disqualifier fails the check.
+          post_hardening: Low-moderate. No review rung added here - the
+            parent routes hardware_unavailable to close-out, where a user
+            gate independently reads exactly this evidence.
+
+      model_effort:
+        implementer: Strong model, medium effort - consistent with the
+          parent fragment's assignment. Protocol-heavy with small evidence
+          volume, but identity-mismatch handling and the per-host
+          enumeration discipline must not be rationalized away by a weak
+          model. Medium is the justified step-down from the default high
+          pin - the protocol is fully specified, decisions are marker
+          comparisons with a declared legitimate-delta rule, and downstream
+          re-verification catches errors.
+        lead: Queue-service seat inherits the lead's model per the root
+          model_effort_assignments - lease writes are the lead's own
+          authority action, not a dispatched worker's.
+        note: No delegate_dispatcher seat on this node; the frozen roles
+          are implementer and lead only.
+
+      interface_needs:
+        i1_lease_record_shape: The lease-record shape and location are
+          defined ONCE in the consolidated artifact-layout reference at
+          assembly (same single-shape-authority pattern the parent fragment
+          set for the fingerprint record). Readers - this node (confirm,
+          plus the leased-elsewhere disqualifier), recover_leased_host
+          (pre-action check), the lead (writer). Falsifier inline - two
+          readers normalizing the record differently could confirm a lease
+          the recovery pre-check later rejects as a mismatch.
+        i2_grant_reference: The grant reference is lead-minted and appears
+          in both the lead's lease record and the doer's lease event; the
+          definition of done's provenance binding depends on it.
+        i3_current_boot_identifier: The roster/lease record carries each
+          host's CURRENT boot identifier, updated by the lead when
+          recover_leased_host reports it (ordered before host_restored);
+          this node compares against the current value. Reboot logs must be
+          discoverable per host run-wide for the legitimate-delta check;
+          allowance derivation reads this campaign's recovery records only.
+        i4_roster_markers: instance_roster records per-host identity
+          markers (instance identifier, hostname, boot identifier when
+          known) and which markers were obtainable at intake.
+
+      conflicts_reported:
+        - label: n1_allowance_filter_propagation
+          interface: planning/run_hardware_attempts.v2.draft.pave.yaml#
+            acquire_hardware_lease activities, first entry.
+          reason: The frozen candidate-selection activity ("request a lease
+            for a host matching the campaign's declared target hardware")
+            does not restate the allowance filter that no_host_available's
+            frozen meaning requires - a host whose recovery allowance for
+            this campaign is exhausted is not a candidate. A literal
+            implementer following the activity text could re-request a host
+            recover_leased_host just declared unrecoverable for allowance
+            exhaustion, and the loop acquire -> venv -> host_faulted ->
+            recover (allowance exhausted) -> host_unrecoverable -> acquire
+            re-grants the same host would spin without spending any attempt
+            budget and without terminating - reopening the exact flap hole
+            the widened meaning was credited with closing. The meaning,
+            routing, and loop_bounds texts carry the property; the activity
+            text is the one referencing text it has not landed in.
+          smallest_change: Extend the first frozen activity with -
+            "excluding hosts whose recovery allowance for this campaign is
+            exhausted (derived from the recovery records, never a stored
+            counter)". Lead resynchronization; not planner-authored. No
+            conflict id minted - assignment is the lead's.

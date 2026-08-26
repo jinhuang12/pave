@@ -1,0 +1,360 @@
+# Planner draft — dispatched boundary: review_implementation
+# Verdict: ATOMIC (confirms the framing prediction). No child nodes.
+# Pin-generic: no release, branch, or SDK values appear here.
+pave:
+  name: review_implementation
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: review_implementation
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#review_implementation
+
+      elaboration:
+        review_implementation:
+          verdict: atomic
+          justification: >
+            One adversarial reviewer, independent of the implementer,
+            re-reads one campaign's branch diff and per-increment CPU-mode
+            evidence against the gate-2-approved design record and the
+            run's forbidden-effect list, runs the mechanical scans itself
+            (transcripts persisted), and settles ready_for_hardware by
+            persisting one revision-stamped findings record with zero
+            standing material findings. The judgment is per-increment
+            conformance plus a fixed scan set - never many interacting
+            concerns held at once - and evidence lives in artifacts read
+            as needed, so volume alone does not breach the boundary.
+            Falsified if a campaign changeset routinely exceeds one review
+            context even when read per-increment (for example an
+            upgrade-route rebase whose diff spans most of the plugin),
+            which would force per-surface review children plus a
+            convergence join; the designed response inside this contract
+            is that an un-reviewable-as-one-unit changeset is itself a
+            material finding routed back to implement_increments for
+            repackaging into reviewable increments, so the atomic verdict
+            survives that case without a scope_exceeded outcome this
+            node's frozen contract does not have.
+
+      atomic_contract:
+        definition_of_done: >
+          ready_for_hardware - no material finding stands against this
+          campaign's implementation changeset at the reviewed revision,
+          so hardware spend is justified - settled by reading the
+          persisted adversarial_review_findings record at
+          artifacts/reviews/ (§5.3.1 rung 2 with rung-1 elements
+          embedded). Rubric written in advance and frozen before the work
+          under review existed - the gate-2-approved campaign design
+          record (increment plan, test layout, predicted file surface),
+          the root contract's forbidden-effects list, and the UR-10
+          materiality contract; the design's implementer authorship is
+          the sanctioned author-written-criteria case (§5.3.1/§9.2)
+          because gate-2 approval froze it and an independent judge
+          applies it. Judge is the adversarial_reviewer, structurally
+          never the implementer; rubric and verdict both persist. The
+          record binds to identifiers the reviewer does not mint - the
+          campaign branch head commit hash and the design-record revision
+          - and embeds the reviewer-run scan transcripts (rung-1 command
+          output, values from the instrument), so a later reviewer
+          re-settles by re-running the scans at the stamped commit and
+          re-reading the per-increment conformance table. An
+          empty-findings record is a recorded absence, not silence - it
+          enumerates every surface challenged (each design increment, each
+          scan, each evidence-provenance check), so "no material
+          findings" is falsifiable.
+        failure_outcome: >
+          material_findings - control-flow outcome routing to
+          implement_increments; carries no acceptance duty but MUST still
+          persist the findings record, because implement_increments
+          consumes adversarial_review_findings on the repair loop. Every
+          finding meets the §9.4 scope contract - primary evidence and
+          exact location (file, hunk, increment id), a credible failure
+          mode, and its material effect. Candidate findings considered
+          and rejected as non-material are recorded with reasons so a
+          rejected finding does not return unchanged across rounds. The
+          repair loop's exhaustion exit (no_progress) belongs to
+          implement_increments, not this node - this node never counts
+          attempts.
+        materiality_line: >
+          Calibrated to what a hardware attempt costs - a leased Neuron
+          host, a compile-and-serve cycle, a tick of the shared 10-attempt
+          breaker budget, and a fingerprint-file entry. Material iff at
+          least one holds - (a) the defect makes a compile or serve
+          attempt predictably fail or produce untrustworthy evidence
+          (unrealized or wrongly-realized load-bearing increment; missing,
+          non-world-produced, or stale CPU-mode evidence); (b) it violates
+          a run forbidden effect visible in the changeset (the NxDI-import
+          contamination gate; a diff not based on the campaign's recorded
+          target base); (c) it changes runtime surfaces the design never
+          declared - including any NEW monkeypatch site absent from the
+          approved design - since undeclared surface widens collision risk
+          and invalidates scheduling assumptions; (d) it expands the
+          changed-file set beyond the design's predicted file surface
+          without a recorded design amendment; or (e) the changeset is not
+          reviewable as one unit against the increment plan. Non-material,
+          recorded but never blocking - style, naming, non-load-bearing
+          TODOs, and conformance to the existing ad hoc monkeypatch house
+          style where the design called for that patch; design-approved
+          patches are logged as debt notes for the closure-time debt
+          ledger, not findings.
+        activities:
+          - >-
+            a1 - Stability and revision binding. Read this campaign's
+            implementation_changeset artifacts (branch diff plus
+            per-increment CPU-mode evidence under the campaign increments
+            directory) and the gate-2-approved campaign_design_record;
+            confirm both stable on re-read; stamp the branch head commit
+            hash and design-record revision this review covers. A diff
+            artifact that disagrees with the branch at that commit is an
+            evidence-integrity material finding.
+          - >-
+            a2 - Reconstruct before reading the implementer's account
+            (stage-audit ordering, anti-anchoring). From the design record
+            alone, derive what the changeset should contain - which files,
+            which increments, which CPU-mode checks - before opening the
+            implementer's increment narrative.
+          - >-
+            a3 - Mechanical scans, reviewer-run, transcripts persisted
+            into the findings record - (1) NxDI-import scan over the
+            changed files (ported code only, per the run's contamination
+            gate); (2) changed-file list diffed against the design's
+            predicted file surface; (3) monkeypatch census - new patch
+            sites in the diff versus patches the design names; (4) diff
+            base verified against the campaign's recorded target base in
+            campaign_target_pins.
+          - >-
+            a4 - Design conformance. Per increment in the approved plan,
+            locate the realizing hunks and its CPU-mode evidence; map
+            every hunk back to an increment. Unrealized increments,
+            undesigned changes, and quietly narrowed scope are candidate
+            findings.
+          - >-
+            a5 - Evidence provenance (this node is the run-level hardening
+            rung for CPU-mode increment evidence, per the root
+            gameability record). Each increment's evidence must be
+            world-produced - command transcripts with exit codes and the
+            CPU-mode flag visible, describing the reviewed revision -
+            never implementer prose. The reviewer MAY re-run a sampled
+            increment's CPU-mode check in the campaign worktree as a
+            non-mutating re-settling act; divergence from the recorded
+            evidence is a material finding.
+          - >-
+            a6 - Adjudicate materiality against the calibrated line;
+            persist the revision-stamped findings record to
+            artifacts/reviews/ with verified material findings, rejected
+            candidates with reasons, debt notes, the challenged-surfaces
+            enumeration, and the scan transcripts. Any standing material
+            finding exits material_findings; a clean record exits
+            ready_for_hardware.
+          - >-
+            a7 - Idempotent resume. A re-run with unchanged branch head
+            and design revision and a persisted clean findings record
+            re-settles by reading; any drift in either stamp invalidates
+            prior findings and forces re-review.
+        effects_discipline: >
+          The frozen contract declares no effects for this node; the
+          working discipline is read-only plus non-mutating CPU-mode
+          re-execution inside the campaign worktree, with exactly one
+          write surface - the findings record under artifacts/reviews/.
+          No write to the campaign branch, run state, or any cross-run
+          artifact. Recorded as interface finding 5 for assembly.
+
+      evidence_questions:
+        - Does the findings record bind to the exact branch head commit
+          and design-record revision, so ready_for_hardware is
+          unclaimable for a branch that has moved since review?
+        - Is the NxDI-import scan a persisted command transcript over the
+          changed files, re-runnable at the stamped commit, rather than a
+          reviewer assertion?
+        - Does every design increment map to realizing hunks plus
+          world-produced CPU-mode evidence (transcripts with exit codes
+          and the CPU-mode flag visible), and does every hunk map back to
+          an increment or a named finding?
+        - Does the changed-file list stay inside the design's predicted
+          surface, with any expansion surfaced for scheduling-hold
+          re-derivation rather than silently absorbed?
+        - Does each material finding meet the §9.4 scope contract, with
+          its consequence stated in hardware-spend terms (wasted attempt,
+          poisoned fingerprint, breaker-budget tick, or invalidated later
+          acceptance)?
+        - Are rejected candidate findings recorded with reasons, and does
+          each finding carry a stable fingerprint (increment id + surface
+          + defect class) so implement_increments's no_progress detection
+          can compare rounds mechanically?
+
+      enforcement:
+        - evidence: adversarial_review_findings
+          gameable: yes - judgment text; a shallow read could mint "no
+            material findings" and release hardware spend
+          hardening: harden-first per §9.14.1 - (1) provenance the doer
+            cannot fake - the record binds to the git-minted branch head
+            commit and design revision, embeds reviewer-run scan
+            transcripts, and enumerates every challenged surface,
+            persisted under artifacts/reviews/ which the implementer
+            never writes; (2) a check the doer does not run - every
+            embedded scan and sampled CPU-mode re-run is deterministic
+            and re-runnable at the stamped commit by any later actor, and
+            hardware reality plus the measurement-adjudication chain are
+            downstream falsifiers of a minted pass; (3) reviewing the
+            review would be ceremony - this node IS the UR-10 adversarial
+            seat, and its reviewer is structurally independent of the
+            implementer.
+        - evidence: consumed implementation_changeset (CPU-mode increment
+            evidence)
+          gameable: yes at the source - implementer-produced; the root
+            record names this node as its hardening rung
+          hardening: activity a5 makes the check explicit - provenance
+            requirements (transcripts, exit codes, CPU-mode flag,
+            revision match) plus sampled non-mutating re-execution by an
+            actor who is not the doer. A finding here is material by
+            definition (untrustworthy evidence would otherwise justify
+            hardware spend).
+        - guard: NxDI contamination gate at the last pre-hardware moment
+          strength: reviewer-run mechanical scan with persisted
+            transcript, inside the independent-review rung
+          why_not_stronger: the run-wide blocking hook for forbidden
+            effect 4 is the lead's enforcement-record duty and already
+            the stronger rung; this node's scan is the cheap observing
+            second catch at the final gate before spend, so a second
+            blocking mechanism here would duplicate wiring without
+            catching anything new.
+        - guard: reviewed-revision-equals-attempted-revision
+          strength: persistent record - the commit stamp in the findings
+            record; consumer-side verification before spend flagged as
+            interface finding 1
+          why_not_stronger: the frozen edge to run_hardware_attempts
+            carries no check and adding one would touch the frozen root;
+            the violation (post-review commits reaching hardware) is
+            precisely detectable from the stamp by the consumer at zero
+            marginal cost, and it is reversible before harm - the attempt
+            has not started - so a mechanical block is not yet justified
+            (§9.14.2); escalate only if operational experience shows it
+            happening.
+        - technique_selection: debate skipped (one changeset, one frozen
+            rubric - nothing plural to filter); advisory monitor skipped
+            (this node already carries the adversarial pressure and its
+            inputs are hardened mechanically); stage-audit-by-
+            reconstruction ADOPTED as activity ordering (a2 reconstructs
+            from the design before reading the implementer's narrative),
+            which costs nothing extra and removes the anchoring failure
+            mode.
+
+      model_effort_assignments:
+        adversarial_reviewer: strong model, high effort - the last
+          judgment before hardware spend; a missed material finding
+          wastes leased-host compile-serve cycles and ticks the shared
+          10-attempt breaker budget, while an invented finding loops the
+          implementer (§9.4's quiet cost). Not xhigh - one bounded
+          read-and-scan session; if an upgrade-route changeset forces
+          long multi-increment sessions, raise to xhigh at dispatch time
+          rather than pinning it for the common case.
+        lookup_subagents: small fast model, low effort - optional
+          single-question reads (one upstream hunk comparison, one
+          support-table row); never mutate the target.
+
+      uncertainty_ledger:
+        facts:
+          - Frozen contract (root.v6.draft.pave.yaml lines 426-439) -
+            intent review, instance_per approved_campaigns, roles
+            [adversarial_reviewer], consumes [implementation_changeset,
+            campaign_design_record], produces
+            [adversarial_review_findings], outcomes ready_for_hardware
+            (required_evidence) / material_findings.
+          - Routing (root.v6 edges) - ready_for_hardware to
+            run_hardware_attempts with NO edge check; material_findings
+            to implement_increments; the repair loop's no_progress exit
+            lives on implement_increments
+            (impl_no_progress_to_rederivation), so this node carries no
+            loop bound.
+          - implementation_changeset is "campaign branch diffs plus
+            CPU-mode increment evidence" (root evidence section), and the
+            root gameability record rates it low for git diffs while
+            naming pre-hardware adversarial review as the hardening rung
+            for the CPU-mode evidence - a run-level duty this design
+            makes explicit (a5).
+          - Forbidden effect - NxDI imports in ported code - is a
+            run-wide prohibition with a blocking-hook expectation owned
+            by the lead's enforcement record (root-contract.md section 3;
+            requirements.md).
+          - Monkeypatch state (system-map.md addendum item 2) - four live
+            ad hoc patches, the centralized apply_patches() stub still
+            empty with a now-wrong docstring; ad hoc IS the house style,
+            so patch-pattern conformance alone is not a defect, but each
+            NEW site deepens the debt.
+          - Hardware attempt cost basis for the materiality line
+            (root-contract.md section 7; requirements.md) - leased hosts,
+            CPU-first before any attempt, fingerprint no-identical-retry,
+            breaker every 10 attempts per target.
+          - The public repo ships no test suite (requirements.md), so
+            "CPU-mode evidence" means the campaign's own kickoff/design-
+            declared checks, never a repo suite.
+          - UR-10 (requirements.md) - adversarial review is independent,
+            refutation-oriented, material-findings-only, proportionate.
+        assumptions:
+          - A backport-route changeset read per-increment fits one review
+            context; the upgrade-route rebase case is the named falsifier
+            and is absorbed by the not-reviewable-as-one-unit material
+            finding rather than a new outcome.
+          - The runtime binding realizes instance_per as one review node
+            run per campaign, and permits the reviewer non-mutating
+            CPU-mode re-execution in the campaign worktree as a settling
+            act.
+          - Findings for one campaign land under artifacts/reviews/
+            keyed by campaign and revision (recording convention shared
+            with the other review nodes; the root artifact path is
+            run-scoped).
+        open_questions_closed:
+          - Does the check-free ready_for_hardware edge leave a
+            post-review-commit gap - closed by the revision stamp plus
+            consumer-side verification (interface finding 1); no contract
+            change requested.
+          - Does changeset volume overturn atomic - closed against §9.12
+            (evidence lives in artifacts, read as needed; the one
+            judgment is per-increment) with the upgrade-route falsifier
+            recorded in the verdict line.
+          - Was fresh evidence needed beyond the brief - no; zero
+            explorer dispatches. The frozen contract, root evidence and
+            gameability sections, system-map addendum, and
+            requirements.md answered sizing; the only genuine unknown
+            (future changeset volume) is a run-time fact no explorer can
+            settle now.
+
+      interface_findings:
+        - finding: >-
+            Reviewed-revision binding. The frozen edge reviewed_impl_to_
+            hardware carries no check, so nothing mechanically stops a
+            post-review commit from reaching hardware. This draft binds
+            the findings record to the branch head commit; the consumer
+            (run_hardware_attempts, or the lead at routing) should verify
+            its checkout matches the stamped commit before any attempt.
+            Verification convention; no contract change requested - the
+            lead may instead choose an edge check at resynchronization.
+        - finding: >-
+            Finding fingerprints. implement_increments's no_progress
+            meaning reads "repeated identical review findings", which is
+            only mechanical if findings carry stable identity. This draft
+            fingerprints each finding (increment id + surface + defect
+            class); the implement_increments planner and the lead should
+            adopt the same convention so round-over-round comparison is a
+            string match, not a judgment.
+        - finding: >-
+            Debt-note channel. Design-approved monkeypatches and similar
+            non-blocking debt observed here are recorded in the findings
+            record's non-material section so close_campaign's serialized
+            debt-ledger update can fold them in; this node never writes
+            the ledger itself. Recording convention only.
+        - finding: >-
+            Surface-expansion trigger. Root state text re-derives
+            scheduling_holds when a DESIGN refines its predicted surface;
+            an implementation exceeding that surface is a material
+            finding here, and on the repair pass the amended design
+            should re-trigger the lead's standing hold re-derivation.
+            Flagged so the lead knows the trigger can originate from
+            review evidence, not only from design_campaign.
+        - finding: >-
+            Effects discipline for this node. The frozen contract
+            declares no allowed/forbidden effects; assembly should record
+            the working discipline as read-only plus non-mutating
+            CPU-mode re-execution, with the findings record as the sole
+            write surface. No contract change requested.
+
+      conflicts: []

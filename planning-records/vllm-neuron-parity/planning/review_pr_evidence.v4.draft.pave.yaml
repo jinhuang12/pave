@@ -1,0 +1,161 @@
+# Planner fragment — dispatched boundary: review_pr_evidence
+# Revision v4 — supersedes planning/review_pr_evidence.v3.draft.pave.yaml
+# (kept as provenance; v2 repaired F-PR — content identity, not SHA
+# identity; v3 purged the leftover SHA-identity phrasing). Sole v4 delta:
+# close the unresolvable-revision hole in the content-identity check — an
+# empty diff alone can false-pass when the measured revision does not
+# resolve (git diff on a bad object errors with empty stdout), so the
+# predicate now requires (a) git rev-parse --verify succeeds on the
+# measured revision AND (b) the git diff exits status 0 with empty output,
+# both transcripts embedded. Propagated to every text stating the predicate.
+# Frozen contract lives in the parent draft; referenced below, never copied.
+# Pin-generic: no version, branch, or SDK value appears in this text.
+pave:
+  name: review_pr_evidence
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: review_pr_evidence
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#review_pr_evidence
+      elaboration:
+        review_pr_evidence:
+          verdict: atomic
+          justification: >
+            One adversarial reviewer reads one campaign's PR evidence package
+            plus the artifacts it links, re-runs the mechanical trace checks
+            (claim-to-artifact, diff against the recorded target base,
+            revision content identity), and settles pr_ready by writing the persisted
+            findings record; overturned only if claim-by-claim tracing of a
+            single campaign's package exceeds one bounded context — which the
+            per-campaign instance scope (one target, one branch, one evidence
+            directory) rules out.
+      atomic_contract:
+        definition_of_done: >
+          pr_ready — no material finding stands against the package, where
+          material means a finding that would change the user's gate-3
+          decision — settled by the adversarial reviewer writing the findings
+          record at artifacts/reviews/ in which every audited package claim
+          carries a claim-to-artifact trace and the mechanical re-checks
+          carry their raw transcripts. Ladder position (§5.3.1): rung 2 —
+          judgment against a rubric written in advance (rubric sources below,
+          none authored by the package producer; judge is never the package
+          producer; rubric and verdict both persist). The mechanical
+          sub-checks inside the review (diff transcript, revision
+          content-identity diff,
+          checklist item pass/fail) are rung-1 re-measurements whose
+          instrument output persists in the record.
+        rubric_sources: >
+          All exist before this node runs and none is authored by the
+          implementer that assembled the package - the campaign's kickoff
+          contract (thresholds, methods, declared claims; gate-1 approved),
+          the absorbed skill's self-owned contribution checklist, and the
+          root materiality contract (material-findings-only). A missing
+          rubric source is itself reported as a material finding, not
+          improvised around.
+        activities:
+          - Resolve the rubric snapshot - kickoff contract, contribution
+            checklist, materiality contract - before reading the package.
+          - Completeness sweep - contribution checklist item-by-item against
+            the package.
+          - Claim-to-evidence trace - enumerate every claim in the PR
+            narrative; resolve each link to a stable artifact; judge whether
+            the artifact supports the claim's magnitude (overstatement is a
+            material finding).
+          - Mechanical re-checks with transcripts kept - re-run the diff
+            against the base recorded in campaign_target_pins; verify content
+            identity between the revision each measurement artifact names and
+            the packaged diff head - (a) git rev-parse --verify succeeds on
+            the measured revision, and (b) the git diff of the two exits
+            status 0 with empty output; both transcripts embedded in the
+            findings record, revisions and outputs git-issued (an empty diff
+            alone can false-pass on an unresolvable revision, which errors
+            with empty stdout; SHA identity is not required - branch tidying
+            rewrites SHAs; a genuinely stale measurement still fails on a
+            non-empty diff and stays a material finding); sweep the diff for
+            forbidden content (NxDI imports, cross-run artifacts on the
+            campaign branch, unrelated files).
+          - Verdict-trail check - adjudication verdict and the confirmed-pass
+            review outcome present; thresholds verbatim kickoff-declared, or
+            any change carries its recorded user decision.
+          - Baseline-skew check - the package declares the GPU-side baseline
+            version and the known cross-version behavior differences,
+            consistent with the kickoff methodology.
+          - Write the findings record - material findings named with the
+            gate-3 impact each would have, or the recorded absence of any,
+            in a stable normalized form; report exactly one outcome.
+        evidence_questions:
+          - Does every narrative claim resolve to a named, stable artifact,
+            and does that artifact support the claim's stated magnitude?
+          - Is the diff computed against the exact base recorded in
+            campaign_target_pins, and is it free of unrelated and forbidden
+            content?
+          - Does each measurement artifact name the candidate revision it
+            measured, does that revision resolve (git rev-parse --verify
+            succeeds), and does the git diff between it and the packaged
+            diff head exit status 0 with empty output (content identity,
+            not SHA identity)?
+          - Are the thresholds in the verdict trail the kickoff-declared
+            ones verbatim, or does any change carry a recorded user decision?
+          - Is the baseline-skew declaration present and consistent with the
+            kickoff-declared methodology?
+          - Does the contribution checklist pass item-by-item?
+        interface_findings:
+          - Input reach - the frozen contract consumes pr_evidence_package
+            only; auditing it necessarily reads the artifacts the package
+            links (measurement, verdict, changeset records), the kickoff
+            contract, and campaign_target_pins in run state. All exist as
+            prior products and the reads are read-only; no new edge or
+            evidence stream is needed, but the runtime binding must grant
+            this seat read access to the campaign evidence directory and
+            run state.
+          - Identity separation - the adversarial_reviewer instance here must
+            be distinct from the implementer that assembled the package and
+            from every producer of an artifact under audit; runtime-binding
+            seat assignment, same independence rule the root applies to
+            measurer versus adjudicator.
+          - Delegate hazard - the contribution-validation delegate validates
+            the workflow repo's own artifacts, not plugin PRs (system-map
+            finding); this node uses the absorbed skill's contribution
+            checklist and never dispatches that delegate.
+          - Loop shape - material_findings routes back to prepare_pr, whose
+            no_progress exit to rederive_approach bounds the loop (frozen
+            edges); this node adds no loop state. Findings records list
+            findings in a stable normalized form so prepare_pr's
+            repeated-identical-findings test can compare records - a record
+            format note, not a graph change.
+          - No guard added on the pr_ready edge - the costly action (branch
+            push, PR open) lives in close_campaign behind gate-3 user
+            authority plus the closure_evidence_settled check; a node-local
+            guard here would duplicate them.
+        enforcement:
+          adversarial_review_findings_gameability: >
+            Gameable - the success evidence is doer-written by the reviewer,
+            and a shallow read could emit "no material findings." Hardened
+            first, in §9.14.1 order - (1) provenance the doer cannot mint:
+            the record must embed the instrument outputs of its mechanical
+            re-checks (diff transcripts including the revision-resolvability
+            check and the exit-0 empty content-identity diff, the git-issued
+            revision identifiers, artifact-path
+            resolutions), identifiers issued by git and the filesystem, so a
+            bare verdict without them is detectably incomplete; (2) a check
+            the doer does not run: gate 3 puts the same package and this
+            findings record in front of the user, and closure_evidence_settled
+            (lead-evaluated) re-verifies the closure evidence downstream.
+            A review-of-the-review is rejected as disproportionate - a false
+            pass is caught at gate 3 before any irreversible action.
+          transition_guard: >
+            None added. Strength at this node is independent review plus
+            persistent record; a mechanical rung is unnecessary because
+            materiality is a judgment no hook can evaluate precisely, and the
+            downstream irreversible action already sits behind user authority.
+        model_effort:
+          adversarial_reviewer: >
+            Strong model, high effort - confirms the root assignment.
+            Overstatement judgment is ambiguous enough to need a strong
+            model; evidence volume is one bounded campaign package; blast
+            radius of a wrong pass is a misled gate-3 decision, mitigated by
+            the gate itself, so the session's top model is not required.
+            High, not xhigh - a bounded single-package session, not a
+            long-horizon run.
+      conflicts: []

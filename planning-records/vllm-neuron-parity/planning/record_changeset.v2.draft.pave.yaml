@@ -1,0 +1,445 @@
+# Node-planner draft v2 — record_changeset (vllm-neuron-parity)
+# Supersedes planning/record_changeset.draft.pave.yaml (v1 kept as
+# provenance; boundary review PASSed v1 with one LOW).
+# SOLE DELTA (LOW micro-amendment): the complete-gap-set rule was stated
+# with its falsifier but not verifiable - nothing persisted let a reader
+# tell a complete emission from a truncated one, and the only symptom of
+# violation was the silent unbounded loop. Repair extends the explicit-
+# count discipline the import scan already carried to the other two
+# checks: the evidence index persists its denominator, passing-record,
+# and unmapped-diff-work counts, and the gap-set record persists the
+# three per-sub-class counts produced by the instruments themselves -
+# so completeness is recomputable from the persisted record (listed
+# gaps per sub-class must equal the instrument counts) instead of
+# promised in prose. No new machinery. Propagated to the DoD, the
+# failure outcome, outcome disjointness, activities a4-a6, evidence
+# question 4, enforcement entry 1, and interface finding 1.
+# Dispatched boundary: child of implement_increments (first decompose,
+# boundary PASSed round 2). Contract authority: the child body at
+# planning/implement_increments.v3.draft.pave.yaml#record_changeset.
+# The v4 parent amendment touches scope_next_increment detector prose
+# only; this node's body verified byte-identical v3->v4 by diff.
+# Verdict: ATOMIC (unchanged). nodes stays empty.
+# Pin-generic: no release, branch-name, or SDK literals appear here; the
+# diff base always resolves from campaign_target_pins at run time.
+pave:
+  name: record_changeset
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: record_changeset
+      frozen_contract_reference: planning/implement_increments.v3.draft.pave.yaml#record_changeset
+      supersedes: planning/record_changeset.draft.pave.yaml
+      revision_note: >
+        v2 sole delta - gap-set completeness made recomputable by
+        extending the explicit-count discipline to all three checks:
+        the index persists denominator, passing-record, and
+        unmapped-diff-work counts; the gap-set record persists the
+        three per-sub-class gap counts produced by the instruments; a
+        truncated emission is then a mechanical count-versus-list
+        mismatch any reader detects, rather than a rule promised in
+        prose whose only violation symptom was the silent unbounded
+        loop. All other v1 content carried forward unchanged.
+      parent_amendment_note: >
+        The v4 parent revision (implement_increments.v4.draft.pave.yaml)
+        re-scopes detector input (2) conjunct 1 in scope_next_increment's
+        prose only; a diff of v3 against v4 confirms the record_changeset
+        child body is byte-identical, so this fragment's contract
+        authority is unaffected whichever revision the lead freezes.
+
+      elaboration:
+        record_changeset:
+          verdict: atomic
+          justification: >
+            One implementer settles this in one bounded session with
+            three recomputable commands over persisted inputs - a
+            rev-parse-verified git diff of the campaign branch head
+            against the base resolved from campaign_target_pins, an
+            evidence-index recomputation that resolves every work item
+            in the closing lap record's reconciled set against a passing
+            one-file evidence record and maps every diff hunk to a
+            claiming increment via the design's per-increment file
+            surface, and the NxDI-import scan over the diff - and the
+            definition of done settles by re-reading the three persisted
+            transcripts. Volume lives in artifacts read as needed, never
+            held at once; the only non-command work (hunk-to-increment
+            mapping) is a lookup against design-declared file surfaces,
+            not code comprehension. No warning sign gates - gaps route
+            out through coverage_gap_found rather than needing internal
+            recovery, no intermediate result needs its own review or
+            resume point, one role acts, and nothing runs in parallel.
+            Runtime-Binding-first checked - there is no volume for
+            fan-out to absorb; per-campaign fan-out already happened at
+            instance_per. Falsified if the hunk-to-increment mapping
+            ever requires reading code semantics beyond the design's
+            declared surfaces (for example a design record arriving
+            without per-increment file surfaces), which would force an
+            explore/index split - but such a design already fails
+            earlier gates, and the parent's plan_unrealizable valve
+            catches it before this node opens.
+
+      atomic_contract:
+        definition_of_done: >
+          changeset_recorded - this campaign's implementation_changeset
+          artifact in its evidence directory holds three world-produced
+          components, each persisted with the command that produced it -
+          settled at ladder rung 1 (pave-spec 5.3.1) by re-reading the
+          three transcripts, each recomputable by any reader from the
+          branch and the on-disk records; no conjunct rests on the
+          assembler's judgment. (1) The branch diff transcript - both
+          endpoints resolve first (git rev-parse --verify succeeds on
+          the base ref resolved at run time from this campaign's entry
+          in campaign_target_pins, and on the campaign branch head),
+          then the git diff of base...head runs to exit status 0, with
+          the resolved refs, both git-minted hashes, and the exit status
+          persisted - empty or plausible output alone proves nothing,
+          since a bad object also yields empty stdout while erroring to
+          stderr (exit-code discipline adopted from the reviewed
+          prepare_pr v3 repair). (2) The evidence index - a derivation
+          re-runnable from the same inputs - in which every work item in
+          the closing lap record's reconciled set (planned increments
+          plus every repair, coverage-gap, and repackaging item)
+          resolves to a passing one-file evidence record (declared
+          command, exit status, commit hash), and every changed file and
+          hunk in the diff maps to the increment id whose evidence
+          record claims it via the design record's per-increment file
+          surface - with the index persisting its explicit counts (the
+          work-item denominator count, a passing-record count equal to
+          it, and an unmapped-diff-work count of zero), the same
+          discipline the scan carries, because a coverage claim without
+          explicit counts has the same false-pass shape as a zero-hit
+          claim without one - a check over nothing and a clean check
+          look identical. Recomputing this index is exactly gap
+          sub-class (b)'s declared acceptance instrument in the parent's
+          work-item taxonomy - the two texts are kept aligned by
+          construction. (3) The import-scan transcript - the mechanical
+          NxDI-import scan over the diff's added and modified lines in
+          ported code, run at the verified head revision, persisting the
+          command, the scanned revision, the exit status, and an
+          explicit hit count of zero (the sub-class (c) count) - a
+          zero-hit claim without the explicit count and verified
+          revision is not evidence, because an empty match set and a
+          scan over nothing look identical. Realizes the parent outcome
+          increments_ready.
+        failure_outcome: >
+          coverage_gap_found - control-flow outcome routing back to
+          scope_next_increment; it carries no acceptance duty but MUST
+          persist two things before emitting. First, the named gap set
+          classified by the parent taxonomy - (a) an increment lacking a
+          passing record, (b) diff work no increment record covers,
+          (c) an import-scan hit - each carrying the declared acceptance
+          instrument the taxonomy fixes for it (the missing increment's
+          own CPU-mode command, the evidence-index coverage
+          recomputation, the import scan re-run over the repaired diff),
+          and headed by the three per-sub-class gap counts the
+          instruments themselves produced (the index recomputation's
+          missing-record count and unmapped-diff-work count, and the
+          scan's hit count). Second, the gap identity written into the
+          lap record, because the parent's no-progress detector input
+          (2) compares the recorded gap list across laps - a gap emitted
+          but not persisted would make the gap loop's designed stop
+          unreachable. One emission carries the complete gap set found
+          in this pass: the detector compares identical gap sets, so
+          partial reporting would defeat the comparison and buy extra
+          laps - and completeness is recomputable, not promised: the
+          listed gaps per sub-class must equal the persisted instrument
+          counts, so a truncated emission is a mechanical
+          count-versus-list mismatch any reader detects, and a doer who
+          truncates counts and list together is caught by re-running the
+          three instruments at the recorded revisions, which must
+          reproduce the counts.
+        outcome_disjointness: >
+          Exactly two declared outcomes, disjoint by construction - a
+          nonempty gap set (any of the three instrument counts nonzero)
+          selects coverage_gap_found; an empty gap set (all three counts
+          zero) with all three components persisted selects
+          changeset_recorded. The standing 3+-co-holdable-outcomes
+          precedence rule does not bind here, and no competing-edge
+          checks are needed inside the boundary.
+        activities:
+          - >-
+            a1 - Coverage denominator. Read the closing lap record and
+            the gate-2-approved design record; derive the complete
+            work-item set (planned increments plus repair, coverage-gap,
+            and repackaging items) the index must cover. The denominator
+            comes from those two persisted inputs, never from the
+            assembler's memory of the laps.
+          - >-
+            a2 - Endpoint verification. Resolve the diff base from this
+            campaign's entry in campaign_target_pins (a run-state read;
+            never a literal in any command or artifact) and the head
+            from the campaign branch; run git rev-parse --verify on
+            both; persist the resolved refs and hashes.
+          - >-
+            a3 - Diff transcript. Produce the git diff of base...head at
+            exit status 0 and persist it with the endpoint record from
+            a2.
+          - >-
+            a4 - Index recomputation. Per work item, locate its one-file
+            evidence record and verify it is a passing world-produced
+            transcript (declared command, exit status, commit hash
+            present); per changed file and hunk, map to the claiming
+            increment id via the design's per-increment file surface. An
+            item without a passing record is a sub-class (a) gap; diff
+            work no record covers is a sub-class (b) gap. Persist the
+            index's explicit counts - the work-item denominator, the
+            passing-record count, the missing-record count, and the
+            unmapped-diff-work count - as instrument output alongside
+            the entries.
+          - >-
+            a5 - Import scan. Run the NxDI-import scan over the diff's
+            added and modified lines in ported code at the verified
+            head; persist command, scanned revision, exit status, and
+            the explicit hit count (the sub-class (c) count). Any hit is
+            a sub-class (c) gap.
+          - >-
+            a6 - Single outcome. A nonempty gap set persists into the
+            lap record headed by the three per-sub-class instrument
+            counts from a4 and a5 - so the emission's completeness is a
+            count-versus-list match any reader recomputes - with the gap
+            identity feeding the no-progress detector, and exits
+            coverage_gap_found; otherwise write the assembled changeset
+            artifact (three components, their explicit counts, plus the
+            verified head and base identifiers) and exit
+            changeset_recorded.
+          - >-
+            a7 - Idempotent resume. A re-run with unchanged branch head
+            and unchanged evidence directory re-settles by re-reading
+            the persisted transcripts; drift in either recomputes from
+            a2.
+        effects_discipline: >
+          Matches the frozen contract - read-only git queries against
+          the campaign branch and its recorded base; writes only inside
+          this campaign's evidence directory (the changeset artifact,
+          and the lap-record gap entries the coverage_gap_found meaning
+          requires); no write to the source tree or any branch. The
+          lap-record write is implied by the frozen outcome meaning and
+          lands in the same directory the allowed effect names; flagged
+          as interface finding 4 so assembly can sharpen the phrasing.
+
+      evidence_questions:
+        - Does every DoD conjunct settle on a persisted transcript any
+          reader re-runs (git diff, index recomputation, import scan)
+          with exit-code discipline, rather than on the assembler's
+          assertion?
+        - Does the index's coverage denominator come from persisted
+          inputs (closing lap record plus design record), so the
+          assembler cannot narrow the item set it must cover?
+        - Is the diff base resolved from campaign_target_pins at run
+          time in every command and artifact, with no pin literal
+          anywhere in the changeset?
+        - Does the gap set persist into the lap record before
+          coverage_gap_found is emitted, headed by the three
+          per-sub-class instrument counts - so its completeness is
+          recomputable as a count-versus-list match, and detector input
+          (2) can compare gap sets across laps mechanically rather than
+          trusting a completeness promise?
+        - Does the changeset record head and base as rev-parse-verified
+          git identifiers for provenance only, leaving downstream
+          artifact comparison to the content-identity predicate (never
+          SHA-equality phrasing)?
+
+      enforcement:
+        - subject: evidence index (assembler-written derivation inside
+            the changeset)
+          gameability: gameable in part - the assembler writes the index
+            and could mint a passing entry for a record that does not
+            exist or does not pass, quietly narrow the coverage
+            denominator, or truncate an emitted gap set so the loop
+            never converges.
+          hardening: harden-first per pave-spec 9.14.1 - (1) provenance
+            the doer cannot fake - every index entry cites the on-disk
+            evidence-record path plus the git-minted commit hash and
+            instrument exit status inside that record (written earlier
+            by realize_increment, not by this assembly pass), the
+            denominator derives from two persisted inputs the assembler
+            does not author here, and the index and gap-set record
+            persist the instruments' explicit counts, making a truncated
+            emission a mechanical count-versus-list mismatch and a
+            consistently truncated count-plus-list pair re-derivable by
+            re-running the three instruments at the recorded revisions;
+            the index is a derivation any reader recomputes from the
+            same inputs. (2) a check the doer does not run -
+            review_implementation independently re-derives the
+            design-to-diff mapping (its activity a4) and re-verifies
+            evidence provenance (its a5) at the stamped commit; the
+            existing gate is reused per 4.11, no new reviewer added.
+          strength: persistent recomputable record plus the existing
+            independent review.
+          why_not_stronger: a false pass is caught before the costly
+            transition (hardware spend) by review_implementation, and
+            the guarded state is a reversible evidence-directory
+            artifact; a blocking mechanism here would add strand risk
+            without removing a failure the review does not already
+            remove.
+        - subject: NxDI-import prohibition at the changeset boundary
+          gameability: not gameable once the transcript persists with
+            exit-code discipline - command output over a
+            rev-parse-verified diff, recomputable by anyone. A bare
+            zero-hit claim without the explicit count and verified
+            revision WOULD be gameable, which is why the DoD requires
+            both.
+          strength: mechanical scan recorded in the changeset artifact
+            with coverage_gap_found sub-class (c) as its failure route;
+            the run-wide blocking hook for NxDI imports remains the
+            lead's enforcement record, not re-minted here (matches the
+            parent's entry), and review_implementation re-runs the same
+            scan as the observing second catch before spend.
+          why_not_stronger: nothing stronger exists than a mechanical
+            check plus the run-wide block already owned elsewhere.
+        - subject: technique selection (review-shaped rungs)
+          decision: debate skipped - one assembly over frozen inputs,
+            nothing plural to filter. Advisory monitor skipped - every
+            conjunct is rung-1 mechanical and the session is short; per
+            technique-selection.md the monitor roughly doubles a stage
+            whose failure the next node already catches. Stage audit
+            skipped as new structure - review_implementation's
+            reconstruct-before-reading ordering (its a2) IS the audit
+            for this artifact; a second gate on the same claim fails
+            4.11.
+
+      model_effort:
+        implementer: >
+          Strong model, medium effort - confirms the parent's
+          assignment. Mechanical recomputable assembly: low ambiguity,
+          moderate evidence volume read as needed, blast radius capped
+          by review_implementation immediately downstream. High effort
+          buys nothing on command assembly; low risks a sloppy
+          denominator derivation on campaigns with many repair laps. No
+          second role - the frozen contract names implementer only, and
+          every input is a named on-disk artifact, so no lookup
+          dispatches are needed.
+
+      uncertainty_ledger:
+        facts:
+          - Frozen contract - implement_increments.v3.draft.pave.yaml
+            child record_changeset (intent execute, instance_per
+            approved_campaigns, roles [implementer], consumes
+            [increment_evidence_records, increment_lap_record,
+            campaign_design_record], produces [implementation_changeset],
+            outcomes changeset_recorded / coverage_gap_found with the
+            three-component success meaning and the (a)/(b)/(c) gap
+            taxonomy). v4 verified byte-identical for this body.
+          - Parent sizing prediction and rung - elaboration
+            record_changeset "atomic, mechanical assembly, settles on
+            the three transcripts" and dod_ladder node line "Rung 1
+            composite"; parent model_effort names implementer strong,
+            medium for this node.
+          - Downstream consumer review_implementation
+            (review_implementation.v3.draft.pave.yaml) - stamps branch
+            head commit and design revision (a1), runs its own scan set
+            (a3), maps every hunk to an increment (a4), re-checks
+            evidence provenance (a5), and fingerprints findings by the
+            triple increment id + surface + defect class.
+          - Downstream consumer prepare_pr
+            (prepare_pr.v3.draft.pave.yaml) - consumes the changeset for
+            packaging and settles artifact currency by the
+            content-identity predicate (git rev-parse --verify succeeds
+            and the git diff exits status 0 with empty output); its v3
+            repair established that empty output alone false-passes on a
+            bad object - the exit-code discipline this draft adopts.
+          - campaign_target_pins is the per-campaign pin authority
+            (root.v6.draft.pave.yaml state fields); values are run
+            inputs, never graph text.
+          - Gap acceptance instruments live in the parent's
+            scope_next_increment purpose (work-item taxonomy), and the
+            parent's loop-bounds entry requires gap identity persisted
+            in the lap record to feed no-progress detector input (2).
+          - Evidence records are one file per increment under the
+            campaign evidence directory (parent state_prose); exact
+            directory layout is lead-owned at assembly.
+          - Boundary review of v1 (lead's return, 2026-08-25) - PASS
+            with one LOW - the complete-gap-set rule was unverifiable as
+            prose; repaired in this v2 by the per-sub-class instrument
+            counts.
+        assumptions:
+          - The closing lap record (the plan_satisfied entry) enumerates
+            the reconciled complete work-item set, so the coverage
+            denominator is a mechanical read - implied by
+            scope_next_increment's DoD (the lap record resolves
+            item-by-item against the design record and findings
+            history). If a lap record arrived without the enumeration,
+            the index recomputation would surface it as sub-class (b)
+            gaps rather than silently passing.
+          - The design record declares per-increment file surfaces
+            (parent design_record_expectation), making hunk-to-increment
+            mapping a lookup; a design without them fails earlier gates
+            or the parent's plan_unrealizable valve before this node
+            opens.
+          - The scan's "ported code" scope is decidable from the diff
+            (added and modified lines in ported files), the same
+            convention review_implementation's a3 uses; assembly pins
+            the shared definition.
+          - The runtime binding realizes instance_per as one node run
+            per campaign.
+        open_questions_closed:
+          - Does assembly volume ever exceed one bounded context -
+            closed against pave-spec 9.12; the three commands are cheap,
+            the diff and records live in artifacts read as needed, and
+            the only judgment surface is a design-surface lookup. The
+            falsifier is recorded inline in the verdict line.
+          - Exact index and changeset file shape - not closable here;
+            lead-owned at assembly via the artifact-layout reference,
+            recorded as interface finding 1. No explorer could settle
+            it now.
+
+      explorer_dispatches:
+        - none_dispatched: >
+            Zero read-only explorers. The brief's evidence base - the
+            parent fragment (v3 and the v4 diff), root.v6, the two
+            downstream sibling fragments, the fragment schema, and the
+            planning layout - answered every question that bears on
+            sizing. The target repo is read-only at planning time and no
+            repo fact changes this verdict.
+
+      interface_findings:
+        - finding: >-
+            Index shape is a frozen interface with three consumers -
+            review_implementation (hunk mapping and provenance
+            re-check), the parent's gap sub-class (b) acceptance
+            instrument (the recomputation), and prepare_pr (packaging).
+            Recommend the lead pin the index element set once in the
+            artifact-layout reference at assembly - work-item id,
+            evidence-record path, declared command, exit status, commit
+            hash, the file/hunk-to-increment map, and the explicit
+            instrument counts (work-item denominator, passing-record,
+            missing-record, unmapped-diff-work, and scan-hit counts,
+            which also head the gap-set record) - with the consuming
+            fragments citing it rather than duplicating it, mirroring
+            the resolution already adopted for the findings-record shape
+            (prepare_pr.v3 interface finding). A silent shape change
+            breaks the sub-class (b) instrument, the detector's gap-set
+            comparison, and the count-versus-list completeness check.
+        - finding: >-
+            Revision phrasing discipline - the changeset records head
+            and base as rev-parse-verified git identifiers for
+            provenance binding only; downstream artifact comparison
+            stays on the content-identity predicate (git rev-parse
+            --verify succeeds plus git diff exits status 0 with empty
+            output). No SHA-equality phrasing is introduced here, and
+            none should be added on the consuming side.
+        - finding: >-
+            Exit-code discipline propagation - the diff transcript and
+            the zero-hit scan claim persist exit statuses and verified
+            revisions because empty output alone false-passes on a bad
+            object (the reviewed prepare_pr v3 repair). Recommend the
+            pinned artifact-layout text state this once for all
+            transcript-bearing artifacts instead of per-fragment.
+        - finding: >-
+            Allowed-effects sharpening - the frozen allowed_effects
+            names writes of "the changeset artifact" in the evidence
+            directory, while the frozen coverage_gap_found meaning
+            requires the gap identity to persist in the lap record
+            (same directory). The outcome meaning implies the
+            allowance; assembly may sharpen the effects phrasing to
+            name the lap-record write explicitly. No contract change
+            requested.
+        - finding: >-
+            Scan-scope alignment - this node's import scan,
+            review_implementation's a3 scan, and the parent's
+            sub-class (c) re-run instrument must share one definition
+            of "ported code" and "added/modified lines"; pin it beside
+            the index shape at assembly so the three texts cannot
+            drift.
+      conflicts: []

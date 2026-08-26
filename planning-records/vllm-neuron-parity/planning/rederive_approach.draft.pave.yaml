@@ -1,0 +1,335 @@
+pave:
+  name: rederive_approach
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: rederive_approach
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#rederive_approach
+
+      elaboration:
+        rederive_approach:
+          verdict: atomic
+          justification: >
+            One investigator agent reads this campaign's accumulated evidence
+            (bounded by one-file-per-event attempt logs plus prior
+            rederivation records as compressed exhaustion memory), re-derives
+            the failure causes and the option set from first principles, and
+            settles the definition of done by writing one rederivation record
+            whose citations the lead resolves on disk. Overturned if one
+            cycle's new evidence cannot be read in one bounded context even
+            with read-only lookup fan-out, or if the verdict requires fresh
+            repo archaeology beyond the recorded evidence plus bounded
+            lookups.
+
+      atomic_contract:
+        definition_of_done: >
+          A schema-complete rederivation record exists under
+          artifacts/campaigns/<campaign>/rederivations/ carrying exactly one
+          verdict (revised_design, route_change, or close_out with a
+          recommended closure type), in which every citation resolves to an
+          on-disk artifact, every open failure-fingerprint family on this
+          target is addressed with a derived cause hypothesis, and the
+          trigger-class manifest questions are answered - settled by the
+          lead's completeness check (a check the doer does not run) against
+          the record contract written here in advance. Ladder rung 2
+          (judgment against a rubric written before the work, judge is not
+          the doer, rubric and verdict both persist); rung 1 does not
+          honestly fit a judgment artifact, and inventing a metric would be
+          the defect the ladder guards against. The substantive judgment is
+          re-settled downstream by existing independent gates - gate-2
+          adversarial review plus user for revised_approach, gate-3 user for
+          close_out_recommended - so no new review node is added.
+        outcome_selection: >
+          Exactly one outcome means success in the sense of a settled
+          verdict; which declared outcome fires is determined mechanically by
+          the record's verdict field - revised_design or route_change selects
+          revised_approach; close_out selects close_out_recommended. A
+          "campaign is blocked" finding is close_out_recommended with
+          recommended closure type blocked, landing on gate 3 where the user
+          owns the blocked-terminal decision. Both frozen outcomes carry
+          required_evidence [rederivation_record] per the frozen contract.
+
+        first_principles_mechanics:
+          must_rederive:
+            - The failure cause hypothesis for every fingerprint family with
+              activity since the last rederivation record (or campaign start),
+              derived from raw attempt logs and findings - never inherited
+              from the design record's assumptions or from prior conclusions.
+            - The viability of the current route and source against those
+              causes - every design assumption that any failure evidence
+              touches is re-questioned, not carried forward.
+            - The full option set, each accepted or rejected with cited
+              evidence - at minimum revised design at the current route, a
+              route change (for example backport to upgrade, with its
+              kickoff-criteria consequence named), and close-out with a
+              recommended closure type (no_benefit or blocked; the PR closure
+              path is reached only through passed gates, never through
+              re-derivation).
+          may_reuse_with_recorded_staleness_check:
+            - Kickoff contract facts (thresholds, hosts, models) - unless the
+              verdict proposes changing them, in which case the change is
+              flagged for the explicit user decision, never applied here.
+            - The delta report and route costing - unless a derived failure
+              cause implicates a costing assumption, which forces
+              re-derivation of that assumption.
+            - Prior rederivation records - reusable as exhaustion memory of
+              closed approaches; a closed approach reopens only with a
+              recorded justification naming the new evidence that reopens it.
+          must_not:
+            - Recommend an approach whose predicted failure fingerprint is
+              identical to any entry in the repo-tracked fingerprint file
+              (mechanical comparison in the completeness check).
+            - Apply any criteria, route, or state change itself - the record
+              proposes; the lead applies changes only after the explicit user
+              decision at the downstream gate.
+            - Introduce any attempt cap - boundedness comes from fingerprint
+              no-identical-retry, persisted exhaustion memory, and the
+              user-owned gates, per the no-caps contract.
+
+        trigger_manifest:
+          note: >
+            Seven inbound edges, three trigger classes. The record names its
+            trigger class and answers that class's mandatory questions; the
+            completeness check enforces this.
+          breaker_tripped: >
+            Full first-principles pass over the hardware-attempt evidence
+            since the last record - per fingerprint family, what failed, what
+            the derived cause is, and whether any untried approach or untried
+            evidence channel escapes it (exhaustion judged over channels as
+            well as items).
+          measurement_blocked: >
+            The blocked measurement's evidence is primary - re-derive whether
+            the declared measurement method can be revised (a
+            kickoff-criteria change flagged for explicit user decision), the
+            approach revised so the declared method applies, or the campaign
+            closed.
+          closure_declined: >
+            The user's verbatim gate-3 decline and direction is the primary
+            input - the record quotes it and responds to each directed point;
+            a re-recommendation of the declined closure must name the new
+            evidence that answers the user's stated reason.
+          no_progress_exits: >
+            (design, implementation, adjudication, PR-package loops) - the
+            repeated identical findings are primary; re-derive why the loop
+            cannot converge: wrong plan (revise), wrong route (route change),
+            or no viable path (close-out). Per the repair-loop contract, a
+            root cause in the plan itself exits to replan rather than more
+            loop iterations.
+
+        activities:
+          - Read the trigger record from lead-owned run state - inbound
+            outcome, trigger evidence reference, hardware_attempt_counts
+            snapshot, fingerprint-file revision.
+          - Load exhaustion memory - all prior rederivation records for this
+            campaign.
+          - Read the new evidence since the last record per the
+            trigger-class manifest, fanning out read-only lookup subagents
+            for volume when needed.
+          - Re-derive cause hypotheses per open fingerprint family from raw
+            evidence.
+          - Re-question every design assumption touched by failure evidence;
+            mark each reused conclusion with its staleness check.
+          - Construct and adjudicate the option set; check each candidate
+            against the fingerprint file for identical retry.
+          - Write the rederivation record with exactly one verdict; for a
+            route change, name every kickoff-declared criterion it alters
+            and the required explicit user decision; for close-out, name the
+            recommended closure type and the evidence bundle references.
+          - Lead runs the completeness check and records its result; a
+            failed check returns the record to the investigator with the
+            mechanical defect list (node-internal repair, bounded by the
+            check's enumerable defect list).
+
+        effects:
+          allowed:
+            - Read this campaign's evidence directories, the repo-tracked
+              fingerprint file, and run state (all read-only).
+            - Write only under artifacts/campaigns/<campaign>/rederivations/.
+            - Read-only lookup fan-out (subagents) over recorded evidence.
+          forbidden:
+            - Any write to code branches, hosts, cross-run artifacts, or run
+              state.
+            - Any hardware contact.
+            - Applying a criteria or route change (proposal only).
+
+        operator_stop_preservation: >
+          The node introduces no attempt cap and no entry cap, per contract.
+          Boundedness of repeated entry - fingerprint no-identical-retry
+          (mechanical), monotone exhaustion memory (each record persists;
+          closed approaches stay closed absent new evidence, so the option
+          space shrinks across cycles), and both exits landing on
+          operator-owned gates (gate 2 via design_campaign for
+          revised_approach; gate 3 for close_out_recommended). The stop stays
+          in the user's hands in effect.
+
+        enforcement:
+          - rule: rederivation_record integrity
+            gameability: >
+              GAMEABLE - investigator-authored judgment text; the doer could
+              cherry-pick evidence, stale-date its reading, or dress a
+              cosmetic variation as materially different.
+            hardening_in_order:
+              - Provenance the doer cannot mint - mandatory citations to the
+                lead-written routing entry (completed_outcomes) naming the
+                inbound outcome, the hardware_attempt_counts snapshot, and
+                the fingerprint-file revision, all persisted in run state the
+                doer does not write.
+              - A check the doer does not run - the lead completeness check;
+                citations resolve on disk, every open fingerprint family
+                addressed, exactly one verdict, trigger-class manifest
+                answered, no fingerprint-identical proposal.
+              - Review - no new reviewer node; both exits already pass
+                independent gates before any hardware spend or closure
+                (gate-2 material-findings review plus user; gate-3 user).
+            strength: persistent record + mechanical completeness check
+            why_not_stronger: >
+              A false verdict cannot reach hardware spend or closure without
+              passing an independent operator-owned gate; a dedicated
+              adversarial-review node would duplicate gates 2 and 3
+              (smallest-sufficient-graph rule).
+          - rule: no-identical-retry on proposed approaches
+            gameability: not gameable once mechanical - fingerprint
+              comparison against the repo-tracked file.
+            strength: mechanical
+            why_not_stronger: already the strongest rung; justified because
+              the violation is likely (retry regression is the default agent
+              failure mode), costly (burns another ten-attempt hardware
+              cycle), and precisely detectable.
+          - rule: materially-different judgment (cosmetic-variation risk)
+            gameability: gameable - judgment, not mechanically decidable.
+            strength: judgment against a rubric written in advance,
+              evaluated at gate-2 adversarial review
+            rubric: >
+              The revision names at least one open fingerprint family's
+              derived cause that the new approach removes, with the causal
+              mechanism stated; absent that, the finding is material.
+            why_not_stronger: mechanical detection of material difference is
+              not possible; the rubric plus an independent judge is the
+              highest honest rung.
+
+        model_effort:
+          investigator: >
+            Session top-capability model, high effort - the breaker's landing
+            node is the single decision that redirects a campaign's remaining
+            lifetime, so judgment compounds; entry frequency is low (at most
+            once per ten hardware attempts per target plus rare loop exits),
+            so top-tier cost is bounded. high, not xhigh - a bounded artifact
+            read plus one verdict; escalate to xhigh only if a cycle's
+            new-evidence read regularly exceeds one long session.
+          lead: >
+            Inherits the run-wide lead assignment (session top model, high
+            effort); the completeness check is mechanical and adds no
+            separate seat.
+          lookup_subagents: >
+            Small fast model, low effort - single-question, read-only
+            evidence pulls.
+
+      evidence_questions:
+        - question: Does the frozen node have two outcomes or three?
+          answer: Two (root.v6.draft.pave.yaml lines 492-500) - the brief's
+            third ("blocked") conflicts; reported under conflicts.
+        - question: Is tier-2 re-derivation modeled on an absorbed engine
+            whose structure could bias sizing?
+          answer: No - system-map.md line 186 records tier 2 as new
+            construction with no precedent; no source-structure pressure.
+        - question: Can one cycle's evidence volume fit one context?
+          answer: Yes with the one-file-per-event layout plus prior records
+            as compression (system-map.md lines 176-177); the deepseek
+            campaign parked at attempt 12 (system-map.md lines 192-194) is
+            the realistic input shape and fits. Falsifier recorded in the
+            elaboration line.
+        - question: Where does the verbatim gate-3 decline live for the
+            closure_declined trigger?
+          answer: gate_approval_record (produced by close_campaign) - not in
+            the frozen consumes list; reported as an interface finding.
+        - dispatched_explorers: none - every question closed from the
+            workspace evidence already gathered (root.v6, root-contract.md,
+            system-map.md, requirements.md).
+
+      interface_findings:
+        - finding: consumes gaps for trigger coverage
+          detail: >
+            Frozen consumes [hardware_attempt_log, adjudication_verdict,
+            campaign_design_record, adversarial_review_findings] lacks the
+            evidence two of three trigger classes and the route-change
+            re-derivation need - measurement_artifacts (measurement_blocked
+            trigger), gate_approval_record (verbatim gate-3 decline for
+            closure_declined), kickoff_contract_record (the criteria a route
+            change alters), route_costing_and_backlog (original costing a
+            route change re-derives against), and prior rederivation_record
+            instances (self-read exhaustion memory). Smallest change - extend
+            consumes with these five; no new producer, edge, or check needed.
+        - finding: trigger provenance anchor
+          detail: >
+            The record's provenance rests on the lead's routing entry
+            (completed_outcomes) plus hardware_attempt_counts and the
+            fingerprint-file revision. Assumes completed_outcomes is
+            queryable per campaign; the assembly stage should confirm the
+            run-state schema exposes it that way.
+        - finding: route-change application path
+          detail: >
+            The record only proposes a route change. Upon the explicit user
+            decision at gate 2 (design_approved_by_user already asks whether
+            any kickoff-criteria change carries a recorded user decision),
+            the LEAD applies the state writes - campaign_target_pins upgrade
+            base, regression-matrix criteria into the design scope, and
+            scheduling_holds re-derivation including the exclusive
+            upgrade-route hold. Tension to confirm - kickoff_contract_approved
+            (gate 1) is where upgrade bases are normally recorded; smallest
+            resolution is recording the gate-2 route-change decision as a
+            verbatim amendment in the same kickoff/approvals artifact dirs,
+            keeping gate-1 contract completeness intact without re-running
+            gate 1. Lead's call; no edge change required.
+
+      conflicts:
+        - The dispatch brief states three outcomes (revised_approach,
+          close_out_recommended, blocked); the frozen contract in
+          root.v6.draft.pave.yaml declares two (lines 492-500). This design
+          fits the frozen two - blockedness is close_out_recommended with
+          recommended closure type blocked, landing on gate 3 where the user
+          owns the blocked terminal, which preserves the operator-controlled
+          stop. If the lead instead intends a distinct third outcome for
+          "the re-derivation itself cannot proceed" (missing or corrupt
+          evidence), the smallest change is one new outcome
+          (rederivation_blocked) plus one edge to run_paused; otherwise the
+          default undeclared-failure recovery covers that case. Lead
+          resolves; no other interface moves.
+
+      uncertainty_ledger:
+        facts:
+          - Seven inbound edges (root.v6 edges at lines 731, 750, 763, 779,
+            788, 812, 825).
+          - Two frozen outcomes, both requiring rederivation_record
+            (root.v6 lines 492-500).
+          - No attempt caps; tier-2 halt at every ten hardware attempts per
+            target (root-contract.md section 7; requirements.md lines
+            157-161, marked as the user's own design).
+          - Tier 2 is new construction with no engine precedent
+            (system-map.md line 186) - no source-structure bias risk under
+            spec 9.12.2.
+          - rederivations/ artifact dir is plural - multiple records per
+            campaign are the designed layout (root.v6 line 142).
+          - Both exits land on independent operator-owned gates before any
+            spend (root.v6 edges revised_approach_to_redesign,
+            rederived_closeout_to_gate; checks design_approved_by_user,
+            gate-3 in close_campaign).
+          - Historical input shape - deepseek campaign parked at attempt 12
+            with two live blockers (system-map.md lines 192-194).
+        assumptions:
+          - completed_outcomes is queryable per campaign (trigger
+            provenance); flagged for assembly confirmation.
+          - One cycle's new evidence fits one bounded read; falsifier - a
+            measurement_blocked entry with very large measurement artifacts;
+            mitigation - read-only lookup fan-out, and the elaboration
+            verdict is overturned if that regularly fails.
+          - A gate-2 recorded user decision satisfies the
+            criteria-change-authority rule for route changes without
+            re-running gate 1; flagged as an interface finding.
+        open_questions_closed:
+          - Third outcome or two - closed by reading root.v6; surfaced as a
+            conflict for the lead.
+          - Source-structure pressure on sizing - closed by system-map (new
+            construction).
+          - Evidence volume feasibility - closed by the one-file-per-event
+            layout plus prior-record compression; falsifier recorded.

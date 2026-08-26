@@ -1,0 +1,287 @@
+# Planner draft — dispatched boundary: close_campaign (vllm-neuron-parity)
+# Verdict: ATOMIC (confirms the framing prediction). nodes stays empty.
+# The dispatched node's five-part contract is frozen in the parent draft and
+# referenced below, never copied. Pin-generic per the 2026-08-25 amendment.
+# SUPERSEDES planning/close_campaign.v2.draft.pave.yaml (kept as provenance).
+# Sole delta (review LOW amendment): (a) the gates-never-run trap's PR-path
+# required set now verifies gate evidence FIRST-HAND — adds the
+# review_measurement_verdict pass_confirmed findings record directly, instead
+# of trusting pr_ready's transitive edge-traversal implication; (b) c5 part 4
+# awareness folded into the record-writing activities — re-entry supersession
+# semantics per the artifact-layout reference. Nothing else changed.
+pave:
+  name: close_campaign
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: close_campaign
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#close_campaign
+      revision:
+        supersedes: planning/close_campaign.v2.draft.pave.yaml
+        sole_delta: >
+          PR-path required evidence set made first-hand (adds the
+          review_measurement_verdict pass_confirmed findings record to the
+          gates-never-run trap check) plus c5-part-4 re-entry supersession
+          awareness in the closure_record / gate_approval_record writing
+          activities. All other content identical to v2.
+
+      elaboration:
+        close_campaign:
+          verdict: atomic
+          justification: >
+            One agent, holding one campaign's already-finished entry evidence,
+            presents gate 3, records the verbatim user decision, executes the
+            single approved closure (branch push + PR open on the fork, or
+            no-benefit bundle, or blocked record), and applies the four
+            serialized cross-run artifact updates — settled by re-reading the
+            closure record (PR URL resolves on the fork via gh; bundle files
+            exist and cite other-actor evidence) plus on-disk diffs of the
+            four artifacts. Falsified if the artifact-serialization mechanism
+            turns out to require this node to build its own locking/queueing
+            machinery with distinct recovery (that would force a split), or
+            if gate-3 presentation demanded fresh synthesis across raw
+            campaign history instead of the reviewed packages the entry
+            edges deliver.
+          prediction_disposition: confirmed
+          prediction_source: root.v6 extensions.x_planning.elaboration.close_campaign
+
+      atomic_contract:
+        definition_of_done: >
+          Exactly one closure of the gate-3-approved type is executed and the
+          scorecard, backlog, debt ledger, and fingerprint file reflect it —
+          settled by re-reading the persisted closure record: for the PR path,
+          resolving the recorded PR URL against the fork via gh (a rung-1
+          world signal; GitHub mints the URL, the doer cannot); for the
+          no-benefit or blocked path, confirming the bundle files exist on
+          disk and cite, by path, evidence produced by other actors
+          (adjudication_verdict / measurement_artifacts for no-benefit;
+          hardware_attempt_log or campaign_design_record for blocked); and in
+          every path, diffing the four cross-run artifacts on disk against
+          the closure's persisted update transcript. The verbatim gate-3
+          approval record must precede the executed closure. Re-settleable by
+          verify_run_closure's adjudicator, who produced none of it (5.3.1
+          rung 1 for the PR path; provenance-hardened doer artifacts plus a
+          downstream mechanical check and independent adjudication for the
+          bundle paths).
+        activities:
+          - >
+            Verify entry-path completeness BEFORE presenting gate 3 — the
+            gates-never-run trap this node exists to prevent. Match the
+            candidate closure type to its required upstream evidence and
+            refuse to present a candidate missing any piece —
+            PR path: pr_evidence_package + review_pr_evidence pr_ready +
+            adjudication_verdict + the review_measurement_verdict
+            pass_confirmed findings record read first-hand (pr_ready implies
+            the gates ran only transitively through edge traversal — the very
+            mechanism this trap distrusts, so the trap verifies the gate
+            evidence directly, never the traversal);
+            no-benefit path: adjudication_verdict + review_measurement_verdict
+            no_benefit_confirmed carrying the measured root cause;
+            design-infeasible path: campaign_design_record with the
+            infeasible-at-pin evidence;
+            hardware-lost path: hardware_attempt_log showing no recoverable
+            or replacement host;
+            rederived close-out path: rederivation_record with the
+            close_out_recommended verdict.
+          - >
+            Present gate 3 to the user - closure type, evidence summary with
+            artifact links, and consequences of each decision.
+          - >
+            Record the user's decision verbatim to gate_approval_record
+            (artifact existence is never approval; a decline records the
+            user's direction verbatim too).
+          - >
+            On decline, emit closure_declined (parent edge routes to
+            rederive_approach); execute nothing.
+          - >
+            On approval, execute exactly one closure -
+            PR path: push the campaign branch to the fork, open the PR
+            against the base recorded in campaign_target_pins for this
+            campaign, persist the gh command transcript and the returned PR
+            URL; no-benefit path: write the bundle - measured root cause
+            quoting the adjudication verdict by path, the upstream-issue
+            draft, evidence links - and mark the scorecard cell
+            measured-not-viable-at-pin; blocked path: write the blocked
+            record citing the live blocker evidence by path.
+          - >
+            Apply the four cross-run artifact updates (scorecard, backlog,
+            debt ledger, fingerprint file) under the assembly-settled
+            serialization mechanism, persisting a per-closure update
+            transcript (per-file before/after references) inside the closure
+            record.
+          - >
+            Write closure_record referencing the approval record, the
+            executed closure evidence, and the update transcript; emit
+            closure_recorded. Re-entry awareness (lead-assigned c5 part 4,
+            artifact-layout reference): when this node re-enters after the
+            downstream check fails the closure evidence, the prior
+            closure_record and gate_approval_record are superseded to the
+            layout reference's archive path BEFORE the new ones are written —
+            the same closure type is re-executed, and supersession-then-write
+            keeps exactly one live closure record without breaching the
+            one-closure-type forbidden effect (reviewer-verified).
+        entry_paths_note: >
+          The frozen consumes list is a superset across five entry edges;
+          non-PR paths legitimately arrive without pr_evidence_package. The
+          per-path required subsets live in the first activity; this is
+          contract-consistent, not a conflict.
+        node_local_guards:
+          approval_before_execution:
+            rule: No closure action (push, PR open, bundle write, artifact
+              update) before the verbatim gate-3 approval record exists.
+            strength: persistent record
+            why_not_stronger: The gate presentation and the execution happen
+              in the same bounded context minutes apart; a premature PR is
+              reversible (close PR, delete branch) before any human merge;
+              the downstream mechanical check closure_evidence_settled and
+              verify_run_closure both read the approval record and catch a
+              violation before the run accepts the closure. A blocking hook
+              would have to parse intent and risks stranding the run (9.14.2
+              prefers observation when the next required guard catches it).
+          single_closure_type:
+            rule: More than one closure type per campaign is a forbidden
+              effect (frozen contract).
+            strength: persistent record + downstream mechanical check
+            why_not_stronger: One agent, one gate decision, one execution
+              sequence - the violation is unlikely, precisely detectable on
+              read (the closure record carries one type field), and
+              verify_run_closure re-settles per campaign. Run-wide blocking
+              hooks already cover the genuinely irreversible neighbors
+              (protected-branch mutation).
+          protected_branch_push:
+            rule: Push targets the campaign branch only; protected base
+              branches never mutated.
+            strength: mechanical (run-wide blocking hook, lead-owned
+              enforcement record)
+            why_not_stronger: Already at the top rung run-wide; no node-local
+              addition earns its place.
+        evidence_gameability:
+          closure_record_pr_path: not gameable - the PR URL is minted by the
+            forge, persisted with the gh transcript, and resolved
+            independently by verify_run_closure's adjudicator.
+          closure_record_bundle_paths: gameable (doer-written prose) -
+            hardened first by provenance per 9.14.1 - the bundle must cite,
+            by artifact path, evidence written by other actors
+            (adjudication_verdict, measurement_artifacts,
+            hardware_attempt_log), so a minted root cause fails the re-read;
+            then by the mechanical closure_evidence_settled check and
+            verify_run_closure's independent adjudication. No extra review
+            node added - a false pass is caught twice downstream.
+          gate_approval_record: gameable in principle (the doer transcribes
+            the decision) - hardened by the verbatim-capture requirement
+            (persist the user's reply as delivered by the harness, with
+            timestamp, never a paraphrase), by the user being live at the
+            gate (a false record contradicts the person present), and by
+            verify_run_closure reading the approval record per campaign.
+          cross_run_artifact_updates: not gameable as evidence (on-disk
+            diffs, re-readable by anyone) - the real risk is lost or racing
+            writes, which is the serialization seam, not gameability; see
+            interface findings.
+        model_effort:
+          lead_seat: session top model, high effort - gate presentation and
+            the decision routing carry direct authority over how a campaign
+            ends; consistent with the run-wide root assignment.
+          implementer_seat: strong model, medium effort - the closure
+            execution is checklist-driven git/gh and file writes over
+            finished evidence with low ambiguity, and a wrong action is
+            caught by the mechanical check and independent adjudication;
+            deviating below the run-wide high-effort default is justified by
+            the contained blast radius. If the binding cannot vary effort
+            per node for one role, keep high - the cost delta is small.
+          user_seat: human - no tier.
+
+      evidence_questions:
+        - Does the recorded PR URL resolve on the fork via gh, run by an
+          actor who did not write the closure record? (rung 1; settled at
+          closure_evidence_settled and again at verify_run_closure)
+        - Does every claim in a no-benefit or blocked bundle cite, by path,
+          an artifact produced by an actor other than the closure writer?
+        - Does the gate_approval_record carry the user's reply verbatim as
+          delivered by the harness, with a timestamp preceding every
+          executed closure action?
+        - Do the four artifacts on disk diff cleanly against the closure's
+          persisted update transcript?
+
+      interface_findings:
+        - subject: cross-run artifact serialization (known open seam;
+            assembly settles via the artifact-layout reference)
+          needs: >
+            (a) an exclusive write window per closure across concurrently
+            closing campaign instances, lead-arbitrated per the root
+            contract's single-writer table; (b) atomic per-file replacement
+            (write-then-rename or equivalent) so an interrupted closure never
+            leaves a half-written scorecard; (c) a persisted per-closure
+            update transcript (per-file before/after references) that
+            closure_evidence_settled and verify_run_closure can re-read;
+            (d) fingerprint-file updates merge append-only per entry - never
+            whole-file overwrite - because run_hardware_attempts instances
+            read that file concurrently mid-run.
+        - subject: gate-approval capture mechanism
+          needs: >
+            The record format must bind to the user's actual harness-delivered
+            reply (message text or answers block, with timestamp), not a
+            paraphrase, so verify_run_closure can distinguish approval from
+            artifact existence.
+        - subject: campaign_target_pins consumption
+          needs: >
+            The PR-open action reads this campaign's target base from the
+            campaign_target_pins state field; the frozen consumes list names
+            evidence only. Assembly should ensure the closure seat reads run
+            state - an interface note, not a contract change.
+        - subject: closure_evidence_settled evaluator overlap
+          needs: >
+            The check is evaluated_by lead, and lead is a doer role in this
+            node - a partial self-evaluation. Acceptable because the check is
+            mechanical (URL resolution, on-disk diffs) and verify_run_closure
+            (an adjudicator who produced none of the evidence) re-settles
+            everything; recording it so the reviewer can challenge rather
+            than discover it.
+
+      uncertainty_ledger:
+        facts:
+          - Five entry edges reach this node (reviewed PR, design-infeasible,
+            hardware-lost, rederived close-out, confirmed no-benefit) -
+            root.v6 edges section.
+          - closure_declined routes to rederive_approach; closure_recorded
+            routes to verify_run_closure guarded by the mechanical
+            closure_evidence_settled check with on_failure_route back to
+            this node - root.v6.
+          - The four cross-run artifacts are new construction with no
+            precedent, single-writer, repo-tracked, never on campaign
+            branches - system-map.md Missing capabilities item 5, root
+            contract section 6.
+          - The historical trap is real - one campaign closed with no perf
+            gate ever run and another with no gate reached - system-map.md
+            Acceptance and closure.
+          - A real no-benefit precedent exists (a prior campaign's
+            correct-but-no-benefit terminal) - system-map.md.
+          - The no-benefit scorecard cell name is measured-not-viable-at-pin
+            - requirements.md Acceptance and closure.
+          - PR merge stays human forever; allowed effects are fork branch
+            push + PR open and the serialized workflow-repo writes only -
+            root-contract.md section 3.
+        assumptions:
+          - The serialization mechanism is settled at assembly (artifact-
+            layout reference); this design declares needs only.
+          - gh is authenticated against the fork at closure time - intake
+            preflight verified tool availability (run_input_and_preflight_
+            record covers it).
+          - Each entry path's evidence package is complete when its producing
+            outcome fired - the producing nodes' own checks own that; this
+            node re-verifies presence, not content quality.
+        open_questions:
+          - Does closure execution ever need hardware or SSH? Closed - no;
+            the frozen allowed effects are fork push/PR-open and workflow-
+            repo writes only.
+          - Is the four-artifact write volume bounded per closure? Closed -
+            four files, one entry each (fingerprint merge is append-only) -
+            root contract section 6.
+          - Could gate-3 presentation exceed one context on a long campaign?
+            Closed - every entry edge delivers a finished, already-reviewed
+            package; presentation reads summaries and links, never raw
+            history.
+        research_dispatches: none - the frozen contract, root draft, system
+          map, and requirements answered every sizing-relevant question.
+
+      conflicts: []

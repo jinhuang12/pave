@@ -1,0 +1,406 @@
+pave:
+  name: execute_attempt_loop
+  status: draft
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: execute_attempt_loop
+      frozen_contract_reference: planning/run_hardware_attempts.v2.draft.pave.yaml#execute_attempt_loop
+      supersedes: planning/execute_attempt_loop.draft.pave.yaml
+
+      revision_deltas:
+        high1_limb_a_contract_landing: >
+          Reviewer confirmed the attempt-accounting reading reconciles the
+          two binding review items and that limb (b) - the both-hold
+          precedence on the threshold-reaching attempt - matches frozen
+          contract text exactly. The defect was limb (a)'s landing:
+          "host-caused failures are never budget-counted" lived only in
+          planning marks while the frozen contract says "Count every
+          attempt" unconditionally in two places and host_faulted's
+          meaning never exempts the faulted attempt. Repair - the
+          three-piece contract-text landing is BOOKED with verbatim
+          wording and a falsifier on the booking (resync_interface_needs
+          below, lead resync work), and every prior claim that the
+          reading required no parent-contract edit is corrected
+          (attempt_accounting, uncertainty_ledger). Shipped
+          without the landing, ten host flaps trip tier-2 with zero
+          approach evidence - verbatim the false-outcome defect the
+          parent's own rejected alternative names.
+        low1_repo_fingerprint_file_location: >
+          The repo-tracked fingerprint file - one of tier-1's two mandated
+          sources - had no resolvable location anywhere in the approved
+          graph. Repair - assembly interface need item one now requires
+          the artifact-layout entry to name the file's concrete path and
+          to state that an absent file on a first run is a legitimate
+          empty prior-run set, never a silent skip (falsifier inline
+          there); the tier-1 consultation-record realization note now
+          records that absent-file determination explicitly. The broader
+          root-level pattern (cross-run artifacts undeclared in the
+          root's evidence block) is lead whole-bundle work booked
+          separately - cited here in prose only.
+
+      elaboration:
+        execute_attempt_loop:
+          verdict: atomic
+          justification: >
+            One agent runs the sequential pre-check / attempt / record cycle
+            - at most ten budget-counted attempts per target between
+            re-derivations - holding no attempt transcript in context:
+            results are read from stable artifacts (never first-sighting
+            signals), every attempt externalizes to a one-file-per-event
+            fingerprint record, and the next attempt's material-difference
+            design consumes those records, not transcripts. It settles the
+            definition of done by the serving engine's actual
+            request/response pairs plus the in-band gate's machine-readable
+            result file in the attempt log. Runtime-Binding check taken
+            first - attempts are inherently sequential (tier-1 consumes the
+            prior fingerprints), so fan-out cannot shrink the work, and the
+            delegate_dispatcher seats are already the binding's sub-agent
+            mechanism, not candidate child nodes. Confirms the parent's
+            atomic prediction. Overturned if fingerprint records prove too
+            thin to design a materially different next attempt (forcing
+            full compile transcripts into the loop agent's context), or if
+            one compile-and-serve cycle exceeds a single session horizon
+            even at xhigh effort.
+
+      uncertainty_ledger:
+        facts:
+          - fact: In-band one-shot SSH attempt execution has a
+              full-campaign precedent - every command agent-typed as
+              ssh <host> '<command>', no session persistence, narrated into
+              a markdown transcript that is itself the evidence artifact.
+            source: exploration/host-and-environment.md section 3d.
+            bearing: One agent demonstrably ran this loop shape end to end;
+              capability warning sign does not apply.
+          - fact: The banned handoff pattern's gate CONTENT exists as a
+              well-built standalone script - source self-hash,
+              contamination import scan before and after activation,
+              numeric tolerances, structured machine-readable result
+              emission; only the out-of-band delivery mechanism is the
+              demonstrated failure.
+            source: exploration/absorbed-machinery.md section 3.9.
+            bearing: In-band reuse is a read-and-adapt task, not new
+              construction; no capability gap.
+          - fact: The failure-fingerprint no-identical-retry mechanism has
+              prior-run precedent (recorded failure_fingerprints paired
+              with per-fingerprint retry bounds).
+            source: exploration/absorbed-machinery.md section 3.3 and the
+              requirements' observed-fact citations.
+            bearing: Tier-1 is a proven mechanism to realize, not to
+              invent.
+          - fact: The loop is bounded and externalized by contract - tier-2
+              threshold at ten budget-counted attempts per target, results
+              from stable artifacts, one-file-per-event records.
+            source: frozen contract,
+              planning/run_hardware_attempts.v2.draft.pave.yaml#execute_attempt_loop.
+            bearing: Volume lives in artifacts read as needed; the
+              one-bounded-context question reduces to per-attempt judgment.
+        assumptions:
+          - Per-attempt compile-and-serve transcript volume stays out of
+            the loop agent's working context because results are read from
+            stable artifacts and the narrated transcript is written to the
+            attempt log, not held. If false, the atomic verdict is
+            overturned (falsifier in the elaboration justification).
+          - A session lost mid-loop resumes losslessly - loop position
+            lives entirely in persisted state (per-route counts, fingerprint
+            records, tier-1 consultation records), so a fresh agent
+            re-enters through the pre-attempt checks with no in-context
+            state authoritative. This is also why no lap counter acts as a
+            progress detector - progress is the material difference between
+            fingerprinted attempts, not a count.
+        open_questions_closed:
+          - question: Does the gate content exist in reusable form, or is
+              in-band gating new construction?
+            closed_by: exploration/absorbed-machinery.md section 3.9 - it
+              exists and is explicitly marked reusable design.
+          - question: Is there precedent for one agent driving hardware
+              attempts over one-shot SSH at this volume?
+            closed_by: exploration/host-and-environment.md section 3d - a
+              full prior campaign ran exactly this way.
+          - question: How does attempt accounting behave when a countable
+              approach failure and a host fault coexist on one attempt?
+            closed_by: Reconciling the two binding review items - see
+              attempt_accounting below. Reviewer confirmed the split is
+              disjoint and decidable; limb (b) matches frozen text
+              exactly, and limb (a) requires the three-piece contract-text
+              landing booked under resync_interface_needs (lead resync
+              work) - it is NOT realizable by record fields alone.
+
+      research_dispatches: >
+        None. Every sizing-relevant question closed from exploration
+        reports already on disk (cited per ledger fact); no read of the
+        target system was needed and none was made.
+
+      definition_of_done: >
+        Confirmed as frozen, on the acceptance-evidence ladder's
+        measurement rung - candidate_serving is settled by the serving
+        engine's actual request/response pairs plus the in-band gate's
+        machine-readable result file (tolerances are declared thresholds
+        pre-registered in the campaign design record), both recorded in the
+        attempt log; the doer runs the measurement but the values come from
+        the engine and the gate script, never from the doer's judgment.
+        World-binding beyond the doer's own text - the gate script's source
+        self-hash binds the gate that ran to the gate content reviewed, and
+        downstream measurement independently re-exercises the endpoint,
+        a second artifact this node's doer does not write.
+
+      attempt_accounting: >
+        Reconciles two binding items from the parent's closed review; the
+        plan reviewer confirmed the split is disjoint and decidable. Limb
+        (a) - an attempt whose failure CAUSE is host-level is never
+        budget-counted; faults are never charged to the per-target budget
+        (rejected alternative's falsifier, recorded at the parent: ten
+        host flaps consuming the budget with zero approach evidence is a
+        false-outcome defect). Limb (b) - the precedence rule governs the
+        distinct case where BOTH conditions hold on the threshold-reaching
+        attempt: the attempt produced countable approach-failure evidence
+        (the count reaches the threshold) AND a host fault also occurred -
+        host_faulted routes first, the standing count is never rolled back
+        by the recovery detour, and the pre-attempt tier-2 check trips
+        breaker_tripped on resume with the fault annotated, so
+        re-derivation never receives a host-caused failure as its final
+        datum. Limb (b) matches the frozen contract text exactly
+        (reviewer-confirmed). Limb (a) does NOT - the frozen text says
+        "Count every attempt" unconditionally in both the purpose and the
+        failure-recording activity, and host_faulted's meaning never
+        exempts the faulted attempt; that delta is a real contract change,
+        owned by lead resynchronization and BOOKED with verbatim wording
+        under resync_interface_needs below. The mechanical realization
+        stands either way - every fingerprint record carries the
+        failure-cause class, whether the attempt was budget-counted, and
+        the named route of any increment, making both breaker disjuncts
+        arithmetic on logged events - but record fields realize the rule;
+        they cannot substitute for the contract text that authorizes it.
+
+      realization_notes:
+        - Tier-1 consultation record written BEFORE every launch - which
+          fingerprint sources were read (repo-tracked file AND this run's
+          attempt-log events), which fingerprints were considered, and the
+          material difference this attempt claims. When the repo-tracked
+          fingerprint file is absent at its declared path, the consultation
+          record states that determination explicitly - absent equals a
+          legitimate empty prior-run set on a first run, never a silent
+          skip - so tier-1 provably consulted both mandated sources. Makes
+          a tier-1 violation detectable post-hoc by rederive_approach and
+          review against the same records.
+        - Pre-attempt tier-2 check reads the persisted per-route counts,
+          never an in-context tally; on resume after a host fault it trips
+          immediately with the fault annotated (frozen contract).
+        - The in-band gate runs on every attempt that reaches serving; its
+          machine-readable result file is that attempt's terminal artifact.
+          Non-serving attempts terminate at their failure fingerprint.
+        - Early-exhaustion record enumerates the attempted configuration
+          space and states why no material variation remains - a positive
+          enumeration rederive_approach falsifies against the same
+          fingerprint records, never a bare negative claim (frozen
+          contract).
+        - Delegate dispatch only through the guardrail wrapper; every
+          runtime sub-agent seat inherits this node's forbidden_effects
+          (binding guardrail item from the parent review).
+        - Precedence (host_faulted beats breaker_tripped on the
+          threshold-reaching attempt) already lives in the frozen contract
+          text - purpose and both outcome meanings - not only in planning
+          marks; nothing to add there, realized as written. The counting
+          exemption (limb a) is the piece that does NOT yet live in
+          contract text - see resync_interface_needs.
+
+      enforcement:
+        tier2_breaker_pre_attempt_check:
+          strength: procedural blocking precondition inside the node - no
+            launch at threshold, arithmetic on persisted per-route counts.
+          rationale: >
+            Blocking is justified on this check alone - the violation is
+            likely (ten failures per target is a plausible run), costly
+            (unbounded hardware spend), irreversible (spend cannot be
+            recovered), and precisely detectable (count arithmetic on
+            logged one-file-per-event increments). A stronger always-on
+            external rung is unnecessary - one transition evaluates the
+            condition at a defined moment, and the count is persisted state
+            a resumed session re-reads, so nothing depends on the session
+            that died.
+        tier1_fingerprint_gate:
+          strength: persistent record plus reflective check - the
+            pre-launch tier-1 consultation record, per the parent's
+            affirmed recommendation of an observing rung.
+          rationale: >
+            The condition is semantic (attempt-configuration material
+            equality), poorly pattern-matchable, and a false block would
+            strand legitimate attempts; violations surface in the attempt
+            log the tier-2 breaker and rederive_approach read anyway. The
+            consultation record hardens detection without blocking, and
+            its explicit absent-file determination closes the silent-skip
+            hole on first runs.
+          falsifier: >
+            Divergent normalization between the two fingerprint readers
+            (repo-file reader and attempt-log reader) lets an attempt
+            identical to a recorded failure pass tier-1 - a parent
+            forbidden effect. Mitigation is structural, not local - both
+            readers cite the ONE fingerprint record shape defined in the
+            consolidated artifact-layout entry at assembly, and assembly
+            validates both readers against that single entry; this fragment
+            cites the entry and restates no shape.
+        delegate_guardrail_wrapper:
+          strength: run-wide blocking hooks (cache clear, provisioning,
+            /opt writes) are the lead's enforcement record - cited, not
+            restated; node-local addition is the dispatch-wrapper activity.
+          rationale: >
+            The wrapper intercepts cache-clear remedies from the profiling
+            and compiler-debugging delegates before any action and scopes
+            the benchmark delegate to already-standing hosts, away from its
+            self-provisioning branch. The wrapper alone would be a
+            reminder-rung control against a likely, costly, irreversible
+            violation (a delegate's DOCUMENTED remedy is exactly the
+            plausible path), so the run-wide mechanical hook is not
+            redundant with it; the two rungs cover different failure
+            surfaces - the hook stops the command, the wrapper stops the
+            instruction from ever becoming a command.
+
+      evidence_gameability:
+        candidate_serving: >
+          Low once hardened - cites and realizes the parent's entry:
+          actual request/response pairs plus the in-band gate's
+          machine-readable result file (measurement rung), the gate source
+          self-hash binding the executed gate to the reviewed content, and
+          downstream measurement independently re-exercising the endpoint
+          as the doer-independent second artifact.
+        breaker_tripped: >
+          Carries its own entry per the parent's closed review. Count-ten
+          disjunct - low: arithmetic on logged one-file-per-event
+          increments, each naming its route. Early-exhaustion disjunct -
+          gameable raw, because it is a doer's negative claim that
+          fingerprint records alone cannot settle (they show only what WAS
+          tried); hardened by requiring the exhaustion record to enumerate
+          the attempted configuration space and state why no material
+          variation remains, which rederive_approach falsifies against the
+          same fingerprint records. Harden-first; no extra review process
+          added.
+        host_faulted: >
+          New node-level entry - gameable in BOTH directions. Claiming a
+          host fault dodges the budget and the breaker (faults are never
+          charged); misclassifying a host-caused failure as approach
+          failure inflates the count toward a false breaker trip.
+          Hardened first by evidence structure, then by a check the doer
+          does not run: the fault claim must carry machine transcripts
+          (SSH failure output, device enumeration failure, kernel or
+          device error text) in the triggering attempt's fingerprint
+          record, and recover_leased_host independently re-probes the host
+          as its first pre-action step - a claimed fault its probes cannot
+          reproduce is a material finding. The reverse direction is caught
+          by rederive_approach reading fingerprint records whose
+          host-symptom evidence contradicts an approach-failure class. No
+          review seat added.
+
+      model_effort:
+        implementer: >
+          Strong model, xhigh effort - confirms the parent's assignment
+          with no divergence: this node IS the long hardware-attempt
+          session the root's assignment carves out for xhigh (long-horizon
+          work, repeated one-shot SSH tool calls, compile-and-serve cycles
+          routinely running past half an hour). Session-top model is not
+          taken - the compounding judgment (approach re-derivation) lives
+          in rederive_approach; this node's judgment is bounded per-attempt
+          design against fingerprint records.
+        delegate_dispatcher: >
+          Small fast model, low effort - confirms the parent's assignment:
+          scoped single-question dispatches through fixed guardrails, no
+          compounding judgment.
+
+      resync_interface_needs:
+        contract_text_landing:
+          owner: >
+            Lead resynchronization of the frozen parent contract
+            (planning/run_hardware_attempts.v2.draft.pave.yaml#execute_attempt_loop);
+            this fragment books the landing and never edits the parent.
+          reason: >
+            Limb (a) of the attempt accounting - host-caused failures are
+            never budget-counted - currently lives only in planning marks,
+            while the frozen contract text says "Count every attempt"
+            unconditionally in two places and host_faulted's meaning never
+            exempts the faulted attempt. Shipped without this landing, ten
+            host flaps trip tier-2 with zero approach evidence - verbatim
+            the false-outcome defect the parent's own rejected alternative
+            names.
+          pieces:
+            - site: >
+                Parent purpose, the sentence anchored at "Count every
+                attempt against the per-target shared budget" (lead-cited
+                span :136-138).
+              verbatim: >
+                Count every attempt whose failure cause is not host-level
+                against the per-target shared budget and halt at the
+                tier-2 threshold (every 10 hardware attempts per target
+                since the last re-derivation).
+            - site: >
+                Parent activities, the failure-recording activity anchored
+                at "On failure, record a one-file-per-event fingerprint"
+                (lead-cited span :161-163).
+              verbatim: >
+                On failure, record a one-file-per-event fingerprint
+                (failure class, signature, attempt configuration) and
+                increment the per-target attempt count with this route
+                named, unless the failure's cause is host-level - the
+                fingerprint is still recorded; faults are never charged to
+                the per-target budget.
+            - site: >
+                Parent outcomes, host_faulted meaning (lead-cited span
+                :201-207), one clause appended. This piece is not optional
+                - without it, "the standing count re-trips the breaker on
+                resume" reads as limb (a) reversed.
+              verbatim: >
+                The faulted attempt itself is never charged to the
+                per-target budget; the count already standing from earlier
+                budget-counted attempts is never rolled back - that
+                standing count is what re-trips the breaker on resume.
+          falsifier_on_booking: >
+            Pieces one or two missing - a run where ten host flaps consume
+            the budget while zero approach evidence accumulates trips
+            breaker_tripped and forces re-derivation of an untested
+            approach: the false-outcome defect realized exactly as the
+            parent's rejected alternative predicts. Piece three missing -
+            "never charged" gets read as "count rolled back": after the
+            both-hold threshold-reaching attempt, the resumed loop's
+            pre-attempt tier-2 check finds the count below threshold and
+            the breaker never re-trips, contradicting the frozen sentence
+            "the standing count re-trips the breaker on resume".
+          reviewer_confirmation: >
+            Limb (b) - the both-hold precedence on the threshold-reaching
+            attempt - already matches the frozen contract text exactly and
+            needs no piece; only limb (a) lands.
+
+      assembly_interface_needs:
+        - Consolidated artifact-layout entry defines the fingerprint record
+          shape ONCE; needed fields from this node's realization -
+          failure-cause class, budget-counted flag, named route of any
+          increment, attempt-configuration signature, count-after. Both
+          readers (closure merger, tier-1 check) cite it; assembly
+          validates both against the single entry (falsifier recorded
+          under enforcement). The same entry must also name the
+          repo-tracked fingerprint file's CONCRETE path - one of tier-1's
+          two mandated sources, currently resolvable nowhere in the
+          approved graph - and state that an absent file at that path is a
+          legitimate empty prior-run set on a first run, never a silent
+          skip (falsifier inline - a silent skip degrades tier-1 to a
+          single source, letting an attempt identical to a prior-run
+          fingerprinted failure launch, a parent forbidden effect). The
+          broader root-level pattern - cross-run artifacts undeclared in
+          the root's evidence block - is lead whole-bundle work booked
+          separately, cited here in prose only.
+        - Attempt-log layout entry names the per-attempt one-file-per-event
+          paths - tier-1 consultation record, serving transcript, in-band
+          gate result file - so downstream measurement and adjudication
+          locate them without doer narration.
+        - The reused in-band gate content (source self-hash, contamination
+          import scan, declared tolerances, machine-readable result
+          emission) needs an authoritative home at assembly - the campaign
+          design record pre-registers tolerances and comparators; the
+          generic gate content belongs in an assembly-stage reference the
+          loop cites rather than re-derives.
+        - Delegate guardrail wrapper wiring (which hooks bind the sub-agent
+          seats, wrapper text) is Runtime Binding - needs assembly
+          realization; the node contract already carries the rule.
+        - hardware_attempt_counts per-route accounting - the state entry
+          exists at the root; the layout entry must enumerate the route
+          names this node and replicate_campaign_venv write.
+
+      conflicts: []

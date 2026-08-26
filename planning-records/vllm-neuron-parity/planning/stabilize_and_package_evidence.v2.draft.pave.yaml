@@ -1,0 +1,415 @@
+# Node-planner fragment v2 for the dispatched child
+# stabilize_and_package_evidence (child of the decomposed
+# measure_against_baseline). Supersedes the v1 fragment (untouched on its
+# own path) after the plan-reviewer-2 REVISE verdict (3 HIGH) and the c13
+# adjudication. The child's five-part contract is FROZEN in
+# planning/measure_against_baseline.v2.draft.pave.yaml and is not
+# re-authored here. Verdict: ATOMIC (unchanged) - nodes stays empty.
+# c13 RESOLVED (frontier conflict entry + item 26 fifth append): pair
+# keying is STRUCK run-wide as a budget key; the shared repair budget is
+# PER-MEASUREMENT and TWO-TIER. This fragment realizes the adjudicated
+# keying and CITES the append - the parent contract text does not yet
+# read that way; the qualifier and magnitudes land there at lead resync.
+pave:
+  name: stabilize_and_package_evidence
+  status: draft
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: stabilize_and_package_evidence
+      frozen_contract_reference: planning/measure_against_baseline.v2.draft.pave.yaml#stabilize_and_package_evidence
+      parent_authority_chain: planning/root.v6.draft.pave.yaml#measure_against_baseline
+      supersedes: planning/stabilize_and_package_evidence.draft.pave.yaml
+
+      revision_deltas:
+        high1_c13_two_tier_budget: >
+          The v1 pair-keying reconciliation (v1 :129-139) is struck per
+          the c13 adjudication; budget derivation is re-stated as the
+          per-measurement two-tier bound (see
+          binding_realizations.repair_budget_two_tier). The v1 novelty
+          field (v1 :142-143) survives re-keyed per measurement. The v1
+          gameability direction on defect-identity laundering is deleted
+          (dropping pair keying removes that surface); a novelty-inflation
+          direction hardened by the unfiltered backstop replaces it.
+          Defect records keep measurement id and content-derived defect
+          identity as FIELDS whose surviving role is re-entry targeting
+          and the tier-1 recurrence/novelty predicate (item 17 EIGHTH
+          pair, booked non-contingent and narrowed) - never budget
+          arithmetic.
+        high2_cohold_promoted: >
+          The v1 cross-measurement co-hold finding (v1 :154-171) is
+          PROMOTED: the sequencing wording is kept as the realization and
+          the one-clause frozen-meaning fix is BOOKED for lead resync as
+          item 27(r) - see interface_needs booking one.
+        high3_consumes_token: >
+          The frozen consumes lacks measurement_procedure_record while the
+          contract mandates a procedure link per bundle; the one-token
+          addition is BOOKED for lead resync as item 27(s) - see
+          interface_needs booking two. The v1 "No new consumes needed"
+          claim (v1 interface-need four) is corrected.
+        question_c_answered: >
+          The consecutive-read count home is settled as item 27(u) -
+          campaign design record, authored by preregister_acceptance,
+          with the minimum re-read spacing declared WITH the count and an
+          assemble_design_record checklist row; booked - see
+          interface_needs booking three.
+
+      elaboration:
+        stabilize_and_package_evidence:
+          verdict: atomic
+          justification: >
+            One agent assembles one evidence bundle per kickoff-declared
+            route-scoped measurement (read-copy-link work over artifacts
+            already on disk, read one bundle at a time - volume stays
+            artifact-resident), diffs the bundle set against the declared
+            measurement list, polls each bundle to the declared count of
+            consecutive matching re-reads at the declared minimum spacing,
+            and settles exhaustion by mechanical per-measurement file
+            counts - a filtered tier read from the recorded novelty field
+            and an unfiltered backstop counted by path. Runtime-Binding
+            check taken first - instance_per approved_campaigns already
+            fans the work out per campaign at the binding layer, and
+            within one campaign the work is inherently sequential
+            (assemble, completeness-check, poll, settle) with no parallel
+            seat to gain; the node's single measurer role needs no
+            delegate_dispatcher. It settles the definition of done from
+            the filesystem and the run records, never from its own
+            judgment. Confirms the parent's atomic prediction. Overturned
+            if a route's declared measurement list grows large enough that
+            per-bundle assembly exceeds one bounded context even
+            artifact-resident (forcing a per-bundle fan-out seat), or if
+            the declared stability window spans longer than a single seat
+            session - either forces an assemble/poll split or a role
+            change, both frozen-contract changes.
+          parent_prediction: >
+            Confirmed (falsified nothing) - the parent x_planning
+            predicted atomic, small fast model, medium effort,
+            checklist-driven assembly with no design judgment. The
+            adjudicated two-tier budget adds record fields and two
+            mechanical counts, not judgment: the novelty field is
+            instrument-determined file arithmetic against the prior
+            record, and the backstop is a plain path count - both
+            re-derivable by any reader.
+          model_effort: >
+            Small fast model, medium effort - confirmed from the parent
+            and re-confirmed at review. The work is mechanical assembly,
+            set-diff, re-read polling, and file counting; every decision
+            this node takes is re-derivable from on-disk evidence by the
+            lead-evaluated outbound check and the adversarial verdict
+            review, so a wrong answer is caught downstream rather than
+            prevented by model strength.
+          gameability: >
+            Gameable (measurer-produced stability trace and
+            measurements-side defect records); hardened by structure
+            first. (a) Fabricated stability trace - the outbound
+            evidence_stable_before_verdict check is lead-evaluated and
+            re-reads the bundles independently, so a trace claimed over
+            unstable bundles fails on the edge, not on trust. (b) Novelty
+            inflation - the deciding seat is under standing pressure to
+            answer "new evidence" on every pass to zero-charge the
+            filtered tier forever: hardened because the novelty field is
+            instrument-determined (mechanical file arithmetic against the
+            prior defect record's named evidence for the same
+            measurement, re-derivable by any reader), and the tier-2
+            backstop counts every pass by path REGARDLESS of the field -
+            inflation defers exhaustion at most from the filtered bound
+            to the unfiltered ceiling, never unbounds the loop. (c)
+            Minting or altering measured_revision or the comparator
+            revision - forbidden effect in the frozen contract, and both
+            values are verbatim-checkable: measured_revision against the
+            run records and downstream by the cited two-conjunct identity
+            predicate, comparator revision against the frozen design
+            record. Then adjudication and adversarial verdict review read
+            the bundles and defect files directly.
+
+      definition_of_done: >
+        Confirmed as frozen, on the acceptance-evidence ladder's
+        measurement rung (rung 1) - bundles_stable settles against two
+        declared thresholds: completeness (the assembled bundle set equals
+        the kickoff-declared route-scoped measurement list - set equality,
+        mechanically checkable; upgrade routes check the regression matrix
+        list instead of correctness+perf) and stability (each bundle
+        unchanged across the declared count of consecutive matching
+        re-reads at the declared minimum spacing, never a first sighting;
+        count and spacing declared in the campaign design record per item
+        27(u)). The doer runs the re-reads but the values come from the
+        filesystem, not its judgment. World-binding beyond the doer's own
+        text: the measured_revision is git-issued (the doer cannot mint
+        it, is forbidden from altering it, and it is verified downstream
+        by the cited two-conjunct predicate - authority
+        planning/prepare_pr.v3.draft.pave.yaml and
+        planning/review_pr_evidence.v4.draft.pave.yaml, which win on any
+        drift: rev-parse verifies AND the diff against the final head
+        exits status 0 with empty output); the run records, reference
+        captures, and procedure records the bundles link by path were
+        written by other seats; and the lead-evaluated
+        evidence_stable_before_verdict check independently re-reads before
+        adjudication - a second verdict this node's doer does not write.
+
+      binding_realizations:
+        comparator_revision_recorded: >
+          Closed-review binding item one, realized as bundle fields with
+          no frozen-text change (the frozen activities already require
+          comparator identity per bundle; revision is a field of that
+          identity). Each bundle carries a comparator-provenance record:
+          the comparator identity from the frozen design record AND the
+          comparator revision the measurement actually ran against, copied
+          verbatim from the upstream artifacts (the baseline-skew record's
+          live-read GPU-side version for reference comparisons; the
+          procedure record's fixed invocation pin for procedure-side
+          comparators, read from the measurement_procedure_record input
+          booked as item 27(s)) - this node never mints or derives either
+          value. A mismatch between a bundle's comparator revision and the
+          design record's frozen set is a collection defect UNLESS a
+          recorded design-record revision covers it: a baseline
+          re-derivation is only ever an explicit recorded event (a revised
+          design record this node can cite by path), never a silent side
+          effect packaging infers. Per item 27(o) (lead resync, already
+          registered) the bundle field list also links the defect records
+          recorded for the measurement, so a comparator-indicting concern
+          recorded upstream must reach adjudication. Falsifier inline: if
+          a comparator can change without any citable design-record
+          revision, this realization is wrong and the frozen contract
+          needs a text change.
+        repair_budget_two_tier: >
+          Realizes the c13 adjudication (frontier conflict entry c13 +
+          item 26 fifth append) - budget keying is PER-MEASUREMENT and
+          TWO-TIER; pair keying is struck run-wide as a budget key. Tier
+          one, filtered: suggested three repair passes per declared
+          measurement WITHOUT NEW EVIDENCE - novelty is mechanical, read
+          from the recorded NEW-relative-to-prior field on each defect
+          record (the record names its grounding evidence and lists which
+          files are new relative to the prior defect record for the SAME
+          MEASUREMENT, any identity); the tier-one count is the number of
+          the measurement's defect records whose new-evidence list is
+          empty. Tier two, backstop: suggested nine total passes per
+          measurement, counted UNFILTERED by path over all the
+          measurement's defect-record files - the frozen count-by-path
+          derivation clause is the backstop's honest derivation. Either
+          tier reached settles the existing
+          declared_measurement_unproducible; a spent measurement never
+          routes backward. Defect records KEEP measurement id and
+          content-derived defect identity as fields - surviving role:
+          re-entry targeting and the tier-one recurrence/novelty
+          predicate (item 17 EIGHTH pair, booked non-contingent and
+          narrowed) - never budget arithmetic. CITATION, not a claim
+          about current text: the qualifier, both magnitudes, and the
+          keying land in parent CONTRACT TEXT at lead resync per item 26
+          fifth append (activities line :201-202, both outcome meanings
+          :220-227, loop_bounds :396 of the parent v2 fragment); until
+          that lands, the parent text does not yet read this way and this
+          fragment defers to the append.
+
+      outcome_coholding: >
+        Three outcomes; bundles_stable is exclusive by universal
+        quantification (settled at the parent's closed review). The
+        remaining pair CAN co-hold across different measurements - one
+        measurement with a fresh in-budget collection defect while another
+        sits budget-spent and still defective. PROMOTED at review
+        (reviewer-overturned prior judgment on the cross-measurement
+        evidence): the sequencing below is kept as the realization, and
+        the one-clause frozen-meaning fix is booked as item 27(r) - see
+        interface_needs booking one. Realization:
+        collection_defect_found settles first (its meaning scopes it to
+        defects within the shared budget, and a repair pass can return new
+        evidence bearing on any measurement, including the spent one - an
+        exhaustion decision is re-derived from the then-current files on
+        every re-entry); declared_measurement_unproducible settles only
+        when NO declared measurement retains repair budget, because it
+        maps to the parent's measurement_blocked and the re-derivation
+        stop, which must be the last resort while a live repair path
+        remains.
+
+      evidence_questions:
+        - Does every kickoff-declared route-scoped measurement have exactly
+          one bundle, and does the set diff against the declared list come
+          out empty?
+        - Did each bundle pass the declared count of consecutive matching
+          re-reads at the declared minimum spacing, with the trace
+          persisted (read timestamps plus content hashes per read)?
+        - Does every bundle's measured_revision equal its run records'
+          value byte-for-byte, and does every bundle name the comparator
+          revision it ran against with a citable provenance source?
+        - Is every exhaustion decision re-derivable from the on-disk
+          defect-record files alone - tier one by counting the
+          measurement's records with an empty new-evidence list against
+          the declared filtered bound, tier two by counting all its
+          defect-record files by path against the declared unfiltered
+          ceiling?
+
+      proposed_checks: >
+        Two mechanical checks for the lead to mint (both verified earned
+        at review; check two re-stated for the adjudicated keying). (1)
+        bundle_provenance_fields on bundles_stable: does every bundle
+        carry the baseline-skew record (GPU-side version read live plus
+        the kickoff-recorded known cross-version behavior differences),
+        the verbatim measured_revision, the comparator identity WITH the
+        comparator revision it ran against, the procedure reference, the
+        links to the defect records recorded for the measurement (item
+        27(o)), and path links to the three intermediate evidence
+        records? on_failure_route stabilize_and_package_evidence. (2)
+        repair_count_rederivable on declared_measurement_unproducible: is
+        the exhaustion decision re-derivable from the defect-record files
+        alone - EITHER the filtered per-measurement count (records
+        carrying no new evidence) reached the declared tier-one bound, OR
+        the unfiltered per-measurement count by path reached the declared
+        tier-two ceiling? on_failure_route
+        stabilize_and_package_evidence (an unsupported exhaustion claim
+        is a record defect to correct, not a license to route the
+        measurement backward).
+
+      interface_needs:
+        - need: >-
+            Land the cross-measurement co-hold tie-breaker in the shipped
+            frozen meaning (HIGH-2 booking; the x_planning realization
+            does not ship).
+          landing_site: >-
+            planning/measure_against_baseline.v2.draft.pave.yaml,
+            stabilize_and_package_evidence, the
+            declared_measurement_unproducible outcome meaning (:224-227);
+            lead resync work, item 27(r) - independent of c13.
+          clause_verbatim: >-
+            Settles only when no declared measurement retains repair
+            budget; while any declared measurement does,
+            collection_defect_found settles first.
+          falsifier_if_unbooked: >-
+            Measurement X holds a fresh in-budget defect while measurement
+            Y sits budget-spent - both outcomes true with no frozen
+            tie-breaker, fates diverge on a small-fast chooser: routing
+            unproducible first sends the campaign to approach
+            re-derivation while a live repair path remains, and no
+            downstream check catches the premature stop.
+          status: booked_for_lead_resync
+        - need: >-
+            Add the missing input token so the procedure-link mandate has
+            a declared source (HIGH-3 booking).
+          landing_site: >-
+            planning/measure_against_baseline.v2.draft.pave.yaml,
+            stabilize_and_package_evidence, the consumes list (:192-193);
+            lead resync work, item 27(s).
+          clause_verbatim: >-
+            measurement_procedure_record
+          falsifier_if_unbooked: >-
+            A doer following the shipped contract must write a procedure
+            reference and a procedure-side comparator revision into every
+            bundle from an input the contract never grants - either an
+            undeclared consumption or an omitted field that fails bundle
+            completeness on every campaign.
+          status: booked_for_lead_resync
+        - need: >-
+            Declare the stability read count AND the minimum re-read
+            spacing before packaging begins (question (c) answered at
+            review; spacing adopted as equally load-bearing).
+          landing_site: >-
+            Campaign design record - authored by preregister_acceptance,
+            with an assemble_design_record checklist row; lead resync
+            work, item 27(u).
+          clause_verbatim: >-
+            The campaign design record declares the consecutive-matching-
+            read count and the minimum spacing between re-reads; both are
+            frozen before packaging begins.
+          falsifier_if_unbooked: >-
+            Without a declared count the doer chooses its own and a single
+            read passes as stability (the first-sighting defect the frozen
+            text forbids); without declared spacing back-to-back re-reads
+            trivially match and the stability property measures nothing
+            over time.
+          status: booked_for_lead_resync
+        - need: >-
+            Defect-record shape rider - the pinned shape must carry the
+            NEW-relative-to-prior evidence field alongside measurement id
+            and content-derived defect identity, since both writing
+            children emit defect records and the tier-one count reads the
+            field across all of a measurement's records.
+          landing_site: >-
+            The item 17 EIGHTH pair layout entry (booked non-contingent
+            and narrowed at the register) - writer
+            run_candidate_measurements plus this node; readers include
+            this node's tier counts and child-one re-entry targeting.
+          clause_verbatim: >-
+            Each defect record names its grounding evidence and lists
+            which files are new relative to the prior defect record for
+            the same measurement.
+          falsifier_if_unbooked: >-
+            Divergent novelty derivation between the two writers silently
+            splits the filtered tier - the same measurement charges or
+            zero-charges depending on which child recorded the defect,
+            and the tier-one count stops being re-derivable from the
+            files alone.
+          status: rider_on_booked_item
+        - need: >-
+            Upstream siblings expose the comparator revision fields this
+            node copies verbatim - the baseline-skew record already
+            carries the live-read GPU-side version; the procedure record
+            needs its comparator pin named. The procedure-side copy rides
+            the item 27(s) consumes token once landed.
+          landing_site: >-
+            Realizations of capture_baseline_reference and
+            realize_measurement_procedures (lead to propagate).
+          clause_verbatim: >-
+            Each procedure record names the comparator revision its fixed
+            invocation pins; each capture names the live-read version it
+            ran against.
+          falsifier_if_unbooked: >-
+            Bundles cannot record which comparator revision each
+            measurement ran against without minting the value - the exact
+            silent-drift surface the closed review's comparator-frozen
+            item forbids.
+          status: open_for_lead_propagation
+        - need: >-
+            Comparator re-derivation lands as a revised design record
+            citable by path - the explicit recorded event this node checks
+            drift against. Correction of the v1 claim: the design-record
+            path is already consumed, but the contract's procedure-link
+            mandate separately requires the item 27(s) consumes token
+            booked above; the v1 "no new consumes needed" sentence was
+            wrong.
+          landing_site: >-
+            The re-derivation node's output contract (already routes
+            through the design record); no additional change requested.
+          clause_verbatim: >-
+            A comparator change exists only as a design-record revision
+            citable by path.
+          falsifier_if_unbooked: >-
+            A comparator drift with no citable revision is
+            indistinguishable from silent tampering, and packaging either
+            false-defects an authorized change or launders an
+            unauthorized one.
+          status: recorded_confirmation
+        - need: >-
+            Retargeted inherited check landing stands as parent-recorded -
+            evidence_stable_before_verdict failure lands on this node.
+          landing_site: >-
+            Parent interface_findings.inherited_check_retargeting (already
+            recorded; lead resync applies it).
+          clause_verbatim: >-
+            evidence_stable_before_verdict failure routes to
+            stabilize_and_package_evidence.
+          falsifier_if_unbooked: >-
+            The check's frozen on_failure_route resolves to a node that no
+            longer exists once the parent is a subgraph, stranding the
+            failure at the edge.
+          status: parent_recorded
+      research_dispatches: >
+        None beyond v1. The v2 repairs are realized entirely from the
+        frontier register (conflict entry c13, item 26 fifth append, items
+        17 EIGHTH pair and 27(o)(r)(s)(u)) and the reviewed v1 fragment;
+        the target repository was not read and did not need to be.
+
+      questions_closed:
+        - question: Does the pair-in-path reconciliation need a
+            frozen-text change?
+          closed_by: c13 adjudication - yes, and the keying itself was
+            overturned; budget is per-measurement two-tier, landing in
+            contract text via item 26 fifth append. This fragment realizes
+            the adjudicated keying and cites the append.
+        - question: Does the cross-measurement co-hold sequencing stay
+            x_planning-recorded?
+          closed_by: Promoted at review to a frozen-meaning clause - item
+            27(r), booked above; the realization wording is kept here.
+        - question: Where are the consecutive-read count and spacing
+            declared?
+          closed_by: Item 27(u) - campaign design record, authored by
+            preregister_acceptance, spacing declared with the count, plus
+            an assemble_design_record checklist row; booked above.

@@ -1,0 +1,285 @@
+# Planner fragment for dispatched node realize_increment (child of
+# implement_increments, frozen in implement_increments.v3.draft.pave.yaml).
+# Verdict: ATOMIC - confirms the framing prediction, conditional shape
+# intact. nodes is empty by design; the dispatched node's five-part
+# contract stays in the parent fragment and is referenced, never copied.
+# Pin-generic: no SDK, release-branch, or package version literal appears
+# below; all pin values are run inputs frozen in state.
+pave:
+  name: realize_increment
+  status: draft
+
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: realize_increment
+      frozen_contract_reference: planning/implement_increments.v3.draft.pave.yaml#realize_increment
+
+      elaboration:
+        realize_increment:
+          verdict: atomic
+          justification: >
+            One agent per node run - reads the lap-record work item and the
+            design record's slice for that one increment, edits only the
+            design-named surface inside the campaign worktree, authors the
+            declared overlay tests first, runs the frozen CPU-mode
+            acceptance (VLLM_NEURON_CPU_MODE=1) to a recorded transcript,
+            and writes the one-file evidence record - settling on the
+            transcript's exit status against the design-declared expected
+            result (ladder rung 1). The three work-item classes (build or
+            repair, coverage-gap a/b/c, repackaging) are a class switch
+            fixed by the lap record before the node opens - one item per
+            run, never co-held sub-goals - so the conditional shape adds
+            no second context. Runtime-Binding-first check - increments
+            are sequential on one branch, so fan-out cannot absorb volume,
+            and none is needed at one-item scope. Overturned if an
+            approved design ships an increment whose named surface plus
+            failure investigation cannot fit one bounded context; the
+            runtime valves for that mis-size already exist in the frozen
+            contract (increment_stuck routes to the plan-intent sibling,
+            whose lap-record detector escalates recurrence to no_new_route
+            and the parent's no_progress), plus the design granularity
+            duty the parent recorded - so a pre-design child split would
+            hedge against a failure the graph already routes.
+
+      uncertainty_ledger:
+        facts:
+          - >
+            The in-flight v4 parent amendment leaves this node's body
+            byte-identical to v3 - verified this dispatch by extracting
+            and diffing the realize_increment block from both files.
+            Keeps the frozen-contract reference above valid; nothing
+            judged here can go stale from that amendment.
+          - >
+            CPU mode is an observed fact - the env flag is declared in the
+            plugin's envs module (exploration/target-plugin.md section
+            3.9). Grounds rung-1 settleability of every work-item class
+            before any hardware spend.
+          - >
+            Upstream ships no in-repo test net; the fork's small test
+            overlay is the only one (exploration/plugin-024-delta.md
+            section 3.0). Grounds the overlay-first activity - most
+            increments author their net before their change - and raises
+            per-increment volume while staying one-item-bounded.
+          - >
+            The work item's identity, class, declared acceptance command,
+            and expected result arrive fixed in the lap record by
+            scope_next_increment before this node opens, sourced from the
+            gate-2-approved design record. The doer never chooses or
+            invents acceptance criteria (contract properties 1 and 2).
+          - >
+            Both loops this node feeds (increment_passed and
+            increment_stuck back to scoping) are bounded by the sibling's
+            no-progress detector reading lap-record entries this node
+            writes by construction - the parent's round-2 repair; no bound
+            is owed here beyond the write duty already in the activities.
+        assumptions:
+          - >
+            The runtime binding opens one fresh bounded context per node
+            run - per increment - via the loop re-entry. Falsifier - a
+            binding that folds the whole scope-realize-record loop into a
+            single session would breach the one-agent boundary at
+            campaign scale, not increment scale; recorded as an assembly
+            interface finding, not a reason to split.
+          - >
+            Repackaging items (regrouping campaign-branch commits and
+            records into one reviewable unit per plan increment) are
+            mechanical git-history work one agent settles on the
+            recomputed one-unit coverage check, assuming no concurrent
+            writer on the campaign branch - the lead's serialization
+            holds over overlapping predicted surfaces cover that.
+          - >
+            Delegate skills are reachable through the run's guardrails at
+            execution time - intake preflight verifies availability; this
+            node only consumes the guardrailed dispatch path.
+        open_questions:
+          - >
+            Whether a single approved increment on the large runner
+            monolith can exceed one agent context - unclosable before a
+            design exists; covered at runtime by increment_stuck plus the
+            detector plus the design granularity duty, so not routed to
+            an explorer and not grounds for a child split now.
+          - >
+            Exact file naming and directory layout of the one-file
+            evidence records under the campaign evidence directory -
+            lead-owned at assembly (parent finding confirmed); this
+            fragment adds one field need, recorded in interface_findings.
+
+      evidence_questions:
+        - none_dispatched: >
+            The brief, the parent fragment's reviewed ledger, and two
+            on-disk verifications run inline this dispatch (v3-v4 node
+            body diff; exploration report presence and section reads)
+            answered every question bearing on sizing. The one remaining
+            open closes only when a campaign design exists, so an
+            explorer would burn reads without changing the verdict.
+
+      dod_ladder:
+        increment: >
+          Rung 1 - measurement against a declared threshold. The work
+          item's acceptance is a frozen command plus expected result the
+          doer reads verbatim from the lap record; the doer may run it
+          because the value comes from the test instrument, not its
+          judgment. Per class - build and repair increments settle on the
+          increment's own CPU-mode command transcript; coverage-gap items
+          on the recomputed mechanical check that raised them (the missing
+          increment's own CPU-mode command, the evidence-index coverage
+          recomputation, or the import-scan re-run over the repaired
+          diff); repackaging items on the recomputed one-unit coverage
+          check - each fixed by the gap's identity in the lap record,
+          never doer-chosen. Re-settling built into the graph -
+          review_implementation recomputes the command from the persisted
+          transcript and branch commit. Falsifier held inline - any
+          doer-tunable threshold or command substitution drops this rung
+          to self-grading; the design-time freeze is the property that
+          holds the rung (contract property 1).
+
+      outcome_precedence: >
+        Realization note under the standing rule, not a contract change -
+        outcome meanings stay frozen. When results co-hold in one run,
+        report exactly one by this precedence - (1)
+        evidence_contradicts_design when a recorded contradiction stands
+        (the designed seam, API, or precondition does not hold in the
+        worktree): a concrete contradiction outranks both a green
+        transcript reached by deviating from the design (deviation is out
+        of scope, so such a pass is not a pass) and mere exhaustion; (2)
+        increment_passed when the declared acceptance passed on work done
+        as designed; (3) increment_stuck otherwise, with the persisted
+        investigation record. Mirrors the parent's precedence pattern in
+        scope_next_increment - concrete contradiction outranks every
+        repetition or exhaustion signal.
+
+      activities_confirmation: >
+        The frozen five-item activity list is sufficient; no addition
+        needed. Realization notes for the doer - author the overlay test
+        net before the code change on build increments (the contract's
+        overlay-first order); capture the full acceptance transcript
+        including the verbatim declared command string; persist the
+        investigation record incrementally as failures are worked, never
+        only at exhaustion; write the evidence record with the lap-record
+        work-item id and class so downstream joins are mechanical.
+
+      enforcement:
+        - subject: frozen per-item acceptance (contract property 1)
+          gameability: >
+            Gameable in principle - the doer authors the overlay tests it
+            then passes and runs the acceptance command itself.
+          hardening: >
+            Harden-first - (1) command and expected result are declared in
+            the gate-2-approved design and carried by the lap record,
+            never doer-authored or doer-tuned mid-attempt; (2) the
+            evidence record must quote the declared command verbatim with
+            the full transcript, exit status, diff stat, and commit hash -
+            the commit hash is a git-issued identifier the doer cannot
+            mint, binding the record to the branch state a reviewer
+            recomputes against; (3) review_implementation recomputes
+            before hardware spend - the existing gate reused, no new
+            reviewer minted.
+          strength: persistent record plus existing independent review.
+          why_not_stronger: >
+            A false pass is caught before the costly transition (hardware
+            spend) by the existing review; node-local blocking would
+            guard a reversible, worktree-local state.
+        - subject: gap and repackaging acceptance fixed by gap identity
+            (contract property 2)
+          gameability: >
+            Low - the acceptance is named in the lap record by the sibling
+            before this node opens; residual risk is the doer running a
+            narrower check than the one declared.
+          hardening: >
+            The evidence record names the lap-record gap id and embeds the
+            recomputed check transcript; record_changeset re-runs the
+            same class of check at the changeset boundary, so a narrowed
+            check fails there before harm.
+          strength: persistent record plus mechanical recomputation at the
+            changeset boundary.
+          why_not_stronger: >
+            The boundary recomputation already catches the failure before
+            any costly transition; duplicating it in-node buys nothing.
+        - subject: increment_stuck honesty (contract property 3)
+          gameability: >
+            A doer could emit increment_stuck cheaply to escape a hard
+            item without honest exhaustion.
+          hardening: >
+            The outcome requires the persisted investigation record -
+            checked, ruled out, found - grown during the attempt, plus
+            the stuck id written into the lap record; a thin record is
+            visible to the re-selecting sibling and to review, and
+            recurrence feeds the no-progress detector mechanically.
+          strength: persistent record, observing rung.
+          why_not_stronger: >
+            The consequence of a cheap stuck is re-selection, not harm;
+            the detector is the designed operator-reachable stop for the
+            unlimited-attempt loop, per the parent's loop-bounds record.
+        - subject: run-wide hard prohibitions restated for this node -
+            zero NxDI (neuronx_distributed) imports in ported code; no
+            pip or package writes into /opt; no cp -a venv cloning; never
+            clear the shared Neuron compile cache; work on the fork's
+            campaign branch only, protected base branches never mutated
+          gameability: >
+            Not doer-gradable - each is a world-visible act; the NxDI
+            surface is mechanically scannable over the diff.
+          strength: >
+            Fresh instruction at dispatch via the frozen contract's
+            forbidden_effects; the lead's run-wide blocking hook (the
+            lead's enforcement record, not re-minted here); and the
+            mechanical NxDI import scan at the changeset boundary with
+            coverage_gap_found as its failure route.
+          why_not_stronger: >
+            Duplicate node-local blocking adds strand risk without
+            removing any failure the run-wide hook and the boundary scan
+            do not already remove.
+        - subject: advisory monitor on this node
+          decision: >
+            Skipped - the monitor's trigger (doer satisfies the check
+            without the goal) is already covered by the frozen acceptance
+            plus review_implementation, it warns without blocking, and
+            per technique-selection.md it roughly doubles the stage cost;
+            liveness visibility comes free from per-increment evidence
+            records and the incrementally persisted investigation record.
+
+      model_effort:
+        implementer: >
+          Strong model, high effort - collision-heavy code surfaces and
+          in-loop repair judgment; a wrong edit's blast radius is a
+          burned lap caught only at review. xhigh only when the binding
+          predicts a long-horizon increment session (extended tool-call
+          repair runs), matching the root and parent assignments.
+        delegate_dispatcher: >
+          Small fast model, low effort - fixed guardrails, scoped
+          single-question dispatches; matches the root assignment. No new
+          role and no second tier per role.
+
+      interface_findings:
+        evidence_record_fields: >
+          Sharpening for assembly, not a contract change - each one-file
+          evidence record should carry the lap-record work-item id and
+          class alongside the contract-named fields (command, exit
+          status, diff stat, commit hash). record_changeset's coverage
+          index must join records to plan increments and
+          review_implementation's finding fingerprints key on increment
+          id, so the id belongs in the record the moment it is written.
+          Directory layout stays lead-owned.
+        runtime_binding_context: >
+          The atomicity verdict conditions on one fresh bounded context
+          per node run - per work item - realized by the loop re-entry.
+          Assembly should confirm the binding dispatches each
+          realize_increment run fresh rather than folding the
+          scope-realize-record loop into one session.
+        runwide_hook_registration: >
+          The lead's run-wide blocking hook (NxDI, protected-branch,
+          cache-clear, /opt-write, venv-clone) must be registered for
+          this node's sessions at binding time; this fragment relies on
+          it and re-mints nothing.
+        consumes_discipline: >
+          The doer reads the design record's per-increment slice plus the
+          lap-record entry, never the whole design record - the read
+          discipline that keeps the bounded context honest on the large
+          runner surface.
+        parent_amendment: >
+          The frozen reference stays on the v3 parent fragment per the
+          dispatch brief; the v4 amendment's realize_increment body was
+          verified byte-identical this dispatch, so a lead re-base of the
+          reference to v4 at resynchronization stales nothing here.
+      conflicts: []

@@ -1,0 +1,233 @@
+# Node-planner draft — prepare_pr (vllm-neuron-parity)
+# Verdict: ATOMIC (framing prediction confirmed). nodes stays empty.
+# Frozen contract is referenced, never copied (planning-layout.md rule 2).
+pave:
+  name: prepare_pr
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: prepare_pr
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#prepare_pr
+      elaboration:
+        prepare_pr:
+          verdict: atomic
+          justification: >
+            One implementer, in the campaign's isolated worktree, tidies the
+            branch and records the clean diff against the campaign_target_pins
+            base, drafts the contribution-checklist-complete description with
+            every claim linked to an existing world artifact, and settles the
+            definition of done by a mechanical pass — every referenced
+            artifact path resolves on disk and every acceptance-bearing
+            record names the exact final change-set revision (a git-issued
+            identifier). Falsified if packaging ever has to produce new
+            measurement or verdict evidence in-node, or if diff-cleaning
+            demands multi-attempt conflict resolution that exceeds one
+            bounded context.
+      atomic_contract:
+        definition_of_done: >
+          pr_package_ready — the package at
+          artifacts/campaigns/<campaign>/pr/ is
+          contribution-checklist-complete and every claim links to world
+          evidence — settled at ladder rung 1 (pave-spec §5.3.1): a
+          mechanical verification pass whose transcript persists inside the
+          package confirms (a) every checklist item recorded pass with its
+          concrete evidence path; (b) every referenced artifact path resolves
+          on disk, or carries an explicit remote-only marker with host and
+          remote path; (c) the recorded `git diff <pin-base>...<branch>`
+          transcript is clean — no compile-cache, NEFF/HLO, run-directory,
+          or campaign-state debris staged, contamination scan exit 0;
+          (d) every acceptance-bearing artifact under claim (measurement
+          bundle, adjudication verdict) names the exact final change-set
+          revision on the campaign branch — an identifier git issues and the
+          doer cannot mint; (e) the baseline-skew declaration is present and
+          copied from the measurement bundle's recorded GPU-side vLLM
+          version and known cross-version differences, never authored fresh.
+          The settling act reads disk and git output, not the implementer's
+          assertion; review_pr_evidence re-settles from the same persisted
+          artifacts.
+        activities:
+          - Read the campaign's kickoff-declared acceptance criteria and the
+            run's self-owned contribution checklist artifact (route-scoped -
+            correctness+perf gate items for backport routes, regression
+            matrix items for upgrade routes).
+          - Tidy the campaign branch in its isolated worktree (squash WIP
+            debris, clean history) and record the diff transcript against
+            the base branch resolved from campaign_target_pins at run time.
+          - Run the mechanical change-set scans - debris sweep and
+            NxDI-contamination scan over added/modified lines - and persist
+            the exit-code transcripts.
+          - Draft the PR description - what and why, route and source used,
+            measurement summary with artifact links, verdict trail
+            (adjudication verdict plus adversarial findings records),
+            baseline-skew declaration, CPU-mode and hardware test evidence.
+          - Run the link-resolution and revision-currency verification pass
+            over every acceptance-bearing claim; persist its transcript in
+            the package.
+          - Emit exactly one outcome per the routing discipline below.
+        routing_discipline:
+          handled_locally:
+            - Description drafting, formatting, link assembly, checklist
+              bookkeeping.
+            - Diff tidying and history cleanup against the frozen pin base
+              (the base cannot move mid-run - it is frozen in
+              campaign_target_pins and protected by the run-wide
+              branch-mutation blocking hooks).
+            - Package repair after review_pr_evidence material findings that
+              name presentation or linkage defects (the repair loop edge
+              pr_findings_to_package_repair).
+          evidence_gap_found_when:
+            - A checklist-required claim has no artifact on disk.
+            - An acceptance-bearing artifact names a stale change-set
+              revision (e.g. measurement predates a later repair commit on
+              the branch).
+            - A kickoff-declared measurement or the baseline-skew fields are
+              absent from the measurement bundle. Anything needing NEW world
+              evidence routes out; this node never measures.
+          no_progress_when:
+            - The current review_pr_evidence findings set for this
+              campaign's package is materially identical to the prior lap's
+              and no new evidence artifact has appeared since (detector
+              reads the adversarial findings history under artifacts/reviews/
+              for this campaign; an empty history on first entry is normal
+              and never triggers).
+            - Diff-cleaning is unresolvable - the changeset cannot be
+              cleanly based on the frozen target base - since repeated
+              packaging attempts cannot fix a broken changeset; that is
+              re-derivation territory.
+        atomicity_falsifier_disposition: >
+          The framing falsifier (repeated re-measurement loops) cannot
+          materialize as intra-node work: evidence_gap_found routes each gap
+          to measure_against_baseline and every prepare_pr run is a fresh
+          bounded assembly pass over stable artifacts. Repeated laps through
+          that edge are a graph-level loop already bounded by the declared
+          no_progress exits to rederive_approach (root loop_bounds note),
+          not node-internal volume. Atomic stands.
+      enforcement:
+        - subject: pr_evidence_package completeness claim
+          gameability: >
+            Gameable in part - the implementer writes both the package and
+            the verification transcript, so it could narrow the checklist or
+            stale-date the currency claim.
+          hardening: >
+            Harden-first order (pave-spec §9.14.1). Rung 1 provenance - every
+            acceptance-bearing claim binds to a git-issued change-set
+            revision and to artifacts authored by other roles (measurer,
+            adjudicator, reviewers); a link to a nonexistent artifact fails
+            mechanically. Rung 2 - recommend a lead-evaluated mechanical
+            check on the pr_package_to_pr_review edge re-running the
+            link-resolution and revision-currency pass (see interface
+            findings). Rung 3 - review_pr_evidence already provides the
+            independent adversarial pass for the judgment surface (does the
+            description honestly represent the evidence).
+          strength: mechanical (script-verifiable resolvability and
+            revision currency) plus the existing independent review.
+          why_no_stronger_rung: >
+            False-pass severity is capped by review_pr_evidence and the
+            gate-3 human decision before any push; debate or a stage audit
+            would duplicate the existing review node without new detection
+            power.
+        - subject: protected-base mutation during diff tidying
+          gameability: not gameable (git refuses or the hook blocks; the
+            failure is world-visible).
+          strength: existing run-wide blocking hooks (root-contract §3
+            forbidden effect 1) - reuse, no node-local addition.
+          why_no_stronger_rung: the existing gate already catches the
+            failure before harm.
+        - subject: debris and NxDI contamination in the change set
+          gameability: not gameable once the scan transcript persists (exit
+            codes over the actual diff).
+          strength: mechanical scans as node activities with persisted
+            transcripts - likely (build debris happens), costly (poisons the
+            PR), precisely detectable.
+          why_no_stronger_rung: precise mechanical detection makes review
+            redundant for this sub-check; review still reads the transcript.
+      model_effort:
+        implementer: >
+          strong model, high effort - matches the root's frozen role-level
+          assignment. Medium effort would likely hold (checklist-driven
+          packaging with three downstream catches - mechanical edge check,
+          adversarial review, gate-3 human), but splitting the implementer
+          role into a second tier for one node does not earn its cost, and
+          the node carries real judgment: deciding gap-vs-local-repair and
+          writing an honest description.
+      evidence_questions:
+        - question: Does packaging ever require re-measurement in-node?
+          answer: No - closed from the frozen contract; evidence_gap_found
+            routes to measure_against_baseline (root.v6 edge
+            evidence_gap_to_remeasure). No explorer needed.
+        - question: Can diff-cleaning blow the context via conflict storms?
+          answer: No - closed by frozen-state semantics; the base is frozen
+            in campaign_target_pins and hook-protected, and backport
+            branches are cut from it; an unresolvable rebase means a broken
+            changeset, routed as no_progress. No explorer needed.
+        - question: Does a delegate skill validate plugin-repo PRs?
+          answer: No - closed from system-map.md (delegates lens); the
+            contribution-validation delegate validates NAD-repo artifacts
+            only; the checklist is self-owned (precedent at
+            skills/vllm-neuron-feature-port/references/contribution-checklist.md).
+        - question: Do no-benefit closures pass through this node?
+          answer: No - closed from root.v6 routing; no_benefit_confirmed
+            routes review_measurement_verdict directly to close_campaign, so
+            prepare_pr only ever assembles for pass-confirmed campaigns.
+      interface_findings:
+        - finding: >
+            prepare_pr's frozen contract lists no allowed_effects, but diff
+            tidying needs writes inside the campaign worktree and branch
+            (the same allowance implement_increments declares). The root's
+            run-wide allowed effects (isolated worktrees; campaign branches
+            on the fork) already authorize it, so no frozen-field change is
+            needed - recorded so the assembly stage can mirror the allowance
+            explicitly if it normalizes effects per node.
+        - finding: >
+            Recommend (lead's call, parent-level) a mechanical check on edge
+            pr_package_to_pr_review, evaluated by the lead like
+            evidence_stable_before_verdict - package links resolve and
+            acceptance-bearing artifacts name the final change-set revision
+            - with on_failure_route prepare_pr. Cheap, precisely detectable,
+            and it stops a reviewer from reading a package whose links dangle.
+        - finding: >
+            The run-specific contribution checklist is a build-stage
+            artifact adapted from the absorbed skill's precedent. The
+            adaptation must drop the precedent's benefit-sign-selects-
+            terminal logic (items 9-10 terminal routing): in this graph the
+            no-benefit split happens at review_measurement_verdict before
+            prepare_pr ever opens, and closure-type selection is
+            close_campaign's. The currency rule (exact final change-set
+            revision) and the evidence-resolvability rule carry over intact.
+        - finding: >
+            Route scoping - for upgrade-route campaigns the checklist's
+            measurement items read the kickoff-declared regression matrix
+            instead of the correctness and performance gates; the package's
+            evidence section is route-scoped and the base branch name always
+            resolves from campaign_target_pins at run time (pin-generic).
+      uncertainty_ledger:
+        facts:
+          - prepare_pr contract, outcomes, and routing - root.v6.draft.pave.yaml
+            (nodes.prepare_pr; edges confirmed_pass_to_pr_prep,
+            evidence_gap_to_remeasure, pr_no_progress_to_rederivation,
+            pr_findings_to_package_repair).
+          - pr_evidence_package is a derivation at
+            artifacts/campaigns/<campaign>/pr/ - root.v6 evidence table.
+          - Opening the PR is out of scope here; push and open belong to
+            close_campaign - root.v6 and root-contract.md §3.
+          - Baseline-skew declaration is a user requirement carried inside
+            measurement_artifacts - requirements.md (baseline-skew control)
+            and root.v6 measurement_artifacts subject.
+          - Checklist precedent with three-way outcome split and currency
+            rule - skills/vllm-neuron-feature-port/references/contribution-checklist.md.
+          - Contribution-validation delegate does not validate plugin PRs -
+            system-map.md delegates lens.
+        assumptions:
+          - By entry, measurement artifacts, adjudication verdict, and
+            review findings exist and are stable (only inbound happy-path
+            edge is confirmed_pass_to_pr_prep).
+          - One campaign's evidence volume fits one bounded context because
+            artifacts are read as needed, never held at once.
+          - The kickoff contract names the per-campaign acceptance criteria
+            the checklist instantiates.
+        open_questions_closed:
+          - All four evidence questions above closed from the frozen graph,
+            root contract, system map, and checklist precedent; no explorer
+            dispatches were needed.
+      conflicts: []

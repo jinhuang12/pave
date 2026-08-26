@@ -1,0 +1,287 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "vllm-neuron-parity-run-state",
+  "title": "vllm-neuron-parity run state (run-state.json)",
+  "description": "Single shape authority for a vllm-neuron-parity run's persisted state, realizing the state contract of workflow.pave.yaml (pave.state). The required list mirrors pave.state.required exactly. State points; artifacts prove: fields hold positions, statuses, counters, pins, and artifact paths - never artifact content. The lead is the only writer (P10) and checkpoints after every consequential transition (pave.state.checkpoint). No prose anywhere restates this field list.",
+  "type": "object",
+  "required": [
+    "workflow_identity",
+    "pinned_release",
+    "requested_targets",
+    "instance_roster",
+    "cross_run_artifact_refs",
+    "ranked_backlog",
+    "approved_campaigns",
+    "campaign_states",
+    "campaign_target_pins",
+    "scheduling_holds",
+    "comparator_registrations",
+    "hardware_attempt_counts",
+    "hardware_lease_record",
+    "gate_approval_records",
+    "active_node_runs",
+    "completed_outcomes",
+    "evidence_references",
+    "open_questions",
+    "terminal_classification",
+    "scan_entry_id",
+    "design_entry_id"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "workflow_identity": {
+      "type": "object",
+      "description": "Run identity plus the frozen revision this instance is pinned to. Recorded and verified at run start; a mid-run manifest change does not move a running instance.",
+      "required": ["run_id"],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1},
+        "started": {"type": "string"},
+        "active_revision": {"type": ["integer", "null"], "minimum": 1},
+        "bundle_digest": {"type": ["string", "null"]},
+        "plugin_version": {"type": "string"}
+      }
+    },
+    "pinned_release": {
+      "type": ["object", "null"],
+      "description": "Frozen at intake - the single pin authority for the run. Values are run inputs; the graph never names them. Null before intake freezes them.",
+      "additionalProperties": false,
+      "properties": {
+        "base_version": {"type": "string"},
+        "release_branch": {"type": "string"},
+        "sdk_version": {"type": "string"},
+        "compiler_version": {"type": "string"}
+      }
+    },
+    "requested_targets": {
+      "type": "array",
+      "description": "The targets requested at intake, in the form the user stated them.",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "instance_roster": {
+      "type": "array",
+      "description": "Hardware instance types available to the run, frozen at intake.",
+      "items": {
+        "type": "object",
+        "required": ["instance"],
+        "additionalProperties": false,
+        "properties": {
+          "instance": {"type": "string", "minLength": 1},
+          "status": {"type": "string"},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "cross_run_artifact_refs": {
+      "type": "object",
+      "description": "Paths of the four cross-run artifacts, loaded at intake and updated only by the lead's serialized writes at campaign closure. An absent fingerprint file reads as a legitimate empty set, never an error.",
+      "additionalProperties": false,
+      "properties": {
+        "parity_scorecard": {"type": ["string", "null"]},
+        "backlog": {"type": ["string", "null"]},
+        "debt_ledger": {"type": ["string", "null"]},
+        "failure_fingerprints": {"type": ["string", "null"]}
+      }
+    },
+    "ranked_backlog": {
+      "type": ["string", "null"],
+      "description": "Path of the ranked backlog artifact under the route_costing_and_backlog evidence directory, which is the authority for entries and their order; null before ranking."
+    },
+    "approved_campaigns": {
+      "type": "array",
+      "description": "Fan-out collection - one entry per gate-1-approved campaign.",
+      "items": {
+        "type": "object",
+        "required": ["campaign", "target", "route"],
+        "additionalProperties": false,
+        "properties": {
+          "campaign": {"type": "string", "minLength": 1},
+          "target": {"type": "string", "minLength": 1},
+          "route": {"type": "string", "minLength": 1},
+          "source": {"type": "string"},
+          "type": {"type": "string"},
+          "kickoff_contract": {"type": "string", "description": "Path of this campaign's kickoff-contract record."}
+        }
+      }
+    },
+    "campaign_states": {
+      "type": "object",
+      "description": "Pointer per campaign, keyed by campaign id, to its own state and evidence directory (one file per event); never inlined into run state.",
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "campaign_target_pins": {
+      "type": "object",
+      "description": "Per-campaign target base, keyed by campaign id - equals the run's frozen pinned_release for backport-route campaigns, the kickoff-declared upgrade base for upgrade-route campaigns. Values are run inputs, never graph text.",
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "scheduling_holds": {
+      "type": "array",
+      "description": "Per-campaign predicted file surfaces and the serialization holds the lead derives from them; re-derived under the lead's standing scheduling authority whenever a campaign design refines its predicted surface.",
+      "items": {
+        "type": "object",
+        "required": ["campaign"],
+        "additionalProperties": false,
+        "properties": {
+          "campaign": {"type": "string", "minLength": 1},
+          "predicted_surface": {"type": "array", "items": {"type": "string"}},
+          "held_by": {"type": "array", "items": {"type": "string"}, "description": "Campaign ids this campaign waits on."},
+          "exclusive": {"type": "boolean", "description": "True for an upgrade-route campaign that holds all others while it runs."},
+          "derived_at": {"type": "string"}
+        }
+      }
+    },
+    "comparator_registrations": {
+      "type": "object",
+      "description": "Per-campaign committed comparator registration, keyed by campaign id - the lead's commitment entry that acceptance_preregistered consumes. Points at the acceptance_preregistration artifact; the artifact is the content authority.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["artifact"],
+        "additionalProperties": false,
+        "properties": {
+          "artifact": {"type": "string", "minLength": 1},
+          "committed_at": {"type": "string"}
+        }
+      }
+    },
+    "hardware_attempt_counts": {
+      "type": "object",
+      "description": "Per-target shared budget across all routes that spend hardware attempts, keyed by target; the tier-2 breaker reads it at every 10.",
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "hardware_lease_record": {
+      "type": ["object", "null"],
+      "description": "The lead-only lease record: a pointer to the one-file-per-event record directory plus the current holder per leased host. Null before any lease.",
+      "additionalProperties": false,
+      "properties": {
+        "record_dir": {"type": "string", "minLength": 1},
+        "leases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["host", "campaign"],
+            "additionalProperties": false,
+            "properties": {
+              "host": {"type": "string", "minLength": 1},
+              "campaign": {"type": "string", "minLength": 1},
+              "boot_identifier": {"type": "string"},
+              "markers_verified": {"type": "boolean"},
+              "status": {"type": "string"},
+              "at": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "gate_approval_records": {
+      "type": "array",
+      "description": "Verbatim user decisions at gates 1, 2, and 3, one entry per decision; the recorded artifact holds the verbatim text.",
+      "items": {
+        "type": "object",
+        "required": ["gate", "artifact"],
+        "additionalProperties": false,
+        "properties": {
+          "gate": {"type": "integer", "minimum": 1, "maximum": 3},
+          "campaign": {"type": ["string", "null"]},
+          "decision": {"type": "string"},
+          "artifact": {"type": "string", "minLength": 1},
+          "at": {"type": "string"}
+        }
+      }
+    },
+    "active_node_runs": {
+      "type": "array",
+      "description": "Open node instances - one entry per dispatched seat that has not yet returned a declared outcome. Retired when its node instance closes.",
+      "items": {
+        "type": "object",
+        "required": ["node"],
+        "additionalProperties": false,
+        "properties": {
+          "node": {"type": "string", "minLength": 1},
+          "campaign": {"type": ["string", "null"]},
+          "seat": {"type": "string", "description": "Named teammate seat handle for this node instance."},
+          "role": {"type": "string"},
+          "started": {"type": "string"},
+          "attempt": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "completed_outcomes": {
+      "type": "array",
+      "description": "The run's traversal and event history: one append-only entry per consequential transition, written at every checkpoint. Each entry names the node, the single declared outcome taken, and the evidence keys that back it.",
+      "items": {
+        "type": "object",
+        "required": ["node", "outcome"],
+        "additionalProperties": false,
+        "properties": {
+          "node": {"type": "string", "minLength": 1},
+          "outcome": {"type": "string", "minLength": 1},
+          "campaign": {"type": ["string", "null"]},
+          "at": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}, "description": "Keys of evidence_references entries produced or consumed by this transition."},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "evidence_references": {
+      "type": "object",
+      "description": "Evidence index: each key is an evidence id declared in workflow.pave.yaml's evidence block; each value is the artifact path, or the list of per-campaign paths, that realizes it. Paths only - never content.",
+      "additionalProperties": {
+        "oneOf": [
+          {"type": "string", "minLength": 1},
+          {"type": "array", "items": {"type": "string", "minLength": 1}}
+        ]
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "description": "Open risks, discoveries, and unresolved questions preserved for closure; carried forward, never silently dropped.",
+      "items": {
+        "type": "object",
+        "required": ["question"],
+        "additionalProperties": false,
+        "properties": {
+          "question": {"type": "string", "minLength": 1},
+          "campaign": {"type": ["string", "null"]},
+          "status": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}},
+          "raised_at": {"type": "string"}
+        }
+      }
+    },
+    "terminal_classification": {
+      "type": ["object", "null"],
+      "description": "The run's honest terminal classification. status mirrors the terminal_status values declared by the graph's control endpoints; null while the run is live or paused.",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": ["string", "null"],
+          "enum": ["accepted", "blocked", "closed_unaccepted", null]
+        },
+        "endpoint": {"type": "string", "description": "The control endpoint id the run reached."},
+        "reason": {"type": "string"},
+        "at": {"type": "string"}
+      }
+    },
+    "scan_entry_id": {
+      "type": ["string", "null"],
+      "description": "Minted by the lead at each entry into the scan boundary and stamped into grant files and report metadata; settlement refuses to run without it. Re-trace grants are counted under scan-entry ids, never a stored integer."
+    },
+    "design_entry_id": {
+      "type": ["string", "null"],
+      "description": "Minted by the lead at each entry into the design boundary and stamped into every design-lap artifact; serves the screen progress detector and the record_incomplete detector. The record assembler refuses to run without it."
+    },
+    "discrepant_campaigns": {
+      "type": ["array", "null"],
+      "items": {"type": "string", "minLength": 1},
+      "description": "Derived per run-closure verification round from the current run_closure_verdict - the campaigns whose claimed closure failed first-hand verification; the closure_unverified fan-out reads it. Never stored independently of the verdict record."
+    },
+    "deficient_targets": {
+      "type": ["array", "null"],
+      "items": {"type": "string", "minLength": 1},
+      "description": "Derived per assembly round from the run-level delta index - the named targets whose reports fail the costing-sufficiency rubric with re-trace bound unexhausted; the reports_insufficient fan-out reads it. Never stored independently of the index."
+    },
+    "notes": {
+      "description": "Free-form prose home for anything the fields above do not carry. Intentionally unconstrained."
+    }
+  }
+}

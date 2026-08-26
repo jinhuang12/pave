@@ -1,0 +1,221 @@
+pave:
+  name: review_route_verdicts
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: review_route_verdicts
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#review_route_verdicts
+      revision_note: >-
+        v3 supersedes planning/review_route_verdicts.v2.draft.pave.yaml
+        (kept as provenance, as is v1). Sole v3 delta - one evidence
+        question operationalizing rubric category (e), the
+        criteria-precedence check against the lead-owned run-state
+        registration, so every rubric category has a matching evidence
+        question. v2's sole delta was category (e) itself, added per the
+        reviewer's amendment while closing a sibling finding. All other
+        content is unchanged from the reviewed v2.
+      elaboration:
+        review_route_verdicts:
+          verdict: atomic
+          justification: One adversarial_reviewer reads each target's delta
+            report and route costing, attempts refutation with read-only
+            spot-checks against the pinned repo, the reference sources, and
+            the frozen run inputs, and settles the definition of done by
+            writing a per-target-disposition findings record under
+            artifacts/reviews/. Overturned only if per-target refutation
+            demands fresh multi-source archaeology beyond spot-checks that
+            exceeds one context for the requested target set; even then the
+            Runtime Binding's per-target fan-out covers volume before any
+            child node is justified.
+      atomic_contract:
+        definition_of_done: >
+          Every target id present in route_costing_and_backlog appears in
+          the findings record with exactly one disposition - material
+          finding, non-material note, or clean - where each material finding
+          cites the exact artifact path and location it refutes, names the
+          route choice or backlog rank it would change, and records the
+          refuting evidence; each refutation attempt lists the world checks
+          run (commands and paths read); rejected candidate findings are
+          recorded with their rejection reason so they cannot return
+          unchanged; and verdicts_sound is selected only when the count of
+          standing material findings is zero - settled by re-reading the
+          findings record against the backlog's target list, a join any
+          later reader can re-run from the persisted artifacts alone.
+        acceptance_rung: >
+          Ladder rung 2 (judgment against a rubric written in advance):
+          the materiality rubric below is fixed at plan time, before any
+          delta report or costing exists, and is not authored by the
+          investigator whose verdicts it judges; the adversarial_reviewer
+          is not the doer of either reviewed artifact; rubric (graph text)
+          and verdict (findings record at artifacts/reviews/) both persist.
+        materiality_rubric: >
+          A finding is material if and only if, taken as true, it changes
+          what gate 1 consumes: (a) it flips a target's route verdict -
+          backport-at-pin route A versus pin-upgrade route B, or the A1
+          upstream-GPU versus A2 tpu-inference source choice; (b) it changes
+          a target's backlog rank relative to another target; (c) it
+          invalidates the evidence under a verdict - a cited source trace
+          that does not support the claimed delta, a costed file surface
+          contradicted by the repo at the pinned release, a missed
+          runner-entanglement result that changes the cost class, or
+          artifacts describing a revision other than the frozen pin;
+          (d) a requested target is missing from or double-counted in the
+          backlog; or (e) a criteria-precedence violation - the
+          pre-registered costing-criteria registration in lead-owned run
+          state does not match the criteria record's digest, its timestamp
+          does not precede every per-target costing record, or the criteria
+          were narrowed after results were visible; the run-state
+          registration entry, not the coster's own directory ordering, is
+          the world-anchored comparison source for this category.
+          Style, format, alternative-analysis preference, and
+          uncertainty the artifact already discloses are not findings;
+          at most non-blocking notes. Per the materiality scope contract,
+          a clean pass is a successful review and issue count is not a
+          quality measure.
+        activities:
+          - Enumerate the target list from route_costing_and_backlog and
+            join it against delta_report records and the frozen target
+            request persisted at intake; flag coverage gaps.
+          - Per target, adversarially read the delta claim - open the cited
+            source traces and confirm they exist and support the claimed
+            gap at the pinned release (read-only grep/git/file spot-checks;
+            no mutation of any repo, host, or artifact).
+          - Per target, adversarially read the route verdict - does the
+            A-versus-B decision follow from the recorded costs; is a route-B
+            verdict justified on cost with its exclusive-execution and
+            regression-matrix constraints acknowledged; is the A1-versus-A2
+            source choice supported where the target is TPU-supported?
+          - Adversarially read the ranking - would any recorded cost or
+            benefit, taken at face value, swap two ranks against the
+            recorded rationale?
+          - >-
+            Write the findings record: one disposition per target, stable
+            per-finding labels, cited locations, world checks run, rejected
+            candidates with reasons; select the outcome from the standing
+            material-finding count.
+        evidence_questions:
+          - Does every requested target in the frozen run inputs carry both
+            a delta report and a costed, ranked route verdict?
+          - Do the cited source traces exist and support each claimed delta
+            at the pinned release?
+          - Does each route verdict follow from its own recorded costs, and
+            does each route-B election carry its cost justification and
+            gating constraints?
+          - Is the backlog rank order consistent with the recorded
+            per-target rationale?
+          - Does the mechanical runner-entanglement output contradict any
+            costed file surface?
+          - Do both artifacts describe the frozen pin and not some other
+            revision?
+          - >-
+            Does the run-state criteria-registration digest match the
+            criteria record, and does its timestamp precede every
+            per-target costing record?
+        enforcement:
+          - subject: adversarial_review_findings (this node's slice)
+            gameability: gameable in the rubber-stamp direction - the
+              reviewer writes the record it is judged by, so an unread
+              "clean" pass is mintable.
+            hardening: structure before process - the record must enumerate
+              exactly the backlog's target ids, cite exact locations, and
+              list the world checks run, so an empty review is
+              distinguishable from a clean pass on re-read; rejected
+              candidate findings persist with reasons. Stronger rung
+              unnecessary - gate 1 immediately downstream places the same
+              artifacts plus this record before the user, and a false
+              "sound" resurfaces at design or implementation with declared
+              routes back to re-costing; a review-of-the-review before
+              every gate is the ceremony the practical-review requirement
+              forbids.
+          - subject: sound_verdicts_to_kickoff transition
+            strength: persistent record (required_evidence on
+              verdicts_sound); reason stronger rung unnecessary - the
+              user-evaluated kickoff_contract_approved check at gate 1 sits
+              directly downstream, so a mechanical guard here would
+              duplicate an existing, stronger gate.
+        model_effort:
+          adversarial_reviewer: strong model, high effort - refutation
+            judgment over route economics with direct gate-1 blast radius;
+            session top model unneeded because the judgment is bounded to
+            two artifact sets against one pre-fixed rubric (matches the
+            root-level assignment).
+          spot_check_explorers: small fast model, low effort - each carries
+            one bounded read-only question (does this trace exist; does
+            this file surface match the repo at the pin).
+      interface_findings:
+        - label: f1
+          finding: The findings record needs stable per-finding labels plus
+            the artifact location each finding cites, so
+            cost_routes_and_rank_backlog can mechanically detect "repeated
+            identical review findings with no new evidence" for its
+            costing_stalled exit to run_paused. This node commits to that
+            shape; the costing node's planner should key its stall
+            detection on it.
+        - label: f2
+          finding: Coverage refutation ("every requested target") requires
+            reading the frozen target request persisted by
+            verify_run_preconditions (artifacts/run/intake-preflight/ and
+            run state). The frozen consumes list omits it. Smallest
+            resolution - treat it as a read-only refutation source within
+            this node's adversarial-read activities (it exists on disk and
+            the read mutates nothing); alternatively the lead may add it to
+            consumes at the next resynchronization. Without it the review
+            can only check internal consistency between the two consumed
+            artifacts.
+        - label: f3
+          finding: delta_report and route_costing_and_backlog must key
+            per-target records by the same target identifier so
+            dispositions can join across both artifacts; the planners of
+            both producing nodes should confirm the shared key.
+        - label: f4
+          finding: A material finding whose defect originates in the delta
+            scan still routes to cost_routes_and_rank_backlog
+            (material_findings edge); the expected flow is that re-costing
+            immediately declares evidence_gap back to scan_upstream_delta.
+            No contract change needed - recorded so the costing planner
+            keeps evidence_gap able to carry review-named gaps.
+      uncertainty_ledger:
+        facts:
+          - Frozen contract - intent review, role adversarial_reviewer,
+            consumes delta_report + route_costing_and_backlog, produces
+            adversarial_review_findings (judgment, artifacts/reviews/),
+            outcomes verdicts_sound / material_findings
+            (planning/root.v6.draft.pave.yaml).
+          - Routing - in from backlog_ranked; verdicts_sound to
+            assemble_kickoff_contracts (uncheck-guarded edge, gate 1
+            downstream); material_findings to re-costing; the loop's stall
+            exit (costing_stalled to run_paused) lives on the producing
+            node (root.v6 edges and loop_bounds).
+          - Both consumed artifacts are recorded at root as gameable
+            judgment text hardened by exactly this review, so this node is
+            the hardening rung and must spot-check claims against the
+            world, not just read the artifacts (root.v6
+            evidence_gameability; spec 9.14.1 - a reviewer reading
+            forgeable evidence can be fooled by it).
+          - Materiality scope contract - primary evidence plus exact
+            location, credible failure mode, no stylistic or speculative
+            findings, only goal-impairing findings block, clean pass is
+            success (spec 9.4; requirements 2026-08-25 practical-review
+            amendment).
+          - Root assigns adversarial_reviewer strong model, high effort
+            (root.v6 model_effort_assignments).
+        assumptions:
+          - Requested-target count per run is modest enough that per-target
+            adversarial reads fit one context; if a run names many targets,
+            runtime per-target fan-out absorbs volume before decomposition
+            would.
+          - Read-only spot-checks (grep, git log, file reads at the pin)
+            are within an adversarial read and need no allowed_effects
+            amendment, since the frozen contract declares no effects and
+            the checks mutate nothing.
+        open_questions:
+          - Internal shape of the two consumed artifacts - open (both
+            producing nodes' planner dispatches unfinished; the costing
+            draft is a stub). Closed for sizing by the root evidence
+            subjects ("source traces sufficient for costing"; "costed route
+            verdict and backlog rank with recorded rationale"); the shape
+            dependency is recorded as interface findings f1 and f3.
+          - Access to the frozen target request for coverage refutation -
+            closed as interface finding f2 (read-only world artifact;
+            reported, not edited).

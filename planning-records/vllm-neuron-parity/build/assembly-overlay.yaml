@@ -1,0 +1,435 @@
+# Lead assembly overlay — vllm-neuron-parity F1 flat-graph build.
+# Lead working state (never part of the approval bundle). Applied by
+# build/assemble_flat_graph.py over root.v7 + the five parent fragments.
+# Every minted object cites its register item in `rationale`.
+
+parent_fragments:
+  scan_upstream_delta: planning/scan_upstream_delta.v2.draft.pave.yaml
+  design_campaign: planning/design_campaign.v4.draft.pave.yaml
+  implement_increments: planning/implement_increments.v5.draft.pave.yaml
+  run_hardware_attempts: planning/run_hardware_attempts.v3.draft.pave.yaml
+  measure_against_baseline: planning/measure_against_baseline.v4.draft.pave.yaml
+
+root: planning/root.v7.draft.pave.yaml
+output: workflow.draft.pave.yaml
+
+# ---- root edges rewritten in place (matched by id) ----
+edge_rewrites:
+  preconditions_to_delta_scan:
+    to: {fan_out: trace_target_delta, for_each: requested_targets}
+    checks: [preflight_record_complete]
+    rationale: Entry into the decomposed scan boundary - one tracer per
+      requested target (item 24); the lead mints a scan_entry_id at each
+      boundary entry before dispatch. preflight_record_complete adopted
+      from the preflight boundary review (round-1 recommendation, judged
+      correctly sized).
+  delta_to_costing:
+    from: assemble_delta_report.delta_mapped
+  unreachable_sources_to_pause:
+    from: assemble_delta_report.sources_unreachable
+  costing_gap_to_delta_scan:
+    to: assemble_delta_report
+    rationale: Re-entry lands at the settle node - assemble drives at most
+      one bounded re-trace per deficient target under a fresh
+      scan_entry_id; the operator-visible stop on the outer loop is
+      costing_stalled to run_paused (item 18).
+  approved_campaigns_fan_out:
+    to: {fan_out: screen_pin_and_progress, for_each: approved_campaigns}
+  design_to_design_review:
+    from: assemble_design_record.record_ready
+  infeasible_design_to_closeout:
+    from: assemble_design_record.infeasibility_recorded
+  design_findings_to_redesign:
+    to: screen_pin_and_progress
+    rationale: All four re-entry edges into the design boundary land at
+      the screen (item 25); the lead mints a design_entry_id at each
+      entry (item 31(a)).
+  sound_design_to_implementation:
+    to: scope_next_increment
+  design_defect_to_redesign:
+    from: scope_next_increment.plan_unrealizable_as_designed
+    to: screen_pin_and_progress
+  implementation_scope_to_redesign:
+    from: scope_next_increment.plan_exceeds_node
+    to: screen_pin_and_progress
+  impl_no_progress_to_rederivation:
+    from: scope_next_increment.no_new_route
+  increments_to_impl_review:
+    from: record_changeset.changeset_recorded
+  impl_findings_to_repair:
+    to: scope_next_increment
+  reviewed_impl_to_hardware:
+    to: acquire_hardware_lease
+  serving_candidate_to_measurement:
+    from: execute_attempt_loop.candidate_serving
+    to: realize_measurement_procedures
+  breaker_to_rederivation:
+    from: execute_attempt_loop.breaker_tripped
+  lost_hardware_to_closeout:
+    from: acquire_hardware_lease.no_host_available
+  revised_approach_to_redesign:
+    to: screen_pin_and_progress
+  measurements_to_adjudication:
+    from: stabilize_and_package_evidence.bundles_stable
+  unstable_evidence_to_remeasure:
+    to: run_candidate_measurements
+  confirmed_shortfall_to_repair:
+    to: scope_next_increment
+  confirmed_regression_to_repair:
+    to: scope_next_increment
+  evidence_gap_to_remeasure:
+    to: run_candidate_measurements
+
+# ---- root edges replaced by several flat edges ----
+remove_edge_ids:
+  - design_no_progress_to_rederivation
+  - blocked_measurement_to_rederivation
+
+new_edges:
+  # scan internals
+  - id: trace_traced_to_assembly
+    from: trace_target_delta.target_traced
+    to: assemble_delta_report
+  - id: trace_unreachable_to_assembly
+    from: trace_target_delta.source_unreachable
+    to: assemble_delta_report
+    rationale: The partial per-target record is preserved; the run-level
+      reachability verdict is settled at assembly under its declared
+      outcome precedence.
+  - id: insufficient_reports_to_retrace
+    from: assemble_delta_report.reports_insufficient
+    to: {fan_out: trace_target_delta, for_each: deficient_targets}
+    rationale: Fan-out form per item 24 (c5 edge-form precedent) - only
+      the named deficient targets re-trace, each under the grant its
+      scan-entry-id-stamped grant file records.
+  # design internals
+  - id: screen_to_plan_draft
+    from: screen_pin_and_progress.screen_passed
+    to: draft_increment_plan
+  - id: screen_infeasibility_to_record
+    from: screen_pin_and_progress.pin_infeasible
+    to: assemble_design_record
+    checks: [pin_infeasibility_socratic_guard]
+    rationale: The record's infeasibility variant settles the campaign
+      toward close-out; the guard holds the expensive false-infeasibility
+      direction (screen boundary review, item 31 family).
+  - id: screen_exhaustion_to_rederivation
+    from: screen_pin_and_progress.progress_exhausted
+    to: rederive_approach
+    rationale: Feeds the parent no_progress door (item 25).
+  - id: plan_to_matrix_upgrade_route
+    from: draft_increment_plan.plan_drafted
+    to: assemble_regression_matrix
+    rationale: Route-conditional - read from the kickoff-declared route;
+      only upgrade-route campaigns instantiate the matrix (item 25).
+      Backport-route campaigns take plan_to_preregistration instead.
+  - id: plan_to_preregistration
+    from: draft_increment_plan.plan_drafted
+    to: preregister_acceptance
+    rationale: Non-upgrade routes - the complement of
+      plan_to_matrix_upgrade_route's route condition.
+  - id: plan_scope_valve_to_rederivation
+    from: draft_increment_plan.scope_exceeded
+    to: rederive_approach
+    rationale: Sizing-valve firing maps to the parent no_progress door
+      under the c9 widening.
+  - id: matrix_to_preregistration
+    from: assemble_regression_matrix.matrix_assembled
+    to: preregister_acceptance
+  - id: matrix_blocked_to_rederivation
+    from: assemble_regression_matrix.matrix_blocked
+    to: rederive_approach
+    rationale: Kickoff-declared criteria change only by explicit user
+      decision, so re-derivation is the only in-graph move (item 25).
+  - id: matrix_scope_valve_to_rederivation
+    from: assemble_regression_matrix.scope_exceeded
+    to: rederive_approach
+    rationale: Sizing-valve firing under the c9 widening, matrix side.
+  - id: preregistration_to_record
+    from: preregister_acceptance.acceptance_preregistered
+    to: assemble_design_record
+    state_effects:
+      - The lead commits the pre-registered comparator set into
+        comparator_registrations on consuming this edge, with the
+        registration timestamp the comparators_preregistered check
+        compares (item 31(b)).
+  - id: unadjudicable_criteria_to_rederivation
+    from: preregister_acceptance.criteria_unadjudicable
+    to: rederive_approach
+    rationale: A criterion change needs an explicit user decision - same
+      door as matrix_blocked (item 25).
+  - id: record_gap_to_screen
+    from: assemble_design_record.record_incomplete
+    to: screen_pin_and_progress
+    rationale: Bounded repair loop - taken only when the named owning
+      sibling is the screen (the feasibility note is the incomplete
+      component). Exhaustion door is record_gap_exhaustion_to_rederivation.
+  - id: record_gap_to_plan_draft
+    from: assemble_design_record.record_incomplete
+    to: draft_increment_plan
+    rationale: Taken only when the named owning sibling is the plan
+      drafter.
+  - id: record_gap_to_matrix
+    from: assemble_design_record.record_incomplete
+    to: assemble_regression_matrix
+    rationale: Taken only when the named owning sibling is the matrix
+      assembler (upgrade routes).
+  - id: record_gap_to_preregistration
+    from: assemble_design_record.record_incomplete
+    to: preregister_acceptance
+    rationale: Taken only when the named owning sibling is the
+      preregistrar. The d7 commitment-absent gap re-emits here and is
+      EXEMPT from the stall detector's key space (item 31 addendum).
+  - id: record_gap_exhaustion_to_rederivation
+    from: assemble_design_record.record_incomplete
+    to: rederive_approach
+    rationale: Exhaustion door - fires only on the exhaustion predicate
+      pinned once in the artifact-layout reference (the same named gap
+      recurs AND no gap-closing artifact for that gap has been produced
+      since that lap); otherwise the sibling repair edges carry the
+      traffic (item 25).
+  # implement internals
+  - id: selected_to_realization
+    from: scope_next_increment.increment_selected
+    to: realize_increment
+  - id: passed_to_next_scoping
+    from: realize_increment.increment_passed
+    to: scope_next_increment
+  - id: stuck_to_rescoping
+    from: realize_increment.increment_stuck
+    to: scope_next_increment
+    rationale: Scoping re-selects with the persisted investigation record
+      or detects no-progress from the lap history.
+  - id: contradiction_to_redesign
+    from: realize_increment.evidence_contradicts_design
+    to: screen_pin_and_progress
+    rationale: Realizes the parent design_defect_found door - lands at
+      the design boundary entry like every re-entry (item 25).
+  - id: plan_satisfied_to_recording
+    from: scope_next_increment.plan_satisfied
+    to: record_changeset
+  - id: coverage_gap_to_rescoping
+    from: record_changeset.coverage_gap_found
+    to: scope_next_increment
+  # hardware internals
+  - id: lease_to_venv
+    from: acquire_hardware_lease.lease_held
+    to: replicate_campaign_venv
+  - id: venv_to_attempts
+    from: replicate_campaign_venv.venv_ready
+    to: execute_attempt_loop
+  - id: replication_dead_end_to_rederivation
+    from: replicate_campaign_venv.replication_failed
+    to: rederive_approach
+    rationale: Recipe dead ends are approach-level and route to the
+      breaker path.
+  - id: venv_host_fault_to_recovery
+    from: replicate_campaign_venv.host_faulted
+    to: recover_leased_host
+  - id: attempt_host_fault_to_recovery
+    from: execute_attempt_loop.host_faulted
+    to: recover_leased_host
+  - id: restored_host_to_venv_reverify
+    from: recover_leased_host.host_restored
+    to: replicate_campaign_venv
+    rationale: The venv node re-runs its verification probes before the
+      loop resumes - the downstream catch for the conditional settlement
+      rung (27(i)).
+  - id: unrecoverable_host_to_reacquisition
+    from: recover_leased_host.host_unrecoverable
+    to: acquire_hardware_lease
+    rationale: The lease is released and acquisition takes over for a
+      roster replacement, excluding hosts whose recovery allowance for
+      this campaign is exhausted (c10); if none exists,
+      no_host_available carries the evidence to close-out.
+  # measure internals (item 26 routing)
+  - id: procedures_to_baseline_capture
+    from: realize_measurement_procedures.procedures_ready
+    to: capture_baseline_reference
+    checks: [procedures_smoke_verified]
+  - id: unrealizable_procedure_to_rederivation
+    from: realize_measurement_procedures.procedure_unrealizable
+    to: rederive_approach
+    rationale: One of the four blocked terminals realizing the parent
+      measurement_blocked door (item 26).
+  - id: reference_to_candidate_runs
+    from: capture_baseline_reference.reference_captured
+    to: run_candidate_measurements
+  - id: unusable_baseline_to_rederivation
+    from: capture_baseline_reference.baseline_unusable
+    to: rederive_approach
+  - id: runs_to_stabilization
+    from: run_candidate_measurements.runs_complete
+    to: stabilize_and_package_evidence
+    checks: [revision_stamped]
+  - id: procedure_defect_to_realization
+    from: run_candidate_measurements.procedure_defect_found
+    to: realize_measurement_procedures
+    rationale: Shared per-measurement two-tier repair budget - derived
+      from defect-record files by path, never a stored counter (item 26
+      appends; c13).
+  - id: reference_defect_to_recapture
+    from: run_candidate_measurements.reference_defect_found
+    to: capture_baseline_reference
+    rationale: Same shared budget as procedure_defect_to_realization -
+      per-route accounting under one per-measurement bound.
+  - id: serving_exhaustion_to_rederivation
+    from: run_candidate_measurements.serving_exhausted
+    to: rederive_approach
+  - id: collection_defect_to_reruns
+    from: stabilize_and_package_evidence.collection_defect_found
+    to: run_candidate_measurements
+    rationale: Within the shared per-measurement repair budget; at either
+      tier's threshold the flow completes forward and packaging settles
+      declared_measurement_unproducible.
+  - id: unproducible_measurement_to_rederivation
+    from: stabilize_and_package_evidence.declared_measurement_unproducible
+    to: rederive_approach
+
+# ---- checks ----
+new_checks:
+  preflight_record_complete:
+    style: mechanical
+    question: Does the preflight record carry a passing, transcript-backed
+      entry for every declared run precondition, with the frozen run
+      inputs written to run state?
+    evaluated_by: lead
+    on_failure_route: verify_run_preconditions
+  pin_infeasibility_socratic_guard:
+    style: socratic
+    question: Does the note name the missing surface with a verbatim
+      re-checkable command at the pinned revision, does re-execution
+      reproduce the absence, and does the note tie the surface to a
+      kickoff-declared capability?
+    evaluated_by: lead
+    on_failure_route: screen_pin_and_progress
+    rationale: Evaluator is never the note author. Bound, declared where
+      the graph sees it - a re-screen that still cannot produce
+      re-executable absence evidence falls through to the progress
+      screen; the ambiguity rule is the terminator, no counter needed.
+  procedures_smoke_verified:
+    style: mechanical
+    question: Does every declared measurement for this campaign's route
+      have a runnable procedure with a passing smoke record and a fixed
+      invocation, recorded before any measured run that cites that
+      procedure revision?
+    evaluated_by: lead
+    on_failure_route: realize_measurement_procedures
+  revision_stamped:
+    style: mechanical
+    question: Does every run record carry a git-issued revision identifier
+      read from the checked-out commit at measurement time - never a
+      branch name - and do all records for one measurement agree?
+    evaluated_by: lead
+    on_failure_route: run_candidate_measurements
+
+check_updates:
+  design_approved_by_user:
+    on_failure_route: screen_pin_and_progress
+  comparators_preregistered:
+    on_failure_route: preregister_acceptance
+  evidence_stable_before_verdict:
+    on_failure_route: stabilize_and_package_evidence
+  measurer_not_adjudicator:
+    on_failure_route: run_candidate_measurements
+    question: Is the adjudicating agent identity distinct from every agent
+      that produced the measurement artifacts under verdict - the
+      producer set covering any agent that acted in any of the four
+      measurement nodes?
+
+# ---- evidence ----
+new_evidence:
+  pin_feasibility_note:
+    kind: derivation
+    produced_by: screen_pin_and_progress
+    subject: feasibility-at-pin verdict with re-checkable absence evidence
+      or the named viable design lever per lap
+    artifact: artifacts/campaigns/<campaign>/design/
+  increment_plan_draft:
+    kind: derivation
+    produced_by: draft_increment_plan
+    subject: increment plan, test layout, venv and lease plan, and refined
+      predicted file surface - feeds scheduling_holds re-derivation
+    artifact: artifacts/campaigns/<campaign>/design/
+  regression_matrix_draft:
+    kind: derivation
+    produced_by: assemble_regression_matrix
+    subject: adjudicable regression-matrix rows for upgrade-route
+      campaigns - procedure reference and verbatim threshold per at-risk
+      support-table cell
+    artifact: artifacts/campaigns/<campaign>/design/
+  acceptance_preregistration:
+    kind: derivation
+    produced_by: preregister_acceptance
+    subject: frozen comparator set and route-scoped acceptance criteria,
+      adjudicable as written, ahead of all measurement
+    artifact: artifacts/campaigns/<campaign>/design/
+  increment_lap_record:
+    kind: observation
+    produced_by: scope_next_increment
+    subject: per-lap reconciliation - selected increment, declared
+      CPU-mode acceptance, findings answered, stuck and gap identities
+    artifact: artifacts/campaigns/<campaign>/increments/
+  increment_evidence_records:
+    kind: observation
+    produced_by: realize_increment
+    subject: per-increment passing evidence or persisted investigation
+      records on stuck laps
+    artifact: artifacts/campaigns/<campaign>/increments/
+  measurement_procedure_record:
+    kind: observation
+    produced_by: realize_measurement_procedures
+    subject: runnable smoke-verified procedure per declared measurement
+      with fixed invocation and versioned revision entries
+    artifact: artifacts/campaigns/<campaign>/measurements/procedures/
+  baseline_reference_capture:
+    kind: observation
+    produced_by: capture_baseline_reference
+    subject: GPU-baseline reference outputs with the baseline-skew record,
+      or the justified skip for routes declaring no baseline comparator
+    artifact: artifacts/campaigns/<campaign>/measurements/baseline/
+  candidate_measurement_runs:
+    kind: observation
+    produced_by: run_candidate_measurements
+    subject: raw measurement outputs one file per event, each stamped with
+      the measured git-issued revision, invocation, and environment;
+      defect findings as their own event files
+    artifact: artifacts/campaigns/<campaign>/measurements/runs/
+
+evidence_updates:
+  implementation_changeset:
+    produced_by: record_changeset
+  delta_report:
+    produced_by: [trace_target_delta, assemble_delta_report]
+  campaign_design_record:
+    produced_by: assemble_design_record
+  hardware_attempt_log:
+    produced_by: [acquire_hardware_lease, replicate_campaign_venv,
+      execute_attempt_loop, recover_leased_host]
+  measurement_artifacts:
+    produced_by: stabilize_and_package_evidence
+
+# ---- state ----
+new_state_fields:
+  scan_entry_id:
+    meaning: Minted by the lead at each entry into the scan boundary and
+      stamped into grant files and report metadata; settlement refuses to
+      run without it (item 24 - external runtime dependency carried in
+      briefs). Re-trace grants are counted under scan-entry ids, never a
+      stored integer.
+  design_entry_id:
+    meaning: Minted by the lead at each entry into the design boundary
+      and stamped into every design-lap artifact; superseded laps archive
+      out of the read path per the layout reference; serves the screen
+      progress detector and the record_incomplete detector (item 31(a)).
+      The record assembler refuses to run without it.
+  deficient_targets:
+    meaning: Derived per assembly round from the run-level delta index -
+      the named targets whose reports fail the costing-sufficiency rubric
+      with re-trace bound unexhausted; the reports_insufficient fan-out
+      reads it. Never stored independently of the index (mirrors
+      discrepant_campaigns).
+
+state_required_add:
+  - scan_entry_id
+  - design_entry_id

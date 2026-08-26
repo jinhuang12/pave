@@ -1,0 +1,353 @@
+pave:
+  name: measure_against_baseline
+  status: draft
+  nodes:
+    realize_measurement_procedures:
+      intent: execute
+      instance_per: approved_campaigns
+      roles: [measurer, delegate_dispatcher]
+      purpose: Turn the pre-registered comparator set in this campaign's
+        design record into runnable measurement procedures - the
+        kickoff-declared acceptance procedures for this campaign's route
+        (upgrade routes execute the regression matrix instead of
+        correctness+perf) - each with a fixed invocation, declared inputs,
+        and a declared output shape, smoke-verified end-to-end on scratch
+        inputs before any measured run. The measurer realizes what the
+        design record froze; it never chooses or alters a comparator. Out
+        of scope - any measured run against the candidate or the baseline.
+      consumes: [campaign_design_record]
+      produces: [measurement_procedure_record]
+      activities:
+        - Read the frozen comparator set and route-scoped acceptance
+          procedures from the design record; enumerate every declared
+          measurement this campaign must produce.
+        - Realize each declared measurement as a runnable procedure with a
+          fixed invocation, reusing verified in-repo primitives where they
+          match the declared method and building thin harnesses where no
+          repeatable procedure exists.
+        - Avoid the known tool traps - the stock serving-benchmark path
+          undercounts speculative-decode configurations (use a streaming
+          harness for those); the decode-only bench connector produces no
+          correctness signal and is never a correctness procedure.
+        - Smoke-verify every procedure end-to-end on scratch inputs and
+          record the smoke evidence and the fixed invocation per procedure.
+      allowed_effects:
+        - In-band SSH to leased Neuron hosts for smoke verification only.
+      forbidden_effects:
+        - Choosing or altering comparators after measurement begins.
+        - Any measured run recorded as campaign evidence.
+      outcomes:
+        procedures_ready:
+          meaning: Every declared measurement for this campaign's route has
+            a runnable, smoke-verified procedure with a fixed invocation
+            recorded before any measured run.
+          required_evidence: [measurement_procedure_record]
+        procedure_unrealizable:
+          meaning: A declared measurement has no realizable procedure
+            (capability gap, including an unusable declared method); routed
+            to re-derivation with the evidence.
+
+    capture_baseline_reference:
+      intent: execute
+      instance_per: approved_campaigns
+      roles: [measurer]
+      purpose: Produce the GPU-baseline side of every declared comparison
+        for this campaign's route, strictly read-only on the named GPU
+        baseline over in-band SSH - reference outputs captured against
+        hash-pinned inputs using the fixed procedures, with the
+        baseline-skew record (the GPU-side vLLM version read live from the
+        baseline environment plus the kickoff-recorded known cross-version
+        behavior differences) written into the capture. When this
+        campaign's route declares no GPU-baseline comparator, record the
+        justified skip and pass through. Out of scope - any write, restart,
+        reboot, or reset on the baseline, ever.
+      consumes: [campaign_design_record, measurement_procedure_record]
+      produces: [baseline_reference_capture]
+      activities:
+        - Verify the baseline instance identity and read its live vLLM
+          version; refuse to capture if it contradicts the kickoff record.
+        - Run the fixed reference-capture procedures against hash-pinned
+          inputs; record outputs one file per event.
+        - Write the baseline-skew record into the capture.
+      allowed_effects:
+        - Read-only use of the named GPU baseline over in-band SSH.
+      forbidden_effects:
+        - Autonomous GPU-baseline reboot or reset.
+        - Choosing or altering comparators after measurement begins.
+      outcomes:
+        reference_captured:
+          meaning: Every declared GPU-baseline comparison has its reference
+            side captured with the skew record, or a justified skip is
+            recorded for a route that declares none.
+          required_evidence: [baseline_reference_capture]
+        baseline_unusable:
+          meaning: The named baseline is unreachable, contradicts the
+            kickoff record, or would require a reset to proceed; routed to
+            re-derivation with the evidence.
+
+    run_candidate_measurements:
+      intent: execute
+      instance_per: approved_campaigns
+      roles: [measurer, delegate_dispatcher]
+      purpose: Execute the smoke-verified procedures against the serving
+        candidate on this campaign's leased Neuron host(s) over in-band
+        SSH, exactly as pre-registered - the measurer executes, never
+        chooses. Every run record stamps the measured git revision read at
+        measurement time from the checked-out commit on the leased host (a
+        git-issued identifier, never a branch name), plus the invocation,
+        configuration, and environment used. Out of scope - any verdict on
+        the numbers produced.
+      consumes: [measurement_procedure_record, baseline_reference_capture,
+        hardware_attempt_log, campaign_design_record]
+      produces: [candidate_measurement_runs]
+      activities:
+        - Confirm the candidate serves per the attempt log; read and record
+          the checked-out commit's git-issued revision identifier before
+          the first measured run.
+        - Execute each declared measurement's fixed invocation; write raw
+          outputs one file per event, each stamped with the measured
+          revision, invocation, and environment.
+        - On a lost serving state, re-establish serving from the recorded
+          attempt recipe within the declared retry bound, re-verify the
+          checked-out revision, then resume.
+      allowed_effects:
+        - In-band SSH to this campaign's leased Neuron hosts.
+      forbidden_effects:
+        - Choosing or altering comparators after measurement begins.
+        - Any action on the GPU baseline.
+        - Editing the candidate checkout or switching its revision.
+      outcomes:
+        runs_complete:
+          meaning: Every declared measurement has raw run records,
+            revision-stamped from the checked-out commit at measurement
+            time.
+          required_evidence: [candidate_measurement_runs]
+        reference_defect_found:
+          meaning: A run exposes a missing or defective baseline reference
+            for a declared comparison; routed back to reference capture.
+        serving_exhausted:
+          meaning: The serving state cannot be re-established within the
+            declared retry bound; routed to re-derivation with the
+            evidence.
+
+    stabilize_and_package_evidence:
+      intent: execute
+      instance_per: approved_campaigns
+      roles: [measurer]
+      purpose: Assemble the campaign's measurement evidence bundles - one
+        file per event under the campaign measurements directory - and
+        settle their completeness and stability before any verdict. Each
+        bundle names the GPU-side vLLM version and the known cross-version
+        behavior differences from the skew record, carries the measured git
+        revision copied verbatim from the run records (this node never
+        mints or rewrites it), and links the pre-registered comparator and
+        procedure it realizes. Completeness is checked against the
+        kickoff-declared acceptance procedures for this campaign's route
+        (upgrade routes execute the regression matrix instead of
+        correctness+perf); stability is settled by consecutive matching
+        re-reads over time, never a first sighting.
+      consumes: [campaign_design_record, baseline_reference_capture,
+        candidate_measurement_runs]
+      produces: [measurement_artifacts]
+      activities:
+        - Assemble one evidence bundle per declared measurement with skew
+          record, measured revision (verbatim from run records), comparator
+          identity, and procedure reference.
+        - Check bundle completeness against the route-scoped declared
+          measurement list; record any gap as a defect.
+        - Re-read every bundle until the declared count of consecutive
+          matching reads passes; record the stability trace.
+      allowed_effects:
+        - Writes under this campaign's measurements artifact directory
+          only.
+      forbidden_effects:
+        - Minting or altering a measured revision value.
+        - Choosing or altering comparators after measurement begins.
+        - Any verdict on the numbers packaged.
+      outcomes:
+        bundles_stable:
+          meaning: Every kickoff-declared measurement exists as a complete,
+            stable-read-verified evidence bundle.
+          required_evidence: [measurement_artifacts]
+        collection_defect_found:
+          meaning: A bundle is missing, incomplete, or changed on re-read;
+            routed back to candidate measurement within the declared repair
+            bound.
+        declared_measurement_unproducible:
+          meaning: A declared measurement cannot be produced after the
+            repair bound is spent; routed to re-derivation with the
+            evidence.
+
+  extensions:
+    x_planning:
+      dispatched_node: measure_against_baseline
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#measure_against_baseline
+      elaboration:
+        measure_against_baseline:
+          verdict: decompose
+          justification: One agent cannot both build this campaign's
+            never-yet-existing route-scoped measurement procedures (the
+            repeatable GPU-baseline correctness plus perf story was built
+            once, forensically, by hand; the in-repo framework's newer
+            orchestration tier is unread) and execute them to stable-read
+            bundles in one context - procedure realization, reference
+            capture, candidate runs, and stabilization each fail
+            differently, recover differently, and need their own persisted
+            evidence as resume points for the re-measurement repair loops
+            that re-enter this boundary. Framing prediction confirmed.
+        realize_measurement_procedures:
+          prediction: atomic
+          justification: Realizes an already-frozen comparator set into
+            runnable procedures and smoke-verifies each; judgment is
+            bounded by the design record. Overturned if the unread
+            accuracy-orchestration tier forces its own explore/build split
+            - procedure_unrealizable covers the capability dead end.
+          model_effort: strong model, high effort - judgment-heavy new
+            construction where a wrong procedure silently corrupts every
+            downstream number.
+          gameability: gameable (measurer-produced smoke evidence);
+            hardened by structure first - fixed invocations recorded before
+            any measured run, comparators frozen upstream by the
+            comparators_preregistered check - then downstream adjudication
+            and verdict review.
+        capture_baseline_reference:
+          prediction: atomic
+          justification: Runs fixed read-only capture procedures against
+            hash-pinned inputs on one named host; settles via captured
+            files plus the skew record.
+          model_effort: strong model, medium effort - procedure execution
+            against a frozen design on an irreplaceable host; the
+            forbidden-reset rule leaves no autonomous recovery to reason
+            about.
+          gameability: gameable (measurer-produced); hardened by structure
+            - live-read vLLM version must match the kickoff record or the
+            node refuses, hash-pinned inputs - then adversarial verdict
+            review.
+        run_candidate_measurements:
+          prediction: atomic
+          justification: Executes frozen, smoke-verified invocations over
+            SSH and records raw outputs; per campaign the declared
+            measurement list is bounded by the kickoff contract.
+          model_effort: strong model, medium effort - mechanical execution
+            of a frozen design; wrong answers caught by adjudication.
+          gameability: gameable (measurer-produced); hardened by structure
+            - revision stamps verified mechanically downstream (content
+            diff against the final branch head), pre-registered
+            invocations, one-file-per-event raw outputs - then adjudication
+            and verdict review.
+        stabilize_and_package_evidence:
+          prediction: atomic
+          justification: Checklist-driven assembly plus stability polling
+            against a declared list; no design judgment.
+          model_effort: small fast model, medium effort - mechanical
+            assembly and re-read polling; defects are caught by the
+            lead-evaluated evidence_stable_before_verdict check and by
+            adjudication.
+          gameability: gameable (measurer-produced stability trace);
+            hardened by structure - the outbound
+            evidence_stable_before_verdict check is lead-evaluated and
+            re-reads independently, the measured revision must match the
+            run records verbatim - then adversarial verdict review.
+      interface_findings:
+        entry_and_exit_routing: |
+          Parent inbound edge serving_candidate_to_measurement (with its
+          comparators_preregistered check) lands on
+          realize_measurement_procedures. Internal happy path:
+          realize_measurement_procedures.procedures_ready ->
+          capture_baseline_reference; capture_baseline_reference
+          .reference_captured -> run_candidate_measurements;
+          run_candidate_measurements.runs_complete ->
+          stabilize_and_package_evidence. Parent outcome mapping:
+          stabilize_and_package_evidence.bundles_stable realizes
+          measurements_recorded - the parent outbound edge
+          measurements_to_adjudication with its evidence_stable_before_verdict
+          and measurer_not_adjudicator checks moves to this outcome.
+          procedure_unrealizable, baseline_unusable, serving_exhausted, and
+          declared_measurement_unproducible all realize measurement_blocked
+          and route to rederive_approach with their evidence.
+        reentry_routing: |
+          Both parent re-entry edges - unstable_evidence_to_remeasure (from
+          adjudicate_results.evidence_unstable) and evidence_gap_to_remeasure
+          (from prepare_pr.evidence_gap_found) - land on
+          run_candidate_measurements: procedures and references are
+          persisted resume points and are not rebuilt on re-entry. A
+          re-entry whose defect names the reference side flows through
+          run_candidate_measurements.reference_defect_found ->
+          capture_baseline_reference, whose reference_captured edge
+          re-enters run_candidate_measurements.
+        loop_bounds: |
+          Internal repair loop stabilize_and_package_evidence
+          .collection_defect_found -> run_candidate_measurements needs a
+          declared bound: suggested three repair passes per declared
+          measurement without new evidence, spent into
+          declared_measurement_unproducible (-> parent measurement_blocked
+          -> rederive_approach, which is the designed stop). Serving
+          re-establishment inside run_candidate_measurements needs its own
+          declared retry bound (suggested two bring-up retries per lost
+          serving state from the recorded attempt recipe) before
+          serving_exhausted. The reference-defect loop
+          run_candidate_measurements <-> capture_baseline_reference shares
+          the same per-measurement repair budget - record it as one
+          per-measurement counter in campaign state with per-route
+          accounting, not two independent counters.
+        proposed_checks: |
+          Two new mechanical checks for the lead to mint. (1)
+          procedures_smoke_verified on realize_measurement_procedures
+          .procedures_ready: does every declared measurement for this
+          campaign's route have a runnable procedure with a passing smoke
+          record and a fixed invocation, recorded before any measured run?
+          on_failure_route realize_measurement_procedures. (2)
+          revision_stamped on run_candidate_measurements.runs_complete:
+          does every run record carry a git-issued revision identifier
+          read from the checked-out commit at measurement time - never a
+          branch name - and do all records for one measurement agree?
+          on_failure_route run_candidate_measurements.
+        measured_revision_field: |
+          BINDING interface from the lead's F-PR repair: measurement_artifacts
+          bundles carry a measured_revision field - the git-issued
+          identifier of the checked-out commit, read at measurement time on
+          the leased host (rev-parse of the checkout, never a branch name).
+          run_candidate_measurements is the sole origin; every run record
+          stamps it; stabilize_and_package_evidence copies it verbatim into
+          each bundle and is forbidden from minting or altering it. The
+          adjudication verdict inherits it by reference. Downstream PR
+          packaging verifies CONTENT identity (git diff measured_revision
+          against the final branch head empty), so post-measurement branch
+          tidying stays legal without invalidating the record.
+        intermediate_evidence: |
+          Three intermediate evidence definitions for the lead to mint, all
+          kind observation-or-derivation as noted, all under
+          artifacts/campaigns/<campaign>/measurements/:
+          measurement_procedure_record (derivation, produced by
+          realize_measurement_procedures - runnable route-scoped procedures,
+          fixed invocations, smoke evidence; subdir procedures/);
+          baseline_reference_capture (observation, produced by
+          capture_baseline_reference - reference outputs against hash-pinned
+          inputs plus the baseline-skew record naming the GPU-side vLLM
+          version read live and the known cross-version behavior
+          differences, or a justified route-scoped skip; subdir reference/);
+          candidate_measurement_runs (observation, produced by
+          run_candidate_measurements - raw one-file-per-event run records,
+          each revision-stamped; subdir runs/). measurement_artifacts keeps
+          its frozen definition and directory; bundles link the three by
+          path.
+        state_fields: |
+          Campaign-state additions: per-measurement repair counter for the
+          internal loops (see loop_bounds); the baseline-skew record values
+          (GPU-side vLLM version read live at capture, known cross-version
+          differences from kickoff) stored as run-state values so graph
+          text stays pin-generic; measured_revision as recorded per run
+          record and per bundle.
+        measurer_identity: |
+          All four children are measurer seats. For the
+          measurer_not_adjudicator check, every agent identity that acted
+          in any of the four children counts as having produced the
+          measurement artifacts under verdict.
+        route_scoping: |
+          Finding G applies to every child: the declared measurement list
+          is always the kickoff-declared acceptance procedures for this
+          campaign's route (upgrade routes execute the regression matrix
+          instead of correctness+perf). An upgrade-route campaign whose
+          regression matrix declares no GPU-baseline comparator flows
+          through capture_baseline_reference as a recorded justified skip -
+          the node is conditional in effect, not in structure.

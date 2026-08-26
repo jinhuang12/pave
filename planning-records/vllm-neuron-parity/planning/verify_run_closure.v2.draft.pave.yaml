@@ -1,0 +1,321 @@
+pave:
+  name: verify_run_closure
+  status: draft
+  # Atomic: no child nodes. The dispatched node's five-part contract is
+  # frozen in the parent draft and referenced below, never re-authored here.
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: verify_run_closure
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#verify_run_closure
+      revision: >
+        v2, supersedes planning/verify_run_closure.draft.pave.yaml (kept as
+        provenance). Boundary-review repair - the reviewer confirmed finding
+        f3 (discrepant-closure livelock) as HIGH and the lead resolved it as
+        conflict c5 at the parent interface: a new non-success outcome
+        closure_unverified on verify_run_closure, edged to close_campaign,
+        loop-bounded by gate 3 (user owns the stop), plus part 4 - re-entry
+        supersession semantics in the assembly artifact-layout reference so
+        the exactly-one-closure-record check reads the current record and
+        the repair loop converges. This fragment designs
+        against that settled interface; the parent node itself is
+        re-authored only in the root draft at resynchronization, never here.
+        Everything the review called strong (run_complete including declared
+        blocked closures, base equals campaign_target_pins check, rung-1
+        gh/file transcripts) is unchanged from v1.
+
+      elaboration:
+        verify_run_closure:
+          verdict: atomic
+          justification: >
+            One adjudicator, dispatched once per closure event, enumerates
+            approved_campaigns from run state, reads each campaign's closure
+            and gate-3 approval records, resolves any claimed PR URL
+            first-hand via gh against the fork recorded in run state, greps
+            the four cross-run artifacts on disk for the entries each closure
+            claims, and writes one verification table with raw transcripts to
+            artifacts/run/closure/. Falsified only if a run's gate-1-approved
+            campaign count or closure-evidence volume exceeds one bounded
+            context (dozens of campaigns); gate-1 user election makes that
+            implausible. Confirms the framing prediction. The c5-added
+            closure_unverified outcome changes routing, not work volume -
+            the verification acts are identical; only the emission differs.
+
+      atomic_contract:
+        # Elaboration of the frozen contract's parts; nothing here re-authors
+        # the parent draft. Pin-generic: fork, base branches, and artifact
+        # paths are run-state values (pinned_release, campaign_target_pins,
+        # cross_run_artifact_refs), never graph text.
+        definition_of_done: >
+          Every campaign in run state's approved_campaigns has exactly one
+          CURRENT closure record - read under the artifact-layout reference's
+          supersession rule, where a close-out re-entry supersedes the prior
+          closure_record and gate_approval_record to the declared archive
+          path (c5 part 4) - carrying its verbatim gate-3 approval; each
+          closure's
+          world evidence verifies first-hand (PR path: gh resolves the URL as
+          an open or merged PR on the fork recorded in run state, head equals
+          the campaign branch and base equals that campaign's
+          campaign_target_pins entry; no-benefit path: the recorded bundle
+          with evidence and upstream-issue draft exists on disk; blocked path:
+          the recorded blocked bundle exists on disk); and each of the four
+          cross-run artifacts on disk contains the entry that closure claims
+          - settled by the adjudicator writing the per-campaign verification
+          table into artifacts/run/closure/ with the raw gh transcripts and
+          artifact-read excerpts embedded.
+        evidence_ladder_rung: >
+          Rung 1 (measurement against declared conditions): the values come
+          from gh command output and repo-tracked file contents, not the
+          adjudicator's judgment, and the adjudicator produced none of the
+          evidence under verdict. The per-campaign conditions (URL resolves,
+          base matches the recorded target pin, bundle members present,
+          artifact entry present) are declared above, so the transcript
+          settles each one mechanically. Doer-written verdict hardened per
+          9.14.1 rung 1: every embedded transcript names gh-resolvable URLs
+          and repo-tracked paths any reviewer can re-run; a fabricated
+          transcript fails re-resolution.
+        activities:
+          - Read run state - approved_campaigns, campaign_states pointers,
+            campaign_target_pins, cross_run_artifact_refs, recorded
+            pause/blocked conditions.
+          - For the triggering campaign (and idempotent re-check of prior
+            verified ones), read the closure and approvals directories under
+            the artifact-layout reference's supersession rule - exactly one
+            CURRENT closure record with a verbatim gate-3 approval; superseded
+            records at the declared archive path are expected after a
+            closure_unverified lap and are not a defect; more than one
+            unsuperseded record IS a named discrepancy.
+          - PR-path closures - resolve the URL via read-only gh; capture the
+            raw transcript (PR state, head, base vs the campaign's recorded
+            target pin).
+          - No-benefit and blocked closures - confirm the recorded bundle
+            exists with its required members; capture the listing transcript.
+          - Diff the four cross-run artifacts on disk against each closure's
+            claims (scorecard cell, backlog entry, debt-ledger entry when
+            claimed, fingerprint entries when hardware attempts were logged);
+            capture the read excerpts; on a mid-read change, re-read until
+            stable (verdicts read stable artifacts, never first-sighting).
+          - When any claimed closure fails first-hand verification, record
+            the named discrepancy in the verification table - which declared
+            check failed, expected versus observed values, and the artifact
+            paths read - one entry per discrepant campaign; the record is
+            what the re-entered close_campaign consumes.
+          - Write the verification table plus all transcripts one-file-per-
+            event into artifacts/run/closure/, keyed by campaign and closure
+            event; re-dispatch on the same event reproduces, never mutates, a
+            prior verdict file.
+          - Report exactly one outcome by this precedence -
+            (1) closure_unverified when any claimed closure failed
+            first-hand verification, with every discrepant campaign named in
+            the verdict record; a discrepant campaign is never reported under
+            campaigns_remaining.
+            (2) run_closed_complete only when every approved campaign
+            verified, including declared blocked closures - faithfulness to
+            the contract's definition, not optimism.
+            (3) resumable_stop or no_route_remains when all claimed closures
+            verify, open campaigns remain, and run state records the
+            corresponding stop condition - the adjudicator never probes
+            hardware or authority itself.
+            (4) campaigns_remaining otherwise - all claimed closures verify
+            and other approved campaigns are still open.
+        effect_boundaries:
+          allowed:
+            - Read-only gh queries against the fork recorded in run state.
+            - Reads of run state, campaign evidence directories, and the
+              cross-run artifacts.
+            - Writes only under artifacts/run/closure/.
+          forbidden:
+            - Any write to the cross-run artifacts, campaign directories,
+              run state, or the fork.
+            - Repairing a discrepancy it finds - it records and routes,
+              never fixes.
+
+      evidence_questions:
+        - q: Where does the authoritative approved-campaign list live?
+          a: Run state approved_campaigns (root.v6 state fields); never a
+            directory listing, which would miss a campaign whose executor
+            wrote nothing.
+        - q: What are the four cross-run artifacts and where?
+          a: Scorecard, backlog, debt ledger, fingerprint file - repo-tracked
+            in the workflow repo, lead single-writer, never on campaign
+            branches (root contract section 6; system-map). Concrete paths
+            come from cross_run_artifact_refs frozen at intake.
+        - q: What must PR resolution confirm beyond a 200 from gh?
+          a: The PR is on the fork recorded in run state, head is the
+            campaign branch, base equals the campaign's campaign_target_pins
+            entry, state open or merged. Base value is a run input, never
+            graph text.
+        - q: Is gh availability this node's problem?
+          a: No - preflighted at verify_run_preconditions; an unreachable gh
+            at verdict time is a recorded resumable condition, routed via
+            resumable_stop.
+        - q: What evidence distinguishes resumable_stop from
+            no_route_remains?
+          a: Recorded run-state conditions only - a pause request or
+            unavailable-capability record with resumable state maps to
+            resumable_stop; a recorded capability/authority loss with no
+            declared route for the open campaigns maps to no_route_remains.
+        - q: What does the re-entered close_campaign consume after a
+            closure_unverified emission?
+          a: The named-discrepancy entries in the run_closure_verdict record
+            - which declared check failed, expected versus observed, and the
+            artifact paths read - so close-out repair targets the exact
+            failed condition instead of re-guessing.
+        - q: How does the exactly-one-closure-record check survive re-entry
+            laps without failing on the prior lap's records?
+          a: It reads the CURRENT record under the artifact-layout
+            reference's supersession rule (c5 part 4) - a close-out re-entry
+            supersedes the prior closure_record and gate_approval_record to
+            the declared archive path, so each lap verifies one current
+            record and the loop converges. Reviewer-verified facts relied on,
+            not re-derived - a re-entry re-executes the SAME closure type
+            (the one-closure-type-per-campaign forbidden effect is not
+            breached), and gate-3 re-presentation follows the
+            declined_closure precedent (the contract counts gate identities,
+            not interactions).
+
+      interface_findings:
+        # Declared needs from the await_remaining_closures runtime binding
+        # (assembly-stage open question per the parent's fan_in_note).
+        # Prose only; no runtime mechanism invented here.
+        - label: f1_trigger_payload
+          finding: >
+            The binding re-dispatches verify_run_closure once per
+            closure_recorded traversal and passes the triggering campaign id;
+            the node needs read access to run state (approved_campaigns,
+            campaign_target_pins, cross_run_artifact_refs, campaign_states)
+            and the artifacts tree at dispatch.
+        - label: f2_idempotency
+          finding: >
+            Re-dispatch on the same closure event must be safe; the
+            node guarantees it by one-file-per-event verdict records keyed by
+            campaign and closure event. The binding may dedupe dispatches but
+            is not required to.
+        - label: f3_discrepancy_route
+          finding: >
+            RESOLVED at the parent interface (lead conflict c5, boundary
+            review): verify_run_closure gains a non-success outcome
+            closure_unverified (required_evidence run_closure_verdict) edged
+            to close_campaign - the destination the closure_evidence_settled
+            check already names as its on_failure_route. This fragment
+            designs the emission (activity list, outcome precedence rule 1)
+            and the discrepancy payload the re-entered close_campaign
+            consumes. Residual binding need only - close_campaign is
+            instance-per approved_campaigns, so the edge traversal must
+            re-enter the close-out for each campaign the verdict record
+            names as discrepant. Loop bound is parent-recorded per c5 - the
+            close_campaign to verify_run_closure cycle passes gate 3 every
+            lap, so the user owns the stop; this node contributes by naming
+            each discrepancy in the verdict so gate 3 sees exactly what
+            failed. No parent text authored here.
+        - label: f4_write_serialization
+          finding: >
+            A concurrent campaign's close_campaign may be mid-write on
+            the cross-run artifacts while this node reads them. The node
+            re-reads until stable; the binding should additionally serialize
+            verify_run_closure dispatch after close_campaign's artifact
+            update completes for the triggering closure, since the inbound
+            check closure_evidence_settled already assumes the updates exist.
+        - label: f5_recorded_conditions
+          finding: >
+            resumable_stop and no_route_remains require the lead or
+            binding to record pause/capability/authority conditions in run
+            state; the adjudicator settles them from those records only and
+            performs no fresh probes.
+        - label: f6_supersession_layout
+          finding: >
+            Per c5 part 4, this node's exactly-one-CURRENT-closure-record
+            check depends on the assembly artifact-layout reference declaring
+            the supersession rule - a close-out re-entry supersedes the prior
+            closure_record and gate_approval_record to a declared archive
+            path. This fragment needs that reference to name the archive path
+            and the current-record marker; the check reads whatever the
+            layout declares, and this fragment invents neither. Until the
+            reference lands at assembly, this is the node's one open
+            dependency.
+
+      enforcement:
+        - subject: run_closed_complete to run_complete transition (the run's
+            terminal acceptance)
+          strength: persistent record plus rung-1 provenance hardening plus
+            role separation (adjudicator is never the lead and produced none
+            of the closure evidence)
+          why_no_stronger_rung: Every claim in the verdict re-settles
+            mechanically by re-running the embedded gh and file-read
+            transcripts; an independent review of the verdict would read the
+            same re-runnable evidence and adds no new failure detection.
+            Residual false-pass severity is bounded by the human PR-merge
+            authority and the verbatim gate-3 records the user already saw.
+        - subject: run_closure_verdict gameability (doer-produced evidence)
+          judgment: low, per the parent record - the adjudicator writes the
+            verdict but every claim binds to identifiers it cannot mint
+            (gh-issued PR state on the fork, repo-tracked artifact contents).
+            Residual risk is a fabricated transcript; hardened first (9.14.1
+            order) by keeping raw transcripts in the artifact naming
+            re-runnable commands and world-resolvable identifiers, so
+            fabrication fails re-resolution. No review rung added. Unchanged
+            by c5 - closure_unverified reads the same record, and a falsely
+            minted discrepancy is caught at the gate-3 lap it forces.
+        - subject: relation to the inbound closure_evidence_settled check
+          note: Layered, not duplicative - the lead's mechanical edge check
+            is the fast gate at each closure; this node is the
+            authority-separated settlement above it, and since c5 its
+            failure discovery has a declared route (closure_unverified to
+            close_campaign) instead of a silent hold. Removing either layer
+            changes required routing or authority, so both stay.
+
+      model_effort:
+        adjudicator:
+          model: strong model (not the session top model)
+          effort: high
+          rationale: Direct terminal-gate authority with modest, mechanical
+            evidence volume; wrong-verdict blast radius is the run's honesty,
+            which justifies a strong model, but the judgment is single-shot
+            settlement of declared conditions, not compounding planning, so
+            the top model is not required. Matches the parent's adjudicator
+            assignment.
+
+      uncertainty_ledger:
+        facts:
+          - Frozen contract, outcomes, inbound check, and edges - root.v6
+            lines 660-687, 821-839, checks.closure_evidence_settled.
+          - run_complete definition of done and never-lead-settled rule -
+            root-contract.md section 4.
+          - Artifact locations (closure, approvals, run closure) and the
+            four cross-run artifacts with lead single-writer - root.v6
+            evidence section; root-contract.md section 6; system-map.md.
+          - approved_campaigns is the fan-out collection in run state -
+            root.v6 state fields.
+          - Parent gameability entry for run_closure_verdict (low; keep
+            transcripts in artifact) - root.v6 x_planning.
+          - Join binding is assembly-stage - root.v6 x_planning.fan_in_note.
+          - c5 resolution (boundary review, lead decision) - the parent
+            gains closure_unverified with an edge to close_campaign and a
+            gate-3 loop bound; lands in the root draft at resynchronization.
+          - c5 part 4 (reviewer-driven addendum) - re-entry supersession
+            semantics live in the assembly artifact-layout reference; a
+            close-out re-entry supersedes prior closure_record and
+            gate_approval_record to a declared archive path, so exactly-one
+            means exactly one CURRENT record. Reviewer-verified - same
+            closure type on re-entry (no forbidden-effect breach); gate-3
+            re-presentation consistent with the declined_closure precedent.
+        assumptions:
+          - Gate-1-elected campaign count stays single-digit scale, so full
+            enumeration plus four artifact diffs fits one context (basis -
+            user election at gate 1; falsifies the atomic verdict if wrong).
+          - Closure records point at evidence rather than inlining it, per
+            the run-state contract's pointer rule.
+          - gh is authenticated for fork reads (intake preflight).
+        open_questions:
+          - Join and re-dispatch runtime semantics - closed for this node by
+            declaring binding needs f1-f5; mechanism stays assembly-stage.
+          - Discrepant-closure recovery route - CLOSED by c5 at the parent
+            interface; this fragment's emission design (precedence rule 1,
+            discrepancy payload) realizes it. Residual binding need recorded
+            in f3.
+          - Supersession convergence - CLOSED by c5 part 4; the check reads
+            the current record under the artifact-layout supersession rule.
+            Residual dependency on the assembly layout reference recorded in
+            f6 (archive path and current-record marker).
+        explorer_dispatches: none - the brief and on-disk contract answered
+          every sizing-relevant question.

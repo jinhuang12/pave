@@ -1,0 +1,277 @@
+# Planner fragment — assemble_kickoff_contracts (dispatched boundary)
+# Verdict: ATOMIC, framing prediction confirmed. One lead-role agent drafts
+# per-elected-campaign contracts from the fixed completeness list, runs
+# read-only per-campaign preflight probes, presents gate 1 once, and records
+# verbatim user decisions plus the approved set into run state. Pin-generic
+# throughout; all concrete pin values are run inputs frozen at intake.
+pave:
+  name: assemble_kickoff_contracts
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: assemble_kickoff_contracts
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#assemble_kickoff_contracts
+
+      elaboration:
+        assemble_kickoff_contracts:
+          verdict: atomic
+          justification: >
+            One lead-role agent can draft every elected campaign's contract
+            from the enumerated completeness list (inputs are finished,
+            adversarially reviewed artifacts - the costing report already
+            carries both routes, both A-sources, spend estimates, and the
+            predicted file surface per target; default acceptance thresholds
+            exist in the target repo's accuracy framework), fan out read-only
+            preflight probes per campaign under the Runtime Binding, present
+            gate 1 in one bounded user interaction, and settle the definition
+            of done by re-running a mechanical completeness checklist plus
+            reading the verbatim approval record. Overturned if drafting a
+            contract demands fresh per-target repo archaeology beyond the
+            costing and delta reports, or if repeated gate-1 re-entries show
+            contract repair needs its own evidence trail and resume point.
+
+      atomic_contract:
+        definition_of_done: >
+          contracts_ready - at least one elected campaign has a kickoff
+          contract record containing every field on the completeness
+          checklist (target, route, source, acceptance thresholds, methods,
+          models, hosts, test layout, spend notes, per-campaign preflights
+          each backed by a raw command transcript, prior-run carry-over
+          decision, and for upgrade-route campaigns the upgrade base recorded
+          to campaign_target_pins plus the regression-matrix criteria) AND a
+          gate-1 approval record quoting the user's verbatim decision bound
+          to that exact contract revision by content hash - settled by
+          re-running the mechanical completeness checklist over the contract
+          record on disk and reading the quoted approval text against the
+          hash it names. Ladder (pave-spec 5.3.1): preflight fields settle at
+          rung 1 (instrument output - gh/ssh/file-probe transcripts persisted
+          in the artifact, values from the world not the drafter); the
+          approval settles at rung 2 (judgment by the user, who did not draft
+          the contract, against the completeness checklist that predates
+          every draft; checklist and verbatim verdict both persist). A
+          reviewer re-settles from the artifacts alone: recompute the
+          checklist, recompute the hash, read the quote. Artifact existence
+          is never approval - only the quoted user decision is.
+        failure_outcome: >
+          no_campaign_approved - the user approves no campaign at gate 1;
+          control-flow outcome, self-explanatory, no evidence demanded
+          beyond the verbatim declination captured in the gate record.
+        activities:
+          - Read route_costing_and_backlog plus its adversarial review
+            findings; present the ranked backlog and take the user's target
+            election (election is the opening move of the gate-1
+            interaction, not a separate gate).
+          - Per elected target, draft the kickoff contract from the fixed
+            completeness template, filling route/source/spend/surface from
+            the costing report, acceptance thresholds and methods from the
+            kickoff authority (in-repo accuracy-framework defaults proposed,
+            user-adjustable at the gate), models, hosts, test layout, and
+            the prior-run carry-over decision item.
+          - For upgrade-route targets, additionally draft the upgrade base
+            (destined for campaign_target_pins) and the regression-matrix
+            criteria; matrix assembly itself stays in design_campaign.
+          - Run per-campaign read-only preflights, fanned out under the
+            Runtime Binding - pinned-release-branch-present-on-fork,
+            delegate availability, SDK/compiler uniformity across the
+            campaign's named hosts, GPU-baseline reachability, per-target
+            weight-artifact existence, venv replication precondition -
+            persisting the raw command transcript for each.
+          - Run the mechanical completeness checklist over every draft; a
+            contract missing any field or any preflight transcript is
+            marked not-startable with the named gap and presented as such
+            (the refusal rule - the run never starts an incomplete
+            campaign).
+          - Present gate 1 with contracts, preflight evidence, and spend
+            notes; capture the user's verbatim per-campaign decisions into
+            gate_approval_record, each bound to the contract content hash
+            it judged.
+          - Record the approved set in run state - approved_campaigns
+            entries, campaign_target_pins for upgrade-route campaigns, and
+            scheduling_holds seeded from the costing report's predicted
+            file surfaces with the lead-derived serialization holds
+            (overlapping surfaces serialize; an upgrade-route campaign
+            holds all others for exclusive execution) - so both fan-out
+            edge checks can evaluate.
+          - Emit contracts_ready or no_campaign_approved.
+        enforcement:
+          - subject: refusal rule (no campaign starts on an incomplete
+              contract)
+            strength: mechanical checklist inside the node + the frozen
+              reviewed check kickoff_contract_approved (evaluated_by user)
+              on the fan-out edge
+            rationale: >
+              The violation is likely (two real prior failures - a campaign
+              closed with no perf gate ever run, another parked with no gate
+              reached), costly (hardware spend against undeclared
+              acceptance), and precisely detectable (field presence plus
+              transcript presence). That is exactly the mechanical-rung
+              profile. No stronger rung exists above the user-evaluated edge
+              check for the approval itself; adversarial review of a gate
+              record would re-judge the user and adds ceremony, not safety.
+          - subject: scheduling_holds before fan-out
+            strength: mechanical (frozen check scheduling_holds_recorded,
+              evaluated_by lead) reading a persisted derivation record
+            rationale: >
+              Overlap-and-exclusivity is pure computation over recorded
+              surfaces; the node persists surfaces plus the pairwise
+              derivation so the edge check recomputes rather than trusting
+              the seeding pass. Nothing judgment-shaped to review.
+        evidence_gameability:
+          - artifact: kickoff_contract_record
+            judgment: gameable - the drafter could assert a preflight
+              outcome without probing, or backfill a field label with empty
+              content.
+            hardening: >
+              Harden first (9.14.1) - rung-1 provenance. Each preflight
+              field is a raw command transcript (gh/ssh/file-probe output
+              carrying world-issued identifiers - commit hashes, host
+              descriptors, file listings the drafter cannot mint), not a
+              boolean; the completeness checklist requires the transcript,
+              so a minted pass fails mechanically. The gate-1 presentation
+              then puts every field before the user, whose approval is
+              independent judgment over the same artifact.
+          - artifact: gate_approval_record
+            judgment: gameable - the lead writes the record and could
+              paraphrase or invent approval; this is the codified
+              artifact-existence-is-never-approval failure.
+            hardening: >
+              Verbatim quoted user text plus the contract content hash it
+              judged, and - structurally, already frozen - the fan-out edge
+              check kickoff_contract_approved is evaluated_by user, so a
+              minted record cannot substitute for the user at the edge. The
+              record documents the decision; the user's own check
+              evaluation settles it.
+          - artifact: scheduling_holds (state seed)
+            judgment: not gameable in effect - any error, honest or not, is
+              caught because the mechanical edge check recomputes holds
+              from the persisted surfaces and derivation record.
+            hardening: none beyond persisting the derivation inputs.
+          - artifact: campaign_target_pins (upgrade-route entries)
+            judgment: gameable - a wrong upgrade base silently retargets
+              the whole campaign.
+            hardening: >
+              The upgrade base appears verbatim inside the gate-1 contract
+              the user approves (covered by the approval hash binding), and
+              the value must match the costing report's route-B record -
+              a mechanical cross-check the completeness checklist includes.
+        model_effort:
+          - role: lead
+            model: session top model
+            effort: high
+            rationale: Gate presentation and contract drafting carry
+              acceptance-criteria judgment whose blast radius is every
+              downstream campaign; this is where judgment compounds.
+          - role: user
+            model: n/a (human authority)
+            effort: n/a
+            rationale: Gate-1 approval authority per the root contract.
+          - role: preflight probe sub-dispatches (Runtime Binding fan-out
+              under the lead, not a new graph role)
+            model: small fast model
+            effort: low
+            rationale: High-volume single-question read-only lookups; each
+              returns a transcript, judged by nobody but the checklist and
+              the user.
+
+      evidence_questions:
+        - question: Do the node's inputs already carry everything contract
+            drafting needs (routes, sources, spend, predicted surfaces,
+            threshold defaults), or does assembly need fresh repo
+            archaeology?
+          answer: Closed from the brief's evidence - root.v6
+            cost_routes_and_rank_backlog purpose (both routes costed per
+            target, surface predicted) and system-map.md Evidence flow
+            (in-repo accuracy-framework thresholds verified present). No
+            explorer dispatch needed.
+        - question: Is regression-matrix construction inside this node?
+          answer: No - root.v6 design_campaign owns matrix assembly (named
+            new construction there); kickoff declares only the criteria and
+            the upgrade base. Closed by reading the two frozen purposes.
+        - question: Can preflight volume force a split?
+          answer: No - probes are read-only, independent, and fan out under
+            the Runtime Binding inside one node run; volume alone does not
+            breach the one-agent boundary (pave-spec 9.12).
+        - question: Does a failed preflight need its own recovery route?
+          answer: No new route - a failed preflight makes that contract
+            not-startable (refusal rule); repair re-enters this node via
+            the frozen on_failure_route of kickoff_contract_approved, and a
+            user-owned gap (fork sync) is presented at the gate for the
+            user to resolve before re-entry.
+      explorer_dispatches: none - every sizing-relevant question closed
+        from the frozen contract, system map, and requirements already in
+        the brief.
+
+      uncertainty_ledger:
+        facts:
+          - The completeness list is fully enumerated in the frozen check
+            kickoff_contract_approved and root-contract.md section 3 - a
+            mechanical checklist is directly derivable. (root.v6 checks;
+            root-contract.md)
+          - Inputs are finished, adversarially reviewed artifacts; the
+            costing report includes predicted file surfaces and both-route,
+            both-source costing per target. (root.v6; requirements.md
+            Scope)
+          - Default correctness thresholds exist in the target repo's
+            accuracy framework; drafting proposes them rather than deriving
+            from scratch. (system-map.md Evidence flow)
+          - All preflights are read-only gh/ssh/file probes of the same
+            class verify_run_preconditions performs at intake. (root.v6)
+          - The refusal rule codifies two real prior failures - one
+            campaign closed with no perf gate ever run, one parked having
+            reached no gate. (system-map.md Acceptance and closure)
+          - scheduling_holds must exist before instance dispatch and are
+            lead-derived from predicted surfaces; design_campaign later
+            refines them under the lead's standing authority. (root.v6
+            state + checks)
+        assumptions:
+          - The user elects a bounded campaign set; even a large election
+            changes probe volume (fanned out), not the count of judgment
+            surfaces held at once. Falsifier - an election so large the
+            gate-1 conversation itself cannot cover it in one interaction.
+          - Election and approval share the gate-1 interaction window; no
+            separate election gate exists or is needed (root contract fixes
+            exactly three gates).
+          - The harness lets the lead capture verbatim user text into the
+            approval artifact (true of conversation-presented gates in this
+            runtime).
+        open_questions:
+          - question: A gate-1 objection aimed at the route verdict itself
+              (not the contract) has no declared edge back to
+              cost_routes_and_rank_backlog.
+            closure: Closed for sizing - costing already prices both routes
+              and both A-sources per target, so route or source re-election
+              at gate 1 is contract repair inside existing evidence
+              (re-entry via the frozen failure route); a genuine costing
+              defect is guarded upstream by review_route_verdicts. Reported
+              below as an interface observation, not a conflict.
+          - question: Intake and kickoff both verify
+              branch-on-fork/SDK/weights/delegates - duplication?
+            closure: Deliberate re-verification, not overlap - intake runs
+              once run-wide at invocation; kickoff re-probes per campaign at
+              start because fork sync is user-owned and time passes between
+              intake, review, and gate 1 (and across gate-1 re-entries).
+              Interface note only.
+
+      interface_findings:
+        - No frozen-interface change requested. The node fits its contract
+          as dispatched; both fan-out edge checks are satisfiable from
+          inside the node's declared work.
+        - Observation for the lead (no c-id minted) - if the user rejects
+          every contract at gate 1 specifically because the costing is
+          wrong, the only declared exits are in-node repair (check failure
+          route) or no_campaign_approved -> run_aborted. Costing defects are
+          meant to die at review_route_verdicts, and both-route costing
+          makes route re-election in-node, so this planner treats the
+          routing as sufficient - flagged only so the whole-plan review can
+          confirm that reading.
+        - Seeding note - scheduling_holds are seeded here from the costing
+          report's predicted surfaces (with the derivation record
+          persisted); design_campaign's refined surface later re-derives
+          holds under the lead's standing scheduling authority. Same field,
+          two declared writers at two declared moments, both the lead -
+          consistent with single-writer ownership.
+        - Pin-generic conformance - this fragment names no base version,
+          branch name, SDK version, or prior-campaign name; the frozen
+          check text's concrete carry-over item is read as an instance of
+          the generic prior-run carry-over decision field.

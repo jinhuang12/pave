@@ -1,0 +1,587 @@
+pave:
+  name: realize_measurement_procedures
+  status: draft
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: realize_measurement_procedures
+      frozen_contract_reference: planning/measure_against_baseline.v2.draft.pave.yaml#realize_measurement_procedures
+      supersedes: planning/realize_measurement_procedures.draft.pave.yaml
+
+      revision_deltas:
+        high1_revision_scoped_smoke_predicate: >
+          Landing sites in THIS fragment - realization_notes procedure-file
+          ordering note and enforcement.smoke_before_measured_run.rationale
+          (the reviewer's two named echo sites), PLUS two further echoes
+          found by propagation grep and scoped the same way:
+          evidence_gameability.procedures_ready (recorded-before clause)
+          and assembly_interface_needs item 3 (the check's timestamp
+          arithmetic). Parent frozen-text sites are booked, not edited,
+          under where_it_lands_27p below - the contract fix is the lead's
+          item 27(p).
+        low2_serving_loss_second_disjunct: >
+          Landing sites - realization_notes (new adopted bounded bring-up
+          note), evidence_gameability.procedure_unrealizable (second
+          per-disjunct evidence branch citing the lead's booked item
+          27(q)), uncertainty_ledger.assumptions (serving-at-entry
+          assumption now points at the adopted resolution), and
+          conflicts_referenced (v1's prose gap recorded as resolved -
+          retry half adopted, stall half rejected on the sibling
+          serving_exhausted precedent).
+        low3_tier_docs_downgrade: >
+          Landing sites - uncertainty_ledger facts/assumptions split (the
+          tier-docs claim moved to assumptions as listing-grade evidence;
+          the primitives census stays a fact with the verified count -
+          seventeen files, 8,682 lines), elaboration justification hedged
+          to listing-grade with the same census correction, elaboration
+          falsifier (a) widened to fire on thin-or-absent documentation at
+          first inspection, and open_questions_closed question 1
+          downgraded from closed to partially closed.
+        c13_pair_key_shrink: >
+          Mid-repair update after the lead's c13 adjudication (pair
+          keying struck run-wide as a budget key; fields survive
+          narrowed for re-entry targeting and the recurrence/novelty
+          predicate; budget is per-measurement, two-tier, landing at
+          lead resync). Landing sites in THIS fragment -
+          closed_review_realization entry renamed and rewritten to
+          repair_reentry_defect_naming (revision entries name the defect
+          they repair; all budget-arithmetic claims dropped; division-
+          of-labor sentence survives), enforcement.repair_scope_guard
+          strength wording, evidence_gameability.repair_reentry,
+          realization_notes re-entry note, assembly_interface_needs
+          items 1 and 2 (item 2 now states measurement id keys the
+          per-measurement derivation by path and defect identity is
+          never a budget key), and conflicts_referenced (dispute closed).
+
+      elaboration:
+        realize_measurement_procedures:
+          verdict: atomic
+          justification: >
+            One agent realizes the frozen comparator set into runnable,
+            smoke-verified procedures because every judgment is bounded by
+            the design record - the node maps each entry of a route-scoped,
+            kickoff-bounded declared measurement list onto a fixed
+            invocation and proves it runs end-to-end; it never chooses a
+            comparator, a method, or a threshold. Runtime-Binding check
+            taken first: per-procedure realization and smoke are separable
+            single-question work with no ordering between procedures, and
+            the frozen roles already carry delegate_dispatcher - the
+            binding's sub-agent fan-out absorbs the volume dimension, so
+            parallelism is a binding fact, not a child-node reason. The
+            parent's recorded overturn condition - the unread
+            accuracy-orchestration tier forcing its own explore/build
+            split - was tested against evidence and does not fire on what
+            is verified: the validation primitives beneath the tier are
+            unchanged and already inventoried and read (seventeen flat
+            modules, 8,682 lines, censused directly), and the pin-delta
+            file listing shows the tier ships as a small driver subpackage
+            (a plugin-architected pipeline plus golden fixtures and a
+            snapshot subpackage) accompanied by a how-to guide, a set of
+            design docs, and runnable example driver scripts - though the
+            docs themselves are unopened, so their adequacy is carried as
+            an assumption below, not asserted as fact. Realizing a
+            declared method that routes through the tier is planned as a
+            docs-first bounded read per procedure, not a repo-scale
+            exploration; a declared method that proves unusable in
+            practice is the frozen procedure_unrealizable outcome, not a
+            hidden child. Recovery modes do not split the node: a failed
+            smoke is in-node iteration on the harness; an unusable method
+            exits via the declared outcome; a wrong-property realization
+            that survives smoke returns through the parent's
+            procedure_defect_found route within the shared budget - all
+            three are frozen structure, none needs a new route.
+            Per-procedure records are resume points as
+            one-file-per-procedure artifact structure inside the single
+            evidence product the frozen contract already mandates -
+            artifact layout, not a node boundary. Confirms the parent's
+            atomic prediction. Overturned if (a) the orchestration tier's
+            documentation proves thin, absent, or contradicting its
+            behavior on first inspection, forcing a wholesale internals
+            read - an explore/build split would then precede realization -
+            or (b) a route's declared list needs so many DISTINCT novel
+            harnesses (not matrix rows over shared harnesses) that
+            coordinating realization plus smoke exceeds one context even
+            with delegate fan-out. Both falsifiers surface at the first
+            campaign that trips them and land on the parent's recorded
+            overturn path.
+
+      outcome_coexistence: >
+        Two outcomes only, mutually exclusive by universal quantification:
+        procedures_ready requires EVERY declared measurement realized and
+        smoke-verified, so any single unrealizable measurement makes it
+        false while procedure_unrealizable holds with the evidence. No
+        three-way co-hold is possible, so no precedence order is owed in
+        contract text - same argument the parent review credited for
+        stabilize_and_package_evidence.
+
+      where_it_lands_27p:
+        corrected_predicate: >
+          "recorded before any measured run THAT CITES THAT PROCEDURE
+          REVISION" - the reviewer-corrected smoke-gate predicate,
+          verbatim from the lead's booking. The un-scoped form is jointly
+          unsatisfiable with the mandated re-smoke-after-repair once
+          measured runs exist; the revision-scoped form stays pure
+          arithmetic because the revision entries and smoke references
+          are the join keys.
+        parent_sites_booked_for_lead_item_27p:
+          - measure_against_baseline.v2 child 1 purpose (the
+            smoke-verified-before-any-measured-run clause, around lines
+            14-15).
+          - measure_against_baseline.v2 procedures_ready meaning (the
+            recorded-before clause, around lines 47-49).
+          - measure_against_baseline.v2 interface_findings
+            .proposed_checks item 1 (the check question's recorded-before
+            clause, around lines 435-437).
+          - measure_against_baseline.v2 elaboration
+            .realize_measurement_procedures.gameability (the
+            fixed-invocations-recorded-before clause, around lines
+            306-307) - a fourth parent echo found by propagation grep,
+            flagged here for the same 27(p) sweep.
+        echo_sites_repaired_in_this_fragment:
+          - realization_notes procedure-file ordering note.
+          - enforcement.smoke_before_measured_run.rationale.
+          - evidence_gameability.procedures_ready recorded-before clause.
+          - assembly_interface_needs item 3 (check arithmetic).
+        falsifier: >
+          After resynchronization, grep the parent draft for "before any
+          measured run" - any hit not carrying the citing-revision scope
+          is an unlanded 27(p) site. This fragment's four echo sites are
+          repaired in this v2 and re-hit only if a later revision
+          regresses them.
+
+      uncertainty_ledger:
+        facts:
+          - fact: Every method class the routes can declare has an
+              inventoried in-repo primitive or worked precedent with real
+              invocation evidence - task-level eval CLI against a served
+              endpoint, prompt-level logit and KV-cache comparison CLIs
+              with in-source thresholds, a streaming per-request latency
+              harness precedent for speculative-decode perf, the stock
+              serving bench with its undercount trap, the decode-only
+              connector with its no-correctness trap, and the GPU-oracle
+              capture pattern.
+            source: exploration/validation-and-acceptance.md sections 3.1,
+              3.2, 3.7.
+            bearing: Realization is predominantly read-and-adapt against
+              known primitives; thin-harness construction has a full
+              worked precedent, so no capability warning sign applies.
+          - fact: The flat validation primitives are unchanged at the
+              pinned release and are censused directly at the local
+              checkout's campaign feature branch - seventeen modules,
+              8,682 lines, thresholds unchanged (count verified
+              independently by the plan reviewer).
+            source: direct read-only census taken for this fragment;
+              exploration/plugin-024-delta.md question 3 for the
+              unchanged-at-pin claim (file path cited as a repository
+              path, not a pin literal).
+            bearing: The worst case for any tier-doc failure is bounded -
+              the primitives themselves are read and understood, so
+              realization can fall back to driving them directly.
+          - fact: The known failure class for this node's product is
+              wrong-property measurement that smoke CANNOT catch by design
+              - the two encoded tool traps are both real observed
+              incidents, and the parent's closed review added the
+              procedure_defect_found return route precisely for the
+              escape that survives smoke.
+            source: exploration/validation-and-acceptance.md section 3.7;
+              parent v2 revision_deltas.high_procedure_defect_route.
+            bearing: The node needs no internal review child - the escape
+              is caught by the parent loop and sized into the shared
+              repair budget.
+          - fact: The equivalence-skill delegate hard-pins a stack version
+              and refused to run in the one campaign that invoked it; the
+              design-sanctioned fallback (greedy-equality plus
+              acceptance-rate floor) is a worked precedent.
+            source: exploration/validation-and-acceptance.md sections 3.2
+              and 4.
+            bearing: A declared method naming a delegate needs a
+              realization-time compatibility pre-check; incompatibility
+              with no sanctioned fallback recorded in the design record is
+              procedure_unrealizable evidence, never a silent stall or a
+              silent method substitution.
+        assumptions:
+          - >-
+            The orchestration tier's documentation set (how-to guide, ten
+            design docs, example driver scripts) is adequate to support
+            docs-first per-procedure realization. This is
+            FILE-LISTING-GRADE evidence only - the listing comes from the
+            pin-delta report's deleted temporary clone, the report itself
+            labels its pipeline reading an inference, and nobody has
+            opened the docs. Falsifier: first inspection at realization
+            time finds the docs thin, absent, or contradicting the tier's
+            behavior - elaboration falsifier (a) fires and the atomic
+            verdict overturns via the parent's recorded overturn path;
+            the verified primitives census (fact above) bounds the worst
+            case to driving the primitives directly.
+          - >-
+            The design record's declared methods stay within the
+            inventoried primitive classes or the documented orchestration
+            tier. Falsifier: a design record declaring a method outside
+            every known class makes realization new construction beyond
+            thin-harness scale - the atomic verdict overturns via the
+            parent's recorded overturn path, or settles
+            procedure_unrealizable if the method is genuinely
+            unrealizable.
+          - >-
+            An upgrade route's regression matrix declares many rows over
+            FEW distinct procedure shapes - rows are configurations of
+            shared harnesses, so realization volume tracks distinct
+            shapes, not row count. Falsifier: a matrix whose rows each
+            need a distinct novel harness breaks the one-context
+            coordination bound (elaboration falsifier b).
+          - >-
+            The leased serving candidate is available for smoke at node
+            entry - the inbound edge arrives from a serving candidate,
+            and the boundary's precedence text records that nothing here
+            executes without the leased serving state. Serving loss
+            DURING smoke resolves per the adopted reading (reviewer
+            round on v1): bounded bring-up from the recorded attempt
+            recipe (realization notes), with exhaustion landing in
+            procedure_unrealizable's second disjunct booked as the
+            lead's item 27(q).
+        open_questions_closed:
+          - question: Is the orchestration tier readable per procedure, or
+              does realization require a wholesale internals read (the
+              parent's overturn trigger)?
+            closed_by: >
+              PARTIALLY closed, downgraded on the v1 review. The
+              pin-delta file listing shows the tier SHIPS a how-to guide,
+              design docs, and example drivers - but that is listing-grade
+              evidence and the docs are unopened, so adequacy is the
+              assumption above, falsifiable at first inspection. The
+              sizing verdict tolerates the downgrade because an inadequate
+              doc set fires elaboration falsifier (a) at the first
+              campaign, and the verified primitives census bounds the
+              worst case to driving the primitives directly.
+          - question: Do reusable primitives exist per declared method
+              class, and are the two encoded tool traps real?
+            closed_by: exploration/validation-and-acceptance.md sections
+              3.1 and 3.7 - primitives inventoried with invocation
+              evidence; both traps observed in practice and already
+              encoded in the frozen activities.
+          - question: Does the node need its own explore child for the
+              tier?
+            closed_by: Runtime-Binding-first - delegate seats plus
+              docs-first bounded reads per procedure; no. The one worked
+              precedent for building a missing harness (the streaming
+              perf harness) was done inside a single campaign session.
+
+      research_dispatches: >
+        One read-only explorer was dispatched at the vllm-neuron repo
+        (design surface, never written) and died on a transient network
+        error before returning anything; it was replaced by direct
+        bounded read-only checks - a file census of the accuracy package
+        at the local checkout - plus the two exploration reports already
+        on disk, cited per ledger fact. No other dispatch was needed.
+
+      definition_of_done: >
+        Confirmed as frozen, on the acceptance-evidence ladder's
+        measurement rung. procedures_ready settles per declared
+        measurement on this campaign's route by a procedure record whose
+        smoke evidence is the actual end-to-end execution transcript on
+        scratch inputs against the leased serving candidate - the fixed
+        invocation really ran and produced output matching the declared
+        output shape, a mechanical pass condition whose value comes from
+        the executed instrument, never from doer narration. World-binding
+        beyond the doer's own text: smoke transcripts embed identifiers
+        the doer cannot mint (serving-engine response identifiers, metric
+        counters, output files the engine wrote); the lead-evaluated
+        procedures_smoke_verified check (parent-proposed, lead-minted)
+        independently re-reads the record before reference capture
+        begins; and downstream run_candidate_measurements re-executes
+        every fixed invocation - a second artifact this node's doer does
+        not write - so a fabricated smoke cannot survive the first
+        measured run.
+
+      closed_review_realization:
+        comparator_frozen_on_repair: >
+          Realizes binding item 1 of the closed review. On re-entry with a
+          procedure-defect record, the only writes are to the named
+          defective realization's procedure file - a revision entry, the
+          revised fixed invocation, and fresh smoke evidence. This node
+          never touches the captured baseline reference; re-capture
+          happens only inside capture_baseline_reference, and it is
+          driven exclusively by the revision entry's explicit
+          changed-procedures enumeration - that enumeration IS the
+          recorded event that authorizes re-capture, so the reference is
+          never re-derived as a side effect of a repair. The comparator
+          set itself is never edited on any lap: comparator content in
+          procedure records is citation-only (a path plus measurement id
+          into the design record), never restated as authority.
+        repair_reentry_defect_naming: >
+          Binding item 2 of the closed review (pair-derived pass
+          counting) was SUPERSEDED mid-repair by the c13 adjudication:
+          the (measurement, defect identity) pair is struck run-wide as
+          a budget key. What this node realizes now: revision entries
+          NAME THE DEFECT THEY REPAIR - the measurement id and the
+          content-derived defect identity are copied from the triggering
+          defect record as record FIELDS serving re-entry targeting and
+          the recurrence/novelty predicate (the narrowed booking), never
+          budget arithmetic. The repair budget is per-measurement and
+          two-tier - a filtered bound (same defect recurs with no
+          defect-closing evidence since that lap) plus an unfiltered
+          absolute pass ceiling counted by path regardless of new
+          evidence - and its contract landing rides the lead's
+          resynchronization work as item 26's fifth append; no budget
+          wording is authored here.
+          Unchanged division of labor: this node performs no budget
+          arithmetic - defects are recorded and exhaustion is decided in
+          children 3 and 4; this node's duty is keeping the two fields
+          copyable verbatim so targeting and the recurrence predicate
+          stay mechanical.
+
+      realization_notes:
+        - Read the design record once; enumerate the route-scoped declared
+          measurement ids (upgrade routes enumerate the regression matrix
+          instead of correctness plus perf). Every downstream artifact
+          joins on the measurement id.
+        - Per measurement, match the declared method to its primitive
+          class; reuse the verified in-repo primitive where it matches
+          the declared method as written; build a thin harness only where
+          no repeatable procedure exists (streaming-harness precedent).
+          A delegate-named method gets a compatibility pre-check before
+          any realization work; incompatibility resolves to the
+          design-record-sanctioned fallback if one is recorded there,
+          else it is procedure_unrealizable evidence.
+        - Honor the two frozen tool traps as written - streaming harness
+          for speculative-decode configurations; the decode-only bench
+          connector is never a correctness procedure.
+        - >-
+          Record the fixed invocation, declared inputs, and declared
+          output shape in the procedure file BEFORE the smoke run; append
+          the smoke evidence reference after. Ordering predicate, per the
+          reviewer-corrected reading booked as lead item 27(p): every
+          smoke record's timestamps precede any measured run THAT CITES
+          THAT PROCEDURE REVISION - the mechanical, revision-scoped
+          ordering the procedures_smoke_verified check reads, with the
+          revision entries and smoke references as the join keys. The
+          un-scoped form would make re-smoke-after-repair unsatisfiable
+          once measured runs exist.
+        - Smoke runs use scratch inputs only, never the hash-pinned
+          measurement inputs; smoke outputs live under the procedures
+          subdirectory, never under the runs subdirectory - so a smoke
+          artifact can never be read as measurement evidence and never
+          pollutes the per-measurement pass count derived by path from
+          defect-record files.
+        - >-
+          Serving loss DURING smoke (adopted reading from the v1 review,
+          no contract change): re-establish serving from the recorded
+          attempt recipe under the existing in-band allowed effect -
+          bring-up in service of smoke - within the boundary's suggested
+          two-retry bound per lost serving state. Exhaustion of that
+          bound settles procedure_unrealizable's second disjunct (the
+          contract landing is the lead's booked item 27(q)), with the
+          bring-up transcripts as the evidence branch recorded under
+          evidence_gameability.
+        - >-
+          Delegate dispatch only through the run-wide guardrail wrapper;
+          every sub-agent seat inherits this node's forbidden_effects.
+          The wrapper interception matters here concretely: serving
+          bring-up remedies documented by delegates include compile-cache
+          clearing, which the run forbids on the shared cache.
+        - This node never touches the GPU baseline (that surface belongs
+          to capture_baseline_reference alone), never writes into system
+          package prefixes, and never clones environments; smoke is
+          in-band SSH to the leased hosts only, per allowed_effects.
+        - On re-entry, per closed_review_realization - revise only the
+          named realization; the revision entry names the defect it
+          repairs (measurement id and content-derived defect identity
+          copied verbatim from the triggering record); enumerate the
+          changed procedure files, re-smoke, leave every other procedure
+          file and the comparator set untouched.
+
+      enforcement:
+        smoke_before_measured_run:
+          strength: mechanical lead-evaluated edge check - the
+            parent-proposed procedures_smoke_verified, cited here, minted
+            by the lead (parent interface_findings.proposed_checks).
+          rationale: >
+            Blocking is proportionate - skipping or thinning smoke under
+            time pressure is the likely violation, the cost is a broken
+            procedure burning leased-host measured runs plus shared
+            repair budget, and detection is zero-cost arithmetic: every
+            declared measurement id has a procedure file whose smoke
+            reference resolves and whose timestamps precede any measured
+            run THAT CITES THAT PROCEDURE REVISION (the
+            reviewer-corrected predicate, booked as lead item 27(p);
+            revision entries and smoke references are the join keys).
+            The un-scoped form is jointly unsatisfiable with the mandated
+            re-smoke-after-repair once measured runs exist - a repair at
+            time T3 after a first measured run at T2 could never satisfy
+            it: a strict reading livelocks the repair loop spending no
+            budget, a lenient reading hollows the check.
+        frozen_comparator_guard:
+          strength: structural rule (citation-only comparator references)
+            under the upstream blocking check comparators_preregistered;
+            drift detection downstream at adjudication is a diff, not a
+            judgment.
+          rationale: >
+            The wrong-baseline incident class is the run's founding
+            failure precedent, and this node is where a comparator could
+            be quietly re-chosen under the name of realization. The
+            upstream check already blocks unfrozen comparators; the
+            node-local rung makes any drift mechanically visible by
+            forbidding restated comparator text as authority.
+          falsifier: >
+            If procedure files restate comparator content as authority,
+            drift detection degrades to judgment-at-read-time - the
+            layout entry (assembly item 1) forbids restatement and
+            assembly validates procedure files against that single entry.
+        repair_scope_guard:
+          strength: persistent record rung - revision entries naming the
+            defect they repair (measurement id plus content-derived
+            defect identity, copied verbatim from the triggering record)
+            plus the changed-procedures enumeration; reference re-capture
+            keys only off that enumeration.
+          rationale: >
+            The condition is semantic (was a healthy procedure or the
+            comparator touched during a repair?) but the record structure
+            makes it arithmetic: an undeclared change is a diff between a
+            procedure file and its last revision entry, and a re-capture
+            without a matching enumeration entry is an unauthorized
+            event. A blocking rung would add a gate with nothing
+            mechanical to read at block time; the record rung feeds the
+            existing downstream readers (capture, adjudication, verdict
+            review) at zero added process.
+        run_wide_hooks:
+          strength: the run-wide blocking hooks (shared compile-cache
+            clear, provisioning, system-prefix writes) are the lead's
+            enforcement record - cited, not restated; the node-local
+            addition is delegate dispatch through the guardrail wrapper
+            only.
+          rationale: >
+            Same two-rung split the sibling boundary recorded - the hook
+            stops the command, the wrapper stops a delegate's documented
+            remedy from ever becoming a command.
+
+      evidence_gameability:
+        procedures_ready: >
+          Gameable raw - measurer-produced smoke evidence. Hardened by
+          structure first, per the parent entry, realized concretely as:
+          fixed invocations and smoke transcripts recorded before any
+          measured run that cites that procedure revision (the
+          revision-scoped 27(p) predicate) with checkable timestamp
+          order; engine-issued identifiers embedded in transcripts (the
+          doer cannot mint them); the lead-evaluated
+          procedures_smoke_verified check re-reading the record
+          independently; downstream re-execution of every invocation as
+          the doer-independent second artifact; and the wrong-property
+          escape that smoke cannot catch BY DESIGN returning through
+          procedure_defect_found within the shared budget. Then
+          downstream adjudication and verdict review, per the parent
+          chain.
+        procedure_unrealizable: >
+          Node-level entry - a doer's negative claim, gameable as an
+          escape hatch from hard construction work (it routes to
+          re-derivation, dodging the build). Hardened the way the sibling
+          hardened early exhaustion, with per-disjunct positive
+          enumeration mirroring the run's no_host_available pattern.
+          Disjunct one (capability gap, including an unusable declared
+          method): the record must positively enumerate the declared
+          method as written, the in-repo primitive candidates considered
+          against it, and the concrete failing evidence (a
+          compatibility-refusal transcript, a missing capability, a
+          documented behavior the method contradicts) - a positive
+          enumeration rederive_approach falsifies against the same repo
+          surface. Disjunct two (the declared measurement cannot be
+          smoke-verified because the leased serving state cannot be
+          re-established within the declared retry bound - the contract
+          landing booked as lead item 27(q)): the record must enumerate
+          the bring-up attempts from the recorded attempt recipe and
+          carry their machine transcripts (SSH output, server logs,
+          failure text) - never a bare cannot-serve claim; a claimed
+          serving fault the recipe transcripts do not support is a
+          material finding for re-derivation. Harden-first; no review
+          seat added.
+        repair_reentry: >
+          Second direction on re-entry - quietly rewriting a healthy
+          procedure or the comparator under cover of a repair. Hardened
+          by the repair_scope_guard record rung: the repaired defect
+          named (measurement id and content-derived defect identity
+          copied verbatim), changed-set enumerated, re-capture keyed
+          only off the enumeration, undeclared changes visible as diffs.
+
+      model_effort:
+        implementer: >
+          Strong model, high effort - confirms the parent's assignment
+          with no divergence: judgment-heavy new construction where a
+          wrong procedure silently corrupts every downstream number, but
+          bounded by the design record - it is not the long-horizon
+          hardware-attempt session the root carves out for the top
+          effort tier.
+        delegate_dispatcher: >
+          Small fast model, low effort - scoped single-question dispatches
+          through the fixed guardrail wrapper, no compounding judgment;
+          matches the run-wide delegate seat pattern.
+
+      assembly_interface_needs:
+        - >-
+          Procedures layout entry (extends the parent's
+          measurement_procedure_record definition, subdir procedures/):
+          one file per declared measurement carrying the comparator
+          citation (design-record path plus measurement id -
+          citation-only, restated comparator text forbidden as
+          authority), the fixed invocation, declared inputs, declared
+          output shape, smoke evidence references, and revision entries
+          (each naming the defect it repairs - measurement id and
+          content-derived defect identity copied verbatim from the
+          triggering defect record - the changed files, and the fresh
+          smoke reference).
+        - >-
+          Defect-record shape (authored with children 3 and 4's layout
+          entries) must carry measurement id AND content-derived defect
+          identity as first-class fields - the measurement id keys the
+          per-measurement budget derivation by path (both tiers of the
+          adjudicated bound, whose contract wording is lead resync
+          work), the defect identity serves re-entry targeting and the
+          recurrence/novelty predicate and is never a budget key - ONE
+          shape defined once; both writers and this node's re-entry
+          read cite it (the same single-entry discipline the parent's
+          loop_bounds falsifier relies on).
+        - >-
+          procedures_smoke_verified (lead-minted, parent-proposed) needs
+          the layout entry's smoke-evidence naming convention so the
+          check is pure arithmetic - id coverage, resolvable smoke
+          references, and timestamp order of each smoke record against
+          the measured runs that cite that procedure revision (the
+          revision-scoped 27(p) predicate; revision entries and smoke
+          references are the join keys).
+        - A declared scratch-inputs home, distinct from the hash-pinned
+          measurement inputs, named in the layout entry - so smoke can
+          never touch or masquerade as measured evidence.
+        - Delegate guardrail wrapper wiring for the delegate_dispatcher
+          seat is Runtime Binding - assembly realization; the contract
+          already carries the rule.
+        - The campaign design record must expose the route-scoped
+          declared measurement list as an enumerable set with STABLE
+          measurement ids - the join key across procedure files, defect
+          records, run records, and bundles. Interface expectation on
+          design_campaign's layout entry, flagged for the lead's
+          assembly pass.
+
+      conflicts_referenced: >
+        No new conflict raised and no id minted. v1's prose gap (serving
+        loss during smoke has no declared route) is RESOLVED this round:
+        the retry half was adopted as-is - bounded bring-up from the
+        recorded attempt recipe under the existing in-band allowed
+        effect, two-retry bound, no contract change - and the stall half
+        was rejected on the sibling precedent (the identical fault class
+        settles via serving_exhausted into measurement_blocked and
+        re-derivation, never a silent binding stall). The contract
+        landing - procedure_unrealizable's meaning gaining the
+        cannot-re-establish-serving-within-retry-bound disjunct - is the
+        lead's booked item 27(q); this fragment realizes the evidence
+        branch only. Separately, the registered cross-reviewer dispute
+        over pair keying (c13) was ADJUDICATED mid-repair: pair keying
+        is struck run-wide as a budget key; the measurement id and
+        content-derived defect identity survive as record fields for
+        re-entry targeting and the recurrence/novelty predicate; the
+        repair budget reverts to per-measurement with a two-tier bound
+        whose contract wording rides the lead's resynchronization work
+        as item 26's fifth append. This fragment's pair-key text was
+        shrunk accordingly
+        (see revision_deltas.c13_pair_key_shrink); no budget wording is
+        authored here.
+
+      conflicts: []

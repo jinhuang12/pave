@@ -1,0 +1,280 @@
+# Planner draft fragment — dispatched boundary: scan_upstream_delta
+# Frozen contract: planning/root.v6.draft.pave.yaml#scan_upstream_delta
+# (referenced, never copied). Pin-generic: no version, branch, or SDK
+# literals appear in node text; the pin is a frozen run input.
+pave:
+  name: scan_upstream_delta
+  status: draft
+  nodes:
+    trace_target_delta:
+      intent: explore
+      instance_per: requested_targets
+      purpose: >
+        For exactly one requested target, resolve the minimal set of
+        upstream changes it needs and every fact route costing consumes,
+        recorded as one per-target delta report with source traces —
+        contributing the per-target conjunct of scan_upstream_delta's
+        definition of done. Out of scope - route selection, costing, and
+        any other target.
+      roles: [investigator]
+      consumes: [run_input_and_preflight_record]
+      produces: [delta_report]
+      activities:
+        - Establish the plugin-side current state of the target at the
+          frozen pin (present, partial, or absent), correcting any false
+          premise in the target's framing with code citations before
+          tracing further.
+        - Trace source A1 (upstream GPU vLLM, local clone) - headline
+          features via the PR-linked release-note chain to introducing
+          commits; diffuse features via recorded git log grep/-S sweeps
+          with queries, hit lists, and residual uncertainty persisted.
+        - Determine source A2 applicability from the TPU reference repo's
+          own support matrices via gh, then record a design trace (never a
+          code-vendor plan - both its front-ends lower to a different
+          kernel substrate) or a cited dead-end.
+        - Run the mechanical runner-entanglement check - the config
+          oracle's forcing conditions plus the legacy-runner grep - and
+          record the verdict with command transcripts.
+        - Flag whether the target touches a subsystem that left the plugin
+          repo at the pin (externalized to an unpinned vendor dependency),
+          so costing can re-scope the target or route an upstream-issue
+          path.
+        - Verify at code level any doc-only support claim that bears on
+          this target (for example a documented support flip with no code
+          evidence), and record the finding either way.
+        - Close the report with a residual-gaps section (possibly empty)
+          naming what could not be settled and why, so costing prices
+          uncertainty instead of inheriting it silently.
+      allowed_effects:
+        - Read-only git, gh, and grep queries against the reference
+          sources and the read-only plugin repo.
+        - Writes only this target's report files under the run's delta
+          artifact directory.
+      forbidden_effects:
+        - Any write to the plugin repo, the fork, upstream remotes, or any
+          host.
+      outcomes:
+        target_traced:
+          meaning: This target's delta report exists with every
+            costing-required section - plugin-side state, A1 trace, A2
+            applicability and trace or dead-end, runner-entanglement
+            verdict, externalized-subsystem flag, doc-claim verification,
+            residual gaps - each load-bearing claim carrying its command
+            transcript.
+          required_evidence: [delta_report]
+        source_unreachable:
+          meaning: A reference source this target's trace requires is
+            unavailable; the partial per-target record is preserved for
+            resume.
+
+    assemble_delta_report:
+      intent: review
+      purpose: >
+        Settle scan_upstream_delta's definition of done across the whole
+        target set - verify every requested target has a per-target report,
+        check each report against the fixed costing-sufficiency rubric,
+        drive at most one bounded re-trace per deficient target, and write
+        the run-level delta index - contributing the universal quantifier
+        of the parent's definition of done. Out of scope - producing any
+        trace content itself, and any costing judgment.
+      roles: [investigator]
+      consumes: [delta_report, run_input_and_preflight_record]
+      produces: [delta_report]
+      activities:
+        - Mechanical coverage check - diff the frozen requested-target
+          list against the per-target report files on disk; persist the
+          diff output.
+        - Rubric check per report against the fixed section list frozen in
+          trace_target_delta's success outcome (the rubric predates every
+          instance run by construction); persist a per-target verdict.
+        - On a deficient report, route the named target back for one
+          re-trace; after that single bound, record the deficiency as a
+          residual gap in the index and proceed - costing's evidence-gap
+          loop is the designed stop beyond the bound.
+        - Write the run-level delta index binding per-target reports,
+          verdicts, and residual gaps into one costing-consumable artifact.
+      allowed_effects:
+        - Writes only the run-level index and sufficiency record under the
+          run's delta artifact directory.
+      forbidden_effects:
+        - Editing any per-target report body.
+        - Any write outside the run's delta artifact directory.
+      outcomes:
+        delta_mapped:
+          meaning: Every requested target's report is present and
+            rubric-sufficient (residual gaps recorded, not hidden); the
+            run-level index is written. Carries the parent outcome's
+            meaning.
+          required_evidence: [delta_report]
+        reports_insufficient:
+          meaning: Named targets' reports fail the rubric and their
+            re-trace bound is not exhausted; only those targets re-trace.
+        sources_unreachable:
+          meaning: One or more targets are blocked on an unavailable
+            reference source; traced targets keep their reports and
+            per-target resumable state is preserved. Carries the parent
+            outcome's meaning.
+
+  extensions:
+    x_planning:
+      dispatched_node: scan_upstream_delta
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#scan_upstream_delta
+      elaboration:
+        scan_upstream_delta:
+          verdict: decompose
+          justification: A multi-target request needs one independent,
+            resumable, costing-consumable trace per target plus one
+            run-level sufficiency check; one context cannot hold many
+            diffuse-target log sweeps at once, and costing's evidence-gap
+            re-entry needs stable per-target identity to re-trace named
+            targets only. Overturned only if requested_targets were
+            guaranteed at most two headline targets - intake guarantees no
+            such bound, and for a small request the structure degenerates
+            gracefully to one instance plus a thin assembly.
+        trace_target_delta:
+          prediction: atomic
+          justification: One target's trace is one coherent problem - the
+            exploration lens traced roughly ten targets shallowly in one
+            bounded context, so one target traced deeply fits; settles on
+            a report whose load-bearing claims carry embedded command
+            transcripts. An extremely diffuse target exits honestly via
+            the residual-gaps section, not a deeper split.
+        assemble_delta_report:
+          prediction: atomic
+          justification: Reads per-target report files against a fixed
+            rubric and a frozen target list; volume lives in artifacts
+            read as needed, verdicts are independent per report; settles
+            on a persisted coverage diff plus per-target rubric verdicts.
+      uncertainty_ledger:
+        facts:
+          - Target count is a frozen run input, unknown at plan time
+            (root-contract.md section 2; requested_targets in root state).
+            Drives the sizing verdict.
+          - A1 tracing cost is two-tier - headline cheap via PR-linked
+            release notes, diffuse needs log sweeps
+            (exploration/upstream-and-tpu-sources.md section 3.4).
+          - The runner-entanglement check is mechanical and repeatable -
+            config-oracle forcing conditions plus legacy-runner grep
+            (upstream-and-tpu-sources.md section 5).
+          - A2 support detection is mechanical via the TPU repo's own
+            support matrices; A2 is design-port only; two known A2 dead
+            ends exist (upstream-and-tpu-sources.md section 3.3).
+          - Some targets need premise correction before their delta is
+            meaningful, some are wholly absent from the plugin, some are
+            partial (upstream-and-tpu-sources.md section 3.1).
+          - A compile-class subsystem left the plugin repo at the current
+            pin; compile-touching targets cannot be patched in-repo
+            (exploration/plugin-024-delta.md, system-map ADDENDUM item 3).
+          - One doc-only possible support flip (segmented prefill on a
+            multimodal model) is unverified against code; routed into this
+            node's scope by the lead (root x_planning open question).
+          - One exploration context achieved breadth (about ten targets)
+            but recorded time-boxed per-target depth gaps - evidence that
+            breadth-times-depth exceeds one context
+            (upstream-and-tpu-sources.md section 6).
+        assumptions:
+          - Requests are typically multi-target (the backlog framing and
+            the brief's roughly ten candidate targets); a one-target run
+            degenerates gracefully, so the verdict does not hinge on this.
+          - One target's deep trace fits one bounded context even for a
+            diffuse target, grounded in the breadth precedent above; the
+            honest-partial doctrine catches the exception.
+          - The Runtime Binding supports instance fan-out over a state
+            collection (instance_per and fan-out edges already exist in
+            the root graph).
+        open_questions_closed:
+          - Does the Runtime Binding solve the volume problem without a
+            split - partially; fan-out solves multiplicity but per-target
+            traces also need their own evidence, resume points, and
+            re-entry identity, which are node concerns (three warning
+            signs beyond volume), so the split stands and fan-out realizes
+            it.
+          - Is doc-claim code verification its own node - no; it is
+            conditional, bounded, and produces evidence inside one
+            target's report with no distinct recovery route - an activity.
+          - Is a target-rescoping child needed before fan-out - no; the
+            premise-correction evidence comes from the plugin-side state
+            check inside the trace itself, and costing owns re-scoping
+            judgment.
+      evidence_questions:
+        - None dispatched to explorers. The brief plus two exploration
+          lenses (upstream-and-tpu-sources.md, plugin-024-delta.md)
+          answered tracing mechanics, per-source costs, entanglement-check
+          repeatability, and the externalized-subsystem consequence; the
+          only unknown - target count - is a run input no exploration can
+          settle.
+      enforcement:
+        - trace_target_delta.target_traced evidence - gameable
+          (investigator-authored synthesis; a narrowed sweep could claim
+          completeness). Hardened in ladder order - (1) provenance the
+          doer cannot fake, raw command transcripts with queries and full
+          hit lists embedded in the report; (2) a check the doer does not
+          run, assemble_delta_report's rubric verdict by a separate agent
+          context; (3) the existing adversarial review node consumes
+          delta_report before any gate. No blocking rung - a wrong trace
+          is recoverable through the costing evidence-gap loop before any
+          spend.
+        - assemble_delta_report.delta_mapped evidence - coverage check not
+          gameable (mechanical list diff, transcript persisted); rubric
+          verdict gameable judgment, hardened by persisting rubric plus
+          per-target verdicts (rubric frozen in the child contract before
+          any instance runs) and by the downstream adversarial review.
+          Stronger rungs unnecessary - the verdict gates no spend and two
+          catch-nets (costing evidence-gap, route-verdict review) sit
+          downstream.
+        - Loop bound - assembly-driven re-trace is bounded at one per
+          target per scan entry (declared counter, single writer
+          assemble_delta_report); beyond it the deficiency is recorded as
+          a residual gap and costing's evidence-gap edge is the
+          operator-visible designed stop.
+      model_effort_assignments:
+        trace_target_delta: strong model, high effort - judgment-heavy
+          minimal-set synthesis and premise correction with wide blast
+          radius into costing and route verdicts; not the session top
+          model, since judgment does not compound past one target and
+          review guards the output. Single-question lookup sub-dispatches
+          (tag containment, matrix cell reads) - small fast model, low
+          effort.
+        assemble_delta_report: strong model, medium effort - semi-mechanical
+          rubric application over artifacts; wrong passes are caught by
+          costing's evidence-gap and the route-verdict review.
+      interface_findings:
+        - Entry - the parent's incoming edge (preconditions_to_delta_scan)
+          should land as a fan-out destination, fan_out trace_target_delta
+          for_each requested_targets; requested_targets is already a
+          required, intake-frozen state field.
+        - Internal routing - trace_target_delta.target_traced and
+          .source_unreachable both route to assemble_delta_report, which
+          waits for all instances (join semantics are a Runtime Binding
+          concern, same pattern the root already notes for its run-scoped
+          fan-in); assemble_delta_report.reports_insufficient routes back
+          to trace_target_delta for the named targets only.
+        - Exit mapping - assemble_delta_report.delta_mapped carries the
+          parent's delta_mapped (existing edge delta_to_costing
+          re-targets); assemble_delta_report.sources_unreachable carries
+          the parent's sources_unreachable (existing edge
+          unreachable_sources_to_pause re-targets).
+        - Re-entry - costing's evidence-gap edge
+          (costing_gap_to_delta_scan) should re-enter at
+          trace_target_delta for the named targets and questions only,
+          never re-running the whole scan; per-target instance identity
+          must be stable across re-entry.
+        - State - one small addition, a per-target re-trace counter for
+          the assembly-driven repair bound (writer assemble_delta_report);
+          the lead may place it in run state or as per-target event files
+          under the delta artifact directory.
+        - Evidence - the root's delta_report entry lists produced_by
+          scan_upstream_delta; at assembly the producers become
+          trace_target_delta (per-target files) and assemble_delta_report
+          (run-level index), both under the same artifact directory. No
+          sibling contract changes - costing and the route-verdict review
+          consume delta_report unchanged.
+      open_questions:
+        - Whether the Runtime Binding supports subset re-fan-out
+          (re-dispatching only named targets on reports_insufficient and
+          on costing's evidence-gap re-entry) or the lead re-opens
+          instances manually - assembly-stage decision.
+        - Join timing for assemble_delta_report - strictly after all
+          instances settle, or incremental with a final pass - binding
+          concern, no contract change either way.
+      conflicts: []

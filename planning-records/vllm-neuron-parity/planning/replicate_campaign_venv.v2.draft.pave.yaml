@@ -1,0 +1,588 @@
+# Planner draft v2 — dispatched boundary: replicate_campaign_venv
+# Verdict: ATOMIC (unchanged). Repairs HIGH-1/2/3 from plan-reviewer-2;
+# folds in two lead decisions (worktree ownership adopted; breaker-scope
+# widening covers the venv dead end, referenced in prose).
+# Pin-generic: no release, branch, or SDK version values appear here.
+pave:
+  name: replicate_campaign_venv
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: replicate_campaign_venv
+      frozen_contract_reference: planning/run_hardware_attempts.v2.draft.pave.yaml#replicate_campaign_venv
+      supersedes: planning/replicate_campaign_venv.draft.pave.yaml
+
+      revision_deltas:
+        high1_screen_booking: >-
+          The freeze-screening step (v1 r5) lived only in x_planning,
+          which does not ship, while the frozen activity text says
+          "replay the freeze" verbatim - a doer following only the
+          shipped contract would replay a contaminated baseline. Repair -
+          the screening clause is now BOOKED as interface_needs entry 1,
+          carrying the r5 wording verbatim, naming the parent landing
+          site (freeze-replay activity, lines 88-89), with a falsifier on
+          the booking itself. The parent edit is lead resync work (item
+          27). Landed in - interface_needs entry 1;
+          activity_realization r5 unchanged as the in-node realization.
+        high2_venv_tier2_read: >-
+          The v1 retry bound was cited, not realized - no threshold read
+          existed anywhere in this node, and the only tier-2 check sits
+          in execute_attempt_loop, entered only through venv_ready, so a
+          venv failure loop could spin past the declared budget with
+          every failure counted but never read. Repair - the
+          failure-classification protocol now READS the persisted
+          per-target counts before any retry and, at the tier-2
+          threshold, exits replication_failed with fingerprints attached
+          instead of retrying - identical arithmetic to the sibling,
+          same state, no new machinery. The parent contract-text clause
+          is booked as interface_needs entry 2. Landed in -
+          failure_classification_protocol, retry_design,
+          failure_outcomes, evidence_questions, enforcement
+          (replication_failed entry), interface_needs entry 2.
+        high3_metadata_intrinsic_dod: >-
+          Lead decision adopted (cheap option) - DoD clause (2) claimed a
+          cross-check on run_input_and_preflight_record, which is in
+          nobody's consumes. Repair - clause (2) restated
+          metadata-intrinsic (the metadata itself shows the vendor index
+          as source and excludes the placeholder pattern); the intake
+          match DEMOTED to optional corroboration; hardening leg (b)
+          DROPPED from the venv_ready claim, legs (a) and (c) carry it.
+          Root treats the private-index precondition as verified at
+          intake - not re-verified here. Landed in - definition_of_done
+          clause (2), enforcement venv_ready entry, evidence_questions,
+          uncertainty_ledger assumptions; v1 interface finding 2
+          (intake-record stable path) dropped as superseded.
+        adopted_worktree_ownership: >-
+          Lead decision settled - this node owns campaign-worktree
+          creation on the leased host; the reviewer confirmed it is
+          DoD-load-bearing (clause (3) cannot settle without the
+          worktree in place). The allowed-effect widening ("venv AND
+          campaign-worktree creation under the campaign's own directory
+          only") rides item 27 as the parent edit. Landed in -
+          uncertainty_ledger facts (moved from assumptions),
+          interface_needs entry 3 (status adopted, not an open ask).
+        breaker_scope_context: >-
+          The venv-dead-end wrong door at replication_failed ->
+          breaker_tripped is being closed by the lead widening the
+          register's breaker-scope conflict entry (c7 - referenced in
+          prose, id lead-owned): one widening now covers the ten-count
+          disjunct, tier-one exhaustion, and the venv dead end. This
+          fragment relies on that widening and mints nothing.
+
+      elaboration:
+        replicate_campaign_venv:
+          verdict: atomic
+          justification: >
+            One implementer executes one strictly sequential recipe over
+            one-shot SSH on one leased host - discover the baseline venv
+            path, pre-check disk, materialize the worktree at the recorded
+            changeset revision, freeze, screen the freeze, replay into a
+            fresh per-campaign venv against the vendor private index,
+            editable-install with --no-deps, then run the three
+            self-verification probes - with a pre-retry read of the
+            persisted per-target attempt counts bounding its own retry
+            loop, and settles venv_ready by machine probe artifacts in
+            the attempt log. Every failure lands on one of the two
+            already-declared failure outcomes, so no step needs its own
+            recovery route, evidence boundary, authority, or resume
+            point beyond the persisted one-file-per-event attempt-log
+            records; work volume is a bounded command sequence, not a
+            judgment that must hold many interacting concerns at once.
+            Falsified if first executions show one step - most plausibly
+            the never-executed freeze-replay - demands multi-session
+            per-package diagnosis exceeding one bounded context; that
+            evidence arrives as fingerprinted replication_failed events,
+            and rederive_approach is the plan node that re-frames the
+            work (the sizing-wrong-in-practice containment this node
+            needs, without adding an outcome to the frozen contract).
+            Runtime-Binding-first check (§9.12): nothing here fans out -
+            the recipe is order-dependent on one host, so parallel
+            dispatch buys nothing and volume is not the pressure; the
+            only pressure is first-run uncertainty, which the outcome
+            routing already contains.
+
+      atomic_contract:
+        definition_of_done: >
+          venv_ready - §5.3.1 rung 1, measurement against declared
+          thresholds; the doer runs the instruments, the values come from
+          the instruments. Settled by four machine artifacts recorded as
+          attempt-log events, each re-runnable by a reviewer in one SSH
+          command: (1) disk pre-check transcript ordered BEFORE any build
+          event, showing available bytes on the campaign directory's
+          filesystem at or above the ~10 GB replica budget the frozen
+          contract names; (2) installed-package metadata dump for the
+          private-index core dependency where the metadata ITSELF shows
+          the vendor index as the distribution's source and excludes the
+          public-placeholder pattern - settled by metadata content (the
+          installer-recorded distribution origin, the version family,
+          and package contents inconsistent with a stub), never by the
+          doer's summary; the intake-recorded private-index verification
+          MAY be cited as corroboration when resolvable, but the claim
+          stands on the metadata alone (root authority - the
+          precondition is verified at intake, not re-verified here);
+          (3) sentinel round-trip output where the value read through
+          the fresh venv's import path equals the value re-derived from
+          campaign id plus the implementation_changeset commit hash by
+          the recorded derivation rule, with the post-probe transcript
+          showing a clean worktree at exactly that git-issued commit (an
+          identifier the doer cannot mint, persisted in the changeset
+          record another node wrote - implementation_changeset is in
+          this node's consumes); worktree presence is this node's own
+          duty by settled lead decision; (4) the venv's discovered
+          absolute path recorded with the discovery transcript that
+          found the baseline. A later reviewer re-settles by re-running
+          probes (2) and (3) against the standing venv - no rebuild
+          needed.
+        failure_outcomes: >
+          replication_failed and host_faulted are control-flow outcomes
+          with evidence duties, not acceptance duties.
+          replication_failed has two disjuncts. Dead-end disjunct: no
+          materially different build remains below the threshold - MUST
+          carry, for every budget-counted failed build, the failure
+          fingerprint event, the per-target budget increment naming this
+          route, and a host-health capture at failure time showing the
+          host was healthy. Threshold disjunct: the pre-retry read of
+          the persisted per-target counts reaches the tier-2 threshold -
+          exits with all fingerprints attached instead of retrying;
+          arithmetic on logged events, same state the sibling loop
+          reads. In both disjuncts an event missing the health capture
+          is malformed and cannot support the outcome, because the
+          frozen precedence line (host_faulted beats replication_failed
+          on mixed causes) is only decidable from that capture.
+          host_faulted MUST carry the host-level symptom transcript
+          (reachability, disk, device enumeration at failure time); the
+          triggering build failure, if any, is fingerprinted but its
+          recipe verdict is recorded as unreliable per the frozen
+          purpose.
+        activity_realization: >
+          Realizes the frozen activity list without altering it; ordering
+          and additions below are realization detail the frozen purpose
+          already requires or the cited evidence justifies. r1 - Discover
+          the baseline venv path live (list the baseline install root and
+          match the documented naming family); the plugin's own docs carry
+          two differently-suffixed variants of the path, so the suffix is
+          re-discovered per host, never assumed (exploration
+          host-and-environment.md 3a, contradiction 3). r2 - Disk
+          pre-check against the ~10 GB budget; transcript logged before
+          any build event. r3 - Materialize the campaign worktree under
+          the campaign's own directory at the implementation_changeset
+          revision; verify with a rev-parse transcript against the
+          changeset record (ownership settled by lead decision;
+          interface_needs entry 3). r4 - Freeze the baseline venv;
+          persist the raw freeze output as an attempt-log artifact
+          (diagnostic input for any later fingerprint and for
+          materially-different retry design). r5 - SCREEN the freeze
+          before replay: drop the plugin package's own entry and every
+          editable or direct-file reference. Grounded, not hypothetical:
+          the shared baseline venv on one prior host carried an editable
+          pointer to another campaign's checkout (exploration 3b,
+          deepseek preflight evidence); replaying such a line verbatim
+          either fails on a missing path or silently installs another
+          campaign's code. The screened lines are logged with the
+          screening rule so the screen itself is reviewable. This clause
+          is booked for the shipped parent contract text as
+          interface_needs entry 1. r6 - Create the fresh venv under
+          the campaign's own directory; replay the screened freeze with
+          the vendor private index configured. r7 - Editable-install the
+          worktree with --no-deps (the mechanics proven in campaign
+          history; only the target venv changes - exploration 3b, 5).
+          r8 - Run the verification probes; append raw machine outputs.
+          Sentinel derivation rule: digest of campaign id plus changeset
+          commit hash; the probe writes the sentinel into a throwaway
+          module under the worktree, imports it through the fresh venv,
+          compares, deletes the module, and verifies clean git status at
+          the recorded commit. r9 - On any failure, run the
+          failure-classification protocol below before emitting an
+          outcome.
+        probes_only_reentry: >
+          On entry from recover_leased_host.host_restored with the
+          campaign venv still present at its recorded path: re-run only
+          r8 (all probes, including the disk re-read) and emit venv_ready
+          on pass - no freeze, no replay, no reinstall of what the probes
+          confirm. Any probe failure enters the failure-classification
+          protocol like a build failure. The probe command block is
+          recorded in the attempt log as a self-contained replayable
+          unit so reentry and reviewer re-runs execute the same
+          commands (interface_needs entry 4).
+        failure_classification_protocol: >
+          Realizes the precedence already in the frozen contract text -
+          host_faulted beats replication_failed on mixed causes. Before
+          emitting either failure outcome: capture host health over the
+          same SSH channel (reachability, disk on the campaign
+          filesystem, Neuron device enumeration). Any host-level symptom
+          -> host_faulted with the capture attached. Healthy capture ->
+          fingerprint the failure event (class, signature, recipe step,
+          configuration) and increment the shared per-target budget
+          naming this route. THEN, before any retry, READ the persisted
+          per-target attempt counts - the same state and identical
+          arithmetic as the sibling loop's pre-attempt tier-2 check
+          (every ten budget-counted attempts per target since the last
+          re-derivation, across all spending routes). At or past the
+          threshold: no retry - exit replication_failed (threshold
+          disjunct) with all fingerprints attached; the lead's widened
+          breaker-scope register entry (c7, referenced in prose) carries
+          this to the parent breaker path. Below the threshold: design a
+          materially different retry, or exit replication_failed
+          (dead-end disjunct) with all fingerprints attached when none
+          exists. Mixed cause on the threshold-reaching failure stays
+          governed by the frozen precedence - host_faulted wins, the
+          count stands, and the standing count trips at the next
+          pre-retry read here or the sibling's pre-attempt check on
+          resume.
+        retry_design: >
+          The bound is realized in-node, not merely cited: the pre-retry
+          count read in the protocol above is this node's own tier-2
+          exit, so venv retries cannot outlive the shared per-target
+          budget even though the sibling loop's check is unreachable
+          while this node fails. Venv build failures on a healthy host
+          spend that budget with this route named; recovery spends no
+          budget and is bounded by the one-recovery allowance plus the
+          finite roster. Identical retry of a fingerprinted failure is a
+          frozen forbidden effect. Progress is never a lap count: a
+          retry is justified only by a material difference from every
+          recorded fingerprint (different resolution strategy, different
+          screened-freeze decision, different discovered baseline
+          candidate), stated in the retry's own event record.
+
+      evidence_questions:
+        - Does the metadata dump itself - installer-recorded origin,
+          version family, package contents - show a real vendor-index
+          distribution and exclude the public-placeholder pattern,
+          without leaning on any artifact outside this node's consumes?
+        - Does the sentinel round-trip value equal the value re-derived
+          from campaign id plus the changeset commit by the recorded
+          rule, and does the post-probe transcript show a clean worktree
+          at exactly the changeset-recorded commit?
+        - Is the disk pre-check transcript ordered before every build
+          event, and does it show headroom at or above the replica
+          budget?
+        - Does every retry event carry the pre-retry read of the
+          persisted per-target counts, and does the loop exit
+          replication_failed at the tier-2 threshold instead of
+          retrying?
+        - Does every replication_failed exit carry per-failure
+          fingerprints, budget increments naming this route, and a
+          healthy-host capture for each counted failure?
+        - On reentry after recovery, do only probe events appear (no
+          rebuild of what probes confirmed), and did every probe pass
+          against the standing venv?
+
+      enforcement:
+        - guard: >-
+            run-wide prohibitions (cp -a venv cloning; pip writes into
+            /opt or the shared baseline venv; clearing any shared Neuron
+            compile-cache path; NxDI imports in ported code)
+          strength: >-
+            lead-owned blocking hooks (the run's enforcement record)
+            plus restatement as this node's forbidden_effects - no
+            node-local blocking duplicate.
+          why_not_stronger: >-
+            a second hook layer adds strand risk without new detection
+            (§9.14.2); the lead's hooks already fire on every action.
+            NxDI honesty note for assembly - this node writes no ported
+            code, and NxDI distributions appearing in the baseline
+            freeze are baseline stack, not ported-code imports; a
+            realization that strips them from the replay would break the
+            venv while enforcing nothing.
+        - guard: disk pre-check, placeholder check, sentinel probe
+          strength: >-
+            persistent record - the transcripts are required DoD
+            evidence, so venv_ready is unclaimable without them.
+          why_not_stronger: >-
+            each is one cheap doer-run command whose absence
+            mechanically fails the outcome at the lead's evidence read;
+            a blocking hook for a check the evidence shape already
+            forces is over-enforcement (§9.14.2).
+        - guard: no-identical-retry on venv builds (tier-1 discipline)
+          strength: >-
+            procedural pre-retry check against this run's attempt-log
+            fingerprints, with each retry's material difference stated
+            in its event record; observing rung, consistent with the
+            parent's tier-1 recommendation.
+          why_not_stronger: >-
+            the condition is semantic (configuration equality), poorly
+            pattern-matchable by a hook; violations surface in the same
+            attempt log the tier-2 reads consult, and the shared budget
+            bounds the harm.
+        - guard: pre-retry tier-2 count read (the in-node budget exit)
+          strength: >-
+            procedural read of persisted per-route counts before every
+            retry, with the read logged in the retry event; arithmetic
+            on logged events, same state the sibling loop reads.
+          why_not_stronger: >-
+            the threshold condition is exact arithmetic on state the
+            lead already persists; a skipped read surfaces as a retry
+            event missing its count field (malformed under the
+            artifact-layout shape, interface_needs entry 4), and the
+            sibling's pre-attempt check re-reads the same counter on
+            any path that reaches it - a blocking hook would duplicate
+            arithmetic the evidence shape already forces.
+        - guard: >-
+            host-health capture before failure classification
+            (precedence realization; precedence itself is frozen
+            contract text, per the run's standing rule)
+          strength: >-
+            evidence-shape requirement - a replication_failed event
+            without a healthy-host capture is malformed and cannot
+            support the outcome; recover_leased_host independently
+            re-probes on the host_faulted path.
+          why_not_stronger: >-
+            misclassification is reversible in both directions -
+            recovery's own probes expose a healthy host, and
+            rederive_approach re-reads fingerprints on the breaker
+            path; blocking would strand the run on an ambiguous fault.
+        - evidence: venv_ready probe artifacts
+          gameable: >-
+            yes, moderate raw - a probe "pass" is claimable in prose,
+            and a fixed sentinel constant could be pre-planted.
+          hardening: >-
+            harden-first per §9.14.1, rung 1 provenance, two legs -
+            (a) the sentinel is derived from the campaign id plus the
+            changeset commit hash, a git-issued identifier persisted in
+            the changeset record this doer did not write (a routed
+            input: implementation_changeset is in consumes), so the
+            expected value is reviewer-re-derivable; (c) every probe is
+            a verbatim transcript re-runnable in one SSH command against
+            the standing venv, and the placeholder exclusion is settled
+            by metadata content, never by the doer's summary. Leg (b) -
+            cross-check against the intake record - is DROPPED from the
+            claim per lead decision: that record is in nobody's
+            consumes, and the enforcement record must claim exactly what
+            routed inputs supply; the intake match remains optional
+            corroboration only. Natural downstream catch, not a review
+            rung - execute_attempt_loop's first compile exercises this
+            venv immediately; a gamed venv_ready fails fast and visibly,
+            spending budget honestly. No independent-review rung needed.
+        - evidence: replication_failed exhaustion claim
+          gameable: >-
+            split by disjunct. Threshold disjunct - not gameable:
+            arithmetic on persisted per-route counts the doer does not
+            own, mirroring the sibling's count-ten disjunct. Dead-end
+            disjunct - yes: a negative claim ("no materially different
+            build remains") could be early surrender from hard
+            diagnostic work.
+          hardening: >-
+            every counted failure carries a fingerprint and a
+            healthy-host capture; the budget increment makes surrender
+            visible in the shared counter; rederive_approach falsifies
+            the dead-end claim against the same fingerprint records on
+            the breaker path. Rung 1 plus an existing downstream
+            reader - no new gate.
+        - evidence: host_faulted classification
+          gameable: >-
+            yes, moderate - misclassifying a recipe failure as a host
+            fault buys a budget-free recovery pass.
+          hardening: >-
+            the outcome requires the host-level symptom transcript;
+            recover_leased_host independently re-verifies the fault on
+            entry (a check the doer does not run); abuse is structurally
+            bounded by the one-recovery allowance per host per campaign
+            plus the finite roster. Reuses existing gates - no new
+            machinery.
+
+      model_effort_assignments:
+        implementer: >-
+          strong model, high effort - first-ever execution of an
+          unproven recipe needs judgment on ambiguous dependency and
+          native-extension failures plus honest failure classification
+          with host-action blast radius; the session is bounded (one
+          recipe, one host), so xhigh stays reserved for the long
+          attempt-loop sessions per the root assignment. No other roles
+          are dispatched by this node (frozen roles - implementer only).
+
+      uncertainty_ledger:
+        facts:
+          - Frozen five-part contract with three outcomes, precedence in
+            contract text, and the probes-only reentry rule
+            (run_hardware_attempts.v2.draft.pave.yaml, replicate_campaign_venv;
+            parent authority root.v6.draft.pave.yaml#run_hardware_attempts).
+          - Worktree-materialization ownership is SETTLED by lead
+            decision - this node owns venv and campaign-worktree
+            creation under the campaign's own directory; the
+            allowed-effect widening rides item 27 as the parent edit;
+            the reviewer confirmed it DoD-load-bearing (clause (3)
+            cannot settle without it).
+          - The freeze-replay step has never been executed end-to-end
+            anywhere; first execution is unverified territory with no
+            fallback precedent (exploration/host-and-environment.md
+            sections 5 and 8; draft_increment_plan.draft.pave.yaml
+            records it as an open assumption and hardware-intake
+            precondition).
+          - The baseline venv path carries two differently-suffixed
+            variants in the plugin's own docs - per-host discovery is
+            mandatory (exploration 3a; contradiction 3).
+          - The plugin's own dependency files omit the Neuron SDK stack,
+            so freezing the baseline venv is the only locally grounded
+            way to capture it (exploration 3a, 5).
+          - Editable install with --no-deps plus an edit-live check is
+            proven mechanics in campaign history; only the target venv
+            changes (exploration 3b, 5).
+          - A prior host's shared baseline venv was contaminated with an
+            editable pointer to another campaign's checkout - the
+            grounding for freeze screening r5 (exploration 3b, deepseek
+            preflight evidence).
+          - Disk headroom was last observed ample on one host on one
+            date - stale and host-specific, so the pre-check is
+            mandatory, not ceremonial (exploration section 4).
+          - Venv build failures on a healthy host spend the shared
+            per-target budget with the route named; recovery spends no
+            budget (parent x_planning loop_bounds; dispatch brief). The
+            tier-2 threshold is every ten budget-counted attempts per
+            target since the last re-derivation, and the counts are
+            per-route within one shared counter.
+          - The only tier-2 read in the shipped sibling graph sits in
+            execute_attempt_loop, entered only through venv_ready -
+            the reviewer-confirmed gap this node's pre-retry read
+            closes (revision delta high2).
+          - The private-index precondition is verified at intake per
+            root authority (pin_generic_dependencies) - consumed as
+            settled, not re-verified here (lead decision, revision
+            delta high3).
+          - Run-wide prohibitions are enforced by lead-owned blocking
+            hooks; fragments restate them as forbidden_effects only
+            (parent x_planning enforcement; dispatch brief).
+        assumptions:
+          - The one-shot SSH channel and lease are standing when this
+            node opens (lease_held precedes it in the parent routing).
+          - The persisted per-route attempt counts are readable from
+            this node's seat over the same state the sibling loop reads
+            (the root state description already names the shared
+            counter; realization detail, no new state minted).
+        open_questions_closed:
+          - Was new exploration needed to size this node - no; zero
+            explorer dispatches. The host-and-environment lens report
+            plus the frozen contracts answered every sizing-bearing
+            question; the remaining unknowns are SSH-gated runtime
+            facts this node's own probes exist to settle.
+        open_questions_runtime:
+          - Whether freeze-replay reproduces a Neuron-capable venv on
+            first try; whether the actual host's baseline venv is
+            contaminated; the actual suffix; actual headroom. All are
+            settled by this node's first execution - discovery, not
+            confirmation - and every answer routes through the declared
+            outcomes. This preserves the draft_increment_plan honesty
+            requirement verbatim in spirit.
+
+      interface_needs:
+        - need: >-
+            Land the freeze-screening clause in the shipped parent
+            contract text (HIGH-1 booking; the x_planning realization
+            does not ship).
+          landing_site: >-
+            planning/run_hardware_attempts.v2.draft.pave.yaml,
+            replicate_campaign_venv activities, the freeze-replay
+            activity (lines 88-89); lead resync work, item 27.
+          clause_verbatim: >-
+            SCREEN the freeze before replay: drop the plugin package's
+            own entry and every editable or direct-file reference. The
+            screened lines are logged with the screening rule so the
+            screen itself is reviewable.
+          falsifier_if_unbooked: >-
+            A doer following only the shipped contract replays the
+            contaminated baseline verbatim - a false replication_failed
+            from an invisible contamination (an editable file reference
+            to a missing prior-campaign path), or the plugin's own
+            freeze entry installs the public placeholder over the
+            editable install.
+          status: booked_for_lead_resync
+        - need: >-
+            Land the pre-retry tier-2 read clause in the shipped parent
+            contract text (HIGH-2 booking; the bound must exist where
+            the doer reads).
+          landing_site: >-
+            planning/run_hardware_attempts.v2.draft.pave.yaml,
+            replicate_campaign_venv, the on-failure activity (lines
+            92-96) and outcome meanings as the lead sees fit; item 27.
+          clause_verbatim: >-
+            Before any retry, read the persisted per-target attempt
+            counts; at the tier-2 threshold, exit replication_failed
+            with all fingerprints attached instead of retrying.
+          falsifier_if_unbooked: >-
+            The shipped graph's only tier-2 read sits in
+            execute_attempt_loop, entered only through venv_ready - a
+            venv failure loop spins past the declared budget with every
+            failure counted but never read, so the parent loop_bounds
+            claim that the shared budget bounds venv rebuild loops is
+            false in the shipped artifact.
+          status: booked_for_lead_resync
+        - need: >-
+            Worktree-materialization ownership - SETTLED lead decision,
+            recorded here, not an open ask. This node owns venv and
+            campaign-worktree creation; DoD clause (3) is load-bearing
+            on it per the reviewer.
+          landing_site: >-
+            Parent allowed-effect wording widens to "venv AND
+            campaign-worktree creation under the campaign's own
+            directory only"; rides item 27.
+          status: adopted_by_lead
+        - need: >-
+            The venv failure-event, retry-event, and probe-block shapes
+            land ONCE in the consolidated artifact-layout reference at
+            assembly (the parent's single-definition rule). Fields this
+            node relies on - failure class, signature, recipe step,
+            configuration, route name for the budget increment,
+            host-health capture, the pre-retry count read recorded in
+            each retry event, and the replayable probe command block
+            that both reentry and reviewer re-runs execute.
+          landing_site: >-
+            Consolidated artifact-layout reference at assembly.
+          status: recording_convention
+        - need: >-
+            Fresh forbidden_effects landing. The frozen body already
+            carries cp -a, /opt writes, and identical retry; assembly
+            lands the remaining two on this node - treating any shared
+            compile-cache path as scratch (no clearing, moving, or
+            bypassing during venv work), and adding NxDI imports to
+            ported code (with the baseline-stack honesty note from the
+            enforcement entry). Strengthens nothing semantically - both
+            already bind run-wide; no resync required, lead to land.
+          landing_site: >-
+            This node's forbidden_effects at assembly.
+          status: lead_to_land
+
+      rejected_alternatives:
+        - alternative: >-
+            decompose into discover/freeze/replay/probe children
+          falsifier_inline: >-
+            No child would own a distinct recovery route, evidence
+            boundary, authority, or resume point - all failures land on
+            the same two frozen outcomes, and the persisted attempt-log
+            events already give the only resume point that matters
+            (probes-only reentry). The split adds edges whose absence
+            changes no routing (§4.11). Overturned if first executions
+            show a single step needs multi-session investigation
+            exceeding one context - which arrives as fingerprinted
+            replication_failed evidence at rederive_approach.
+        - alternative: replay the freeze verbatim, no screening
+          falsifier_inline: >-
+            Killed by recorded evidence, not hypothesis - the deepseek
+            preflight found the shared baseline venv pointing at another
+            campaign's editable checkout; a verbatim replay of such a
+            freeze fails on a missing path or silently installs foreign
+            code. The sentinel probe would catch the silent case after
+            the fact; screening prevents it for the cost of one logged
+            filter.
+        - alternative: >-
+            a node-local retry counter instead of reading the shared
+            per-route counts
+          falsifier_inline: >-
+            A private counter double-books the budget the parent
+            declares shared - ten venv failures plus ten loop attempts
+            would spend twenty against a bound the operator approved as
+            ten per target; reading the one persisted counter with
+            per-route naming (the parent's own accounting rule) keeps
+            one budget with two named spenders. It would also be a lap
+            counter standing in for progress, which the standing rules
+            prohibit.
+        - alternative: >-
+            mechanical blocking hooks for the disk pre-check and
+            placeholder check
+          falsifier_inline: >-
+            Over-enforcement per §9.14.2 - the checks are cheap doer
+            commands whose transcripts are required DoD evidence, so a
+            missing check already fails venv_ready mechanically at the
+            evidence read; a wrong hook match on an SSH one-liner
+            strands the run for no added detection.
+
+      conflicts: []

@@ -1,0 +1,603 @@
+# Planner fragment for dispatched node implement_increments (root.v6).
+# REVISION v4 - supersedes implement_increments.v3.draft.pave.yaml (v3,
+# v2, v1 kept as provenance). SOLE DELTA (round-2 LOW residual): detector
+# input (2) conjunct 1 re-scoped from "evidence directory unchanged" to
+# "no new passing increment evidence record for that item since that lap"
+# - the raw directory-unchanged idiom was inherited from prepare_pr.v2
+# where it is sound, but here realize_increment grows its investigation
+# record on every stuck lap, so the old conjunct was false on exactly the
+# laps the stuck leg must catch. Adaptation rationale recorded inline at
+# each occurrence. Child bodies realize_increment and record_changeset
+# byte-identical to v3.
+# v3 was YAML-mechanics-only per the lead's parse report.
+# v2 repaired the boundary-review findings: HIGH (gap and stuck loops had
+# no reachable stall detector; gap sub-classes b/c carried the wrong
+# declared acceptance) and LOW (outcome precedence within
+# scope_next_increment). Verdict and child set unchanged.
+# Verdict: DECOMPOSE (confirms the framing prediction). Three children form
+# a scope -> realize -> record loop with per-increment evidence records and
+# per-turn resume points. Edges/checks/state are prose-only interface
+# findings under extensions.x_planning (fragment whitelist).
+# Pin-generic: no vllm version, branch name, or SDK version appears below;
+# all pin values are run inputs frozen in state (campaign_target_pins).
+pave:
+  name: implement_increments
+  status: draft
+
+  nodes:
+    scope_next_increment:
+      intent: plan
+      instance_per: approved_campaigns
+      purpose: >
+        On every entry to implementation - fresh from the design gate, or
+        re-entry from implementation review, a confirmed correctness
+        shortfall, or a confirmed regression - reconcile three persisted
+        inputs: the approved design's increment plan, the adversarial
+        findings history for this campaign, and the per-increment evidence
+        records already on disk. Verify the campaign worktree and branch
+        preconditions (worktree present, branch based on this campaign's
+        entry in campaign_target_pins, no protected base branch touched).
+        Then emit exactly one of: the next pending work item as a recorded
+        lap entry naming its design increment id, its declared acceptance,
+        and the findings it must answer; or the completion, defect,
+        exhaustion, or no-progress verdict. Work-item classes and their
+        declared acceptance: build or repair increments (the design's
+        CPU-mode command); coverage-gap items (the recomputed gap check
+        that found the gap - the missing increment's own CPU-mode command
+        for a record gap, the evidence-index coverage recomputation for a
+        diff-work-uncovered gap, the import scan re-run for an
+        import-scan hit, the substrate-fidelity check re-run for a
+        substrate-fidelity hit); repackaging items when review found the
+        changeset not reviewable as one unit against the increment plan
+        (the recomputed one-unit coverage check). The no-progress
+        detector reads two input families and fires on either. (1) The
+        findings history under artifacts/reviews/ - repeated identical
+        material findings, keyed on exactly the finding fingerprint the
+        reviewed sibling fixed (the artifact-layout impl/review pair
+        entry is the shape authority): the triple
+        increment id + surface + defect class - identical-across-laps is
+        a mechanical string match of triples against prior lap records
+        with no new passing increment evidence record for that item
+        since the triple was last answered. (2) This boundary's own lap
+        records' gap and stuck entries - this node would emit the same
+        named gap (or an identical gap set) or re-select the same stuck
+        increment it recorded on a prior lap while no new passing
+        increment evidence record for that item has appeared since that
+        lap and the item's declared acceptance has not advanced (the
+        detector compares the recorded gap list, the stuck-increment id,
+        and the passing-record set against the prior lap's record,
+        persisted in the lap records; conjunct 1 is scoped to passing
+        records deliberately - realize_increment persists its growing
+        investigation record on every stuck lap, so a raw
+        directory-unchanged conjunct would be false on exactly the laps
+        this leg must catch; the directory-unchanged idiom is sound in
+        prepare_pr, which routes gaps out and writes no per-lap
+        investigation records, and needed adapting here, not copying).
+        Recorded detector, no attempt caps. Design-approved monkeypatches arrive as debt notes, never
+        findings: they mint no work item and enter neither detector
+        input. Empty histories on a first lap can never fire either
+        input. When more than one verdict holds at once, report exactly
+        one outcome by this precedence: (1) plan_unrealizable_as_designed
+        - a concrete recorded contradiction outranks every repetition
+        signal; (2) no_new_route - repetition proves iteration is not
+        working, so it outranks resizing; (3) plan_exceeds_node; (4)
+        plan_satisfied when nothing is pending; (5) increment_selected
+        otherwise. Out of scope - any code change, any test run.
+      roles: [implementer]
+      consumes: [campaign_design_record, adversarial_review_findings,
+                 increment_evidence_records, increment_lap_record]
+      produces: [increment_lap_record]
+      allowed_effects:
+        - Reads of the campaign worktree, design record, findings history,
+          and increment evidence records.
+        - Writes of lap records inside this campaign's evidence directory
+          only.
+      forbidden_effects:
+        - Any write to the campaign worktree source tree or any branch.
+      outcomes:
+        increment_selected:
+          meaning: The next pending increment is recorded in the lap
+            record with its design increment id, its declared CPU-mode
+            acceptance command, and the review findings it answers -
+            settled by the lap record resolving item-by-item against the
+            approved design record and findings history on disk, a
+            derivation any reader can re-run from the same two inputs.
+          required_evidence: [increment_lap_record]
+        plan_satisfied:
+          meaning: Every increment in the approved plan, plus every repair
+            item derived from confirmed findings, carries a passing
+            CPU-mode evidence record on disk; nothing is pending. Routes
+            to changeset recording.
+          required_evidence: [increment_evidence_records]
+        plan_unrealizable_as_designed:
+          meaning: The design's increment plan contradicts the repo state
+            this node can observe - a named surface or precondition does
+            not exist as designed (for example a subsystem that left the
+            repo at the pinned base) - with the contradiction recorded.
+            Realizes the parent outcome design_defect_found.
+        no_new_route:
+          meaning: Either the findings history shows repeated identical
+            material findings - identity settled by exact match of the
+            finding fingerprint triple (increment id + surface + defect
+            class) against prior lap records, with no new passing
+            increment evidence record for that item since those triples
+            were last answered (the anchor is the answering record itself - a
+            finding re-raised identically after its repair's passing
+            record, with nothing newer, satisfies this conjunct - so a
+            doer-reviewer disagreement loop, where repairs keep passing
+            their declared acceptance while the reviewer re-raises the
+            same triple, fires this outcome rather than spinning unseen
+            behind gate 2) - or this
+            boundary's own lap records show the same named gap (or an
+            identical gap set) or the same stuck increment recurring
+            from a prior lap while no new passing increment evidence
+            record for that item has appeared since that lap and the
+            item's declared acceptance has not advanced (the asymmetry
+            is DELIBERATE - passing evidence records exist only on pass,
+            stuck laps write investigation records; a plan-scoping
+            choice, not an oversight). Lap records prove either repetition
+            mechanically. Realizes the parent outcome no_progress.
+        plan_exceeds_node:
+          meaning: The reconciled remaining work cannot fit this node as
+            sized - the exhaustion evidence (lap records, attempt
+            fingerprints, remaining-item list) is recorded. Realizes the
+            parent outcome scope_exceeded.
+
+    realize_increment:
+      intent: execute
+      instance_per: approved_campaigns
+      purpose: >
+        Realize the one selected increment in this campaign's isolated
+        worktree on its campaign branch: make the code change the design
+        names for this increment, add or extend the tests the design's
+        test layout declares for it (the fork's small test overlay is the
+        only in-repo net - most increments author their net first), run
+        the increment's declared CPU-mode acceptance
+        (VLLM_NEURON_CPU_MODE=1) to a recorded command transcript, and
+        write the increment's one-file evidence record (command, exit
+        status, diff stat, commit hash). When the selected item is a
+        coverage-gap item, the work is to close the named gap and settle
+        on the recomputed gap check that found it, as the lap record
+        declares - the missing increment's own CPU-mode command, the
+        evidence-index coverage recomputation, the import scan re-run
+        over the repaired diff, or the substrate-fidelity check re-run
+        over the repaired diff. When the selected item is a repackaging
+        item (review found the changeset not reviewable as one unit
+        against the increment plan), the work is instead to regroup the
+        campaign branch's commits and increment records so the changeset
+        reads as one unit per plan increment, settling on the recomputed
+        one-unit coverage check the lap record declares - same branch
+        authority, no new code behavior. Dispatch delegate
+        skills only through the run's guardrails. Out of scope - hardware
+        attempts, any write outside the campaign worktree and branch, and
+        any change to kickoff- or design-declared acceptance criteria.
+      roles: [implementer, delegate_dispatcher]
+      consumes: [increment_lap_record, campaign_design_record]
+      produces: [increment_evidence_records]
+      activities:
+        - Locate the increment's file surface from the design record and
+          read only the slices of the collision-heavy files it names.
+        - Implement the change; author or extend the declared tests.
+        - Run the declared CPU-mode acceptance command; capture the full
+          transcript.
+        - On failure, investigate and repair within this increment,
+          persisting the investigation record (checked, ruled out, found)
+          as it grows.
+        - Commit to the campaign branch and write the one-file increment
+          evidence record.
+      allowed_effects:
+        - Writes inside this campaign's worktree and branch on the fork.
+        - CPU-mode execution on local or assigned hosts.
+        - Guardrailed delegate dispatch.
+      forbidden_effects:
+        - Mutating protected base branches on fork or upstream.
+        - NxDI-stack imports in ported code.
+        - Clearing the shared Neuron compile cache.
+        - Any write into /opt or any venv cloning shortcut.
+      outcomes:
+        increment_passed:
+          meaning: This work item's declared acceptance passed - the
+            CPU-mode command transcript and exit status for build and
+            repair increments, the recomputed gap check that found the
+            gap for coverage-gap items, or the recomputed one-unit
+            coverage check for repackaging items - and its evidence
+            record is written; settled by values produced by the
+            instrument, not the doer's judgment. Routes back to scoping
+            for the next item.
+          required_evidence: [increment_evidence_records]
+        evidence_contradicts_design:
+          meaning: The increment cannot be realized as designed and the
+            contradiction is recorded with the observing evidence (the
+            designed seam, API, or precondition does not hold in the
+            worktree). Realizes the parent outcome design_defect_found.
+            Outranks both other outcomes when results co-hold - a
+            concrete recorded contradiction beats a green transcript
+            reached by deviating from the design (deviation is out of
+            scope, so such a pass is not a pass) and beats mere
+            exhaustion.
+        increment_stuck:
+          meaning: Honest repair attempts on this increment are exhausted
+            for this dispatch without a passing acceptance; the persisted
+            investigation record carries what was checked, ruled out, and
+            found, and the stuck increment's id persists in the lap
+            record so recurrence feeds the no-progress detector. Routes
+            back to scoping, which re-selects with the new evidence or
+            detects no-progress from the lap history. Reported only when
+            neither a recorded contradiction stands nor the declared
+            acceptance passed on work done as designed - the last door in
+            the precedence.
+
+    record_changeset:
+      intent: execute
+      instance_per: approved_campaigns
+      purpose: >
+        Assemble this campaign's implementation_changeset as the parent's
+        settling artifact: the campaign branch diff against this
+        campaign's target base recorded in campaign_target_pins, the
+        index proving every planned and repair increment carries a
+        passing CPU-mode evidence record, the transcript of a
+        mechanical NxDI-import scan over the diff (zero hits required -
+        the run-wide forbidden effect checked at the changeset boundary,
+        where the whole ported surface is visible at once), and the
+        transcript of the mechanical substrate-fidelity check - every
+        design-declared-NKI increment's diff surface shows NKI usage, a
+        presence predicate on a doer-made declaration (zero NKI usage in
+        a declared-NKI increment is a recorded contradiction; the
+        predicate never asks what any torch code is doing, so boundary
+        plumbing cannot false-fire it). Out of scope
+        - any new code change; a gap found here routes back to scoping.
+      roles: [implementer]
+      consumes: [increment_evidence_records, increment_lap_record,
+                 campaign_design_record]
+      produces: [implementation_changeset]
+      allowed_effects:
+        - Read-only git diff of the campaign branch against its recorded
+          target base.
+        - Writes of the changeset artifact inside this campaign's
+          evidence directory.
+      forbidden_effects:
+        - Any write to the campaign worktree source tree or any branch.
+      outcomes:
+        changeset_recorded:
+          meaning: The changeset artifact holds the git-produced branch
+            diff, an evidence index in which every planned increment
+            resolves to a passing record, the import-scan transcript
+            with zero NxDI hits, and the substrate-fidelity transcript
+            (every declared-NKI increment shows NKI usage) - settled by
+            re-reading those four
+            world-produced components, each recomputable by a reviewer
+            from the branch and the records. Realizes the parent outcome
+            increments_ready.
+          required_evidence: [implementation_changeset]
+        coverage_gap_found:
+          meaning: A named gap routes back to scoping as a coverage-gap
+            work item whose declared acceptance is the recomputed gap
+            check that found it - (a) an increment lacks a passing record
+            (acceptance = that increment's own CPU-mode command), (b) the
+            diff contains work no increment record covers (acceptance =
+            the evidence-index coverage recomputation), (c) the import
+            scan hit (acceptance = the import scan re-run over the
+            repaired diff), or (d) a substrate-fidelity hit (acceptance
+            = the substrate-fidelity check re-run over the repaired
+            diff). The gap identity persists in the lap record
+            so recurrence feeds the no-progress detector.
+
+  extensions:
+    x_planning:
+      dispatched_node: implement_increments
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#implement_increments
+      supersedes: planning/implement_increments.v4.draft.pave.yaml
+      lead_resync_v5_second_touch_pair1: >
+        Second touch, whole-bundle round (2026-08-25, R2 HIGH):
+        scope_next_increment's purpose citation for the fingerprint
+        triple repointed from planning/review_implementation.v3 (a
+        non-shipping file) to the artifact-layout impl/review pair
+        entry - the shipped shape authority. The triple itself is
+        unchanged: it is the deliberate binding per
+        binding_review_interface below; the layout pair-1 entry was
+        amended to match, and root.v7's review_implementation now
+        carries the producer-side obligation.
+      lead_resync_v5_note: >
+        v5 is a lead resynchronization micro-fix (2026-08-25, no planner
+        dispatch): realize_increment's outcome precedence relocated from
+        the fragment's x_planning outcome_precedence note into CONTRACT
+        TEXT (item 20 where-it-lands clause - the ordering now lives in
+        the outcome meanings: contradiction outranks, stuck is the last
+        door); item 27(g) deliberate-asymmetry reason added beside the
+        conjunct-1 scoping parenthetical (evidence records exist only on
+        pass; stuck laps write investigation records - a plan-scoping
+        choice, not an oversight). SAME-DAY AMENDMENT (2026-08-26, F8
+        first-pass finding): the 27(g) parenthetical had landed only in
+        the x_planning copy of the detector text - an incomplete
+        landing invisible per-node; it is now IN the shipped
+        no_new_route outcome meaning beside the conjunct-1 scoping,
+        which is what the booking meant. v4 stays provenance.
+
+      elaboration:
+        implement_increments:
+          verdict: decompose
+          justification: One campaign lap spans several increments across
+            a ~9000-line runner monolith, platform config fan-in, and
+            scheduler, each increment authoring its own test net before
+            its CPU evidence; re-entry arrives on three different edges
+            whose reconciliation (which increments answer which findings,
+            is this lap identical to the last) is a cross-lap judgment
+            distinct from code-writing; and the one-file-per-increment
+            evidence pattern demands per-increment resume points one
+            context cannot give across sessions. Overturned only if
+            approved campaigns arrive with one- or two-increment plans on
+            isolated surfaces (for example connector-only work).
+        scope_next_increment:
+          prediction: atomic
+          justification: One agent reads three bounded persisted inputs
+            and writes one lap record; settles by the record resolving
+            against the design record and findings history on disk.
+        realize_increment:
+          prediction: atomic
+          justification: One agent, one increment, one design-named
+            surface slice; settles on the recorded CPU-mode acceptance
+            transcript. Holds only while design keeps increments
+            single-context-sized - the granularity duty recorded in
+            interface_findings; plan_exceeds_node is the runtime valve.
+        record_changeset:
+          prediction: atomic
+          justification: Mechanical assembly - git diff, evidence index
+            coverage check, import scan - all recomputable commands;
+            settles on the three transcripts in the artifact.
+
+      uncertainty_ledger:
+        facts:
+          - CPU mode is real and grounds per-increment pre-hardware
+            evidence - env flag, simulated compile, CPU device forcing
+            (exploration/target-plugin.md section 3.9). Changes the
+            judgment that every increment can settle on world-produced
+            evidence before hardware.
+          - Upstream ships zero test/ci at both surveyed versions; the
+            fork's 8-file overlay is the only in-repo net
+            (exploration/plugin-024-delta.md section 3.0). Changes the
+            judgment that increments author their test net first, which
+            raises per-increment volume.
+          - Collision surfaces grew at the current pin - runner ~9000
+            lines with two mixins, platform fan-in, scheduler; four ad
+            hoc monkeypatches with an empty centralized apply_patches()
+            stub whose docstring is specifically wrong (delta lens Q1).
+            Grounds the decompose verdict and the read-slices-only
+            activity discipline.
+          - The compile/FX-pass subsystem left the repo at the current
+            pin (delta lens Q1); a design increment naming those
+            surfaces is unrealizable in-repo - grounds the
+            plan_unrealizable_as_designed outcome's example.
+          - The increment plan, test layout, and predicted file surface
+            arrive frozen in campaign_design_record, gate-2 approved
+            (root.v6 design_campaign purpose). This node realizes; it
+            never re-designs.
+          - The parent's re-entry edges are design_sound (gate 2),
+            impl_findings_to_repair, confirmed_shortfall_to_repair,
+            confirmed_regression_to_repair (root.v6 edges) - three
+            distinct repair triggers, one entry reconciliation.
+        assumptions:
+          - The design record declares, per increment, an id, a file
+            surface, and a CPU-mode acceptance command with expected
+            result. If a design arrives without per-increment acceptance,
+            scope_next_increment emits plan_unrealizable_as_designed
+            (design_defect_found) rather than inventing criteria -
+            criteria invention would breach the frozen-acceptance rule.
+          - Increments within one campaign are sequential (each builds on
+            the prior branch state), so runtime fan-out cannot absorb the
+            volume - checked against the section 9.12 fan-out alternative
+            before splitting.
+          - Findings from measurement-driven re-entries (shortfall,
+            regression) are reachable through the campaign's findings and
+            verdict artifacts the parent already consumes.
+        open_questions:
+          - Whether a single design increment on the runner monolith can
+            exceed one agent context - not closable now (no design
+            exists yet); routed to the design-granularity interface
+            finding plus the plan_exceeds_node valve, not to an explorer.
+          - Exact artifact shape of the findings history the no-progress
+            detector reads - CLOSED for the finding-record format by the
+            lead's binding addition (fingerprint triple increment id +
+            surface + defect class, fixed by the reviewed sibling
+            review_implementation.v3); directory layout remains lead-owned
+            at assembly, recorded as an interface finding.
+
+      evidence_questions:
+        - none_dispatched: >
+            The brief's evidence base (system-map ADDENDUM, target-plugin
+            lens, plugin delta lens) answered every question that bears
+            on sizing; the two remaining opens are unresolvable before
+            design exists, so explorer dispatches would burn reads
+            without changing the verdict.
+
+      dod_ladder:
+        increment: Rung 1 - measurement against a declared threshold. The
+          increment's gate-2-approved CPU-mode acceptance command exits
+          green; the doer may run it because the value comes from the
+          test instrument. The threshold (command plus expected result)
+          is frozen at design, so the doer cannot retune its own
+          acceptance mid-attempt. Coverage-gap and repackaging items sit
+          on the same rung - their declared acceptance is the recomputed
+          mechanical check that raised them (the missing increment's own
+          CPU-mode command, the evidence-index coverage recomputation,
+          the import scan, or the one-unit coverage check) - command
+          output any reader re-runs, fixed by the gap's identity in the
+          lap record, not chosen by the doer.
+        node: Rung 1 composite - every planned increment resolves to a
+          passing transcript, the branch diff is git-produced, and the
+          import scan is command output over the diff; all three
+          recomputable by review_implementation, which is the built-in
+          re-settling of this definition of done before hardware spend.
+
+      enforcement:
+        - subject: per-increment CPU acceptance evidence
+          gameability: gameable in principle - the doer authors the tests
+            it then passes and runs the command itself.
+          hardening: harden-first - (1) acceptance command and test
+            layout are declared in the gate-2-approved design, not by
+            the doer at run time; (2) full command transcript, exit
+            status, and commit hash persist per increment (provenance a
+            later reader recomputes against the branch); (3) the parent
+            graph's existing pre-hardware adversarial review
+            (review_implementation) is the review rung - no new reviewer
+            added, reusing the existing gate per section 4.11.
+          strength: persistent record + existing independent review.
+          why_not_stronger: a false pass is caught before the costly
+            transition (hardware spend) by the existing review; a
+            blocking mechanism here would guard a reversible,
+            worktree-local state.
+        - subject: NxDI-import prohibition in ported code
+          gameability: not gameable at the changeset boundary - the scan
+            is command output over the git diff, recomputable by anyone.
+          strength: mechanical scan recorded in the changeset artifact,
+            with coverage_gap_found as its failure route; the run-wide
+            blocking hook for NxDI/protected-branch/cache-clear/opt-write
+            is the lead's enforcement record, not re-minted here.
+          why_not_stronger: nothing stronger exists than a mechanical
+            check plus a run-wide block already owned elsewhere.
+        - subject: worktree/branch confinement preconditions
+          gameability: low - branch-base verification is a git query.
+          strength: mechanical precondition read in scope_next_increment,
+            observing only, because the irreversible act (protected-
+            branch mutation) is already blocked by the run-wide hook.
+          why_not_stronger: duplicate blocking adds strand risk without
+            removing any failure the hook does not already remove.
+        - subject: advisory monitor on realize_increment
+          decision: skipped - evidence is hardened mechanically (rungs
+            1-2) and adversarial review follows; per
+            technique-selection.md the monitor's cost roughly doubles the
+            stage and its trigger (doer satisfies check without goal) is
+            already covered by frozen acceptance plus review. Liveness
+            visibility comes free from per-increment records.
+        - subject: internal loop bounds (three loops through
+            scope_next_increment)
+          decision: unlimited attempts by contract (no attempt caps -
+            root principle); each loop is bounded by a detector input
+            that the loop's own writes feed, so every bound is
+            falsifiable. Review-repair re-entry loop (the parent's three
+            repair edges) - bounded by detector input (1), the
+            findings-fingerprint triple match over artifacts/reviews/,
+            which that loop writes through review_implementation. Gap
+            loop (record_changeset.coverage_gap_found -> scope) and stuck
+            loop (realize_increment.increment_stuck -> scope) - bounded by
+            detector input (2), the identical-gap-set or same-stuck-
+            increment comparison over this boundary's own lap records
+            with no new passing increment evidence record for the item
+            since that lap and its declared acceptance not advanced
+            (passing-record scoping, not directory-unchanged - the
+            investigation record grows on every stuck lap, so a
+            directory-unchanged conjunct could never fire on the stuck
+            leg) - entries both loops persist
+            by construction (coverage_gap_found and increment_stuck each
+            record their identity into the lap record). Every firing
+            lands on no_new_route, realizing parent no_progress ->
+            rederive_approach, an operator-controlled stop reachable from
+            all three loops. Lap records tag each turn with its trigger
+            (first-build, review repair, shortfall repair, regression
+            repair, coverage gap, stuck, repackage), giving the shared
+            loop budget per-route accounting without minting counters.
+
+      model_effort:
+        scope_next_increment: implementer on a strong model, high effort
+          - cross-lap no-progress judgment has wide blast radius (a
+          wrong verdict either wastes a rederivation or burns laps).
+        realize_increment: implementer on a strong model, high effort
+          (collision-heavy surfaces; matches the root assignment); xhigh
+          only for a long-horizon increment session. delegate_dispatcher
+          on a small fast model, low effort - fixed guardrails, scoped
+          single-question dispatches (matches root).
+        record_changeset: implementer on a strong model, medium effort -
+          mechanical recomputable assembly; wrong answers are caught by
+          review_implementation.
+
+      interface_findings:
+        edges_prose: >
+          Entry - the parent's four incoming edges (design_sound plus the
+          three repair re-entries) land on scope_next_increment. Loop -
+          scope_next_increment.increment_selected -> realize_increment;
+          realize_increment.increment_passed -> scope_next_increment;
+          realize_increment.increment_stuck -> scope_next_increment;
+          scope_next_increment.plan_satisfied -> record_changeset;
+          record_changeset.coverage_gap_found -> scope_next_increment.
+          Parent-outcome realization -
+          record_changeset.changeset_recorded realizes increments_ready;
+          scope_next_increment.plan_unrealizable_as_designed and
+          realize_increment.evidence_contradicts_design realize
+          design_defect_found; scope_next_increment.no_new_route realizes
+          no_progress; scope_next_increment.plan_exceeds_node realizes
+          scope_exceeded. Across children, outcome sets are disjoint by
+          definition; within scope_next_increment, verdicts can co-hold
+          (repeated identical findings AND oversized remaining work), so
+          its purpose carries an explicit outcome precedence - mirroring
+          verify_run_closure.v2's outcome-precedence rule - under which
+          exactly one outcome is ever reported and no competing-edge
+          checks are needed inside the boundary.
+        state_prose: >
+          No new run-state field. Lap records and per-increment evidence
+          records live under the parent's declared evidence directory
+          (artifacts/campaigns/<campaign>/increments/), pointed to by the
+          existing campaign_states field, one file per event. The lead
+          should either register increment_lap_record and
+          increment_evidence_records as campaign-scoped evidence
+          definitions at assembly (produced_by the children above) or
+          treat them as intermediate artifacts inside
+          implementation_changeset's directory - either preserves
+          meaning; the fragment uses the names in consumes/produces as
+          intermediate artifacts per pave-yaml section 10.
+        design_record_expectation: >
+          Sharpening for design_campaign (not a contract change - its
+          purpose already names the increment plan and test layout): the
+          campaign_design_record's increment plan should declare, per
+          increment, an id, a file surface, the CPU-mode acceptance
+          command with expected result, and the test-layout additions -
+          and should size each increment to one agent context (the
+          granularity duty; plan_exceeds_node is the valve when it
+          fails). The monkeypatch surface note: an increment touches the
+          empty apply_patches() stub or the four ad hoc patches only when
+          the approved design says so; centralizing patches is a design
+          decision, never an implementer's initiative.
+        findings_history_location: >
+          The no-progress detector's input (1) reads the adversarial
+          findings history the parent consumes (artifacts/reviews/ plus
+          campaign verdict artifacts); its input (2) reads this
+          boundary's own lap records (gap and stuck entries) under the
+          campaign evidence directory - added in v2 per the boundary
+          review, adapted (not copied) from prepare_pr.v2's
+          internally-originated stall detector, because the gap and stuck
+          loops never write to artifacts/reviews/ and would otherwise
+          have no reachable stop. Adaptation, fixed in v4: prepare_pr's
+          directory-unchanged conjunct is sound there (it routes gaps out
+          to measurement and writes no per-lap investigation records) but
+          unsatisfiable here, where realize_increment grows its
+          investigation record on every stuck lap - so conjunct 1 is
+          scoped to no new passing increment evidence record for the item
+          since that lap (the asymmetry is DELIBERATE - evidence records
+          exist only on pass, stuck laps write investigation records; a
+          plan-scoping choice, not an oversight). Do not restore the
+          original idiom.
+          On a first lap both inputs are empty and the detector cannot
+          fire - normal, per the dispatch brief. Exact directory layout
+          is lead-owned; assembly should confirm the campaign-scoped
+          view.
+        binding_review_interface: >
+          BINDING addition adopted from the lead (sibling
+          planning/review_implementation.v3.draft.pave.yaml, reviewed):
+          (1) every material finding carries the stable fingerprint
+          triple increment id + surface + defect class, and for the
+          findings-history input the no-progress detector keys on exactly
+          that triple - a mechanical string match across lap records,
+          designed into scope_next_increment's purpose and no_new_route
+          outcome; keying on anything else would make the
+          implement-review loop's declared exit fire never or early. The
+          v2 second detector input covers only internally-originated
+          stalls (gaps and stuck increments that never reach
+          artifacts/reviews/) and does not alter the triple keying. (2) The review's material-iff
+          line is calibrated to hardware cost - consumed as-is, nothing to
+          design here. (3) Design-approved monkeypatches return as debt
+          notes, not findings - scope_next_increment mints no work item
+          from them and excludes them from the fingerprint set. (4) A
+          class-(e) finding (changeset not reviewable as one unit against
+          the increment plan) routes back here as a repackaging work item:
+          scope_next_increment selects it, realize_increment regroups
+          branch commits and records under its existing branch authority,
+          and the recomputed one-unit coverage check settles it.
+      conflicts: []

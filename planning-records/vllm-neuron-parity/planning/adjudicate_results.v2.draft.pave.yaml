@@ -1,0 +1,264 @@
+# Node-planner draft — adjudicate_results (dispatched boundary)
+# Frozen contract: planning/root.v6.draft.pave.yaml#adjudicate_results
+# (referenced, never copied). Verdict: ATOMIC — nodes stays empty; the
+# atomic contract detail lives under extensions.x_planning.
+# Pin-generic: no vllm/SDK/branch values appear below; version data the
+# verdict needs (baseline-skew control) is read from measurement bundles
+# at run time, never from graph text.
+pave:
+  name: adjudicate_results
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: adjudicate_results
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#adjudicate_results
+
+      elaboration:
+        adjudicate_results:
+          verdict: atomic
+          justification: >
+            One adjudicator reads this campaign's stable measurement
+            artifacts plus the kickoff-declared criterion table and settles
+            every route-scoped gate by mechanical comparison, writing one
+            verdict record whose every line a reviewer can re-derive from
+            cited artifact hashes and verbatim-quoted thresholds alone.
+            Falsified if settling a verdict ever requires re-running a
+            measurement or holding more than the pre-registered comparator
+            set's artifacts in view at once — the pre-registered set is
+            bounded by design, and instance_per approved_campaigns already
+            splits volume per campaign, so neither holds.
+
+      framing_prediction_review: >
+        Confirmed atomic, as the root planner predicted. Checked the
+        overturn candidates: (a) upgrade-route regression-matrix
+        adjudication is more rows, not a different shape — read row,
+        locate artifact, compare, record; volume lives in artifacts read
+        incrementally; (b) the stability re-read, criterion-preregistration
+        check, and no_progress detection are activities inside one
+        judgment, not sub-goals needing their own recovery, evidence, or
+        authority — their failures already map onto the three frozen
+        outcomes; (c) no intermediate result needs its own resume point:
+        a re-entry restarts the whole read-compare-record pass cheaply.
+
+      # ------------------------------------------------------------------
+      # Atomic contract detail (the frozen five-part contract is in the
+      # parent draft; this section fills in the definition of done, the
+      # activity list, enforcement, and evidence design the builder needs).
+      # ------------------------------------------------------------------
+
+      definition_of_done: >
+        verdict_recorded — every kickoff-declared acceptance criterion for
+        this campaign's route (backport route: each correctness-gate and
+        performance-gate criterion; upgrade route: each regression-matrix
+        row INSTEAD) carries exactly one pass/fail line in a verdict record
+        under artifacts/campaigns/<campaign>/verdicts/ — settled by writing
+        that record such that each line cites (a) the measurement artifact
+        path(s) read, (b) the content hashes from the node's own two-read
+        stability pass (identical on both reads), (c) the threshold or
+        matrix-row criterion quoted verbatim with its source reference
+        (kickoff contract / design record section) and the
+        comparator-registration timestamp from run state, (d) the extracted
+        measured value(s), and (e) the comparison rule connecting (c) and
+        (d) to the pass/fail. Re-derivability test a reviewer runs: recompute
+        every pass/fail from the citations alone, reading nothing the record
+        does not name. Evidence ladder (pave-spec 5.3.1): each line is a
+        rung-1 measurement-against-declared-threshold comparison; the
+        assembled verdict is rung-2 — the criterion table existed before
+        measurement, was not authored by the adjudicator, the adjudicator
+        produced none of the artifacts under verdict, and rubric and verdict
+        both persist.
+
+      route_scoped_acceptance: >
+        The campaign's route type comes from its kickoff-contract reference
+        in approved_campaigns / campaign state. Backport route: adjudicate
+        the correctness gate and the performance gate, both as declared at
+        kickoff. Upgrade route: adjudicate the kickoff-declared regression
+        matrix instead — never the backport gate pair. Exactly one
+        acceptance schema applies per campaign; the verdict record names
+        which one and why (route type quoted from the kickoff contract).
+
+      activities:
+        - Read the campaign's route type and acceptance criteria from the
+          kickoff contract and design record; verify every criterion is
+          pre-registered (registration timestamp in run state precedes
+          every measurement artifact). A criterion that is absent,
+          ambiguous, or mechanically inapplicable is recorded verbatim in
+          the verdict record as unadjudicable-as-written — never repaired,
+          reinterpreted, or substituted locally.
+        - Enumerate the kickoff-declared measurement set, then stability
+          re-read; two reads of each artifact with content-hash comparison
+          and a completeness sweep against the declared set. Any missing
+          artifact, hash mismatch, or in-progress marker ends the run as
+          evidence_unstable (frozen meaning covers both incomplete and
+          changed-on-re-read; the watcher false-failure race is the
+          precedent this pass exists for).
+        - Record provenance per artifact in the evidence trail — producer
+          identity, hashes, and the GPU-side baseline version plus known
+          cross-version behavior differences each measurement bundle names
+          (baseline-skew control). Skew context may annotate a verdict
+          line; it may never amend a threshold.
+        - For each criterion, locate the cited artifacts, extract the
+          measured values, compute the comparison against the verbatim
+          threshold or matrix row, and write the pass/fail line with the
+          full five-part citation.
+        - On re-entry from verdict review (frozen edge
+          verdict_findings_to_readjudication), read this campaign's prior
+          verdict files and its adversarial findings history under
+          artifacts/reviews/; if the standing material findings are
+          identical to a prior round's and the measurement hash set is
+          unchanged since that round, end as no_progress instead of
+          re-issuing an equivalent verdict. An empty findings history
+          (first lap) is normal and never no_progress.
+        - Write the verdict record one-file-per-event under
+          artifacts/campaigns/<campaign>/verdicts/ and end as
+          verdict_recorded.
+
+      evidence_questions:
+        - Which artifacts are read — artifacts/campaigns/<campaign>/
+          measurements/ (values under verdict), .../kickoff/ and .../design/
+          (criterion table, comparator registration reference), .../verdicts/
+          and artifacts/reviews/ scoped to this campaign (re-entry
+          no_progress detection only).
+        - Which threshold table — only the kickoff-declared one (backport
+          gate pair or upgrade regression matrix), quoted verbatim with the
+          run-state comparator-registration timestamp; the adjudicator
+          derives no threshold and registers no comparator.
+        - What the trail must let a reviewer re-derive — every pass/fail
+          from cited hashes plus quoted criteria alone; plus the stability
+          evidence (both read hashes) and the route-type quote that selected
+          the acceptance schema.
+        - What is written — one verdict record per adjudication event under
+          .../verdicts/; nothing else is mutated anywhere.
+
+      enforcement:
+        criterion_drift_prohibition:
+          strength: persistent record + independent review
+          detail: >
+            The verdict record must quote each criterion verbatim with its
+            source reference; review_measurement_verdict diffs quotes
+            against the kickoff/design record, so drift is precisely
+            detectable before the verdict has any consequence. A mechanical
+            block is unnecessary — the verdict is inert until the frozen
+            downstream review gates it, so drift is caught before harm; any
+            genuine need to change a criterion routes to
+            rederive_approach's route-change path, which lands on a
+            recorded user decision (frozen graph; wrong-baseline incident
+            is the precedent).
+        stability_re_read:
+          strength: node-local mechanical activity backing a frozen check
+          detail: >
+            evidence_stable_before_verdict (lead-evaluated, inbound edge)
+            gates entry; the node repeats the two-read hash pass itself
+            because time passes between edge evaluation and verdict read —
+            the frozen evidence_unstable outcome exists for exactly this.
+            No stronger rung needed: the failure is precisely detectable
+            and its route (back to measurement) is already declared.
+        independence:
+          strength: lead-run mechanical check + recorded provenance
+          detail: >
+            measurer_not_adjudicator (lead-evaluated, inbound edge) is the
+            gate; the node additionally records producer identities per
+            artifact in the trail so the reviewer can re-verify. No
+            duplicate node-local gate — duplicating the lead's mechanical
+            check adds no detection power.
+        evidence_gameability:
+          artifact: adjudication_verdict
+          judgment: gameable
+          detail: >
+            The adjudicator writes the verdict record and could mint
+            favorable comparisons, misquote thresholds, or cite stale
+            artifacts. Hardened in 9.14.1 order before process: (1)
+            provenance the doer cannot fake — cited content hashes must
+            match measurer-written files on disk, and the
+            comparator-registration timestamp lives in lead-written run
+            state, a second artifact the adjudicator does not write; (2)
+            checks the doer does not run — both inbound mechanical checks
+            are lead-evaluated; (3) practical adversarial review —
+            review_measurement_verdict re-derives every pass/fail from the
+            citations; a line that cannot be re-derived is a material
+            finding. All three rungs already exist in the frozen graph;
+            nothing new is added, this entry records the judgment.
+
+      model_effort:
+        adjudicator:
+          model: strong
+          effort: high
+          rationale: >
+            Confirms the root assignment. Bounded evidence volume
+            (pre-registered comparator set) and low ambiguity (verbatim
+            criteria) argue down; direct gate authority and the cost of a
+            wrong verdict (a full measurement or implementation re-loop)
+            argue up. Strong/high is the balance; session-top is
+            unnecessary because every verdict line is mechanically
+            re-derivable and adversarially reviewed downstream.
+
+      interface_findings:
+        - The frozen evidence_unstable meaning ("incomplete or changed on
+          re-read") correctly covers a declared measurement missing from
+          the artifact set — routes to measure_against_baseline. No change
+          needed; noted so the builder does not invent a fourth outcome.
+        - >-
+          A criterion that is present but unadjudicable-as-written
+          (ambiguous threshold text, matrix row with no measurable
+          procedure) is NOT a measurement gap: the node records it inside
+          the verdict record and still emits verdict_recorded; the frozen
+          review_measurement_verdict material_findings path and the
+          no_progress ladder carry it toward redesign. This keeps the three
+          frozen outcomes sufficient. Interface expectation on
+          design_campaign: acceptance criteria ship in adjudicable form —
+          verbatim-quotable thresholds or matrix rows with procedure
+          references.
+        - no_progress detection needs read access to this campaign's prior
+          verdicts and its slice of artifacts/reviews/; the campaign_states
+          pointer already covers this. No new state field.
+        - >-
+          Roles stay [adjudicator] only: both inbound checks are
+          lead-evaluated at the edge, outside this node; nothing in this
+          design requires a lead action inside the node run.
+
+      uncertainty_ledger:
+        facts:
+          - Frozen node contract, inbound checks, and all three outbound
+            routes — planning/root.v6.draft.pave.yaml (nodes.adjudicate_results,
+            checks, edges measurements_to_adjudication /
+            verdict_to_verdict_review / unstable_evidence_to_remeasure /
+            adjudication_no_progress_to_rederivation).
+          - Route-scoped acceptance (backport gate pair vs upgrade
+            regression matrix INSTEAD) — root-contract.md section 1;
+            requirements.md acceptance section.
+          - Criterion changes only by recorded user decision;
+            measurer-never-adjudicates — requirements.md authority order
+            (wrong-baseline precedent named there).
+          - >-
+            Both adjudication failure modes are real and observed —
+            system-map.md evidence-flow section: wrong-baseline (measurer
+            picked its own comparators across re-entries; user caught it)
+            and watcher/evidence race (first-sighting read produced a false
+            failed).
+          - Measurement bundles carry GPU-side baseline version and known
+            cross-version differences (baseline-skew control) —
+            root.v6 evidence.measurement_artifacts.
+        assumptions:
+          - Stable-on-re-read operationalizes as two reads with identical
+            content hashes plus completeness against the declared set; the
+            node repeats it even though the inbound check passed, because
+            the check and the verdict read are separated in time.
+          - Route type is readable from the campaign's kickoff-contract
+            reference in approved_campaigns / campaign state.
+          - Re-entry rounds can be correlated to findings history via the
+            campaign's verdicts/ and reviews/ artifacts (one-file-per-event
+            gives stable round identity).
+        open_questions:
+          - Does regression-matrix volume force a split? Closed — same
+            read-compare-record shape per row; volume lives in artifacts;
+            per-campaign fan-out already bounds it.
+          - Does criterion inapplicability need its own outcome? Closed —
+            recorded inside the verdict; the frozen review /
+            no_progress / rederive path carries it (interface finding 2).
+          - Does the node need a user interaction for criterion drift?
+            Closed — forbidden locally; the frozen rederive_approach
+            route-change path is where a criterion change meets a recorded
+            user decision.
+
+      conflicts: []

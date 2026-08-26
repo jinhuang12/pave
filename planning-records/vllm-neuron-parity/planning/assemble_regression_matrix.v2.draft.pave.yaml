@@ -1,0 +1,291 @@
+# Planner draft — dispatched boundary: assemble_regression_matrix
+# (child of design_campaign, instance_per approved_campaigns, upgrade-route
+# only). Verdict: ATOMIC — no children authored; nodes is intentionally
+# empty. The dispatched node's five-part contract stays frozen in the
+# parent draft and is referenced, never copied. Pin-generic: no SDK,
+# release-branch, or vllm version literal appears in this file.
+pave:
+  name: assemble_regression_matrix
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: assemble_regression_matrix
+      frozen_contract_reference: planning/design_campaign.v3.draft.pave.yaml#assemble_regression_matrix
+      supersedes: planning/assemble_regression_matrix.draft.pave.yaml
+      revision: >
+        v2 is a lead resynchronization micro-fix (2026-08-25, item 27(c)
+        and 27(d), no planner dispatch): the uncertainty-ledger fact
+        citing the superseded thin-suite sentence now cites system-map
+        ADDENDUM item 1 (upstream ships zero tests; the surveyed
+        spec-decode suite is a fork-only overlay); the cosmetic
+        rule_order id mismatch is fixed to name the actual precedence
+        keys; the frozen contract reference is restamped from v1 to v3
+        (child bodies byte-identical v1-v3; the v4 contract-text edits
+        that land this fragment's own precedence bookings are the
+        deliberate lead amendments recorded in design_campaign.v4's
+        revision note). Second touch (same day, item 34(b) residual) -
+        the thresholds-in-code clause in the accuracy-framework ledger
+        fact gains its proving citation
+        (exploration/validation-and-acceptance.md:57-61); the three
+        prior sources stay for the framework-shape halves of the fact.
+        No other change.
+      parent_repair_note: >
+        A v2 parent repair (prose-only) is in flight; the one change binding
+        this boundary - the scope_exceeded valve maps to the parent's
+        no_progress outcome, landing at rederive_approach. The valve below
+        is realized for that destination.
+
+      elaboration:
+        assemble_regression_matrix:
+          verdict: atomic
+          justification: >
+            One agent sweeps the kickoff-declared at-risk cells (bounded by
+            the kickoff contract's regression-matrix criteria plus the delta
+            report's per-target at-risk set), writes one row per cell with a
+            procedure reference and a verbatim-quoted threshold from the
+            in-repo accuracy framework, flags orchestration-tier rows, and
+            settles the definition of done by a re-runnable completeness
+            cross-check plus verbatim-quote check. Overturned if the
+            kickoff-declared cell set plus the bounded framework read exceed
+            one context - which is exactly what scope_exceeded reports.
+            Parent's atomic-uncertain prediction CONFIRMED as atomic.
+
+      uncertainty_ledger:
+        facts:
+          - fact: The support-table surface is small - the baseline
+              compatibility matrix covers two models by roughly a dozen
+              features; the pin-side doc reorg moved matrix rows into
+              per-model recipes and dropped some unsupported rows rather
+              than flipping them.
+            source: exploration/target-plugin.md sect 3.10; system-map.md
+              item 4 ("absence of a row is not support")
+          - fact: The accuracy framework is three-level with stable
+              primitives unchanged across the pin change (task-level
+              aggregate floors; prompt-level three-way logit top-k plus
+              KV-cache Bhattacharyya coefficient with its pass line quoted
+              verbatim in the in-repo guide; module-level vs HF reference);
+              numeric prompt-level thresholds are located in framework code.
+            source: exploration/plugin-024-delta.md Q3;
+              exploration/target-plugin.md sect 3.8; system-map.md
+              evidence-flow section; the thresholds-in-code clause is
+              proven by exploration/validation-and-acceptance.md:57-61
+              (logit_validation.py:54-62 - pp_static [0.03, 0.05],
+              agg_bc 0.99, agg_sigma_ratio 1.0)
+          - fact: The framework's newer orchestration tier is unread but
+              ENUMERATED and small - a debugger subpackage (9 files), a
+              goldens subpackage (3 files), a snapshot subpackage (5 files),
+              plus a how-to doc and a set of design docs and example
+              scripts. Volume is measured even though content is unread.
+            source: exploration/plugin-024-delta.md Q3 (exact file lists)
+          - fact: For upgrade-route campaigns the regression matrix is the
+              acceptance gate - it replaces the correctness+perf gate pair;
+              upstream ships ZERO test or CI content at both pinned
+              versions - the surveyed spec-decode suite is a FORK-ONLY
+              overlay artifact (system-map ADDENDUM item 1, superseding
+              the exploration body text) - so the matrix is close to the
+              only regression net.
+            source: requirements.md acceptance section; system-map.md
+              ADDENDUM item 1; root.v6 nodes
+              adjudicate_results / review_measurement_verdict
+          - fact: The kickoff contract for an upgrade-route campaign already
+              carries regression-matrix criteria approved at gate 1, and the
+              delta report scopes what the pin change puts at risk - both
+              inputs exist before this node runs and neither is written by
+              this node's doer.
+            source: root.v6 check kickoff_contract_approved; root.v6
+              evidence delta_report; parent draft consumes list
+          - fact: No campaign in history ever invoked the framework; the
+              node is design-time only and executing any matrix procedure
+              is a forbidden effect, so procedure EXECUTABILITY is not this
+              node's claim - adjudicability as written is.
+            source: system-map.md evidence-flow ("NO campaign ever invoked
+              it"); frozen contract forbidden_effects
+        assumptions:
+          - id: a1
+            assumption: The at-risk cell set for one campaign is tens of
+              rows, not hundreds - support-table surface intersected with
+              the campaign's delta. If wrong, the Runtime Binding (per-row
+              fan-out of research reads under one goal) absorbs volume
+              before any split is justified; only a breach of the JUDGMENT
+              bound triggers scope_exceeded.
+          - id: a2
+            assumption: A verbatim-quotable threshold exists in docs or code
+              for stable-primitive procedures. Where none exists for a
+              kickoff-declared cell, that is the matrix_blocked outcome
+              doing its declared job, not a reason for more structure.
+        open_questions:
+          - question: Does the pin-side per-model-recipe doc form still
+              yield an unambiguous cell enumeration, given dropped rows?
+            closed_by: The kickoff-declared regression-matrix criteria bound
+              the sweep (gate-1 approved, lead-committed); the doer
+              enumerates from criteria plus delta report, and treats the
+              recipe docs as evidence per cell. Ambiguity that survives
+              those two inputs for a declared cell is a matrix_blocked gap
+              naming the cell.
+          - question: Are orchestration-tier procedure thresholds quotable?
+            closed_by: Not needed for sizing - handled inside the contract.
+              Rows resting on the unread tier carry the higher risk tier in
+              the row; a declared cell with no quotable threshold anywhere
+              is matrix_blocked. Content of the tier changes row content,
+              never one-agent feasibility, because the tier's volume is
+              already measured as small.
+
+      explorer_dispatches:
+        - none_dispatched: >
+            The named evidence gap (unread orchestration tier) bears on
+            sizing only through its volume, and the volume is already
+            measured in exploration/plugin-024-delta.md Q3 (exact file and
+            doc enumerations). A pre-read explorer would duplicate the
+            doer's own first activity without changing the verdict. Answers
+            to both open questions live at exploration/plugin-024-delta.md
+            Q3, exploration/target-plugin.md sect 3.8 and 3.10, and
+            system-map.md.
+
+      runtime_binding_first: >
+        Checked before any split. The only plausible breach is row volume,
+        and row authoring is homogeneous per-cell work under one goal - the
+        binding's fan-out/parallel-dispatch solves it without graph
+        structure. No sizing warning sign fires: no sub-goal needs its own
+        recovery route or authority; no intermediate result needs its own
+        review or resume point; the evidence base (small support table,
+        enumerated framework read, one campaign's delta) fits one context.
+
+      definition_of_done:
+        outcome: matrix_assembled
+        statement: >
+          Every at-risk support-table cell for this campaign has exactly one
+          matrix row that is adjudicable as written - cell identity,
+          procedure reference resolving to a real path in the read-only
+          pinned target repo, verbatim-quoted threshold with its source
+          path and line anchor, and a risk-tier flag - settled by two
+          re-runnable acts on world-produced evidence: (1) a completeness
+          cross-check of the row set against the kickoff-declared
+          regression-matrix criteria and the delta report's at-risk cells,
+          both artifacts produced by other actors; (2) a verbatim-quote
+          check that every row's threshold quote matches character-exact at
+          its cited source location in the pinned repo (grep-settleable;
+          code-sourced thresholds cite file and line).
+        ladder_rung: >
+          Rung 1 (measurement against a declared condition): both settling
+          acts read instruments - file existence, character-exact match,
+          set difference against two artifacts the doer did not write. The
+          doer may run them because the values come from the instrument.
+          The residual semantic claim (each row gates the RIGHT regression)
+          is judgment and is settled downstream by the retained gate-2
+          adversarial review (review_campaign_design), which re-runs both
+          mechanical checks from the artifacts - the reviewer re-settling
+          required by the spec's node contract.
+
+      outcome_precedence:
+        rule_order: [matrix_blocked_over_scope_exceeded,
+          blocked_requires_settled_evidence, success_exclusivity]
+        success_exclusivity: >
+          matrix_assembled requires ALL declared cells covered and both
+          settling checks passing - it is definitionally exclusive of the
+          other two outcomes and never co-holds; it is emitted only when
+          neither failure condition exists.
+        matrix_blocked_over_scope_exceeded: >
+          When both co-hold, emit matrix_blocked. Reason: a confirmed
+          criteria gap survives any re-sizing - no re-plan can make a
+          non-adjudicable kickoff-declared cell adjudicable, and criteria
+          change needs an explicit user decision, so re-derivation (both
+          outcomes now land there via the parent's no_progress) must
+          receive the gap named first. The blocked record carries the
+          scope-breach evidence as an annex so nothing is lost.
+        blocked_requires_settled_evidence: >
+          Discipline that keeps the precedence honest: matrix_blocked is
+          claimable only for a cell whose non-adjudicability was settled on
+          evidence read in full (the relevant framework surface and docs
+          for that cell were actually read and no procedure/threshold
+          exists). A suspicion formed on a partial read is NOT a blocker -
+          if the context bound falls before the cell's evidence is read
+          out, the honest outcome is scope_exceeded. Exactly one outcome is
+          emitted per run under these rules.
+        scope_exceeded_realization: >
+          Destination-aware content: the valve routes via the parent's
+          no_progress to rederive_approach, so the record must name what
+          breached the bound (cell count, read volume, or interacting
+          judgments), what was completed, and where partial rows live - the
+          re-derivation node re-plans from that record. The exhaustion
+          bound lives at the parent level (rederive_approach lands on
+          operator-controlled gates per the root loop-bounds record); this
+          node adds no counter.
+
+      enforcement_record:
+        - claim: regression_matrix_draft is doer-written and GAMEABLE - the
+            doer could narrow the cell sweep, cite a procedure that does not
+            match the cell, or paraphrase a threshold into something easier
+            to pass.
+          hardening: >
+            Harden-first, provenance rung: (1) sweep-narrowing is bound to
+            the world because the completeness check compares rows against
+            the kickoff contract record (gate-1 approved, lead-committed)
+            and the delta report (investigator-produced) - neither is
+            mintable by this doer; (2) threshold-minting is bound to the
+            world because every quote must match character-exact in the
+            read-only pinned repo at its cited path - the doer cannot write
+            that repo; (3) wrong-procedure selection is the residual
+            judgment risk, covered by the next rung already in the frozen
+            graph - the gate-2 adversarial review of the whole design
+            record, which re-runs checks 1 and 2 mechanically and judges
+            row-to-cell fit. This is the recorded gameability hardening the
+            parent declared for this draft; kept, not weakened.
+          why_not_stronger: >
+            A dedicated mechanical validator node would re-check exactly
+            what gate-2 review already re-settles - a second gate on the
+            same claim, rejected per the smallest-sufficient-graph rule.
+            The route-B stakes (the matrix IS the acceptance story for
+            upgrade campaigns) are answered by making provenance a hard row
+            FORMAT requirement so the review verifies mechanically instead
+            of trusting prose - stronger evidence, not more process.
+        - claim: Risk-tier flags could be silently omitted, hiding
+            unread-orchestration exposure from gate 2.
+          hardening: >
+            The tier is a required row field with exactly two values
+            (stable_primitive, unread_orchestration) - a missing field
+            fails the row-format check the gate-2 review runs; visible in
+            the row, never a side note, per the frozen contract.
+          why_not_stronger: >
+            Omission is cheaply detectable at the one transition that reads
+            the matrix; an always-on mechanism for a single-transition
+            check is the over-enforcement pattern the spec names.
+
+      row_format_interface:
+        note_for_assembly: >
+          Content guidance for the doer and the gate-2 reviewer, not a
+          schema change. Each row carries - cell identity (model by
+          feature); the kickoff-declared criterion it realizes; procedure
+          reference as a repo-relative path (plus anchor) into the pinned
+          target repo; framework level; verbatim threshold quote with
+          source path and line; risk tier (stable_primitive or
+          unread_orchestration). Rows point at the repo; the draft never
+          inlines bulk framework content.
+
+      model_effort:
+        model: strong
+        effort: high
+        rationale: >
+          Evidence-heavy construction with per-row judgment and a wide
+          blast radius (route-B acceptance rests on it) - strong model,
+          high effort, confirming the parent assignment. Not top
+          capability: the compounding judgments (which cells matter, what
+          thresholds bind) were spent at gate 1 and land again at
+          preregistration; this node selects and quotes under a frozen
+          criteria set. Not xhigh: the unread-tier read is front-loaded and
+          bounded (enumerated small file and doc set), not a long-horizon
+          session.
+
+      interface_findings:
+        consumers: >
+          preregister_acceptance consumes regression_matrix_draft and
+          registers rows as route-scoped criteria - the row format above
+          hands it verbatim-quotable material by construction.
+          assemble_design_record checks matrix presence for upgrade-route
+          campaigns. No sibling interface change needed.
+        routing_confirmed: >
+          matrix_assembled to preregister_acceptance; matrix_blocked and
+          scope_exceeded both feed the parent's no_progress route to
+          rederive_approach per the in-flight v2 parent repair - realized
+          above with the outcome-precedence and destination-aware records.
+        conflicts: []

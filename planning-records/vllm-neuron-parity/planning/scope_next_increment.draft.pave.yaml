@@ -1,0 +1,436 @@
+# Planner draft fragment — dispatched boundary: scope_next_increment
+# (child of implement_increments, the run's first decompose boundary).
+# Frozen contract: planning/implement_increments.v4.draft.pave.yaml
+# #scope_next_increment (referenced, never copied) — RE-ANCHORED from v3
+# by authoritative lead amendment mid-dispatch; v4 is on disk and
+# lead-verified, and this planner independently diffed the v3/v4 child
+# bodies (only the purpose text and no_new_route meaning differ - the
+# corrected detector conjunct at both locations). This fragment was
+# designed against the corrected predicate from the start; the
+# superseded directory-unchanged idiom appears nowhere below.
+# Pin-generic: no SDK, vLLM, or branch literals appear below; every pin
+# value is a run input frozen in state (campaign_target_pins).
+pave:
+  name: scope_next_increment
+  status: draft
+  # Atomic: no child nodes. The dispatched node's five-part contract is
+  # frozen in the parent fragment and referenced below, never re-authored
+  # here.
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: scope_next_increment
+      frozen_contract_reference: planning/implement_increments.v4.draft.pave.yaml#scope_next_increment
+      contract_amendment_note: >-
+        Provenance - dispatched against the v3 child body with the v4
+        correction flagged as contract in the brief; re-anchored to v4 by
+        authoritative lead amendment during this dispatch. Independently
+        verified by child-body diff during the dispatch - v3 and v4
+        differ only in the purpose text and the no_new_route meaning,
+        both carrying the corrected detector conjunct (recurrence while
+        no new PASSING increment evidence record for that item has
+        appeared since that lap AND the item's declared acceptance has
+        not advanced). Every detector restatement below realizes that
+        predicate; the superseded directory-unchanged phrase appears
+        nowhere, and per the contract's inline falsifier the original
+        idiom is not to be restored (it is sound in the sibling that
+        routes gaps out and writes no per-lap investigation records, and
+        needed adapting here, not copying).
+
+      elaboration:
+        scope_next_increment:
+          verdict: atomic
+          justification: >-
+            Confirms the framing prediction. One implementer per lap reads
+            the three persisted reconciliation inputs (gate-2-approved
+            design record, findings history, increment evidence records)
+            plus this boundary's own prior lap records, runs three
+            mechanical checks (precondition git queries, pending-set
+            derivation, two-family repetition match) and one bounded size
+            judgment, writes one lap record, and emits exactly one outcome
+            under the declared total precedence - a derivation any reader
+            re-runs from the same on-disk inputs to the same verdict.
+            Cross-lap memory is externalized to lap records by
+            construction, so every lap is a fresh bounded dispatch; the
+            Runtime Binding's per-campaign instances (instance_per
+            approved_campaigns) and the graph-routed lap loop already
+            carry all concurrency and resume structure, leaving no volume
+            problem a split would solve. The five outcomes are one
+            settlement's endings, not sub-goals - none needs its own
+            evidence, authority, or resume point; the declared precedence
+            resolves their interactions without holding them in tension.
+            Falsified only if one campaign's increment plan plus
+            multi-lap findings history exceeds one bounded context read
+            as needed - the design granularity duty (increments sized to
+            one agent context, gate-2 reviewed) makes that implausible,
+            and plan_exceeds_node is the runtime valve if it happens
+            anyway.
+
+      atomic_contract:
+        # Elaboration of the frozen contract's parts. Nothing here
+        # re-authors the parent fragment; purpose, inputs, effects,
+        # outcomes, and roles stay exactly as frozen.
+        definition_of_done: >-
+          The next pending work item is recorded in the lap record with
+          its design increment id, its declared acceptance - fixed by the
+          item's class, and for a coverage-gap item by the gap's identity
+          recorded in the lap record (sub-class (a) the missing
+          increment's own CPU-mode command, (b) the evidence-index
+          coverage recomputation, (c) the import scan re-run over the
+          repaired diff), never doer-chosen - and the findings it must
+          answer, settled by the lap record resolving item-by-item
+          against the approved design record and findings history on
+          disk, a derivation any reader re-runs from the same inputs to
+          the same selection. (This is the frozen increment_selected
+          outcome; the other four outcomes end the run without that
+          claim, each carrying its own recorded facts.)
+        evidence_ladder_rung: >-
+          Rung 1 - derivation against declared conditions from
+          world-produced inputs. Every value the settlement reads comes
+          from artifacts the doer did not author in this lap - the
+          gate-2-approved design record, reviewer-authored findings under
+          the reviews directory, evidence records and commit hashes
+          written by realize_increment, git query output - and the
+          selection rule (pending-set definition, per-class acceptance
+          fixing, fingerprint match, precedence) is frozen in the parent
+          contract before any lap runs, so the doer cannot retune its own
+          acceptance mid-settlement. The lap record is doer-written, so
+          it is hardened per the enforcement entries below - every
+          load-bearing identity in it is an identifier the doer cannot
+          mint.
+        activities:
+          - >-
+            Read the reconciliation inputs as needed, volume staying in
+            artifacts - the design record's increment plan (per-increment
+            id, file surface, CPU-mode acceptance command with expected
+            result, test-layout additions), this campaign's entry in
+            campaign_target_pins, the findings history (reviews directory
+            plus the campaign's verdict artifacts), the per-increment
+            evidence records, and this boundary's prior lap records.
+          - >-
+            Verify the frozen preconditions by read-only git query -
+            worktree present, campaign branch based on this campaign's
+            recorded target base, no protected base branch touched -
+            and persist the query transcripts into the lap record. A
+            failed precondition is a recorded contradiction (expected
+            versus observed values plus the transcript) evaluated under
+            precedence rule 1; this node never repairs it (no branch or
+            source-tree writes).
+          - >-
+            Derive the pending work-item set item-by-item against the
+            plan - (a) planned increments lacking a passing evidence
+            record; (b) repair items minted from confirmed material
+            findings, keyed to their increment by the finding fingerprint
+            triple; (c) coverage-gap items named by the inbound gap
+            emission, acceptance fixed per sub-class by the gap identity
+            already in the lap record; (d) repackaging items from a
+            not-reviewable-as-one-unit finding. Design-approved
+            monkeypatches arrive as debt notes and mint nothing.
+          - >-
+            Evaluate the verdict predicates independently, facts before
+            precedence - the contradiction check (a named surface or
+            precondition observably absent as designed, recorded with the
+            observing read); the no-progress detector over both input
+            families exactly as frozen and corrected (realization notes
+            below); the size check over the reconciled remaining work,
+            with exhaustion evidence (lap records, attempt fingerprints,
+            remaining-item list) recorded when it holds; the pending
+            check.
+          - >-
+            Write the one lap record - the trigger tag (first-build,
+            review repair, shortfall repair, regression repair, coverage
+            gap, stuck, repackage - the parent's per-route accounting),
+            the selected item with id, declared acceptance, and findings
+            answered, or the verdict facts; carried-forward gap and
+            stuck identities; the detector comparison inputs this lap
+            read (triples matched, gap set, declared-acceptance strings,
+            evidence-record inventory at settlement); and the
+            precondition transcripts - so the next lap's detector and
+            any reader re-run the same comparisons from the record.
+          - >-
+            Emit exactly one outcome by the frozen total precedence,
+            applied once over the derived facts - realization with
+            per-pair reasons below.
+        outcome_precedence_realization: >-
+          The frozen order is unrealizable, then no_new_route, then
+          exceeds, then satisfied, then selected; exactly one outcome per
+          settlement. Reasons per adjacent pair - (1) over (2): a
+          concrete recorded contradiction outranks every repetition
+          signal, because iterating, resizing, or proceeding on a plan
+          the world observably contradicts burns laps on a false premise,
+          and the contradiction record is also the routing the design
+          re-entry needs. (2) over (3): repetition proves the iteration
+          mechanism itself failed, so it outranks resizing - a resize
+          re-enters the same stalled loop at a different granularity.
+          (3) over (4)/(5): selecting from a remainder the exhaustion
+          evidence already shows cannot fit burns a lap predicted to
+          fail. (4) over (5): mutually exclusive by construction
+          (satisfied means nothing pending); the total order keeps
+          emission deterministic even where a pair cannot co-hold.
+          Discipline - derive all predicate facts first, apply the
+          precedence once; no competing-edge checks are needed inside
+          the boundary because one outcome is ever reported. The
+          plan_satisfied condition (every planned and repair item
+          carries a passing CPU-mode evidence record) is re-settled
+          downstream by record_changeset's evidence-index recomputation,
+          the built-in independent re-check of this node's completion
+          claim.
+
+      detector_realization:
+        # Mechanical settlement for the frozen two-family detector; the
+        # binding fingerprint interface with review_implementation is
+        # adopted unchanged, never redesigned here.
+        family_1_findings_history: >-
+          Repeated identical material findings - exact string match of
+          the finding fingerprint triple (increment id + surface + defect
+          class) from the reviews directory against the triples recorded
+          in prior lap records, firing only when no new increment
+          evidence record appeared since those triples were last
+          answered. Satisfiable as written because evidence records exist
+          only for passing acceptance - realize_increment writes the
+          one-file record with increment_passed, while a stuck lap
+          persists an investigation record, which is not an evidence
+          record. Debt notes never enter the fingerprint set. Keying on
+          anything but the triple would make the implement-review loop's
+          declared exit fire never or early, so the match stays a
+          mechanical string comparison with no judgment to fudge.
+        family_2_internal_stalls: >-
+          Internally-originated stalls, exactly as the v4 contract states
+          - this node would emit the same named gap (or an identical gap
+          set) or re-select the same stuck increment recorded on a prior
+          lap, while no new PASSING increment evidence record for that
+          item has appeared since that lap AND the item's declared
+          acceptance has not advanced. Acceptance advancement settles as an exact string
+          comparison of the item's declared-acceptance value against the
+          prior lap's recorded value; advancement arrives only through a
+          revised design record (a rederivation lap) or a changed gap
+          identity, which is a different item by construction. Gap and
+          stuck identities persist into lap records by construction, so
+          both comparisons re-run mechanically from the records.
+        firing_and_scope: >-
+          Either family firing selects no_new_route under precedence rule
+          2, realizing the parent's no_progress into rederive_approach -
+          every internal loop's designed stop, with no attempt caps.
+          Empty histories on a first lap can never fire either family.
+          Deliberate boundary - a CPU-pass-but-measurement-fail cycle
+          (shortfall or regression re-entries where a new passing
+          evidence record appears each lap) is outside this detector by
+          design; that loop is bounded by the parent graph's hardware
+          breaker and rederivation, so the detector staying silent there
+          is correct behavior, not a gap.
+
+      evidence_questions:
+        # None dispatched to explorers - the brief, the parent fragment,
+        # and root.v6 on disk answered every sizing-relevant question.
+        # Two were closed by direct read during this dispatch:
+        - q: Does any node in the root graph provision the campaign
+            worktree this node's preconditions verify?
+          a: No - grep over planning/root.v6.draft.pave.yaml shows
+            worktrees only in the root purpose and implement_increments
+            effects; provisioning is a Runtime Binding or assembly duty.
+            Recorded as interface finding f1_worktree_provisioning; does
+            not change sizing (verification stays a bounded git query).
+        - q: Which edges deliver the measurement-driven re-entries whose
+            findings this node must reconcile?
+          a: The root edges from the measurement-verdict review's
+            confirmed-shortfall and confirmed-regression outcomes into
+            implement_increments (root.v6 edges list), landing on this
+            node per the parent's entry routing; their findings reach
+            this node through the campaign findings and verdict
+            artifacts the parent already consumes. Reachability path
+            recorded as interface finding
+            f4_verdict_artifact_reachability.
+
+      enforcement:
+        - subject: increment_lap_record (doer-written settling artifact
+            for increment_selected and the verdict outcomes)
+          gameability: gameable in principle - the same actor derives the
+            pending set, runs the detector, and writes the record; a
+            mis-derivation could skip a pending item (false
+            plan_satisfied), miss a repetition (detector silent,
+            lap-burning), or falsely fire (wasted rederivation).
+          hardening: harden-first per the enforcement-record order - (1)
+            provenance the doer cannot mint - design increment ids come
+            from the gate-2-approved record, fingerprint triples from
+            reviewer-authored findings artifacts, gap identities from
+            record_changeset's emission, evidence-record files and
+            commit hashes from realize_increment, precondition facts
+            from git transcripts - so a forged lap record fails
+            re-derivation from the untouched primary inputs; (2) checks
+            the doer does not run - a false plan_satisfied is recomputed
+            by record_changeset's evidence index in a separate context,
+            and review_implementation re-settles the whole completion
+            claim before any hardware spend - both existing gates,
+            none added.
+          strength: persistent record with non-mintable identities, plus
+            the two existing downstream mechanical and review gates.
+          why_not_stronger: every wrong verdict this node can emit is
+            recoverable before the costly transition - hardware spend
+            sits behind review_implementation - and a blocking mechanism
+            here would guard reversible, artifact-local state; an added
+            reviewer would read the same re-runnable evidence and detect
+            nothing new.
+        - subject: no-progress detector (the loop bound for all three
+            internal loops)
+          gameability: not gameable at the comparison itself - both
+            families settle by exact string match over persisted
+            identities, no judgment to fudge; residual risk is omission
+            (the doer not recording an identity the next lap needs).
+          falsifier_inline: two failure modes recorded next to the guard
+            - fires-never means silent lap-burning, mitigated because
+            gap and stuck identities persist into lap records by
+            construction (the loops' own writes feed the detector) and
+            the comparison inputs persist per lap so any reader re-runs
+            the match and catches the omission; fires-early means one
+            wasted rederivation lap, recoverable because
+            rederive_approach re-reads the same accumulated evidence and
+            its cost lands before any hardware spend. No attempt caps by
+            contract; every firing lands on no_new_route, realizing the
+            parent's no_progress into re-derivation - the designed,
+            operator-visible stop for all three loops.
+          strength: recorded detector over persisted comparison inputs.
+          why_not_stronger: a counter would cap honest heterogeneous
+            attempts the trigger tags already account per route; a
+            blocking rung has nothing irreversible to block.
+        - subject: worktree/branch confinement preconditions
+          gameability: low - branch-base verification is a git query with
+            its transcript persisted.
+          strength: mechanical precondition read, observing only, with a
+            declared route - a persistent failure is a recorded
+            contradiction emitted under precedence rule 1 (the frozen
+            outcome text covers a precondition that does not exist as
+            designed), never a silent strand.
+          why_not_stronger: the irreversible act (protected-branch
+            mutation) is already blocked by the run-wide hook in the
+            lead's enforcement record; a duplicate block adds strand
+            risk without removing any failure the hook does not already
+            remove. Matches the parent entry.
+
+      model_effort:
+        implementer:
+          model: strong model (not the session top model)
+          effort: high
+          rationale: Cross-lap verdict authority with wide blast radius -
+            a missed detection burns laps, a false firing wastes a
+            rederivation - justifies a strong model at the default high
+            pin; but the work is single-shot settlement of declared
+            conditions over bounded artifacts, not compounding planning,
+            so the session top model is not required. Confirms the
+            parent's assignment. The node dispatches no runtime
+            sub-agents - its reads are local artifact reads and git
+            queries - so no second seat exists to tier.
+
+      uncertainty_ledger:
+        facts:
+          - Frozen contract, five outcomes, precedence, work-item
+            classes, detector families, and effects - the parent child
+            body (frozen_contract_reference above), boundary-review
+            round-2 PASS.
+          - The corrected detector conjunct and its root cause (a
+            directory-unchanged conjunct is unsatisfiable on stuck laps
+            because realize persists a growing investigation record
+            there) - now inline in the v4 contract's own falsifier text;
+            originally the round-2 boundary review, per the frontier
+            notes for implement_increments.
+          - Evidence records exist only for passing acceptance -
+            realize_increment writes the one-file record with
+            increment_passed; a stuck lap persists an investigation
+            record instead. Grounds both detector conjuncts'
+            satisfiability.
+          - The binding fingerprint interface (triple keying, mechanical
+            string match, debt notes excluded) - the reviewed sibling
+            review_implementation.v3 via the parent's
+            binding_review_interface.
+          - The design record arrives gate-2 approved with per-increment
+            id, surface, CPU-mode acceptance command, and test layout -
+            the parent's design_record_expectation sharpening plus its
+            recorded assumption that a design without per-increment
+            acceptance emits plan_unrealizable_as_designed rather than
+            inventing criteria.
+          - No root node provisions the campaign worktree - direct grep
+            of root.v6 during this dispatch (evidence question 1).
+          - The three repair re-entry edges land on this node - root.v6
+            edges list plus the parent's entry routing (evidence
+            question 2).
+        assumptions:
+          - One campaign's increment plan plus its findings history and
+            evidence records fit one bounded context read as needed -
+            grounded in the design granularity duty and one-file-per-
+            event records; falsifier - a plan of very many increments
+            with deep multi-lap history overturns the atomic verdict at
+            redispatch, and plan_exceeds_node is the runtime valve
+            meanwhile.
+          - Each lap is a fresh dispatch with cross-lap memory only in
+            lap records - the parent's per-turn resume design; falsifier
+            - a binding holding one context across laps would accumulate
+            volume and contradict that design.
+          - Findings from measurement-driven re-entries are reachable
+            through the campaign findings and verdict artifacts the
+            parent consumes - inherited parent assumption; recorded as
+            interface finding f4 for assembly confirmation.
+        open_questions:
+          - Exact directory layout for lap records and the findings
+            history - lead-owned at assembly (parent finding); this
+            fragment fixes only what each record must contain, never
+            where it lives. Findings f5 and f4.
+          - Worktree provisioning owner - binding or assembly duty,
+            finding f1; sizing-neutral either way.
+
+      interface_findings:
+        - label: f1_worktree_provisioning
+          finding: >-
+            No node in the root graph provisions the campaign worktree;
+            this node verifies preconditions and never creates or
+            repairs them (no source-tree or branch writes). Assembly or
+            the Runtime Binding must own provisioning before the first
+            dispatch of this boundary - a kickoff or binding duty. A
+            persistently failed precondition is emitted as a recorded
+            contradiction under precedence rule 1, which the frozen
+            outcome text covers, so the run is never stranded; naming
+            the provisioning owner remains an assembly item.
+        - label: f2_v4_reanchor
+          finding: >-
+            CLOSED during this dispatch. The lead's authoritative
+            amendment re-anchored the contract to the v4 parent draft;
+            the frozen_contract_reference above now points at v4, and
+            this planner verified by child-body diff that v3 and v4
+            differ only at the two corrected locations (purpose text,
+            no_new_route meaning). No text in this fragment ever
+            depended on the superseded phrase, so the re-anchor changed
+            references and provenance notes only, no design content.
+        - label: f3_acceptance_advancement_settlement
+          finding: >-
+            The corrected conjunct's acceptance-advancement test settles
+            as an exact string comparison of the item's
+            declared-acceptance value across lap records; advancement
+            arrives only through a revised design record or a changed
+            gap identity (a different item by construction). No new
+            state field - the values already persist in lap records by
+            the frozen contract.
+        - label: f4_verdict_artifact_reachability
+          finding: >-
+            Shortfall- and regression-driven re-entries deliver their
+            confirmed findings through the campaign's findings and
+            verdict artifacts; assembly's artifact-layout reference
+            should confirm the read path so this node's reconciliation
+            reads them where the parent contract says they are.
+        - label: f5_lap_record_registration
+          finding: >-
+            Lap records live one file per event under the campaign
+            evidence directory per the parent's state note; the lead
+            either registers increment_lap_record as campaign-scoped
+            evidence at assembly or treats it as an intermediate
+            artifact inside the changeset's directory - either preserves
+            meaning (the parent already records this; restated here
+            because this node is its single writer).
+        - label: f6_trigger_tag_vocabulary
+          finding: >-
+            The seven lap trigger tags (first-build, review repair,
+            shortfall repair, regression repair, coverage gap, stuck,
+            repackage) are the parent's per-route accounting for the
+            shared loop budget; assembly should fix the tag vocabulary
+            in the artifact-layout reference so tagging stays a
+            mechanical assignment from the arriving edge and inbound
+            item class, never a doer judgment.
+
+      conflicts: []

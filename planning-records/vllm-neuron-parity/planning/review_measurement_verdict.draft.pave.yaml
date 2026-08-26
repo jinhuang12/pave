@@ -1,0 +1,324 @@
+pave:
+  name: review_measurement_verdict
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: review_measurement_verdict
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#review_measurement_verdict
+      elaboration:
+        review_measurement_verdict:
+          verdict: atomic
+          justification: One adversarial_reviewer re-derives one campaign's
+            route-scoped acceptance from the persisted measurement artifacts
+            and the kickoff-declared criteria - recomputing every gate or
+            matrix-cell comparison, re-checking comparator pre-registration
+            timestamps, stable-read evidence, measurer-versus-adjudicator
+            identity, and the baseline-skew declaration - then settles the
+            definition of done by writing a findings record that selects
+            exactly one of the five outcomes. Five-way routing is a single
+            bounded judgment against one pre-fixed rubric, not volume;
+            instance_per absorbs multi-campaign volume at the Runtime
+            Binding. Overturned only if confirmation demands re-collecting
+            measurements or archaeology beyond re-reading the persisted
+            artifacts - and re-collection is out of this node's authority by
+            contract (it routes via material_findings to re-adjudication,
+            whose evidence_unstable outcome reaches measurement).
+      atomic_contract:
+        definition_of_done: >
+          Exactly one of the five outcomes is selected, where the findings
+          record shows - (i) every kickoff-declared gate comparison (backport
+          route - correctness and performance) or regression-matrix cell
+          (upgrade route) re-derived from the persisted measurement values
+          against the kickoff-declared thresholds, with the recomputation
+          recorded, independent of the verdict's own arithmetic; (ii) the
+          five structural integrity checks each recorded with the world
+          evidence read - comparator-registration timestamp precedes every
+          measurement artifact and the comparators used lie inside the
+          registered set; every artifact under verdict is stable on a fresh
+          re-read performed by this review; the adjudicating identity is
+          distinct from every measuring identity; each evidence bundle
+          declares the GPU-side vLLM version and known cross-version
+          behavior differences; the artifacts describe the candidate
+          revision under verdict; (iii) each material finding cites the
+          exact artifact path and location it refutes and names the outcome
+          it would change, and rejected candidate findings persist with
+          their rejection reasons so they cannot return unchanged; and
+          (iv) a confirmation outcome is selected only when the count of
+          standing material findings is zero AND the re-derived consequence
+          equals the adjudicator's recorded verdict - settled by re-reading
+          the findings record against the verdict record, the measurement
+          artifacts, and the kickoff-declared criteria, a join any later
+          reader can re-run from the persisted artifacts alone.
+        acceptance_rung: >
+          Ladder rung 2 (judgment against a rubric written in advance) with
+          rung-1 content inside it - the materiality rubric and the
+          route-scoped confirmation cells below are fixed at plan time,
+          before any measurement or verdict exists, and are authored by
+          neither the measurer nor the adjudicator whose artifacts they
+          judge; the adversarial_reviewer produced neither consumed
+          artifact; rubric (graph text) and findings record
+          (artifacts/reviews/) both persist. The re-derivation itself is
+          rung-1 material - persisted instrument values recomputed against
+          declared thresholds - so the confirmation never rests on anyone's
+          unrecomputed judgment.
+        materiality_rubric: >
+          A finding is material if and only if, taken as true, it changes
+          which of the five outcomes this node selects or invalidates the
+          evidence chain under the verdict - (a) criteria drift - the
+          verdict judges against a threshold, comparator, method, or matrix
+          differing from the kickoff-declared one with no explicit user
+          decision recorded in run state (the wrong-baseline incident
+          class); (b) non-re-derivable gate - recomputing a declared
+          comparison from the persisted values yields a different gate or
+          cell result than the verdict records; (c) comparator breach - the
+          registration timestamp does not precede every measurement
+          artifact, or a measurement uses a comparator outside the
+          registered set; (d) instability - an artifact under verdict is
+          incomplete or changes on this review's fresh re-read, or the
+          verdict demonstrably read a first-sighting signal (the
+          watcher-race incident class); (e) independence or provenance
+          breach - the adjudicating identity produced an artifact under
+          verdict, or an artifact describes a revision other than the
+          candidate under verdict; (f) skew defect - a bundle omits the
+          GPU-side vLLM version and known-differences declaration, or the
+          verdict leans on a metric the declared skew confounds without
+          addressing it; (g) coverage or scope defect - a kickoff-declared
+          measurement or matrix cell has no stable artifact yet the verdict
+          claims the gate settled, or the verdict applies the wrong route's
+          acceptance (correctness-and-performance gates to an upgrade
+          campaign, or a regression matrix to a backport campaign).
+          Measurement noise within declared tolerances, method preferences
+          beyond the kickoff declaration, and uncertainty the verdict
+          already honestly discloses are not findings - at most non-blocking
+          notes. A clean pass is a successful review; issue count is not a
+          quality measure.
+        confirmation_cells: >
+          When zero material findings stand, exactly one route-scoped cell
+          is confirmed, and it must equal the adjudicator's recorded
+          consequence. Backport-route campaigns partition three ways -
+          pass_confirmed (correctness gate and performance gate both
+          re-derive as passed); correctness_shortfall_confirmed (correctness
+          gate re-derives as failed, regardless of the performance result -
+          correctness failure dominates, since no_benefit means "correct
+          port, performance gate failed"); no_benefit_confirmed (correctness
+          re-derives as passed and performance as failed). Upgrade-route
+          campaigns partition two ways - pass_confirmed (every
+          kickoff-declared regression-matrix cell re-derives as passed);
+          regression_confirmed (at least one cell re-derives as failed, with
+          the regressed surfaces named so implementation resumes on them).
+          The unused cells are unreachable for that route by settled
+          contract text, not by this node's discretion. A re-derivation that
+          reaches a different consequence than the verdict records is a
+          material finding (category b or g) and routes to re-adjudication -
+          the reviewer confirms or refutes; it never substitutes its own
+          verdict, preserving the measurer / adjudicator / reviewer
+          authority separation.
+        activities:
+          - Read the campaign's route type and its kickoff-declared
+            acceptance criteria - correctness and performance thresholds,
+            methods, and the pre-registered comparator set for backport
+            routes; the regression-matrix cells for upgrade routes - from
+            the kickoff contract record and run state
+            (comparator_registrations, approved_campaigns), and confirm the
+            verdict was judged against exactly those criteria, flagging any
+            drift without a recorded user decision.
+          - Re-derive structure - compare the comparator-registration
+            timestamp against every measurement artifact's timestamp;
+            confirm comparators used lie inside the registered set; re-read
+            every artifact under verdict now and confirm stability;
+            compare measuring identities against the adjudicating identity;
+            confirm each bundle's GPU-side vLLM version and cross-version
+            differences declaration; confirm the artifacts describe the
+            candidate revision under verdict. Read-only throughout.
+          - Re-derive every gate comparison or matrix cell from the
+            persisted measurement values against the kickoff thresholds,
+            independently of the verdict's arithmetic, and record each
+            recomputation beside the verdict's claimed result.
+          - Adversarially probe the verdict's reasoning - anomalies
+            explained away without evidence, selective run citation among
+            the persisted events, declared measurements silently absent,
+            metrics confounded by the declared baseline skew.
+          - Write the findings record with stable per-finding labels, exact
+            cited locations, the world checks run, and rejected candidates
+            with reasons; select the outcome - material_findings when any
+            material finding stands or the re-derived consequence differs
+            from the recorded verdict; otherwise the single route-scoped
+            confirmation cell.
+        evidence_questions:
+          - Does every kickoff-declared measurement (or matrix cell) exist
+            as a stable artifact, and does the verdict cover exactly that
+            set - nothing missing, nothing extra-judged?
+          - Does each gate or cell result re-derive from the persisted
+            values against the kickoff-declared thresholds?
+          - Did comparator registration precede every measurement, and did
+            measurement stay inside the registered set?
+          - Is every artifact under verdict stable on this review's own
+            fresh re-read, and did the verdict read stable artifacts rather
+            than first-sighting signals?
+          - Is the adjudicating identity distinct from every identity that
+            produced an artifact under verdict?
+          - Does each bundle declare the GPU-side vLLM version and known
+            cross-version differences, and does the verdict address any
+            metric that declaration confounds?
+          - Does the verdict apply the route-correct acceptance - gates for
+            backport, matrix for upgrade - and does the re-derived
+            consequence equal the recorded one?
+        enforcement:
+          - subject: adversarial_review_findings (this node's slice)
+            gameability: gameable in the rubber-stamp direction - the
+              reviewer writes the record it is judged by, and an unread
+              pass_confirmed is mintable at the single point that commits a
+              campaign to PR preparation or a no-benefit closure.
+            hardening: structure before process - the record must contain
+              the shown recomputation for every gate or cell, the timestamp
+              pairs read for pre-registration and stability, and the
+              identity evidence compared, so an unperformed re-derivation is
+              distinguishable from a clean confirmation on re-read; rejected
+              candidate findings persist with reasons. Stronger rung
+              unnecessary - pass_confirmed flows into prepare_pr and then
+              review_pr_evidence, a second independent review that re-reads
+              the same evidence chain before anything closes;
+              no_benefit_confirmed and both repair outcomes land before the
+              user at gate 3 or re-enter reviewed implementation loops. A
+              review-of-the-review here is the ceremony the
+              practical-review requirement forbids.
+          - subject: five-way routing transitions (confirmed_pass_to_pr_prep,
+              confirmed_shortfall_to_repair, confirmed_no_benefit_to_closeout,
+              confirmed_regression_to_repair, verdict_findings_to_readjudication)
+            strength: persistent record - required_evidence
+              (adversarial_review_findings) on all four confirmation
+              outcomes, with the findings record required to state the
+              campaign's route type and its source so the outcome-to-route
+              admissibility is checkable on read. Reason a stronger rung is
+              unnecessary - the lead already reads approved_campaigns route
+              type when routing these edges, so a wrong-cell confirmation is
+              detectable at zero cost at traversal (recorded as interface
+              finding f4), and every confirmation lands in a downstream
+              reviewed or user-gated node before irreversible action.
+        model_effort:
+          adversarial_reviewer: strong model, high effort - the
+            highest-stakes routing judgment in a campaign, but bounded to
+            one campaign's verdict and artifact set against one pre-fixed
+            rubric, so the session top model is unneeded (matches the
+            root-level adversarial_reviewer assignment).
+          recompute_explorers: small fast model, low effort - each carries
+            one bounded read-only question (recompute this comparison from
+            this artifact; read this timestamp pair; re-read this file and
+            report stability).
+      interface_findings:
+        - label: f1
+          finding: Route-scoped confirmation and criteria-drift detection
+            require the kickoff-declared criteria and the campaign's route
+            type, but the frozen consumes list carries only
+            adjudication_verdict and measurement_artifacts. The needed
+            records exist on disk and in run state -
+            artifacts/campaigns/<campaign>/kickoff/ (kickoff_contract_record),
+            comparator_registrations, approved_campaigns. Smallest
+            resolution - treat them as read-only refutation sources inside
+            the adversarial read (the frozen contract declares no effects
+            and the reads mutate nothing); alternatively the lead adds
+            kickoff_contract_record to consumes at the next
+            resynchronization. Without them the review can only check
+            internal consistency between verdict and measurements, which
+            cannot catch criteria drift - the wrong-baseline incident this
+            node exists to prevent.
+        - label: f2
+          finding: adjudicate_results.no_progress keys on repeated identical
+            material findings from this review with no new measurement
+            evidence. This node commits to stable per-finding labels plus
+            exact cited locations in its findings record so that identity
+            comparison is mechanical; the adjudicate_results planner should
+            key its no_progress detection on that shape.
+        - label: f3
+          finding: Re-derivation joins verdict gate entries to measurement
+            artifacts, so the two producers must share stable per-event
+            identifiers - the one-file-per-event artifact names cited
+            verbatim in the verdict's evidence trail. The
+            measure_against_baseline and adjudicate_results planners should
+            confirm that shared key (both dispatches unfinished; the
+            measurement draft is a stub).
+        - label: f4
+          finding: The route-scope reachability rule (upgrade campaigns
+            confirm only pass_confirmed or regression_confirmed; backport
+            campaigns never regression_confirmed) is enforced here by
+            rubric, and the findings record states the route type read. The
+            lead's routing already reads approved_campaigns at these edges -
+            a zero-cost mechanical cross-check (selected outcome is in the
+            route's admissible set) at traversal would catch a wrong-cell
+            confirmation. No contract change needed; recorded for the lead's
+            routing authority.
+        - label: f5
+          finding: Disagreement protocol - when this review's re-derivation
+            reaches a different consequence than the recorded verdict, the
+            outcome is material_findings, never a substituted confirmation;
+            the adjudicate_results planner should expect
+            re-derivation-disagreement as a first-class finding category in
+            its re-adjudication input.
+      uncertainty_ledger:
+        facts:
+          - Frozen contract - intent review, role adversarial_reviewer,
+            instance_per approved_campaigns, consumes adjudication_verdict
+            plus measurement_artifacts, produces adversarial_review_findings
+            (judgment, artifacts/reviews/), five outcomes with route-scoped
+            reachability settled in contract text
+            (planning/root.v6.draft.pave.yaml lines 552-589).
+          - Routing - in from adjudicate_results.verdict_recorded; out -
+            pass_confirmed to prepare_pr, correctness_shortfall_confirmed
+            and regression_confirmed to implement_increments,
+            no_benefit_confirmed to close_campaign, material_findings to
+            adjudicate_results; the review-repair loop's stall exit
+            (no_progress to rederive_approach) lives on adjudicate_results
+            (root.v6 edges and loop_bounds).
+          - Both consumed artifacts are recorded at root as gameable -
+            measurement_artifacts measurer-produced, hardened first by
+            structure (pre-registered comparators, stable-read,
+            measurer-never-adjudicates) then by exactly this review; so this
+            node is the hardening rung and must re-derive from the world
+            rather than read the verdict's prose (root.v6
+            evidence_gameability; spec 9.14.1 - a reviewer reading forgeable
+            evidence is fooled by the same forged artifact).
+          - Upstream mechanical checks exist and are lead-evaluated -
+            comparators_preregistered on the measurement entry edge,
+            evidence_stable_before_verdict and measurer_not_adjudicator on
+            the adjudication entry edge; this review re-verifies them from
+            the artifacts instead of trusting that they fired (root.v6
+            checks).
+          - Both observed real adjudication failures are in scope -
+            wrong-baseline (measurer chose its own comparators across
+            re-entries until the user intervened) and the watcher/evidence
+            race (first-sighting read produced a false failed)
+            (system-map.md, Evidence flow).
+          - Kickoff-declared metrics, thresholds, and methods change only by
+            explicit user decision recorded in run state; each measurement
+            bundle names the GPU-side vLLM version and known cross-version
+            differences (root-contract.md sections 1 and 3; requirements.md
+            baseline-skew UR).
+          - Root assigns adversarial_reviewer strong model, high effort
+            (root.v6 model_effort_assignments).
+        assumptions:
+          - The campaign's route type and kickoff criteria are readable from
+            run state and the kickoff artifact directory at review time even
+            though the frozen consumes list omits them - recorded as
+            interface finding f1 rather than designed around.
+          - One campaign's measurement artifact set (kickoff-declared,
+            one-file-per-event) fits one adversarial read; instance_per
+            fan-out absorbs multi-campaign volume at the Runtime Binding
+            before any decomposition would be justified.
+          - Read-only re-reads, timestamp comparisons, and threshold
+            recomputations sit inside an adversarial read and need no
+            allowed_effects amendment - the frozen contract declares no
+            effects and nothing is mutated.
+        open_questions:
+          - Internal shape of adjudication_verdict and measurement_artifacts
+            - open (adjudicate_results has no draft; the measurement draft
+            is a stub). Closed for sizing by the root evidence subjects
+            ("gate verdicts against kickoff-declared thresholds"; "stable
+            one-file-per-event measurements naming GPU-side version and skew");
+            the shape dependency is recorded as interface findings f2 and f3.
+          - Access to kickoff criteria and route type - closed as interface
+            finding f1 (read-only world artifacts; reported, not edited).
+          - Explorer dispatches - none sent; the frozen contract, root
+            authority, requirements, and system map answered every sizing
+            question, and the remaining unknowns are producer-shape
+            questions no exploration can close before those planners run.

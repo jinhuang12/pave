@@ -141,6 +141,37 @@ flowchart LR
     TEST --> DONE["Delivered plugin (v0)"]
 ```
 
+## Generated plugins
+
+Workflows that `pave-init` delivers can live in this repo so they are
+shareable, each split into two trees:
+
+- [`generated-plugins/`](generated-plugins/) — the installable plugin
+  packages, listed as their own entries in
+  [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json).
+- [`planning-records/`](planning-records/) — one directory per plugin:
+  the complete pave-init run workspace that produced it (requirements,
+  exploration, the approved graph, every review-gate record, and the
+  full run-state history). Provenance only; kept out of the plugin
+  source so marketplace installs ship just the package.
+
+Current plugins:
+
+| Plugin | What it does | Provenance |
+|---|---|---|
+| [`vllm-neuron-parity`](generated-plugins/vllm-neuron-parity/) | Drives a vLLM-Neuron fork to parity with upstream GPU vLLM through user-gated, evidence-backed campaigns. See its [README](generated-plugins/vllm-neuron-parity/README.md) for prerequisites (delegate Neuron skills). | [record](planning-records/vllm-neuron-parity/) |
+
+Install one the same way as pave-init:
+
+```text
+/plugin install vllm-neuron-parity@jinhuang12-plugins
+```
+
+Generated plugins currently ship Claude Code bindings. Their canonical
+PAVE graphs are harness-neutral, so a Codex variant can land later as a
+sibling binding inside the same plugin directory (`.codex-plugin/` +
+`codex/`), mirroring how this repo packages pave-init itself.
+
 ## Learn more
 
 - [`skills/pave-init/README.md`](skills/pave-init/README.md) — the deep dive:

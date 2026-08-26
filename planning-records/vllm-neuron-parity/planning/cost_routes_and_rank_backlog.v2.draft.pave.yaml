@@ -1,0 +1,294 @@
+pave:
+  name: cost_routes_and_rank_backlog
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: cost_routes_and_rank_backlog
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#cost_routes_and_rank_backlog
+      supersedes: planning/cost_routes_and_rank_backlog.draft.pave.yaml
+      revision_note: v2 after boundary review - repairs H1 (criteria
+        registration anchored in lead-owned run state, rung-2 gloss
+        tightened), H2 (stall clause covers non-shrinking finding sets),
+        H3 (citation corrected to spec 5.3.1). Atomic verdict unchanged.
+
+      elaboration:
+        cost_routes_and_rank_backlog:
+          verdict: atomic
+          justification: One investigator pre-registers costing criteria,
+            scores route A (choosing source A1 vs A2) against route B per
+            requested target from the finished delta reports, predicts each
+            target's file surface from report traces mapped onto the
+            collision ranking, ranks the backlog, and settles done by a
+            mechanical enumeration cross-check of every requested target's
+            three record parts; overturned if any target's costing requires
+            fresh repo archaeology beyond the delta reports - which is the
+            declared evidence_gap outcome routing back to the delta scan,
+            not a reason to split this node.
+
+      uncertainty_ledger:
+        facts:
+          - id: n1
+            fact: Delta reports arrive with source traces sufficient for
+              costing by contract; a shortfall is routed via evidence_gap
+              back to scan_upstream_delta, so costing never performs fresh
+              repo archaeology.
+            source: planning/root.v6.draft.pave.yaml (scan_upstream_delta
+              purpose and delta_mapped meaning; edge costing_gap_to_delta_scan)
+          - id: n2
+            fact: The mechanical runner-entanglement check and the
+              traceability sweeps are delta-scan work; costing consumes
+              their results.
+            source: root.v6 scan_upstream_delta purpose; system-map.md
+              "Evidence flow" (entanglement mechanically detectable)
+          - id: n3
+            fact: Two-tier traceability cost model is settled evidence -
+              headline features trace cheaply via PR-linked release notes,
+              diffuse features need sweep budgets.
+            source: system-map.md "Evidence flow"; requirements.md open
+              questions (route-analysis method)
+          - id: n4
+            fact: Collision ranking for surface prediction is settled -
+              runner monolith > platform config fan-in > scheduler >
+              per-model subpackages > isolated connectors; surfaces
+              persisted and grew at the current pin.
+            source: system-map.md "Concurrency and resources" + ADDENDUM 2;
+              root-contract.md section 7
+          - id: n5
+            fact: Route B runs exclusively and gates on a regression matrix
+              assembled against a near-zero in-repo test safety net - a
+              fixed cost input the B side of every costing must carry.
+            source: system-map.md ADDENDUM 1 and "Acceptance and closure"
+          - id: n6
+            fact: The compile subsystem is absent at the current pin;
+              compile-touching targets need re-scoping or an upstream-issue
+              path - a route-costing consequence the criteria must encode.
+            source: system-map.md ADDENDUM 3; root.v6
+              pin_generic_dependencies
+          - id: n7
+            fact: Downstream consumers are review_route_verdicts (UR-10
+              adversarial review) then gate 1; scheduling_holds reads the
+              predicted surfaces at fan-out via the mechanical
+              scheduling_holds_recorded check.
+            source: root.v6 edges backlog_to_route_review,
+              approved_campaigns_fan_out; state.scheduling_holds
+          - id: n8
+            fact: A2 is design-port only through tpu-inference; TPU support
+              is detected from its support matrices; known A2 dead ends are
+              recorded (sleep mode, weight reload).
+            source: requirements.md "Scope and exclusions"; system-map.md
+              boundary correction
+          - id: n9
+            fact: costing_stalled means repeated identical review findings
+              with no new evidence and routes to run_paused pre-gate-1 -
+              the designed operator stop for the re-costing loop.
+            source: root.v6 outcome costing_stalled; x_planning.loop_bounds
+        assumptions:
+          - id: n10
+            assumption: Requested-target count is bounded by the user's
+              invocation request; per-target costing reads one delta report
+              each as artifact reads, so volume stays out of held context
+              and the ranking judgment reads only small per-target cost
+              summaries.
+            bearing: If wrong (unbounded target list), the Runtime Binding
+              solves it with fan-out readers under this one goal before any
+              split is justified (spec section 9.12).
+          - id: n11
+            assumption: The delta-report format will carry the four trace
+              parts costing needs (A1 commit/PR trace; A2 design trace plus
+              TPU-support detection when applicable; entanglement-check
+              result; traceability-tier tag). Interface finding n20 makes
+              this explicit for the scan node's planner.
+            bearing: If missing, evidence_gap round-trips burn a scan
+              re-entry per gap - prevention is cheap at scan design time.
+          - id: n12
+            assumption: Ranking may consult the debt ledger and prior
+              ranked backlog read-only via cross_run_artifact_refs; the
+              lead stays single writer of the cross-run files.
+            bearing: Denying read access would strip rank rationale of
+              debt-coverage context; no write authority is needed.
+        open_questions:
+          - id: n13
+            question: Where does the requirements' "debt-ledger absorption
+              pass at first intake" live?
+            status: closed by lead at boundary review - absorption lands in
+              verify_run_preconditions (extending its scorecard
+              re-verification clause), not in this node; this node's
+              rank-rationale debt-coverage record stays as a complement.
+          - id: n14
+            question: Does route-B costing choose the upgrade base?
+            status: closed - no; costing recommends a candidate base in the
+              cost record; the kickoff contract declares the binding base
+              into campaign_target_pins (root.v6 assemble_kickoff_contracts).
+          - id: n15
+            question: How does re-entry stall detection read prior review
+              findings when consumes lists only delta_report?
+            status: closed as a reported interface conflict (n21) - the
+              smallest change is adding adversarial_review_findings to this
+              node's consumes; lead resynchronizes (resolution judged
+              adequate at boundary review).
+        explorer_dispatches: none - every sizing-relevant question closed
+          from planning/root.v6.draft.pave.yaml, planning/root-contract.md,
+          system-map.md (incl. ADDENDUM), and requirements.md.
+
+      atomic_contract:
+        definition_of_done: >
+          backlog_ranked - every target in requested_targets has, in
+          artifacts/run/backlog/, (a) a route verdict (A with source A1 or
+          A2, or B) scored against the pre-registered costing criteria with
+          every cost claim citing its delta-report trace, (b) a predicted
+          touched-file surface mapped onto the collision ranking and shaped
+          for scheduling_holds, and (c) a backlog rank with recorded
+          rationale - settled by a mechanical enumeration cross-check
+          (persisted transcript comparing requested_targets in run state
+          against the backlog records) plus the lead-owned run-state
+          criteria registration: the criteria record's digest matches the
+          registration and the registration timestamp precedes every
+          per-target costing record. Ladder position (spec 5.3.1): the
+          completeness and ordering conditions settle on rung 1 - the
+          enumeration is re-run by the reviewer from the persisted
+          transcript, and the ordering reads a second artifact the doer
+          does not write (the lead-owned registration, mirroring the
+          comparators_preregistered / comparator_registrations pattern);
+          the judgment quality settles on rung 2 downstream - author-written
+          criteria graded through the independent UR-10 judge at
+          review_route_verdicts (spec 5.3.1), never by the coster's own
+          assertion.
+        activities:
+          - Read requested_targets and each target's delta report; verify
+            the four trace parts costing needs are present; a missing part
+            emits evidence_gap naming target, missing trace, and the
+            costing criterion it blocks.
+          - Pre-register costing criteria FIRST - write the criteria record
+            to artifacts/run/backlog/, compute its digest, and submit it to
+            the lead for persistence into lead-owned run state BEFORE any
+            per-target costing record is written (mirroring the
+            comparators_preregistered / comparator_registrations pattern);
+            the registration carries digest and timestamp. Criteria cover -
+            per-route cost dimensions (route A - trace volume by
+            traceability tier, entanglement consequence, source fit A1 vs
+            A2 including the design-port surcharge and the recorded A2 dead
+            ends; route B - upgrade span, exclusive-execution hold cost on
+            all other campaigns, regression-matrix assembly cost against
+            the near-zero in-repo safety net), rank dimensions (user
+            priority, cost, risk, scorecard impact, debt-ledger coverage),
+            and the explicit decision rules for A-vs-B and A1-vs-A2.
+          - Per target, score both routes against the criteria and record
+            the route + source verdict; compile-touching targets carry the
+            re-scope-or-upstream-issue consequence as an explicit cost
+            line; route-B verdicts name a candidate upgrade base as a
+            recommendation only.
+          - Per target, predict the touched-file surface from the
+            delta-report traces mapped onto the collision ranking, emitted
+            as a machine-readable block (paths plus collision-tier tag)
+            for direct scheduling_holds consumption.
+          - Rank the backlog across targets with per-rank rationale,
+            consulting the debt ledger and prior backlog read-only.
+          - Run the mechanical completeness cross-check and persist its
+            transcript; only this act - together with the digest match
+            against the lead-owned criteria registration - selects
+            backlog_ranked.
+          - On re-entry from route-review material findings - read the
+            findings artifact, repair only what the findings name,
+            fingerprint the finding set into a persisted stall record;
+            costing_stalled is selected when the fingerprint is identical
+            with no new delta evidence, OR when the finding set has not
+            materially shrunk across two consecutive re-entries (a
+            one-item-per-lap drift never resets the stop). No attempt caps.
+        enforcement:
+          node_local_guards: none added - the existing review_route_verdicts
+            node plus gate 1 already catch mis-costing before any campaign
+            spend; a mechanical check on the backlog_to_route_review edge
+            would duplicate the review (spec 4.11 - reuse the existing
+            gate). Criteria-precede-costing is enforced at the
+            persistent-record rung, anchored in the lead-owned run-state
+            registration and challenged by the independent reviewer; a
+            blocking mechanism is unjustified because a violation is
+            precisely detectable post-hoc from the registration timestamp
+            and is non-catastrophic pre-gate-1.
+          evidence_gameability:
+            route_costing_and_backlog: gameable - doer-written judgment
+              text; the coster could mint cost numbers, retrofit the
+              criteria after seeing results, or omit targets. Hardened
+              first per spec 9.14.1 order - (1) provenance the doer cannot
+              fake - every cost claim cites a delta-report trace written by
+              a different actor (the scan node), and the criteria
+              registration lives in lead-owned run state, a second artifact
+              the doer does not write (spec 5.3.1 provenance rule), so a
+              retrofitted criteria record fails the digest-and-timestamp
+              match; (2) a check the doer does not run - the reviewer
+              re-runs the completeness enumeration from the persisted
+              transcript and verifies the registration match; (3)
+              adversarial review - review_route_verdicts (UR-10) grades the
+              records against the pre-registered criteria rather than
+              post-hoc judgment text. Consistent with the root
+              elaboration's gameability entry; this adds the harden-first
+              structure beneath the review.
+            stall_record: not gameable in effect - gaming it only pauses
+              the run earlier (costing_stalled routes to user direction),
+              never advances an outcome past a gate; the non-shrinking
+              clause closes the drift loophole in the other direction
+              (evading the stop by rotating findings).
+        model_effort:
+          investigator: strong model, high effort - judgment-heavy A-vs-B
+            and A1-vs-A2 trade-offs with campaign-spend blast radius;
+            adversarial review plus gate 1 downstream cap the damage, so
+            the session-top model is not required. Matches the root
+            elaboration's investigator assignment.
+          note: If the Runtime Binding fans out per-target report readers
+            under this goal, those scoped single-question dispatches ride
+            a small fast model at low effort.
+
+      interface_findings:
+        - id: n20
+          for: scan_upstream_delta planner (via lead)
+          finding: The delta report must carry, per target - the A1
+            commit/PR trace set; the A2 design trace plus the TPU-support
+            detection result when applicable; the runner-entanglement
+            check result; and a traceability-tier tag (headline vs diffuse)
+            with sweep budget spent. Each missing part costs one
+            evidence_gap round-trip to the scan.
+        - id: n21
+          for: lead (conflict - no c-id minted)
+          finding: On re-entry via edge route_findings_to_recosting this
+            node must read adversarial_review_findings (artifacts/reviews/)
+            to repair and to detect stall, but the frozen consumes lists
+            only delta_report. Smallest change - add
+            adversarial_review_findings to this node's consumes.
+            (Resolution judged adequate at boundary review; declarative
+            consumes addition at resync.)
+        - id: n22
+          for: lead
+          finding: Ranking consults the debt ledger and prior ranked
+            backlog read-only via cross_run_artifact_refs (no write
+            authority; lead remains single writer). Settled at boundary
+            review - the debt-ledger absorption pass lands in
+            verify_run_preconditions; this node's rank-rationale
+            debt-coverage record stays as a complement.
+        - id: n23
+          for: lead / assemble_kickoff_contracts
+          finding: The backlog artifact emits a machine-readable per-target
+            predicted-surface block (paths plus collision-tier tag) shaped
+            for direct copy into scheduling_holds at gate-1 fan-out, giving
+            the mechanical scheduling_holds_recorded check a stable source.
+        - id: n24
+          for: lead / assemble_kickoff_contracts
+          finding: Route-B cost records name a candidate upgrade base as a
+            recommendation only; the kickoff contract declares the binding
+            base into campaign_target_pins - no authority overlap. Values
+            stay run inputs; this draft stays pin-generic.
+        - id: n25
+          for: lead (resync)
+          finding: This node's criteria pre-registration needs a lead-owned
+            run-state entry - the lead persists the costing-criteria digest
+            and timestamp before any per-target costing record exists,
+            mirroring the comparators_preregistered /
+            comparator_registrations pattern (root.v6 check and state
+            field). Smallest change at resync - extend
+            comparator_registrations' meaning to cover intake costing
+            criteria, or add a sibling registration entry; the lead stays
+            the single run-state writer either way.
+
+      conflicts_reported_in_prose:
+        - Consumes gap on re-entry (see n21). No other frozen-interface
+          conflict found.

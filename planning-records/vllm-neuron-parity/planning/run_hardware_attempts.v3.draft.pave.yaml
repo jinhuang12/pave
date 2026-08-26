@@ -1,0 +1,597 @@
+pave:
+  name: run_hardware_attempts
+  status: draft
+  nodes:
+
+    acquire_hardware_lease:
+      intent: execute
+      purpose: Obtain an exclusive lease on a target-capable Neuron host from
+        the shared hardware queue for this campaign. Before the lease counts
+        as held, re-verify the host's identity live over one-shot SSH against
+        the roster's recorded identity markers (instance identifier, hostname,
+        and a boot identifier when the host exposes one - obtainability is a
+        runtime unknown, so record which markers were checkable). One
+        legitimate-change marker - a boot-identifier-ONLY delta is expected
+        when a logged reboot for that host precedes it in the recovery
+        records; an instance-identifier or hostname mismatch is always a hard
+        stop. The lead (queue service) is the single writer of the lease
+        record; this node requests, verifies, and confirms - it never writes
+        the record itself. Out of scope - any mutation of the host beyond the
+        identity probe.
+      roles: [implementer, lead]
+      consumes: [campaign_design_record]
+      produces: [hardware_attempt_log]
+      activities:
+        - Read the hardware queue and roster; request a lease from the lead
+          for a host matching the campaign's declared target hardware,
+          excluding hosts whose recovery allowance for this campaign is
+          exhausted (derived from the recovery records, never a stored
+          counter).
+        - Re-verify identity markers live over one-shot SSH before
+          confirming the grant. A boot-identifier-only delta with a logged
+          prior reboot for that host in the recovery records is legitimate -
+          record the delta and proceed; any other mismatch refuses the host,
+          reports the mismatch evidence verbatim, and requests the next
+          roster candidate.
+        - Append a one-file-per-event lease record (host, markers verified,
+          markers unavailable, deltas explained, grant reference) to the
+          attempt log.
+      allowed_effects:
+        - Read-only one-shot SSH identity probes to roster hosts.
+        - Lease request/confirm exchange with the lead's queue service.
+      forbidden_effects:
+        - Writing the hardware queue or lease record directly (lead-only).
+        - Any state-changing command on a host not yet leased.
+      outcomes:
+        lease_held:
+          meaning: A lease record written by the lead names this campaign as
+            the exclusive holder of one named host whose live identity
+            markers matched the roster (or whose sole delta is a
+            boot-identifier change explained by a logged reboot) - settled
+            by reading the lease record plus the identity-probe transcript
+            in the attempt log, never by this node's assertion.
+          required_evidence: [hardware_attempt_log]
+        no_host_available:
+          meaning: Every roster host matching the target is leased elsewhere,
+            failed identity verification, exhausted its recovery allowance
+            for this campaign, or is unreachable, and no replacement exists;
+            maps to the parent's hardware_unavailable with the per-host
+            refusal evidence.
+
+    replicate_campaign_venv:
+      intent: execute
+      purpose: Build this campaign's isolated venv on the leased host by the
+        freeze-replicate recipe and prove it live. The recipe has never been
+        executed end-to-end anywhere, so the first run is self-verifying by
+        design - discover the DLAMI baseline venv path per host (docs
+        disagree on the suffix; never hardcode), freeze it, replay the freeze
+        into a fresh venv with the vendor's private package index configured,
+        then editable-install the campaign worktree with --no-deps. Verify
+        before declaring done - (a) the private-index core dependency
+        resolved as a real distribution, not the public placeholder, checked
+        via installed-package metadata; (b) an edit-visibility probe using a
+        campaign-derived sentinel round-trips through the venv's import path;
+        (c) the ~10 GB disk budget was checked before the build. On host
+        reentry after recovery, re-run only the verification probes before
+        reuse. Failure-class precedence when both hold - a build failure
+        whose cause is host-level (disk exhaustion, device errors,
+        unreachability) is host_faulted, never replication_failed; recipe
+        verdicts on a faulted host are unreliable, and routing a host-caused
+        build failure to the breaker path would force approach re-derivation
+        for a hardware problem. Out of scope - any write to the shared DLAMI
+        venv or /opt.
+      roles: [implementer]
+      consumes: [implementation_changeset, campaign_design_record]
+      produces: [hardware_attempt_log]
+      activities:
+        - Discover the baseline venv path on the leased host; never assume a
+          suffix.
+        - Check disk headroom against the ~10 GB replica budget before
+          building.
+        - >-
+          Freeze, then SCREEN the freeze before replay: drop the plugin
+          package's own entry and every editable or direct-file reference.
+          The screened lines are logged with the screening rule so the
+          screen itself is reviewable. Replay into a fresh per-campaign
+          venv with the vendor private index, editable-install the
+          worktree with --no-deps.
+        - Run the self-verification probes and append their machine outputs
+          (metadata dump, sentinel round-trip value) to the attempt log.
+        - On failure, classify host-level causes first (precedence above);
+          only a build failure on a healthy host is a recipe failure.
+          Fingerprint the failure event and count it against the per-target
+          hardware-attempt budget before any retry; never retry an
+          identical fingerprinted build. Before any retry, read the
+          persisted per-target attempt counts; at the tier-2 threshold,
+          exit replication_failed with all fingerprints attached instead
+          of retrying.
+      allowed_effects:
+        - In-band SSH to the leased host; venv AND campaign-worktree
+          creation under the campaign's own directory only.
+      forbidden_effects:
+        - cp -a venv cloning; any pip write into /opt or the shared DLAMI
+          venv (editable installs included).
+        - Retrying a build whose failure fingerprint matches a recorded one.
+      outcomes:
+        venv_ready:
+          meaning: The per-campaign venv exists at its discovered path with
+            the worktree editable-installed, and all three self-verification
+            probes passed - settled by the probe artifacts (package metadata
+            showing a real private-index distribution, the sentinel
+            round-trip output) recorded in the attempt log, never by the
+            builder's claim.
+          required_evidence: [hardware_attempt_log]
+        replication_failed:
+          meaning: The recipe cannot produce a verified venv on this healthy
+            host after non-identical, budget-counted retries (for example, a
+            pin unresolvable from the private index, or native-extension
+            breakage) with the failure fingerprints recorded - or the
+            pre-retry read of the persisted per-target counts shows the
+            tier-2 threshold reached, exiting with all fingerprints
+            attached instead of retrying; recipe dead
+            ends are approach-level and route to the breaker path. Host-level
+            causes never land here (precedence - host_faulted wins the mixed
+            case).
+        host_faulted:
+          meaning: The host itself failed under the build (unreachable,
+            disk or device errors) and needs recovery under lease; takes
+            precedence over replication_failed when a build failure has a
+            host-level cause.
+
+    execute_attempt_loop:
+      intent: execute
+      purpose: Run compile-and-serve hardware attempts in-band over one-shot
+        SSH on the leased host until the candidate serves - the banned
+        out-of-band file-handoff pattern is never used, though its gate
+        content (source hash check, contamination import scan, tolerances,
+        machine-readable result file) is the design to reuse in-band. Before
+        every attempt, consult the repo-tracked fingerprint file AND this
+        run's attempt-log fingerprints; never launch an attempt identical to
+        a recorded failure (tier 1). Count every attempt whose failure
+        cause is not host-level against the per-target shared budget and
+        halt at the tier-2 threshold (every 10 budget-counted hardware
+        attempts per target since the last re-derivation).
+        Outcome precedence when both hold - a host fault on the
+        threshold-reaching attempt routes to host_faulted first; a
+        host-caused failure recorded as the breaker's final datum would feed
+        re-derivation contaminated evidence. The attempt count stands, so
+        the pre-attempt tier-2 check trips breaker_tripped immediately on
+        resume, with the fault annotated. Delegate dispatch from this loop
+        passes through guardrails - cache-clear remedies from the profiling
+        and compiler-debugging delegates are intercepted, and the benchmark
+        delegate is scoped to already-standing hosts only, away from its
+        self-provisioning branch. Out of scope - adjudicating the
+        candidate's quality (downstream measurement owns that); recovery
+        actions (the recovery node owns those).
+      roles: [implementer, delegate_dispatcher]
+      consumes: [implementation_changeset, campaign_design_record]
+      produces: [hardware_attempt_log]
+      activities:
+        - Pre-attempt tier-1 check against both fingerprint sources; design
+          each attempt to differ materially from every fingerprinted
+          failure. Pre-attempt tier-2 check against the per-target count.
+        - Launch compile/serve in-band over one-shot SSH; narrate transcripts
+          into the attempt log; read results from stable artifacts, never
+          first-sighting signals.
+        - On failure, record a one-file-per-event fingerprint (failure class,
+          signature, attempt configuration) and increment the per-target
+          attempt count with this route named, unless the failure's cause
+          is host-level - the fingerprint is still recorded; faults are
+          never charged to the per-target budget.
+        - On tier-1 early exhaustion, the exhaustion record must enumerate
+          the attempted configuration space and state why no material
+          variation remains - a positive, falsifiable enumeration that
+          rederive_approach checks against the same fingerprint records,
+          never a bare "nothing left" claim.
+        - Dispatch delegates only through the guardrail wrapper (remedy
+          interception, benchmark scope restriction).
+      allowed_effects:
+        - In-band SSH compile and serve runs on the leased host using the
+          campaign venv and the shared multi-writer-safe compile cache.
+        - Guardrailed delegate dispatch.
+      forbidden_effects:
+        - Clearing or bypassing the shared compile cache, including via a
+          delegate's documented remedy.
+        - Identical retry of a fingerprinted failure.
+        - Out-of-band handoff files for hardware gates.
+        - Provisioning any instance, or letting a delegate do so.
+      outcomes:
+        candidate_serving:
+          meaning: The candidate engine compiles and serves inference on the
+            leased host - settled by the serving transcript (request/response
+            pairs actually returned by the engine) and the in-band gate's
+            machine-readable result recorded in the attempt log, never by
+            the implementer's claim; downstream measurement independently
+            re-exercises the endpoint.
+          required_evidence: [hardware_attempt_log]
+        breaker_tripped:
+          meaning: The tenth budget-counted hardware attempt on this target
+            since the last re-derivation completed without a serving
+            candidate - or tier 1 leaves no materially different attempt to
+            launch, recorded as an early-exhaustion enumeration of the
+            attempted configuration space with the reason no material
+            variation remains (falsifiable by rederive_approach against the
+            same fingerprint records) - settled by the attempt count and
+            fingerprint records; maps to the parent's breaker_tripped.
+            Yields to host_faulted when the final attempt's failure is
+            host-caused (precedence in purpose).
+        host_faulted:
+          meaning: The leased host failed under an attempt (unreachable,
+            device or memory exhaustion, stuck runtime) and needs recovery
+            before the loop can continue; the triggering attempt's
+            fingerprint is recorded first. Takes precedence over
+            breaker_tripped on the threshold-reaching attempt. The faulted
+            attempt itself is never charged to the per-target budget; the
+            count already standing from earlier budget-counted attempts is
+            never rolled back - that standing count is what re-trips the
+            breaker on resume.
+
+    recover_leased_host:
+      intent: execute
+      purpose: Restore a faulted host that this campaign holds under
+        exclusive lease, or determine it unrecoverable and hand back to
+        lease acquisition for a roster replacement. Hard sequence - re-verify
+        the host's identity markers live against the lease record BEFORE any
+        state-changing action; a boot-identifier-ONLY delta is legitimate
+        when a logged reboot for that host precedes it in the recovery
+        records, and any other mismatch refuses to act, records the mismatch
+        verbatim, and exits host_unrecoverable with no actions taken; drain
+        and checkpoint in-flight work; take the recovery action (service
+        restart, then reboot as escalation) on the leased host only; after
+        the host returns, re-verify identity again and record the new boot
+        identifier to the lead for the lease record BEFORE reporting
+        host_restored, so the next episode's pre-check compares against the
+        current value. Recovery allowance - one successful recovery per host
+        per campaign; a host that faults again AFTER a successful recovery
+        has exhausted its allowance and routes to host_unrecoverable
+        directly, releasing the lease for a roster replacement. Every action
+        is logged as a one-file-per-event recovery record. Recovery never
+        touches the shared compile cache as a remedy. Out of scope - the GPU
+        baseline instance always (user confirmation only, and it is never
+        leased here); any host not named in this campaign's lease;
+        approach-level fixes (the breaker path owns those).
+      roles: [implementer, lead, delegate_dispatcher]
+      consumes: [campaign_design_record]
+      produces: [hardware_attempt_log]
+      activities:
+        - Check the recovery allowance first - a prior successful recovery
+          of this host in this campaign's records means this fault routes
+          to host_unrecoverable without further action.
+        - Pre-action identity re-verification against the lease record;
+          boot-identifier-only delta with a logged prior reboot is
+          legitimate; any other mismatch stops with no actions taken and
+          exits host_unrecoverable with the mismatch recorded verbatim.
+        - Drain/checkpoint, then the least-destructive recovery action
+          first; escalate to reboot only on the leased Neuron host.
+        - Post-action identity re-verification; record the new boot
+          identifier to the lead for the lease record before reporting
+          host_restored.
+        - On unrecoverable, request lease release from the lead, then hand
+          to lease acquisition for a replacement; the finite roster bounds
+          this loop.
+        - Delegate dispatch (runtime troubleshooting) only through the
+          guardrail wrapper; no delegate-prescribed cache clearing.
+      allowed_effects:
+        - Autonomous recovery actions on this campaign's leased host only,
+          identity-verified and logged.
+        - Lease release/reacquire requests to the lead's queue service.
+      forbidden_effects:
+        - Any action on the GPU baseline instance.
+        - Any action on a host whose live identity fails to match the lease
+          record (boot-identifier-only delta with logged prior reboot
+          excepted).
+        - Clearing the shared compile cache as a recovery remedy.
+        - Provisioning a replacement instance.
+      outcomes:
+        host_restored:
+          meaning: The leased host answers over SSH with identity re-verified
+            and the new boot identifier recorded to the lease record, and
+            its Neuron devices enumerable - settled by the post-recovery
+            probe transcript in the recovery record, never by the
+            recoverer's claim. The settlement rung is conditional - rung-1
+            provenance binding where a boot identifier exists; where none
+            exists, the downstream re-execution is the catch (the venv node
+            re-runs its verification probes before the loop resumes). This consumes the host's one recovery
+            allowance for this campaign - a later fault on this host is
+            host_unrecoverable.
+          required_evidence: [hardware_attempt_log]
+        host_unrecoverable:
+          meaning: One of - the recovery ladder is exhausted on this host
+            with each action and its evidence logged; the host faulted again
+            after a successful recovery (allowance exhausted - the flap
+            bound); or the node refuses to act on an identity mismatch (the
+            mismatch recorded verbatim, no actions taken). In every case the
+            lease is released and lease acquisition takes over for a roster
+            replacement - if none exists, the parent's hardware_unavailable
+            carries this evidence.
+
+  extensions:
+    x_planning:
+      dispatched_node: run_hardware_attempts
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#run_hardware_attempts
+      supersedes: planning/run_hardware_attempts.v2.draft.pave.yaml
+      revision_deltas:
+        second_touch_units_alignment: >
+          SECOND TOUCH (2026-08-25, same day) - two words in the
+          execute_attempt_loop purpose parenthetical, now reading "every
+          10 budget-counted hardware attempts per target", aligning the
+          threshold's units with the 27(m) exemption sentence beside it
+          and with the root breaker_tripped wording landed the same day
+          (reviewer-2 optional rider; mechanism unchanged).
+        lead_resync_v3: >
+          Lead resynchronization revision (2026-08-25), no planner
+          dispatch - five booked landings applied with the booked
+          verbatim wording: item 27(k) freeze-SCREENING clause into the
+          venv replay activity; item 27(l) pre-retry threshold read into
+          the venv on-failure activity plus the threshold disjunct in
+          replication_failed's meaning, and the worktree-ownership
+          allowed-effect widening (venv AND campaign-worktree creation);
+          item 27(m) three-piece attempt accounting into
+          execute_attempt_loop (purpose not-host-level qualifier;
+          activities unless-clause; host_faulted not-charged +
+          no-rollback clause); item 27(i) conditional settlement rung in
+          host_restored's meaning; conflict c10 allowance-exclusion
+          clause in the acquire lease-request activity (excluding hosts
+          whose recovery allowance for this campaign is exhausted,
+          derived from the recovery records, never a stored counter -
+          plan-reviewer-confirmed resolution verbatim). loop_bounds
+          aligned to the realized venv threshold read. Sources:
+          replicate_campaign_venv.v2
+          interface_needs entries 1-3, execute_attempt_loop.v2
+          contract_text_landing pieces 1-3, item 27 register. c7's
+          three-condition widening lands in root.v6, not here.
+          Gate-1 verification: plan-reviewer-2 (k/l/m + widening),
+          plan-reviewer (i).
+        high_flap_bound: >
+          Fault-episode reset defined (reviewer fix adopted as-is) - one
+          successful recovery per host per campaign; a re-fault after
+          successful recovery exhausts the allowance and routes to
+          host_unrecoverable, so flapping is bounded by the finite roster
+          and reaches hardware_unavailable honestly. Landed in -
+          recover_leased_host purpose, activities (allowance check first),
+          host_restored meaning, host_unrecoverable meaning,
+          acquire.no_host_available meaning, loop_bounds, routing.
+          REJECTED alternative, falsifier inline - counting host-faults
+          against the per-target attempt budget: a bad host would then trip
+          the tier-2 breaker and force re-derivation of a good approach; a
+          run where ten host flaps consume the budget while zero approach
+          evidence accumulates shows the false-outcome defect directly.
+        low1_early_exhaustion_evidence: >
+          Early-exhaustion record must enumerate the attempted configuration
+          space and why no material variation remains, falsifiable by
+          rederive_approach against the same fingerprint records. Landed in
+          - execute_attempt_loop activities, breaker_tripped meaning,
+          evidence_gameability (new breaker_tripped entry).
+        low2a_boot_id_legitimate_delta: >
+          Boot-identifier-only delta is legitimate when a logged reboot for
+          that host precedes it; instance-identifier or hostname mismatch
+          stays a hard stop; post-recovery boot-identifier update to the
+          lease record is ordered BEFORE host_restored is reported. Landed
+          in - acquire purpose/activities/lease_held, recover purpose/
+          activities/forbidden_effects/host_restored, enforcement.
+        low2b_mismatch_outcome: >
+          Lead decision adopted - host_unrecoverable widened to include
+          identity-mismatch refusal (mismatch recorded verbatim, no actions
+          taken). Landed in - recover purpose, activities,
+          host_unrecoverable meaning, routing, enforcement.
+        low3_precedence: >
+          Two precedence lines with reasons - execute_attempt_loop:
+          host_faulted beats breaker_tripped on the threshold-reaching
+          attempt (host-caused failure as the breaker's final datum feeds
+          re-derivation contaminated evidence; the standing count re-trips
+          on resume). replicate_campaign_venv: host_faulted beats
+          replication_failed on mixed causes (recipe verdicts on a faulted
+          host are unreliable; a host-caused build failure routed to the
+          breaker forces approach re-derivation for a hardware problem).
+          Landed in - both nodes' purposes and outcome meanings, routing.
+        low4_fingerprint_shape_authority: >
+          Fingerprint record shape defined ONCE in the artifact-layout
+          reference at assembly; both readers cite it, no shape restated
+          here. Landed in - state_and_evidence, with the format-mismatch
+          falsifier inline.
+
+      elaboration:
+        run_hardware_attempts:
+          verdict: decompose
+          justification: Lease acquisition with identity re-verification,
+            first-ever self-verifying freeze-replicate venv build, the
+            fingerprint-gated attempt loop, and identity-guarded host
+            recovery fail differently, recover differently, and settle on
+            different evidence (lease record vs probe artifacts vs serving
+            transcript vs recovery record); one agent cannot hold all four
+            protocols plus a ten-attempt loop in one bounded context and
+            still settle the parent's three outcomes on world-produced
+            evidence. Confirms the framing prediction.
+        acquire_hardware_lease:
+          prediction: atomic
+          justification: One bounded protocol - read roster, probe identity
+            over one-shot SSH, exchange request/grant with the lead; settles
+            on the lead-written lease record plus the probe transcript.
+        replicate_campaign_venv:
+          prediction: atomic
+          justification: One recipe with three machine-checkable probes;
+            settles on probe artifacts in the attempt log. First-ever
+            execution risk is honestly routed - replication_failed reaches
+            the breaker/re-derivation path rather than looping unbounded.
+        execute_attempt_loop:
+          prediction: atomic
+          justification: Sequential bounded attempts, at most ten before the
+            tier-2 halt; one agent runs the loop with xhigh effort for long
+            sessions per the root model_effort_assignments. Its own dispatch
+            re-judges if per-attempt transcript volume proves too heavy.
+        recover_leased_host:
+          prediction: atomic
+          justification: One allowance-check, verify-drain-act-reverify
+            protocol; the one-recovery allowance plus the finite roster
+            bound the unrecoverable path; settles on one-file-per-event
+            recovery records.
+
+      interface_findings:
+        routing: >
+          Prose only; edges are the lead's to author. Parent in-edge
+          (review_implementation.ready_for_hardware) enters at
+          acquire_hardware_lease. lease_held -> replicate_campaign_venv.
+          venv_ready -> execute_attempt_loop. candidate_serving,
+          breaker_tripped map 1:1 to the parent outcomes (the parent's
+          comparators_preregistered check on candidate_serving's edge is
+          untouched). execute_attempt_loop.host_faulted and
+          replicate_campaign_venv.host_faulted -> recover_leased_host,
+          which checks the recovery allowance first - a host already
+          recovered once this campaign goes straight to host_unrecoverable
+          (the flap bound). replicate_campaign_venv.replication_failed ->
+          the parent breaker_tripped path (recipe dead ends are
+          approach-level, owned by rederive_approach); host-level causes
+          never take this route (precedence - host_faulted wins the mixed
+          case, because recipe verdicts on a faulted host are unreliable).
+          In execute_attempt_loop, host_faulted beats breaker_tripped when
+          both hold on the threshold-reaching attempt - a host-caused
+          failure as the breaker's final datum would feed re-derivation
+          contaminated evidence; the standing count re-trips the breaker
+          immediately on resume. recover_leased_host.host_restored ->
+          replicate_campaign_venv (which short-circuits to probes-only when
+          the venv survives). recover_leased_host.host_unrecoverable
+          (ladder exhausted, allowance exhausted, or identity-mismatch
+          refusal) -> acquire_hardware_lease (lease already released).
+          acquire_hardware_lease.no_host_available -> parent
+          hardware_unavailable. On re-entry after rederive_approach, the
+          flow re-enters at acquire_hardware_lease - the lease may have
+          lapsed; the queue service treats re-validation of a still-held
+          lease as a cheap grant.
+        loop_bounds: >
+          Attempt-loop bound - tier-2 threshold at every 10 budget-counted
+          attempts per target (hardware_attempt_counts). Venv retry bound -
+          replication failures on a healthy host are fingerprinted AND
+          spend the same shared per-target budget with their route named
+          (per-route accounting inside the shared counter, per the root
+          state description "across all routes that spend hardware
+          attempts"), and the venv node reads the persisted counts before
+          any retry, exiting replication_failed at the tier-2 threshold -
+          the bound binds where the doer acts; this is what bounds venv
+          rebuild loops. Recovery/flap
+          bound - no counter; each host carries a one-successful-recovery
+          allowance per campaign (a re-fault after successful recovery is
+          host_unrecoverable), so the fault-recover-fault cycle terminates
+          at the finite roster and reaches hardware_unavailable honestly.
+          Recovery actions themselves do NOT spend the attempt budget -
+          they produce no attempt toward the target and are bounded by the
+          allowance-plus-roster mechanism. REJECTED alternative (falsifier
+          inline) - charging host-faults to the attempt budget lets a bad
+          host trip the breaker and force re-derivation of a good approach;
+          ten flaps with zero approach evidence would reach
+          rederive_approach as if the approach had failed - a false-outcome
+          defect.
+        state_and_evidence: >
+          All four children append one-file-per-event records to
+          hardware_attempt_log (artifacts/campaigns/<campaign>/attempts/) -
+          lease events, venv probe artifacts, attempt fingerprints with
+          configuration signatures, recovery actions with identity-marker
+          deltas and allowance state. hardware_attempt_counts - incremented
+          only by execute_attempt_loop (per attempt) and
+          replicate_campaign_venv (per failed build on a healthy host),
+          each increment naming its route. hardware_lease_record - single
+          writer stays the lead (queue service); acquire and recover
+          request and confirm, never write; recover reports the
+          post-reboot boot identifier to the lead before host_restored.
+          Fingerprint authority is split by horizon - the repo-tracked
+          fingerprint file carries prior-run fingerprints (lead single
+          writer, merged at closure); this run's new fingerprints live as
+          attempt-log events and are tier-1 authority immediately. The
+          tier-1 check consults BOTH sources before every attempt. The
+          fingerprint record SHAPE is defined once, in the consolidated
+          artifact-layout reference at assembly (frontier item 17 pattern);
+          both readers - the closure merger and the tier-1 check - cite
+          that single entry and no shape is restated here. Falsifier - if
+          the two readers normalize records differently, an attempt
+          identical to a fingerprinted failure passes tier-1 and violates
+          the parent's forbidden effect; validating both readers against
+          the one layout entry detects the mismatch before it can.
+        delegate_guardrails: >
+          Bind on execute_attempt_loop and recover_leased_host (the only
+          children that dispatch delegates), carried as forbidden_effects
+          plus a dispatch-wrapper activity - intercept the two delegates
+          whose documented remedies clear the shared compile cache; scope
+          the benchmark delegate to already-standing hosts, excluding its
+          self-provisioning happy path (its STOP gate is a spend gate, not
+          a provisioning ban - the stricter ban is enforced here); the
+          runtime-troubleshooting delegate carries no lease or recovery
+          logic, so it advises inside recover_leased_host and never acts
+          on hosts itself. The equivalence adapter's forced
+          --target-stack flag is a measurement-node concern, not this
+          node's.
+        enforcement: >
+          Run-wide blocking hooks (cache clear, /opt writes, cp -a, GPU
+          baseline, provisioning) are the lead's enforcement record; this
+          fragment only restates them as child forbidden_effects where they
+          bind. Node-local guards - (1) pre-recovery identity
+          re-verification is a blocking precondition inside
+          recover_leased_host (no state-changing command before a fresh
+          logged match), affirmed at boundary review as the strongest-rung
+          case (likely, costly, irreversible, precisely detectable, no
+          downstream catch); its one legitimate-change marker is a
+          boot-identifier-only delta explained by a logged prior reboot -
+          without that marker a stale recorded boot identifier would
+          hard-stop a CORRECT host and report it as wrong-host; refusal on
+          any other mismatch exits host_unrecoverable with the mismatch
+          recorded verbatim and no actions taken. A stronger external rung
+          is unnecessary because the check itself removes the wrong-host
+          blast radius. (2) The tier-1 fingerprint gate is a procedural
+          pre-attempt check with logged evidence; recommend
+          observing/reinjection rather than a blocking hook - the condition
+          is semantic (attempt-config equality), poorly pattern-matchable,
+          and violations surface in the attempt log the tier-2 breaker
+          reads anyway.
+        evidence_gameability: >
+          Per outcome whose evidence the doer produces - candidate_serving:
+          low once hardened; harden-first by requiring actual
+          request/response pairs plus the in-band gate's machine result
+          file, and downstream measurement independently re-exercises the
+          endpoint. breaker_tripped (early-exhaustion disjunct): gameable
+          raw - it is a doer's negative claim ("nothing materially
+          different remains") that fingerprint records alone cannot settle,
+          since they show only what WAS tried; hardened by requiring the
+          exhaustion record to enumerate the attempted configuration space
+          and state why no material variation remains, which
+          rederive_approach falsifies against the same records (the
+          count-ten disjunct is arithmetic on logged events - low).
+          venv_ready: moderate raw (a probe "pass" is claimable); hardened
+          by campaign-derived sentinel round-trip and a package metadata
+          dump - both machine artifacts a reviewer re-runs in one SSH
+          command. host_restored: low-moderate; hardened by before/after
+          identity-marker capture and the ordered boot-identifier report
+          to the lease record - a reboot's boot-identifier change is
+          itself world evidence. lease_held: not doer-produced (lead
+          writes the record); low.
+        model_effort: >
+          Per role, consistent with the root's model_effort_assignments -
+          implementer on execute_attempt_loop: strong model, high effort,
+          xhigh for long hardware-attempt sessions (root already provides
+          for this). implementer on replicate_campaign_venv and
+          recover_leased_host: strong model, high effort - first-run
+          ambiguity and host-action blast radius both need judgment.
+          implementer on acquire_hardware_lease: strong model, medium
+          effort - mostly protocol, but identity-mismatch handling must not
+          be rationalized away by a weak model. delegate_dispatcher (loop
+          and recovery): small fast model, low effort - single-question
+          guardrailed dispatches. lead (queue service seats): inherits the
+          lead's model.
+
+      open_questions:
+        tier1_early_exhaustion: >
+          ENDORSED at boundary review (raised as a conflict in v1, no id
+          minted) - with the legal move set empty, identical retry is a
+          parent forbidden effect and stalling is livelock; halting to
+          rederive is the only honest move. The parent breaker_tripped
+          meaning widens to cover tier-1 exhaustion; resolution lands at
+          resync. This fragment already routes early exhaustion through the
+          child's breaker_tripped with the enumeration evidence LOW-1
+          requires.
+        boot_identifier_obtainability: >
+          No precedent records a boot identifier anywhere in history;
+          whether roster hosts expose one is a runtime unknown
+          (exploration/host-and-environment.md section 4). The design
+          degrades gracefully - identity verification uses instance
+          identifier + hostname always, plus the boot identifier when
+          exposed, each lease/recovery event records which markers were
+          checkable, and the legitimate-change marker (boot-identifier-only
+          delta after a logged reboot) applies only where the marker
+          exists.
