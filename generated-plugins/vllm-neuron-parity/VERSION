@@ -1,0 +1,15 @@
+version: 1.0.0
+
+## 1.0.0 — 2026-08-26
+
+Initial delivery. The vllm-neuron-parity plugin: a lead workflow skill
+that drives a 31-node PAVE graph (upstream delta scan → route costing →
+ranked backlog → user-approved campaigns → CPU increments → Neuron
+hardware bring-up → measurement vs GPU baseline → adjudication →
+evidence-backed fork PRs), six registered role agents (investigator,
+implementer, measurer, adjudicator, adversarial-reviewer, rederiver),
+five enforcement hooks (protected branches, compile cache, venv//opt,
+stop guard, state staleness), run-state schema + validators, the
+evolving-tier revision workspace (v0 graph, manifest, freeze tool), and
+four domain references (artifact layout, measurement pitfalls, patch
+mechanisms, collision ranking).

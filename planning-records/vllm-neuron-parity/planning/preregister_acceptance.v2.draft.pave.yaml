@@ -1,0 +1,472 @@
+# Planner draft v2 — dispatched boundary: preregister_acceptance
+# (child of design_campaign, instance_per approved_campaigns; vllm-neuron-parity)
+# Verdict: ATOMIC (unchanged, confirms the framing prediction). nodes stays empty.
+# SUPERSEDES planning/preregister_acceptance.draft.pave.yaml (kept as provenance).
+# Round-1 repairs (plan-reviewer-2): HIGH — runtime-contract-bearing text now
+# cites the BUILT domain reference shipped inside the generated plugin
+# (references/<topic>.md, exact filename settles at assembly per the run-wide
+# built-reference decision), never .pave run-workspace paths; run-workspace
+# citations remain ONLY in planning marks (uncertainty ledger, elaboration),
+# which do not ship. LOW-2 — pitfall citations re-anchored to SECTIONS, never
+# line numbers. LOW-1/LOW-3 — booked as interface notes riding the item-27
+# resync bundle; no local fix. LOW-4 — two-actor shape kept verbatim except
+# its precedent parenthetical, which the HIGH repair re-points at the built
+# reference (deliberate: the HIGH run-wide decision dominates the citation;
+# the reviewer-confirmed DESIGN is untouched); commitment-timing decision
+# recorded as settled.
+# Pin-generic: no SDK, release-tag, or framework version literals appear here.
+pave:
+  name: preregister_acceptance
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: preregister_acceptance
+      frozen_contract_reference: planning/design_campaign.draft.pave.yaml#preregister_acceptance
+      revision:
+        supersedes: planning/preregister_acceptance.draft.pave.yaml
+        deltas: >
+          (1) HIGH repair - every runtime-contract-bearing citation (DoD,
+          activities, two-actor grounding, gameability, evidence questions)
+          re-pointed from .pave run-workspace paths to the built domain
+          reference the generated plugin ships (references/<topic>.md;
+          exact filename binds at assembly); run-workspace paths survive only
+          in planning marks, which never ship. (2) LOW-2 - pitfall and
+          incident citations anchored to named SECTIONS of the built
+          reference, not line numbers. (3) LOW-1 and LOW-3 - booked as
+          interface notes riding the item-27 resync bundle. (4) LOW-4 -
+          commitment timing recorded as decided run-wide (lead commits on
+          consuming acceptance_preregistered; assemble_design_record d6
+          strengthened to check "committed"); the two-actor shape is
+          unchanged except its precedent parenthetical, re-pointed per the
+          HIGH repair. Verdict, DoD rungs, activities substance, guards,
+          gameability judgments, and model/effort are unchanged from v1.
+
+      elaboration:
+        preregister_acceptance:
+          verdict: atomic
+          justification: >
+            One agent, holding one campaign's kickoff contract record (and, on
+            the upgrade route only, the already-assembled regression matrix),
+            transcribes the kickoff-declared comparators and criteria into one
+            frozen registration artifact — comparator set with baseline-skew
+            statement, verbatim criteria with procedure references,
+            per-procedure pitfall pre-emptions — and submits it for lead
+            commitment into run state. Settled by acts any later actor can
+            re-run: string-comparing each registered item against its named
+            source, and reading the lead-committed run-state timestamp the
+            frozen mechanical comparators_preregistered check verifies before
+            any measurement. Volume is one campaign's criteria set; the
+            pitfall knowledge is a bounded, already-synthesized list (run
+            exploration record at planning time; shipped as a built domain
+            reference at runtime per the run-wide decision); no sub-goal needs
+            its own recovery route (the single failure mode, an unadjudicable
+            criterion, routes whole to the parent's no_progress). Falsified if
+            registration turned out to require AUTHORING acceptance
+            procedures rather than transcribing declared ones (procedure
+            construction belongs to measure_against_baseline's decomposition,
+            not here), or if per-procedure pre-emption demanded reading
+            evidence beyond the synthesized reference in one context.
+            Runtime-Binding check: fan-out per campaign already happens at the
+            parent instance_per; no volume inside one instance needs many
+            hands.
+          prediction_disposition: confirmed
+          prediction_source: >
+            design_campaign.draft.pave.yaml
+            extensions.x_planning.elaboration.preregister_acceptance
+            ("atomic - transcribes kickoff-declared criteria into frozen
+            adjudicable registrations; wording-critical but judgment-light and
+            small in volume").
+
+      atomic_contract:
+        definition_of_done: >
+          Every kickoff-declared acceptance criterion for this campaign's
+          route is registered by verbatim quotation with a procedure
+          reference; the comparator set — baseline identity, configuration,
+          versions including the GPU-side reference version, and the
+          baseline-skew statement naming known cross-version behavior
+          differences — is frozen in one registration artifact with a
+          per-item source reference and stable per-item ids; per-procedure
+          measurement-pitfall pre-emptions are recorded; and the artifact is
+          submitted to the lead for commitment into run state — settled by
+          (a) any later actor string-comparing each registered item against
+          its named source in kickoff_contract_record or
+          regression_matrix_draft (5.3.1 rung 1: the sources are
+          world-existing artifacts this doer did not write, so a minted,
+          narrowed, or reworded item fails the re-read), and (b) the
+          lead-committed run-state entry whose timestamp the frozen
+          mechanical comparators_preregistered check (graph-frozen,
+          evaluated_by lead) verifies precedes every measurement artifact
+          (rung 1: an identifier the doer cannot mint, persisted in a second
+          artifact the doer never writes). Gate-2 adversarial review
+          re-settles adjudicability of the whole design record (rung 2:
+          judge is not the doer; the criteria were written at kickoff,
+          before this work).
+        two_actor_registration: >
+          Contract property, stated explicitly: the registration artifact is
+          DOER-WRITTEN; its integrity comes from the LEAD — sole run-state
+          writer — committing a run-state entry whose timestamp the
+          already-frozen mechanical comparators_preregistered check verifies
+          precedes every measurement artifact. This node produces the
+          artifact and requests registration; it NEVER writes run state.
+          Falsifier for the two-actor shape: if the doer committed its own
+          registration, the timestamp would be doer-minted and could be
+          backdated after measurement began, and the mechanical check would
+          pass on forged provenance — the check compares timestamps, not
+          authorship. Grounding precedent: the wrong-baseline incident — the
+          measuring agent picked its own comparators across re-entries until
+          the user intervened (the wrong-baseline incident section of the
+          built domain reference the generated plugin ships;
+          references/<topic>.md, exact path binds at assembly). Freezing and
+          measuring in one seat recreates that failure; the frozen
+          forbidden_effect "running any measurement" is this node's PURPOSE
+          (separation of acceptance authorship from measurement), not an
+          incidental constraint.
+        commitment_timing: >
+          Decided run-wide (round-1 review, lead-adopted): the lead commits
+          the comparator registration into run state upon CONSUMING the
+          acceptance_preregistered outcome — not later — and
+          assemble_design_record's completeness check d6 is strengthened
+          from "marked for run-state commitment" to "committed", so a
+          missing commitment surfaces at design time rather than at the
+          serving-to-measurement edge. The two-actor shape above is
+          unchanged by this decision.
+        activities:
+          - >
+            Read the kickoff-declared route from kickoff_contract_record and
+            assemble the criteria source set for THIS route only — kickoff
+            thresholds, methods, and models; on the upgrade route, the
+            regression matrix rows by stable row id (matrix_assembled
+            precedes entry on that path). Route scoping is read from the
+            kickoff record, never inferred.
+          - >
+            Freeze the comparator set: baseline identity, configuration, and
+            versions, including the GPU-side reference version, each item
+            carrying a source reference into the kickoff record; author the
+            baseline-skew statement naming the known cross-version behavior
+            differences the kickoff evidence and the built domain reference
+            establish. An under-specified comparator — for example a kickoff
+            record that does not fix the GPU-side reference identity — is
+            surfaced via criteria_unadjudicable as a named ambiguity for an
+            explicit user decision; the doer never selects a comparator the
+            kickoff did not declare (the codified wrong-baseline rule).
+            Downstream consumer note: the frozen measurement_artifacts
+            evidence declaration requires every evidence bundle to echo the
+            GPU-side version and the cross-version differences, so the
+            statement must be machine-referencable, not prose-only.
+          - >
+            Register every criterion by verbatim quotation with its procedure
+            reference — kickoff-declared thresholds quoted byte-for-byte, or
+            matrix rows referenced by id with their thresholds quoted; record
+            per-criterion adjudicability. A criterion too vague to adjudicate
+            as written is quoted byte-for-byte with the ambiguity named —
+            never reworded, never repaired: kickoff-declared criteria change
+            only by explicit user decision (routes to the parent's
+            no_progress). Matrix rows flagged higher-risk-tier are registered
+            with their flags intact; a risk tier is not unadjudicability.
+          - >
+            Record per-procedure measurement-pitfall pre-emptions the
+            measurement design must honor, drawn from the built
+            measurement-pitfalls domain reference shipped inside the
+            generated plugin (references/<topic>.md; exact filename binds at
+            assembly) — at minimum its four sections on file: the serve-bench
+            chunk-count undercount on speculative configs that forced a
+            manual harness; the decode-bench connector that measures without
+            checking correctness; the watcher/evidence race (verdicts only
+            on stable re-reads, never first-sighting signals — the frozen
+            evidence_stable_before_verdict check's ancestor incident); and
+            the equivalence delegate's hard-exit on version mismatch.
+          - >
+            Write acceptance_preregistration to this campaign's design
+            artifact directory (per the parent's evidence declaration) with
+            stable per-item ids; submit the commitment request to the lead;
+            emit acceptance_preregistered. Never write run state — the lead
+            is its sole writer.
+          - >
+            When any criterion or comparator is unadjudicable as written,
+            emit criteria_unadjudicable naming the criterion verbatim and
+            the ambiguity; send NO commitment request; the partial
+            registration persists as work-in-progress evidence, never as a
+            frozen set.
+        outcome_precedence: >
+          Two declared outcomes; no true co-hold exists because the success
+          meaning quantifies over ALL criteria ("criteria frozen and
+          adjudicable as written"). Clarified for the boundary anyway: one
+          unadjudicable item forces criteria_unadjudicable for the whole
+          node run — there is no partial commitment, because a pending user
+          decision can change the criterion set, and a second registration
+          entry after that decision would leave two frozen sets and an
+          ambiguous timestamp for the mechanical check to honor.
+        entry_paths_note: >
+          The frozen consumes list is a superset (parent-delegated finding,
+          realized here per the close-out boundary's idiom): backport-route
+          instances legitimately arrive WITHOUT regression_matrix_draft —
+          the matrix node is never instantiated on that route, and
+          screen_passed routes directly here alongside draft_increment_plan;
+          the matrix is required exactly when the kickoff-declared route is
+          upgrade (where matrix_assembled precedes entry). Likewise
+          first-lap instances legitimately arrive without
+          adversarial_review_findings — the findings history is empty by
+          definition before the first gate-2 review. Contract-consistent,
+          not a conflict; a builder reading the child in isolation should
+          not see an unsatisfiable dependency. The parent-prose home for
+          this conditional-inputs clause rides the item-27 resync bundle
+          (interface note below); this mark is the planning-time
+          realization.
+        node_local_guards:
+          no_measurement_before_commitment:
+            rule: Running any measurement is a frozen forbidden effect;
+              pre-registration completes before measurement begins.
+            strength: persistent record + downstream mechanical check
+              (comparators_preregistered, already frozen in the run graph on
+              the serving-candidate-to-measurement edge)
+            why_not_stronger: The node has no hardware access by its own
+              frozen forbidden effects, and a violation is precisely
+              detectable after the fact - a measurement artifact predating
+              the lead's run-state commitment fails the mechanical check
+              before any measurement is consumed, routing back to
+              design_campaign. A blocking hook would have to classify "is
+              this action a measurement" and risks stranding the run;
+              9.14.2 prefers observation when the next required guard
+              catches the violation before harm.
+          verbatim_never_reworded:
+            rule: A criterion is registered by quotation or surfaced by
+              quotation; it is never paraphrased or repaired.
+            strength: persistent record (per-item source references make the
+              re-check a string comparison) + independent review (gate-2
+              reviewer re-reads the kickoff record)
+            why_not_stronger: The violation is precisely detectable on read
+              by any actor via rung-1 string comparison against a source the
+              doer did not write, and the retained gate-2 review already
+              performs that read - a dedicated pre-commit validator would be
+              a second gate checking the same claim (4.11).
+          no_partial_commitment:
+            rule: No commitment request when any criterion surfaced as
+              unadjudicable.
+            strength: routing (one transition evaluates it)
+            why_not_stronger: The lead commits only on consuming the
+              acceptance_preregistered outcome (now the decided run-wide
+              timing), and criteria_unadjudicable routes to the parent's
+              no_progress instead - the graph raises the rule at the only
+              moment it binds; no standing mechanism earns its place
+              (9.14.2).
+        evidence_gameability:
+          acceptance_preregistration: >
+            Doer-written and gameable in isolation, in three directions:
+            (a) MINTING - inventing or selecting comparators the kickoff did
+            not declare (exactly the wrong-baseline incident class);
+            (b) NARROWING - registering a subset of the kickoff-declared
+            criteria so the acceptance gate reads fewer rows;
+            (c) REWORDING - silently repairing a vague criterion instead of
+            surfacing it. Hardened first, per 9.14.1 order:
+            rung-1 provenance - every registered item carries a source
+            reference into kickoff_contract_record or regression_matrix_draft
+            (artifacts this doer did not write; a minted or reworded item
+            fails string comparison on re-read), and the LEAD commits the
+            registration into run state with a timestamp the doer cannot
+            mint, in a second artifact the doer never writes;
+            then a check the doer does not run - the frozen mechanical
+            comparators_preregistered check, evaluated_by lead, before any
+            measurement; then existing review - narrowing is caught by
+            assemble_design_record's completeness check (d6, strengthened to
+            verify "committed") and by the gate-2 adversarial reviewer
+            reading the kickoff record's FULL criteria list against the
+            registration. No new review node added - a false pass is caught
+            twice downstream (4.11, reuse existing gates).
+          pitfall_preemptions: >
+            Doer-written prose but not gameable in the acceptance sense - the
+            pre-emptions constrain the DOWNSTREAM measurement design rather
+            than settle this node's success, and each cites the built
+            measurement-pitfalls domain reference by SECTION, so an invented
+            pitfall fails its citation and an omitted one is visible against
+            the reference's named minimum sections. Recorded here so the
+            reviewer challenges the judgment rather than discovering
+            silence.
+        model_effort:
+          implementer_seat: >
+            strong model, effort medium — wording-critical transcription and
+            adjudicability judgment over a small evidence volume (one
+            campaign's kickoff record, one matrix, one synthesized pitfall
+            reference); ambiguity is low because the discipline is verbatim
+            quotation with source references, and the blast radius of a
+            wrong registration is contained by two downstream catches (the
+            mechanical comparators_preregistered check and gate-2
+            adversarial review). Deviating below the run-wide high-effort
+            default is justified by that containment, consistent with the
+            parent's model_and_effort finding. If the binding cannot vary
+            effort per node for this role, keep high — the cost delta is
+            small.
+          lead_seat_note: >
+            The run-state commitment is the lead's own act under the root
+            contract's single-writer table, not a seat this node dispatches;
+            no assignment made here.
+
+      evidence_questions:
+        - Does every registered criterion and comparator item string-match
+          its named source in kickoff_contract_record (or its matrix row by
+          id in regression_matrix_draft), re-checkable by an actor other
+          than the doer? (rung 1)
+        - Does the comparator set fix baseline identity, configuration, and
+          versions including the GPU-side reference, with a baseline-skew
+          statement in machine-referencable form that
+          measure_against_baseline can echo in every evidence bundle, as the
+          frozen measurement_artifacts evidence declaration requires?
+        - Does the lead-committed run-state entry carry a timestamp
+          preceding every measurement artifact for this campaign, and was
+          it committed upon consuming acceptance_preregistered per the
+          decided run-wide timing? (the frozen mechanical
+          comparators_preregistered check settles the ordering before
+          measurement is consumed)
+        - For each registered procedure, are the known pitfalls from the
+          built measurement-pitfalls domain reference addressed as
+          pre-emptions, including at minimum its four named sections
+          (serve-bench undercount on speculative configs, correctness-blind
+          decode-bench connector, stable-read-before-verdict, delegate
+          version-mismatch hard-exit)?
+        - When a criterion surfaced as unadjudicable, is it quoted
+          byte-for-byte with the ambiguity named and no proposed rewording,
+          and did NO commitment request accompany it?
+
+      interface_findings:
+        - subject: built-reference binding (HIGH repair; run-wide lead
+            decision, new frontier item)
+          needs: >
+            Load-bearing exploration findings ship as BUILT domain
+            references inside the generated plugin, and runtime contract
+            text cites the built paths. This node needs exactly one -
+            a measurement-pitfalls reference (references/<topic>.md; exact
+            filename binds at assembly) carrying, as named SECTIONS: the
+            wrong-baseline incident precedent (grounding for the two-actor
+            shape and the never-doer-selected-comparator rule), and the
+            four pitfall sections this contract cites at minimum
+            (serve-bench undercount on speculative configs,
+            correctness-blind decode-bench connector,
+            stable-read-before-verdict, delegate version-mismatch
+            hard-exit). Assembly binds the exact path and distills the
+            content from the run's exploration record; this fragment's
+            planning marks retain the run-workspace provenance for that
+            distillation.
+        - subject: commitment timing (DECIDED - recorded, not open)
+          needs: >
+            Settled run-wide in this planner's favor at round-1 review: the
+            lead commits the comparator registration upon consuming
+            acceptance_preregistered, and assemble_design_record's d6 is
+            strengthened to check "committed" rather than "marked for
+            commitment". Nothing further needed from assembly beyond
+            carrying the strengthened d6 wording.
+        - subject: registration artifact format
+          needs: >
+            Stable per-item ids and per-item source references (kickoff
+            record path or matrix row id), so the mechanical check, the
+            gate-2 reviewer, and the downstream measurement design can
+            reference procedures and re-run the string comparison. Artifact
+            lives under this campaign's design artifact directory per the
+            parent's evidence declaration. LOW-3 rider: the stable matrix
+            ROW id guarantee is assemble_regression_matrix contract text
+            and rides the item-27 resync bundle; cited here, not fixed
+            here.
+        - subject: entry-paths superset clause (LOW-1 rider)
+          needs: >
+            The route/lap-conditional inputs clause is PARENT contract
+            text (design_campaign purpose/consumes prose) and rides the
+            item-27 resync bundle; the entry_paths_note in this fragment is
+            the planning-mark realization only. No local fix.
+        - subject: baseline-skew downstream echo
+          needs: >
+            The frozen measurement_artifacts evidence declaration requires
+            every bundle to name the GPU-side version and cross-version
+            differences; the registration must therefore carry those fields
+            where the measurement boundary can cite them by id, not
+            re-derive them.
+
+      uncertainty_ledger:
+        facts:
+          - The dispatched contract is frozen at
+            design_campaign.draft.pave.yaml#preregister_acceptance; the
+            v2 parent repair is prose-only and the five child bodies are
+            byte-identical (design_campaign.v2 revision note; verified by
+            diff). Bears on - contract authority for this fragment.
+          - comparators_preregistered is mechanical, evaluated_by lead,
+            on_failure_route design_campaign, and guards the
+            serving-candidate-to-measurement edge (root.v6 checks and edges
+            sections). Bears on - the DoD's rung-1 leg and the two-actor
+            shape.
+          - The wrong-baseline incident is on record - the measuring agent
+            picked its own comparators across re-entries until the user
+            intervened; the pre-registered correction rule flipped the
+            verdict (planning-time provenance - system-map.md, Evidence flow
+            / adjudication failure modes;
+            exploration/validation-and-acceptance.md, the wrong-baseline
+            incident section). Ships at runtime as a section of the built
+            domain reference per the run-wide decision. Bears on - the
+            grounding precedent for separation and the two-actor falsifier.
+          - The kickoff contract carries target, route, source, thresholds,
+            methods, models, and for upgrade routes the regression-matrix
+            criteria (root.v6 assemble_kickoff_contracts purpose). Bears on
+            - transcription sources exist; this node authors no criteria.
+          - Backport instances never instantiate the matrix node, and the
+            first design lap has an empty findings history (parent
+            interface_findings routing; screen purpose). Bears on - the
+            entry-paths superset note.
+          - The frozen measurement_artifacts evidence declaration requires
+            every evidence bundle to name the GPU-side version and known
+            cross-version differences (root.v6 evidence section). Bears on
+            - the baseline-skew statement has a declared downstream
+            consumer.
+          - Four measurement-tool pitfalls are on record in the run's
+            exploration evidence (planning-time provenance - system-map.md
+            Current work sequence and Evidence flow sections;
+            exploration/validation-and-acceptance.md, the wrong-baseline
+            incident and adjudication-mechanics race sections). Ship at
+            runtime as built-reference sections. Bears on - the pre-emption
+            activity has named, bounded sources.
+          - The L3 delegation (superset-consumes note, close-out boundary's
+            idiom) is recorded in design_campaign.v2 delegations. Bears on -
+            realized here as entry_paths_note.
+          - Round-1 review outcomes (lead-relayed) - two-actor shape
+            reviewer-confirmed; built-reference decision adopted run-wide
+            as a new frontier item; commitment timing decided (commit on
+            consuming acceptance_preregistered, d6 strengthened); LOW-1 and
+            LOW-3 ride the item-27 resync bundle. Bears on - every v2
+            delta.
+        assumptions:
+          - The kickoff record plus the built domain reference suffice to
+            author the baseline-skew statement without consuming
+            delta_report. Falsifier - a campaign whose kickoff record omits
+            the GPU-side reference identity; handled in-graph by
+            criteria_unadjudicable (an under-specified comparator is an
+            ambiguity for explicit user decision, never doer selection), so
+            the assumption failing does not strand the run.
+          - Run-state commitment mechanics (entry shape, timestamp source)
+            are assembly-settled under the root contract's single-writer
+            table; this design declares needs only. Timing itself is now
+            decided (commitment_timing above).
+          - Assembly's distillation of the exploration record into the
+            built measurement-pitfalls reference preserves the four named
+            sections and the incident precedent. Falsifier - a built
+            reference missing a cited section makes this contract's
+            citations dangle; the interface need above makes that binding
+            explicit so the final-skill gate can check it.
+        open_questions:
+          - Where do pitfall pre-emptions come from, given the consumes
+            list? Closed (revised at round 1) - at runtime, the built
+            measurement-pitfalls domain reference the plugin ships; at
+            planning time, the run's exploration record distills into it;
+            binding need recorded in interface_findings.
+          - Can the registration and the matrix drift on the upgrade route?
+            Closed - the registration references rows by stable id and
+            quotes thresholds verbatim; gate 2 reviews both in one record,
+            and the parent v2 gameability entry already notes the rows
+            inherit the run-state anchor when this node freezes them.
+            Stable-row-id contract text rides item 27 (LOW-3).
+          - Does an under-specified comparator map to a declared outcome?
+            Closed - criteria_unadjudicable; surfacing verbatim is the
+            codified remedy, and the parent routes it to no_progress for
+            the user decision.
+        research_dispatches: >
+          none - the dispatch brief, both parent fragments, root.v6, the
+          run's exploration record, and the round-1 review relay answered
+          every sizing-relevant question; no target-repo read was needed
+          (the node touches no code).
+
+      conflicts: []

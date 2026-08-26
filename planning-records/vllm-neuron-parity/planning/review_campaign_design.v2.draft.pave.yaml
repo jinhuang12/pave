@@ -1,0 +1,257 @@
+# Planner draft — dispatched boundary: review_campaign_design
+# Verdict: ATOMIC (confirms the framing prediction). No child nodes.
+# Pin-generic: no release, branch, or SDK values appear here.
+pave:
+  name: review_campaign_design
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: review_campaign_design
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#review_campaign_design
+      supersedes: planning/review_campaign_design.draft.pave.yaml
+      lead_resync_v2_note: >
+        v2 is a lead resynchronization micro-fix (2026-08-25, item 27(b)
+        + the 27(e) linked rider, no planner dispatch): a2's upgrade-route
+        surface gains the row-set re-run against kickoff-declared matrix
+        criteria with a character-exact threshold spot-check (matrix
+        LOW-2); a2 gains the two named anti-narrowing re-checks the
+        draft-plan and screen fragments booked for the gate-2 reviewer
+        brief (coverage-trace diff; feasibility-note checklist re-check).
+        No other change; v1 stays provenance.
+
+      elaboration:
+        review_campaign_design:
+          verdict: atomic
+          justification: >
+            One node run, lead-orchestrated, dispatches one independent
+            adversarial reviewer over one campaign's design record, persists
+            the findings record, and only when no material finding stands
+            presents gate 2 and records the verbatim user decision; settles
+            on the two persisted artifacts (findings record + approval
+            record). Falsified if a campaign design record grows past one
+            adversarial-review context (for example a regression matrix
+            spanning the full feature-by-model support table with per-cell
+            evidence), which would force review and gate into separate
+            nodes. The two-authorities warning sign (§9.12) hints but does
+            not gate here - the runtime binding's role seats keep reviewer,
+            lead, and user separate inside one node run, exactly as the
+            frozen graph already does atomically for
+            assemble_kickoff_contracts and close_campaign; a split would add
+            a node and edge whose absence changes no routing (both failure
+            paths land on design_campaign) and no resume point the persisted
+            findings artifact does not already provide.
+
+      atomic_contract:
+        definition_of_done: >
+          design_sound - no material finding stands against this campaign's
+          design record AND the user approved the design at gate 2 - settled
+          by reading two persisted, cross-bound artifacts: (1) the
+          adversarial_review_findings record at artifacts/reviews/ (§5.3.1
+          rung 2: rubric written in advance = the gate-1-approved kickoff
+          contract plus the UR-10 materiality contract, neither authored by
+          the design's authors; judge = adversarial_reviewer, never a design
+          author; rubric and verdict persist; an empty-findings record is a
+          recorded absence that enumerates every design section challenged
+          against its kickoff clause, so "no findings" is falsifiable), and
+          (2) the gate_approval_record at
+          artifacts/campaigns/<campaign>/approvals/ carrying the user's
+          verbatim decision text, timestamp, the design-record revision it
+          covers, and the findings-record path it was shown (artifact
+          existence is never approval; the approving act is the user's, not
+          any doer's). A later reviewer re-settles by reading findings (no
+          standing material finding) then approval (verbatim yes for that
+          exact design revision).
+        failure_outcome: >
+          material_findings - control-flow outcome routing to
+          design_campaign; carries no acceptance duty but MUST still persist
+          the findings record, because design_campaign consumes
+          adversarial_review_findings for repair. Two sub-cases, one
+          outcome: (a) the reviewer's verified material findings; (b) review
+          clean but the user declines at gate 2 - the verbatim rejection is
+          recorded in approvals/ and mirrored as named material-finding
+          entries so redesign receives an actionable input. Sub-case (b) is
+          flagged as interface finding 1 below for lead confirmation.
+        activities:
+          - >-
+            a1 - Read this campaign's campaign_design_record and its kickoff
+            contract; confirm the design record is complete and stable on
+            re-read, and stamp the design-record revision the review covers.
+          - >-
+            a2 - Dispatch the adversarial reviewer (independent of every
+            design author) with the materiality contract - refute the design
+            against kickoff-declared criteria; route-scoped review surface -
+            backport route: comparator set covers the kickoff correctness
+            and performance gates and is pre-registered before any
+            measurement, CPU-first increment plan, test layout, predicted
+            file surface complete for scheduling; upgrade route: regression
+            matrix generated from the support table plus the in-repo
+            accuracy framework, exclusive-execution consequence stated,
+            the row set re-run against the kickoff-declared matrix
+            criteria with a character-exact threshold spot-check against
+            the pinned repo. On both routes, two named anti-narrowing
+            re-checks: diff the plan's coverage trace against the delta
+            report and the pin feasibility note, and re-check the
+            feasibility note's capability checklist against the kickoff
+            contract - named here so neither can drop from the reviewer
+            brief. Silent drift from kickoff-declared metrics, thresholds,
+            or methods is itself a material finding.
+          - >-
+            a3 - Persist the revision-stamped findings record to
+            artifacts/reviews/ BEFORE any gate presentation. Any verified
+            material finding standing -> exit material_findings. Gate 2
+            never opens on an unreviewed or materially defective design.
+          - >-
+            a4 - Only on a clean findings record, the lead presents gate 2 -
+            the reviewed design, the findings record itself (including the
+            challenged-surfaces enumeration), the per-route measurement plan
+            (backport: correctness plus performance comparators against the
+            GPU baseline with the baseline-skew statement; upgrade: the
+            regression matrix), every deviation from kickoff-declared
+            criteria called out as requiring its own recorded user decision,
+            and the spend consequence - approval releases implementation and
+            subsequent hardware spend.
+          - >-
+            a5 - Record the verbatim user decision in approvals/ bound to
+            design revision and findings-record path. Approve ->
+            design_sound. Decline -> material_findings with the user's
+            objections persisted as named findings.
+          - >-
+            a6 - Idempotent resume - a node re-run with an unchanged design
+            revision and a persisted clean findings record skips to the
+            gate; any design-record revision change invalidates prior
+            findings and forces re-review.
+        sequencing_rule: >
+          Review strictly precedes user sight of the design. Enforced by
+          evidence shape, not trust: design_sound is unclaimable without the
+          findings artifact (required_evidence pair), the gate presentation
+          cites the findings-record path for the same design revision, and
+          the frozen outbound check design_approved_by_user (user-evaluated)
+          re-verifies before implementation starts.
+
+      evidence_questions:
+        - Does the findings record enumerate every design section challenged
+          against its kickoff clause, so an absence of findings is
+          falsifiable rather than silence?
+        - Does each finding meet the materiality bar - would it change
+          route, spend, comparator validity, or a later acceptance verdict -
+          with non-material notes segregated, per the UR-10
+          material-findings-only contract?
+        - Is the comparator set pre-registered, complete for this campaign's
+          route, and unchanged since the reviewed design revision?
+        - Does the measurement plan presented at gate 2 match the
+          kickoff-declared methods, with every delta explicitly flagged for
+          its own recorded user decision?
+        - Is the approval verbatim, timestamped, and bound to the exact
+          design-record revision and findings-record path the user saw?
+
+      enforcement:
+        - guard: review-before-gate sequencing
+          strength: persistent record (findings artifact cited by the gate
+            presentation) backed by the frozen user-evaluated edge check
+          why_not_stronger: violation is precisely visible at the edge check
+            and reversible by re-review; nothing irreversible happens before
+            design_approved_by_user, so a blocking hook would be
+            over-enforcement (§9.14.2).
+        - guard: kickoff-criteria change control
+          strength: persistent record - any criteria delta appears as its
+            own line in the approval record with an explicit user decision;
+            the reviewer treats silent drift as a material finding
+          why_not_stronger: the likely failure (a design quietly narrowing a
+            comparator set) is caught by two independent readers - reviewer
+            then user - before any measurement exists to game.
+        - evidence: adversarial_review_findings
+          gameable: yes - judgment text; a shallow read could mint "no
+            material findings"
+          hardening: harden-first per §9.14.1 - (1) provenance the doer
+            cannot fake - the record carries the design-record revision
+            stamp and the enumerated challenged surfaces, persisted under
+            artifacts/reviews/ which no design author writes; (2) a check
+            the doer does not run - the user at gate 2 reads the findings
+            record itself, and the frozen edge check is user-evaluated;
+            (3) reviewing the review would be ceremony - the user gate is
+            already the independent consumer. Reviewer independence from
+            the design authors is structural.
+        - evidence: gate_approval_record
+          gameable: yes - the recorder could paraphrase or infer approval
+            from artifact existence
+          hardening: verbatim-quote requirement (root authority - artifact
+            existence is never approval), binding to design revision and
+            findings path, and the frozen design_approved_by_user check
+            re-asks the user before implementation - a minted approval
+            fails at a check the recorder does not evaluate. A mechanical
+            signature scheme adds nothing the user re-confirmation does not
+            already catch.
+
+      model_effort_assignments:
+        adversarial_reviewer: strong model, high effort - material-findings
+          judgment across a multi-part design; a missed defect releases
+          implementation and hardware spend.
+        lead: session top model, high effort - gate presentation of criteria
+          deltas and spend consequences is judgment that compounds;
+          consistent with the root assignment.
+        lookup_subagents: small fast model, low effort - optional
+          single-question reads (for example one support-table row) the
+          reviewer may spawn; never mutate the target.
+
+      uncertainty_ledger:
+        facts:
+          - Frozen node contract - roles, consumes, produces, two outcomes
+            with required_evidence (root.v6.draft.pave.yaml lines 375-390).
+          - Outbound routing - design_sound edge carries user-evaluated
+            check design_approved_by_user with on_failure_route
+            design_campaign; material_findings routes to design_campaign
+            (root.v6 edges).
+          - UR-10 - adversarial review is independent, refutation-oriented,
+            material-findings-only (requirements.md, Roles and
+            independence).
+          - Gate 2 is one of exactly three user gates; criteria change only
+            by explicit recorded user decision; approval records are
+            verbatim and lead-recorded (requirements.md Authority order;
+            root-contract.md sections 3 and 6).
+          - Design-record contents and per-route acceptance shape
+            (root.v6 design_campaign purpose and evidence section).
+          - The design loop's no-progress exit lives on design_campaign,
+            not here (root.v6 edge design_no_progress_to_rederivation).
+        assumptions:
+          - The runtime binding realizes the three roles as seats inside one
+            node run - lead orchestrates, reviewer is a separate dispatched
+            seat, user is presented the gate; one bounded context holds the
+            orchestration.
+          - A campaign design record fits one adversarial-review context -
+            it is one directory of derivation artifacts, and the upgrade
+            regression matrix is a generated table, not codebase-scale.
+          - A user rejection after a clean review exits via
+            material_findings (interface finding 1).
+        open_questions_closed:
+          - Does two-authorities force a split - closed against §9.12 (signs
+            hint, none gates) plus the frozen graph's own atomic
+            gate-carrying precedents; recorded in the verdict justification.
+          - Was fresh evidence needed beyond the brief - no; zero explorer
+            dispatches, the frozen contract, requirements.md UR-10 text,
+            and the root evidence section answered sizing.
+
+      interface_findings:
+        - finding: >-
+            User-rejection path at gate 2. The frozen outcome pair is
+            design_sound / material_findings only, and design_sound is
+            unclaimable without an approval record, so a verbatim user
+            rejection must exit via material_findings with the rejection
+            persisted as named findings. Routing is consistent either way
+            (both land on design_campaign), but the frozen meaning text says
+            "named material defects", so a rejection must arrive named. Lead
+            to confirm this reading; no contract change requested.
+        - finding: >-
+            design_campaign consumes adversarial_review_findings on
+            the repair loop. Findings records therefore need revision stamps
+            so a redesign pass can tell which findings its new revision
+            answers. Recording convention only; no contract change.
+        - finding: >-
+            The frozen comparators_preregistered check (on the
+            hardware-to-measurement edge) reads a frozen timestamp in run
+            state. Gate-2 approval is the natural freeze moment - on
+            design_sound the lead should freeze the comparator registration
+            into run state as part of the outbound transition. Lead-side
+            state duty, not a node change; flagged so it is not lost.
+
+      conflicts: []

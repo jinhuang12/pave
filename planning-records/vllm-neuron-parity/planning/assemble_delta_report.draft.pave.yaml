@@ -1,0 +1,490 @@
+# Planner draft fragment — dispatched boundary: assemble_delta_report
+# (child of the decomposed scan_upstream_delta; contract is the child body
+# in planning/scan_upstream_delta.v2.draft.pave.yaml — referenced, never
+# copied). Verdict: ATOMIC — nodes is empty by design; this fragment's
+# content is the atomic elaboration under extensions.x_planning.
+# Pin-generic: no version, branch, or SDK literals appear anywhere; the
+# pin is a frozen run input read from intake artifacts.
+pave:
+  name: assemble_delta_report
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: assemble_delta_report
+      frozen_contract_reference: planning/scan_upstream_delta.v2.draft.pave.yaml#assemble_delta_report
+      parent_authority_chain:
+        - planning/scan_upstream_delta.v2.draft.pave.yaml#assemble_delta_report
+        - planning/root.v6.draft.pave.yaml#scan_upstream_delta
+        - planning/root-contract.md
+
+      elaboration:
+        assemble_delta_report:
+          verdict: atomic
+          justification: >-
+            One agent diffs the frozen requested-target list against the
+            per-target report files on disk, renders one persisted rubric
+            verdict per report reading one report at a time against the
+            fixed seven-section rubric frozen in trace_target_delta's
+            target_traced meaning, derives each target's re-trace state
+            from grant files carrying the current scan-entry id, writes the
+            run-level index, and emits exactly one outcome under the
+            declared precedence (reports_insufficient over
+            sources_unreachable over delta_mapped) - settled by the
+            persisted coverage-diff transcript, the per-target verdict
+            files, and the index. Per-report verdicts are independent by
+            construction (the rubric is per-target; no verdict reads
+            another report), so context never holds interacting concerns -
+            only the compact derived files at settlement. Overturned if
+            per-report sufficiency judgment turned out to require
+            cross-report reasoning, or if a single report's rubric read
+            could not fit one bounded context even with extraction
+            sub-dispatches absorbing its bulk.
+          runtime_binding_first: >-
+            Checked before accepting the atomic frame, per section 2.1. The
+            only scale axis is target count - a frozen run input unknown at
+            plan time. That is a labor problem the binding solves with
+            read-only extraction sub-dispatches (section presence and
+            transcript presence per report), each a single-question read;
+            the verdict itself is never delegated (see model_effort). No
+            sub-goal needs its own recovery route: a missing report and a
+            rubric-deficient report resolve through the same bounded
+            re-trace path; a source-blocked target already has its own
+            declared outcome. Splitting would add routing and buy nothing.
+
+      dod_ladder: >-
+        Definition of done for the success outcome delta_mapped, on the
+        section 5.3.1 ladder. Condition - every requested target's
+        per-target report is present and rubric-sufficient, where
+        sufficiency is satisfied by honest residual-gap recording, never by
+        gap absence (a post-bound recorded deficiency SELECTS delta_mapped
+        rather than blocking it), and the run-level index binding reports,
+        verdicts, and residual gaps is written. Settled by two legs plus
+        the precedence test. Leg 1, rung 1 (measurement against a declared
+        threshold) - a persisted coverage-diff transcript comparing the
+        frozen requested-target list read from run_input_and_preflight_
+        record (an artifact this node does not write) against the
+        per-target report files on disk, with the raw directory listing
+        embedded in the transcript; threshold - zero targets missing.
+        Leg 2, rung 2 (judgment against a rubric written in advance) - one
+        persisted per-target verdict against the fixed seven-section
+        rubric frozen in trace_target_delta's target_traced meaning
+        (plugin-side state; A1 trace; A2 applicability and trace or
+        dead-end; runner-entanglement verdict; externalized-subsystem
+        flag; doc-claim verification; residual gaps - each load-bearing
+        claim carrying its command transcript). All three rung-2
+        conditions hold - the rubric predates every instance run by
+        construction and was authored in the frozen graph text, not by any
+        tracer; the judging seat is binding-guaranteed not to be the
+        author of any report it judges (see binding_requirements); rubric
+        and verdict both persist. A section that honestly records what
+        could not be settled and why PASSES sufficiency - that is the L4
+        clause, realized, not weakened. Emission - delta_mapped is emitted
+        only when neither higher-precedence outcome holds under the
+        contract precedence reports_insufficient over sources_unreachable
+        over delta_mapped (see outcome_settlement). A reviewer who did not
+        do the work can re-settle all of it from the artifacts - re-run
+        the diff, re-read any report against the frozen rubric text,
+        re-count grant files.
+
+      binding_requirements:
+        - label: seat_separation
+          requirement: >-
+            The runtime binding MUST guarantee that the investigator seat
+            rendering each rubric verdict is not the seat of any
+            trace_target_delta instance whose report it judges (frontier
+            notes item 19; same pattern as review_pr_evidence's
+            reviewer-identity separation). The graph cannot enforce this -
+            both nodes declare the same investigator role - so the parent's
+            "separate agent context" wording is realized as a
+            binding-guaranteed seat, stated here as a requirement on the
+            binding, never claimed as graph-enforced. Falsifier, inline -
+            if the binding assigns assembly to a tracer seat, rung 2's
+            judge-is-not-doer condition collapses and every verdict
+            degrades from evidence to opinion; the whole-plan reviewer
+            should verify the binding note exists, mirroring the
+            measurer_not_adjudicator precedent flagged at
+            review_pr_evidence (its assembly residual on reviewer seats).
+        - label: scan_entry_id
+          requirement: >-
+            External runtime dependency, recorded rather than pretended to
+            exist - the binding mints a scan-entry id at each entry into
+            the scan boundary (the initial preconditions_to_delta_scan
+            traversal and each costing_gap_to_delta_scan re-entry) and
+            carries it in both children's dispatch briefs. The tracer
+            stamps it into per-target report metadata; this node reads it
+            and stamps it into every assembly record it writes. Falsifier,
+            inline - an ambiguous or missing current-entry id makes the
+            re-trace derivation unsettleable; the settlement must refuse to
+            run (blocked, not guessed) when the brief carries no entry id.
+        - label: join_semantics
+          requirement: >-
+            Both trace_target_delta outcomes route here and the binding
+            holds dispatch until every open trace instance of the current
+            scan entry settles (the root fan_in_note pattern; parent
+            fragment already flags join timing as a binding concern). The
+            settlement is designed idempotent - it reads only files - so a
+            strict join and an incremental-then-final binding produce the
+            same outcome; no contract change either way.
+
+      outcome_settlement: >-
+        Realization of the contract precedence reports_insufficient over
+        sources_unreachable over delta_mapped - exactly one outcome per
+        settlement, mutual exclusivity by construction because the three
+        conditions are evaluated in strict order and each later branch
+        requires the earlier ones false. Definitions - a target is
+        DEFICIENT when its report is missing, or unreadable, or fails the
+        seven-section rubric (where an honestly recorded residual gap is
+        sufficiency, not a failure); a target whose instance settled
+        source_unreachable is SOURCE-BLOCKED, not deficient - its partial
+        record is a preserved resume point, and re-tracing it inside the
+        same entry would hit the same unavailable source. A target with no
+        settled instance record at all (crashed instance) is absorbed as
+        deficient - honest recovery through the existing bounded re-trace,
+        no new outcome invented. Order - (1) if any deficient target's
+        re-trace bound is unexhausted for the current scan entry (no grant
+        file, or a grant whose recorded report content hash is unchanged,
+        meaning the granted re-trace never landed - crash-safe re-emission
+        that mints no second grant), emit reports_insufficient, minting
+        grants only for targets that lack one; the named-target set is the
+        union of newly granted and in-flight grants. (2) else if any
+        target is source-blocked, emit sources_unreachable - traced
+        targets keep their reports and per-target resumable state is
+        preserved. (3) else emit delta_mapped - every post-bound
+        still-deficient target is recorded in the index as a residual gap
+        and counts as sufficient by honest recording (the L4 clause);
+        downstream, costing prices the recorded uncertainty and its
+        evidence-gap edge may automatically re-demand it; the
+        operator-visible designed stop on that loop is costing's stalled
+        outcome routing to the run pause (frontier notes item 18 -
+        referenced, not authored here).
+
+      retrace_counter_design: >-
+        Per the boundary-review settlement (frontier notes item 22) - the
+        counter is DERIVED from per-target event files carrying scan-entry
+        ids, never a stored integer and never a run-state write (the lead
+        is the sole run-state writer). This node is the single writer of
+        re-trace grants, and grant issuance happens in the same settlement
+        act that emits reports_insufficient, so bound accounting cannot
+        drift from routing. Layout (proposed for the artifact-layout
+        reference; final home is a lead assembly decision) - under the
+        run's delta artifact directory: assembly/<scan-entry-id>/grants/
+        <target-id>.grant.md, one file per target per entry, content -
+        target id, scan-entry id (redundant with the path, deliberately
+        self-describing), the named deficiency, a reference to the rubric
+        verdict that forced it, and the report content hash at grant time.
+        Derivation rule - target T's bound in entry E is exhausted exactly
+        when a grant file for T exists under E AND the current report
+        content hash differs from the hash recorded at grant time (the
+        re-trace landed); a grant with an unchanged hash is in-flight, not
+        spent. The per-scan-entry reset falls out of the path - a new
+        entry id has zero matching files - so no reset logic exists to get
+        wrong. Failure modes, inline - (a) a grant written under a wrong
+        or stale entry id would under-count and allow a second grant:
+        prevented because the derivation counts paths under the current
+        entry id only and the settlement stamps every grant with the
+        brief-carried id it verified at start; (b) a crash between grant
+        write and outcome emission: the next settlement re-derives from
+        files, sees the unchanged report hash, and re-emits
+        reports_insufficient with the same grant - idempotent, no double
+        spend; (c) a re-trace that lands but leaves the target deficient:
+        hash changed, bound exhausted, deficiency becomes a residual gap
+        that selects delta_mapped per the L4 clause - honest recording,
+        never a silent extra lap.
+
+      activity_realization:
+        - a1_coverage: >-
+            Realizes frozen activity 1. Read the frozen requested-target
+            list from the intake record at its declared location; list the
+            per-target report paths on disk (raw listing embedded in the
+            transcript, so a re-reader re-settles from the same declared
+            root); diff by the shared target-id key convention; persist as
+            assembly/<scan-entry-id>/coverage-diff.md. Threshold zero
+            missing feeds the settlement; a missing report classifies its
+            target deficient, never a separate failure route.
+        - a2_rubric_verdicts: >-
+            Realizes frozen activity 2. Per report, one verdict file
+            assembly/<scan-entry-id>/verdicts/<target-id>.md citing - the
+            rubric source (the frozen target_traced meaning), each
+            section's presence with file-and-heading citations into the
+            tracer-written report, whether load-bearing claims carry
+            command transcripts, the report's stamped scan-entry id and
+            content hash (binds the verdict to the exact report revision;
+            failure mode inline - judging a stale pre-re-trace report
+            would burn the bound without reading the repair, and the
+            recorded hash makes that detectable on re-settlement), and the
+            verdict. A deficiency recorded as a residual gap after the
+            re-trace bound is exhausted PASSES the rubric - honest gap
+            recording is sufficiency, not a rubric failure. On costing
+            re-entries, a prior entry's verdict may be re-cited only when
+            the report content hash is unchanged; a changed hash forces a
+            fresh verdict (mechanical guard against missed regressions).
+        - a3_retrace_routing: >-
+            Realizes frozen activity 3 via retrace_counter_design and
+            outcome_settlement order step 1 - grants minted at emission,
+            named targets carried in the outcome data for subset
+            re-dispatch, one bound per target per scan entry, post-bound
+            deficiency recorded as a residual gap that selects
+            delta_mapped per the L4 clause.
+        - a4_index: >-
+            Realizes frozen activity 4. Write the run-level delta index -
+            per target: report path, verdict path, verdict, residual gaps
+            (possibly empty), source-blocked flag, grant state - one
+            costing-consumable artifact. The index cites and points; it
+            never restates report content (state points; artifacts
+            prove). The current index lives at the delta directory root;
+            each entry's snapshot persists under its assembly/<scan-entry-
+            id>/ directory so re-entries supersede without erasing
+            provenance (consistent with the layout reference's
+            archive-plus-current-marker pattern).
+        - a5_emission: >-
+            Realizes frozen activity 5 exactly as outcome_settlement
+            states it - strict-order evaluation, exactly one outcome,
+            precedence reports_insufficient over sources_unreachable over
+            delta_mapped.
+
+      evidence_questions:
+        - Does every id in the frozen requested-target list map to an
+          on-disk report file, per the embedded listing in the persisted
+          coverage-diff transcript, with zero missing?
+        - For each report, does the persisted verdict cite all seven
+          rubric sections with file-and-heading locations, and do the
+          load-bearing claims it credits carry command transcripts?
+        - Does each verdict record the report's stamped scan-entry id and
+          content hash, and does any re-cited prior verdict carry an
+          unchanged hash?
+        - Is each sufficiency pass grounded either in settled sections or
+          in honestly recorded residual gaps naming what could not be
+          settled and why - never in silence about a gap?
+        - Does each grant file's path carry the current scan-entry id, and
+          does the derived grant state (unspent, in-flight, exhausted)
+          match the settlement's named-target set and emitted outcome?
+        - Was exactly one outcome emitted, and does the strict-order test
+          transcript show the two higher-precedence conditions false
+          whenever delta_mapped was selected?
+        - Does the index bind every requested target to its report,
+          verdict, residual gaps, and grant state without restating report
+          content?
+
+      enforcement:
+        - subject: coverage evidence (rung 1 leg of delta_mapped)
+          judgment: >-
+            Not gameable in the minting sense - the frozen target list
+            lives in run_input_and_preflight_record, which this node does
+            not write; report files are tracer-written and this node's
+            forbidden effects bar editing any report body; the diff is
+            mechanical and re-runnable by any reviewer. Residual failure
+            mode, inline - a diff run against a wrong directory or a stale
+            listing under-reads; hardened by embedding the raw listing and
+            the declared root in the transcript itself.
+          strength: >-
+            Persistent record (mechanical transcript). Stronger rung
+            unnecessary - a false coverage pass is caught pre-spend twice
+            downstream: costing cannot cost a missing report, and
+            review_route_verdicts' coverage refutation reads the same
+            frozen list (the c2 resolution's read).
+        - subject: rubric verdicts (rung 2 leg of delta_mapped)
+          judgment: >-
+            Gameable - judgment text written by this node's seat; the seat
+            could rubber-stamp deficient reports or stale-date a verdict
+            against a superseded report revision.
+          strength: >-
+            Hardened in ladder order before any process is added. (1)
+            Provenance the doer cannot fake - the rubric itself is not
+            doer-authored (frozen in the parent graph text before any
+            instance ran), and every verdict must cite section locations
+            in the tracer-written report plus the report content hash, so
+            the claim binds to artifacts this seat does not write. (2) A
+            check the doer does not run - costing prices every report and
+            its evidence-gap edge automatically re-demands substance a
+            verdict overstated. (3) Practical adversarial review -
+            review_route_verdicts consumes delta_report before any user
+            gate. No blocking rung - the verdict gates no spend; a false
+            sufficient-pass surfaces at costing pre-spend, and a false
+            deficient-fail costs one bounded re-trace. Failure modes
+            recorded inline with each guard above.
+        - subject: re-trace loop bound
+          judgment: >-
+            The bound is one grant per target per scan entry, derived from
+            grant files carrying scan-entry ids - single writer this node,
+            grant minted in the same act that emits reports_insufficient.
+            Gameable only by mis-stamping or double-writing, both covered
+            inline in retrace_counter_design (path-derived counting,
+            hash-based in-flight detection, refusal to settle without a
+            brief-carried entry id).
+          strength: >-
+            Persistent record plus mechanical path discipline. Stronger
+            rung unnecessary - beyond the bound the deficiency lands as an
+            honest residual gap that selects delta_mapped (the L4 clause),
+            and the operator-visible designed stop on the downstream
+            re-demand loop is costing's stalled outcome routing to the run
+            pause (frontier notes item 18 - referenced, not authored
+            here).
+        - subject: run-level index
+          judgment: >-
+            Derivation artifact - it cites, the diff and verdicts prove;
+            gameability is absorbed by the two entries above because every
+            index row must point at a persisted transcript or verdict. A
+            row without a pointer is mechanically detectable on
+            re-settlement.
+          strength: >-
+            Persistent record; nothing stronger earns its cost for a
+            pointer artifact two catch-nets sit behind.
+
+      model_effort:
+        assemble_seat: >-
+          Strong model, medium effort - semi-mechanical rubric application
+          over artifacts with independent per-target verdicts; judgment
+          does not compound past one report, and two downstream nets
+          (costing's evidence-gap edge, review_route_verdicts) catch wrong
+          passes pre-spend. Medium is the deliberate cost step-down from
+          the default high pin: routine agentic verdict work where quality
+          holds. Matches and confirms the parent fragment's assignment.
+        extraction_subdispatches: >-
+          Small fast model, low effort - optional single-question
+          read-only extraction per report (section presence, transcript
+          presence) when the target set is large; the verdict is never
+          delegated to an extraction dispatch - the assemble seat renders
+          it reading the extraction plus spot-reads of the report, which
+          also keeps the seat-separation reasoning one seat wide.
+
+      uncertainty_ledger:
+        facts:
+          - Target count is a frozen run input unknown at plan time
+            (root-contract.md; requested_targets in root state). It scales
+            labor, not judgment - source of the runtime-binding-first
+            analysis.
+          - The rubric is the fixed seven-section list frozen in
+            trace_target_delta's target_traced meaning in the v2 parent,
+            predating every instance by construction (reviewer-credited at
+            the parent boundary PASS).
+          - L3 precedence and L4 sufficiency-by-honest-gap-recording are
+            contract text in this node's frozen body (parent v2
+            amendment); this fragment realizes them without restating them
+            differently.
+          - Counter home settled at boundary review - derive from
+            per-target event files carrying scan-entry ids, never a stored
+            integer (frontier notes item 22).
+          - Seat separation is a binding duty, not graph text (frontier
+            notes item 19).
+          - The operator stop for a non-converging downstream gap loop is
+            costing's stalled outcome to the run pause (frontier notes
+            item 18; widening registered there, not authored here).
+          - The frozen requested-target list's home is
+            run_input_and_preflight_record, whose content contract for
+            downstream consumers is a recorded preflight assembly item.
+        assumptions:
+          - The binding can stamp a scan-entry id at each boundary entry
+            and carry it in child dispatch briefs - same mechanism family
+            as the stable per-target instance identity the parent already
+            requires for re-entries.
+          - Per-target report paths are deterministically derivable from
+            frozen target ids via the artifact-layout reference, which
+            both child fragments cite (single authority, two citers).
+          - One report fits one rubric read; extraction sub-dispatches
+            absorb outsized target counts at the binding.
+        open_questions_closed:
+          - Does the Runtime Binding solve this without a split - yes;
+            recorded under runtime_binding_first. Closed by section 2.1
+            analysis against the frozen contract; no explorer needed.
+          - Is the coverage check its own node - no; it produces one
+            transcript, shares the re-trace recovery route with the rubric
+            check, and needs no distinct authority or resume point - an
+            activity.
+          - Does a crashed trace instance need a new outcome - no;
+            absorbed as a deficient target through the existing bounded
+            re-trace (outcome_settlement), honest and bounded.
+          - Join timing strict vs incremental - binding concern, no
+            contract change; the settlement is idempotent by design so
+            either realization emits the same outcome (recorded under
+            binding_requirements).
+
+      evidence_questions_dispatched: >-
+        None. The parent fragment, root v6, the frontier record, and the
+        spec answered every sizing-relevant question; the one remaining
+        unknown - target count - is a run input no exploration can settle.
+
+      interface_findings:
+        - i1: >-
+            Join and fan-in - both trace_target_delta outcomes route here;
+            the binding holds settlement until all instances of the
+            current scan entry settle (root fan_in_note pattern). The
+            settlement reads files only, so re-runs are idempotent; safe
+            under either strict or incremental join realization.
+        - i2: >-
+            reports_insufficient edge form - one settlement can name
+            multiple deficient targets and re-entry must land on named
+            targets only, while this node has no instance_per. The edge
+            back to trace_target_delta should therefore land in FAN-OUT
+            form (fan_out trace_target_delta, for_each the settlement's
+            named-target set, carried in the outcome data and enumerated
+            by the current entry's grant files) - the same edge-form
+            precedent the reviewer settled for the c5 re-entry
+            (referencing the existing register entry, no new conflict).
+            A plain edge would be ambiguous about which target re-enters.
+        - i3: >-
+            Artifact-layout reference entries this fragment needs pinned
+            once and cited by both children - per-target report path
+            convention derivable from the frozen target id; report
+            metadata stamped with the scan-entry id and hashable content;
+            assembly record homes (coverage-diff, verdicts, grants, index
+            current-plus-snapshots) as named under activity_realization
+            and retrace_counter_design. Single authority, two citers -
+            same pattern as the consolidated findings-record shape
+            (frontier notes items 12, 14, 17).
+        - i4: >-
+            Interface need on the trace_target_delta planning (np-trace) -
+            per-target report metadata carries the scan-entry id of the
+            entry that produced or last updated it; already aligned with
+            the item-22 counter-home language both briefs carry.
+            Coordinate through the layout reference, not through either
+            fragment.
+        - i5: >-
+            Intake content contract - the coverage leg reads the frozen
+            requested-target list at a declared location inside
+            run_input_and_preflight_record using the same target-id key
+            convention costing's fragment records (its shared-keying
+            finding); the preflight fragment's content-contract assembly
+            item should name that list and key explicitly.
+        - i6: >-
+            Reading of the frozen allowed_effects, recorded for reviewer
+            challenge rather than raised as a conflict - "the run-level
+            index and sufficiency record" is read as the assembly record
+            SET: coverage-diff transcript, per-target verdicts, grant
+            files, and index snapshots, all under the run's delta
+            artifact directory. The parent's own enforcement entry
+            requires persisting rubric-plus-verdicts and names this node
+            the single writer of grants, so the set reading is the only
+            one under which the frozen contract is satisfiable; a
+            narrower reading would contradict the parent's counter-home
+            settlement (item 22).
+        - i7: >-
+            Evidence producers at assembly - the root delta_report entry's
+            produced_by becomes both children (per-target files from
+            trace_target_delta, run-level index from this node); already
+            recorded in the parent fragment's interface findings, restated
+            here only because this node's writes realize the second half.
+
+      open_questions:
+        - Subset re-fan-out support in the binding (parent open question
+          (a)) - i2 gives the edge form and the for_each source; whether
+          the harness re-dispatches named instances or the lead re-opens
+          them manually stays an assembly decision.
+        - Where the scan-entry id is minted (binding_requirements/
+          scan_entry_id) - traversal-time lead stamp assumed; assembly
+          decides the exact mechanism.
+        - Final artifact-layout homes for the assembly record set (i3) -
+          proposed here, pinned by the lead in the layout reference.
+
+      conflicts: []
+
+      propagation_note: >-
+        Per the standing propagation rule - the sufficiency-by-honest-
+        residual-gap-recording clause appears with every sufficiency
+        statement in this fragment (dod_ladder, outcome_settlement,
+        retrace_counter_design, a2, a3, enforcement); the outcome
+        precedence appears identically everywhere as reports_insufficient
+        over sources_unreachable over delta_mapped; seat separation is
+        consistently stated as binding-guaranteed and never
+        graph-enforced; every guard designed here records its failure
+        mode inline next to the guard.

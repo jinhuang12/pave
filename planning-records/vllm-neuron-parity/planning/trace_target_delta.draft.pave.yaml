@@ -1,0 +1,376 @@
+# Planner fragment — dispatched boundary: trace_target_delta
+# (child of the decomposed scan_upstream_delta; frozen contract lives in
+# planning/scan_upstream_delta.v2.draft.pave.yaml — never copied here).
+# Verdict: ATOMIC (confirms the parent's framing prediction). No child nodes.
+# Pin-generic: no version, branch, or SDK literals appear anywhere in this
+# fragment; the pin and the target set are frozen run inputs.
+pave:
+  name: trace_target_delta
+  status: draft
+  nodes: {}
+  extensions:
+    x_planning:
+      dispatched_node: trace_target_delta
+      frozen_contract_reference: planning/scan_upstream_delta.v2.draft.pave.yaml#trace_target_delta
+      parent_authority_chain:
+        - planning/root.v6.draft.pave.yaml#scan_upstream_delta
+        - planning/scan_upstream_delta.v2.draft.pave.yaml#trace_target_delta
+      elaboration:
+        trace_target_delta:
+          verdict: atomic
+          justification: >
+            One investigator agent, holding exactly one requested target,
+            runs the whole trace — plugin-side state with premise
+            correction, the two-tier A1 trace, the A2
+            matrix-plus-design-trace-or-dead-end, the mechanical
+            runner-entanglement check, the externalized-subsystem flag, the
+            doc-claim code verification, and the residual-gaps close — and
+            settles target_traced by the seven-section report under the
+            run's delta artifact directory, each load-bearing claim
+            carrying its verbatim command transcript. Overturned only if a
+            single target's source sweep exceeds one bounded context; the
+            evidence makes that breach implausible three ways — the
+            exploration lens traced roughly ten targets shallowly in one
+            context and its per-target depth gaps were time-box artifacts,
+            not context exhaustion (upstream-and-tpu-sources.md section 6);
+            sweep volume lives in persisted query-and-hit-list artifacts
+            read back as needed, and per pave-spec 9.12 volume alone does
+            not breach the boundary — one target is one coherent problem;
+            and an extremely diffuse target exits honestly through the
+            required residual-gaps section, which satisfies sufficiency by
+            honest recording. Every 9.12 warning sign is absent - all
+            in-target failures collapse to the two declared situations (a
+            required source unavailable - source_unreachable - or a fact a
+            queried source could not settle, recorded as a residual gap);
+            no intermediate result needs its
+            own review or resume point (the report is the review unit,
+            queries are read-only and re-runnable, expensive sweeps persist
+            their hit lists as they go); one role and one authority
+            throughout; the parallelism that matters is across targets and
+            instance_per fan-out already realizes it; and every capability
+            (read-only git, gh, grep) is demonstrated in the exploration
+            lens against the same sources.
+      atomic_contract_elaboration:
+        definition_of_done: >
+          For exactly one requested target, this target's delta report
+          exists under the run's delta artifact directory with all seven
+          sections frozen in target_traced's meaning — plugin-side state at
+          the frozen pin, A1 trace, A2 applicability with design trace or
+          cited dead-end, runner-entanglement verdict,
+          externalized-subsystem flag, doc-claim verification, and residual
+          gaps (required, possibly empty) — each load-bearing claim
+          carrying its verbatim command transcript with the query, the full
+          hit list, and the source revision it ran against; settled by
+          reading the report and confirming every section present and every
+          claim bound to its transcript. Sufficiency is satisfied by honest
+          residual-gap recording, not by gap absence — and a residual gap
+          records an unsettled FACT from a queried source, never an
+          unavailable REQUIRED source; that situation belongs to
+          source_unreachable alone (the boundary the outcome discipline
+          below keeps sharp). Evidence ladder -
+          rung 1 for every embedded claim (command outputs from git, gh,
+          and grep are instrument values the doer may collect; commit
+          identifiers, tag-reachability results, API response revisions,
+          and source-repo head revisions are world-issued and cannot be
+          minted); rung 2 for the sufficiency verdict, which is settled
+          downstream by assemble_delta_report's rubric check against the
+          seven-section list — a rubric frozen in this node's success
+          outcome before any instance runs, applied by a judge that is not
+          the doer, with rubric and verdict both persisted.
+        outcome_discipline: >
+          Two outcomes only, so no three-way precedence is owed; mutual
+          exclusivity still needs one discrimination rule, declared here
+          because both meanings could otherwise claim the same end state.
+          The frozen `requires` discriminator in source_unreachable's
+          meaning is LOAD-BEARING and is not softened here. The boundary -
+          a fact is a RESIDUAL GAP (target_traced remains eligible) only
+          when the required source was queried and did not settle it; a
+          reference source this target's trace REQUIRES that cannot be
+          queried at all after one bounded retry for transient transport
+          failure is source_unreachable, never a residual gap. Residual
+          gaps cover unsettled FACTS, not unavailable required SOURCES.
+          When both hold at the end of a run — some required source
+          unreachable after retry, all other sections complete —
+          source_unreachable wins: target_traced requires every section,
+          and a section blocked by a never-queried source cannot be
+          honestly written as a residual gap. Guarded failures, recorded
+          inline - (1) the parent's L4 clause (honest gap recording
+          satisfies sufficiency) creates a structural incentive for the
+          investigator to file an unavailable required source as a
+          residual gap and keep moving, converting the designed run-pause
+          (sources_unreachable to the pause endpoint) into a silent
+          proceed; this boundary removes that path. (2) Without the rule,
+          an instance with a downed query endpoint could claim
+          target_traced-with-gap, costing would price as permanent
+          uncertainty a gap that a resume with the source restored closes
+          for free. The single retry is also a guard - without it one
+          flaky remote call escalates to a run-level pause.
+        activities:
+          - Instance setup - read the target identity, the scan-entry id,
+            and any re-entry payload from the dispatch context; write this
+            instance's run-event file under this target's subtree of the
+            delta artifact directory, recording the scan-entry id, the
+            target id, and the trigger (initial, assembly re-trace, or
+            costing evidence-gap re-entry, with the named deficiencies or
+            questions). Guarded failure, recorded inline - the re-trace
+            bound is DERIVED by counting these event files (never a stored
+            integer, never a child-written run-state field; the lead is
+            the sole run-state writer), so an instance that skips the
+            event file makes the bound silently uncountable.
+          - Plugin-side state first - read-only file reads and greps in
+            the read-only plugin repo establishing whether the target is
+            present, partial, or absent at the frozen pin, cited
+            file-and-line; correct any false premise in the target's
+            framing with code citations before tracing further. Ordered
+            first because a false premise poisons every later section -
+            the exploration lens found one quantization target whose
+            blanket unsupported premise was contradicted by shipped
+            in-repo kernels (upstream-and-tpu-sources.md section 4).
+          - A1 trace, two-tier - headline features via the PR-linked
+            release-note chain to introducing commits, with
+            tag-reachability and ancestry checks against the local
+            upstream clone; diffuse features via recorded log-message and
+            content-pickaxe sweeps whose query strings, full hit lists,
+            and residual uncertainty persist as transcript artifacts.
+            Record the upstream clone's checked-out revision in every
+            transcript so a reviewer can re-run against the same source
+            state.
+          - A2 applicability - read the TPU reference repo's own support
+            matrices via gh and record the matrix cells consulted with
+            the API revision they were read at; where applicable, record
+            a design trace (never a code-vendor plan - both of that
+            repo's front-ends lower to a different kernel substrate);
+            where not, record a cited dead-end.
+          - Runner-entanglement check - the mechanical two-part check
+            from the exploration lens (config-oracle forcing-condition
+            grep plus legacy-runner presence grep,
+            upstream-and-tpu-sources.md section 5); record the verdict
+            with both command transcripts.
+          - Externalized-subsystem flag - check whether the target
+            touches a subsystem that left the plugin repo at the pin
+            (externalized to an unpinned vendor dependency, system-map
+            ADDENDUM item 3) and record the flag either way, so costing
+            can re-scope the target or route an upstream-issue path.
+          - Doc-claim verification - verify at code level any doc-only
+            support claim bearing on this target and record the finding
+            either way, with transcripts.
+          - Residual-gaps close - write the required residual-gaps
+            section (possibly empty) naming what could not be settled
+            and why; an honestly recorded gap satisfies sufficiency for
+            costing, which prices uncertainty instead of inheriting it
+            silently. Every gap entry names a fact a QUERIED source
+            could not settle; an unavailable REQUIRED source never lands
+            in this section — it is source_unreachable (outcome
+            discipline above), because filing it as a gap would convert
+            the designed run-pause into a silent proceed under the
+            sufficiency clause.
+          - Re-entry scoping - when this instance runs under an assembly
+            re-trace or a costing evidence-gap re-entry, work only the
+            named deficiencies or questions, append to the existing
+            report without rewriting settled sections, and write a new
+            event file carrying the re-entry trigger. Guarded failure,
+            recorded inline - an unscoped re-entry re-runs the whole
+            trace, burning the loop's budget on closed ground and making
+            the per-route event accounting lie about what the re-entry
+            actually cost.
+          - Transient-failure handling - on a failed remote query that
+            looks transient, retry once; a retry that fails against a
+            REQUIRED source is a real unavailability and MUST emit
+            source_unreachable, never a residual-gap entry (outcome
+            discipline above). Persist partial per-target state before
+            emitting source_unreachable so the resume re-queries only
+            the blocked source.
+        enforcement:
+          node_local_guard: >
+            None added. The success edge already lands in
+            assemble_delta_report, whose frozen seven-section rubric
+            check is the check-the-doer-does-not-run for this node, and
+            review_route_verdicts consumes delta_report downstream before
+            any gate - adding an edge guard here would duplicate an
+            existing gate that already catches the failure before harm.
+            No blocking rung either - a wrong trace is recoverable
+            through the costing evidence-gap loop before any spend, and
+            all effects are read-only queries plus artifact writes, so
+            the strongest rungs buy nothing (pave-spec 9.14.1; the
+            reuse-existing-gate rule).
+          gameability: >
+            target_traced evidence - GAMEABLE (investigator-authored
+            synthesis; the concrete failure is a narrowed sweep - a
+            too-narrow log grep returns few hits and the report claims
+            the minimal change set is complete while the diffuse tail is
+            silently excluded). Hardened in ladder order before process -
+            (1) provenance the doer cannot fake: verbatim
+            command-plus-output transcripts embedding the query strings
+            and FULL hit lists (so query adequacy is itself reviewable,
+            not summarized away), world-issued identifiers throughout
+            (commit ids, tag-reachability outputs, API response
+            revisions, source-repo head revisions), and the run-event
+            file's scan-entry id, which is issued by the lead's dispatch
+            and cross-checkable against lead-written traversal history in
+            run state - the second artifact the doer does not write; (2)
+            a check the doer does not run: assemble_delta_report's rubric
+            verdict in a separate agent context against the section list
+            frozen before any instance ran; (3) the existing adversarial
+            review node consumes delta_report before any gate. Sweep
+            narrowing survives rung 2 (section present, content thin), so
+            rung 1's full-hit-list requirement and rung 3's review carry
+            that specific failure. A second named gameable path -
+            misfiling an unavailable REQUIRED source as a residual gap to
+            reach target_traced under the sufficiency clause (the L4
+            incentive named in outcome discipline), converting the
+            designed run-pause into a silent proceed. Hardened the same
+            way - every gap entry must name the queried source and embed
+            its query transcript, so a gap whose transcript shows an
+            access failure instead of an unsettled answer is detectable
+            by the assembly rubric read and the adversarial review; the
+            outcome discipline text makes the misfiling a contract
+            violation, not a judgment call. source_unreachable itself is
+            control-flow with a self-explanatory situation; it needs no
+            acceptance evidence, though the persisted partial state and
+            failed-query transcript make the claim checkable for free.
+          event_file_accounting: >
+            The re-trace bound and the evidence-gap loop spend different
+            budgets through the same node, so the event file's trigger
+            field gives per-route accounting - assembly counts only
+            assembly-re-trace events against its one-per-target bound;
+            costing evidence-gap re-entries are counted separately and
+            their operator stop is costing's stalled route to the run
+            pause (resync item, frontier notes item 18 - not authored
+            here). Guarded failure, recorded inline - a single
+            undifferentiated counter would let evidence-gap re-entries
+            silently exhaust the assembly repair bound.
+        model_effort:
+          investigator: >
+            strong model, high effort - judgment-heavy minimal-change-set
+            synthesis and premise correction with wide blast radius into
+            costing and route verdicts; not the session top model, since
+            judgment does not compound past one target and two downstream
+            checks (assembly rubric, adversarial review) guard the
+            output. Confirms the parent's assignment unchanged.
+          lookup_subdispatches: >
+            small fast model, low effort - single-question read-only
+            lookups (tag containment, ancestry checks, support-matrix
+            cell reads) dispatched by the investigator; each returns one
+            fact with its transcript. Confirms the parent's assignment
+            unchanged.
+      uncertainty_ledger:
+        facts:
+          - The dispatched contract is instance_per requested_targets -
+            each instance holds exactly one target in its own context
+            (parent fragment, frozen contract).
+          - The seven-section report list is frozen in target_traced's
+            meaning and predates every instance run by construction
+            (parent fragment; boundary-review credit). Not weakened here.
+          - Sufficiency is satisfied by honest residual-gap recording,
+            never by gap absence (parent amendment L4).
+          - A1 tracing is two-tier - headline cheap via PR-linked release
+            notes, diffuse needs persisted log sweeps
+            (upstream-and-tpu-sources.md section 3.4).
+          - The runner-entanglement check is mechanical and repeatable
+            (upstream-and-tpu-sources.md section 5).
+          - A2 support detection is mechanical via the TPU repo's own
+            support matrices; A2 is design-port only; known dead ends
+            exist and are honestly citable
+            (upstream-and-tpu-sources.md sections 3.1, 3.3).
+          - Some targets need premise correction before their delta is
+            meaningful (upstream-and-tpu-sources.md sections 3.1, 4).
+          - One exploration context achieved roughly ten-target breadth
+            with time-boxed depth gaps - the sizing precedent
+            (upstream-and-tpu-sources.md section 6).
+          - The re-trace count derives from per-target event files
+            carrying scan-entry ids; the lead is the sole run-state
+            writer (parent boundary review, binding carry).
+        assumptions:
+          - A single diffuse target's sweep fits one context because
+            volume persists in artifacts read back as needed and the
+            honest-gap exit bounds the worst case; falsified only by an
+            instance that exhausts context on one target, which the
+            honest residual-gaps exit (facts left unsettled after the
+            recorded bounded sweeps - queried sources, not unavailable
+            ones) plus the parent's re-trace path absorb without graph
+            change.
+          - The Runtime Binding preserves stable per-target instance
+            identity across re-entry (parent interface finding; binding
+            concern, not restated as contract).
+          - Upstream sources move during a run, so transcripts record the
+            source revision they read; staleness judgment belongs to
+            costing and review, not this node.
+        open_questions_closed:
+          - Could one target's sweep exceed one context - closed against
+            the breadth precedent plus artifact persistence plus the
+            honest-gap exit; recorded as the standing overturn condition
+            in the verdict line.
+          - Is a within-target split (A1 node, A2 node, checks node)
+            warranted - no; the sub-traces share one role, one authority,
+            one report, and one pair of failure meanings; none needs its
+            own recovery route or resume point, so a split would add
+            routing cost and buy nothing (pave-spec 9.12; steps are
+            activities).
+          - Does the Runtime Binding already solve the volume concern -
+            yes across targets (instance_per fan-out, the parent's
+            decision); within a target no volume concern survives the
+            evidence.
+          - Where does the retry-versus-unreachable line sit - settled by
+            the outcome discrimination rule above (one bounded retry;
+            queried-but-unsettled is a gap, an unavailable required
+            source is source_unreachable, never a gap - the load-bearing
+            `requires` discriminator, kept sharp against the L4
+            incentive).
+      evidence_questions:
+        - question: Were explorer dispatches needed?
+          closed: No - the parent fragment's ledger plus two exploration
+            lenses (upstream-and-tpu-sources.md, plugin-024-delta.md via
+            the system-map ADDENDUM) answered tracing mechanics, per-source
+            costs, entanglement-check repeatability, premise-correction
+            precedent, and the externalized-subsystem consequence; the
+            remaining unknowns (which targets, which pin) are frozen run
+            inputs no exploration can settle.
+        - question: Is sweep-query adequacy checkable by anyone but the
+            doer?
+          closed: Yes, by construction - queries and full hit lists
+            persist verbatim in the transcripts, so the assembly rubric
+            confirms their presence and the adversarial review judges
+            their adequacy; without persisted hit lists that judgment
+            would have nothing to read (the narrowed-sweep failure named
+            under gameability).
+      interface_findings:
+        - >-
+          Artifact layout for assembly - one subtree per target under the
+          run's delta artifact directory holding the report, its
+          transcript artifacts, and the run-event files; assembly's
+          coverage check diffs the frozen requested-target list against
+          these subtrees. Exact naming is an assembly-time lead choice;
+          this node requires only that target identity is stable across
+          re-entry and event files are distinguishable from report files.
+        - >-
+          Event-file content contract - scan-entry id (lead-issued at
+          dispatch, cross-checkable against lead-written traversal
+          history), target id, trigger (initial, assembly re-trace,
+          costing evidence-gap) plus the named deficiencies or questions
+          on re-entry. assemble_delta_report derives its one-per-target
+          re-trace bound by counting assembly-re-trace events only;
+          evidence-gap events are accounted separately (per-route
+          accounting for the shared node, see enforcement).
+        - >-
+          Re-entry payload - the assembly re-trace and the costing
+          evidence-gap edge must carry the named target and the named
+          deficiencies or questions into the instance; whether that
+          payload travels in run state or as an artifact reference is a
+          binding and assembly choice, no contract change either way.
+        - >-
+          Outcome discrimination rule (queried-but-unsettled is a
+          residual gap; an unavailable REQUIRED source is
+          source_unreachable, never a residual gap - the frozen
+          `requires` discriminator, unsoftened; source_unreachable wins
+          when both hold) - text-only clarification the lead may reflect
+          in assemble_delta_report's sources_unreachable gloss and its
+          rubric-check guidance, so a gap entry whose transcript shows a
+          source-access failure rather than an unsettled answer is
+          flagged as misfiled instead of passing as an honest gap; no
+          routing or contract change, reported without a conflict id.
+        - >-
+          Source-revision recording - every transcript names the source
+          revision it read (clone head, API response revision), giving
+          costing and review staleness detection for free; elaboration of
+          the frozen "source traces" wording, not a contract change.
+      conflicts: []

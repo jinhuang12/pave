@@ -1,0 +1,469 @@
+pave:
+  name: draft_increment_plan
+  status: draft
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: draft_increment_plan
+      frozen_contract_reference: planning/design_campaign.draft.pave.yaml#draft_increment_plan
+      supersedes: draft_increment_plan.draft.pave.yaml
+      revision_note: >
+        Round-1 repair. HIGH-1 - inverted test-suite ledger fact struck and
+        replaced with the system-map ADDENDUM finding; fork-side test
+        mentions disambiguated. HIGH-2 - ambient-exploration-corpus
+        assumption dropped; runtime activities cite built domain
+        references shipped in the generated plugin; interface need booked.
+        HIGH-3 - assembler checklist rows recast as a citation of the
+        parent-purpose-originated resync (frontier item 27), not a new
+        ask. LOW-1 - venv and lease split into two enforcement entries and
+        two checklist rows. LOW-2 - the "caught twice before any code or
+        hardware spend" overstatement corrected to per-direction claims.
+
+      elaboration:
+        draft_increment_plan:
+          verdict: atomic
+          justification: One implementer performs one coherent design act -
+            read the bounded per-campaign inputs (kickoff contract, delta
+            report with source traces, pin feasibility note with confirmed
+            surfaces and, on re-entry laps, the named untried lever,
+            findings history) plus the built domain references and
+            read-only repo lookups, then author one design artifact whose
+            parts (increment sequence, test layout, venv and lease plan,
+            refined file surface, patch-decision register) are facets of a
+            single decomposition judgment that must be held together - a
+            split would sever exactly the interactions (surface overlap,
+            acceptance-vs-test-layout consistency, collision ranking) the
+            judgment exists to reconcile. No intermediate result needs its
+            own recovery route, evidence artifact, review, role, or resume
+            point; the plan is judged as one whole at gate 2. Per-campaign
+            multiplicity is the parent's instance_per fan-out (Runtime
+            Binding), never a reason to split. Framing prediction (atomic
+            with scope_exceeded valve) CONFIRMED. Falsifier - a campaign
+            whose delta is so entangled (many interacting changes
+            concentrated on the known high-collision integration surface)
+            that a coherent increment decomposition cannot be held in one
+            bounded context; the designed answer is the scope_exceeded
+            valve naming the breaching subset, and the anti-shallowness
+            trace (coverage union diffable against two artifacts the doer
+            does not write) makes the failure mode "emit a shallow plan
+            instead of the valve" visible at gate 2.
+
+      definition_of_done: >
+        Every increment in increment_plan_draft carries all five
+        per-increment fields - stable id; file surface at the pinned
+        revision; CPU-mode acceptance command WITH its expected result
+        stated as a measurement against a declared threshold (a bare exit
+        check does not satisfy the field); test-layout additions; a
+        falsifiable single-agent-context sizing line - AND the plan carries
+        the four campaign-level components (test layout; venv plan by the
+        freeze-replicate recipe with the private-index precondition
+        recorded; hardware lease plan; refined predicted file surface with
+        collision ranking) AND every claim about the target repo (file
+        paths, patch mechanisms, fork-side test files, the CPU-mode flag)
+        cites a re-checkable location at the pinned revision - settled by
+        a field-completeness check that any non-doer can re-run
+        mechanically over the artifact (declared threshold - zero missing
+        fields, zero exit-only acceptance entries), by re-execution of the
+        repo citations against the read-only pinned repo, and by the
+        pre-existing gate-2 adversarial review re-settling the design
+        judgment. Ladder position - the completeness half is rung-1-style
+        (countable field presence against a declared zero-miss threshold;
+        assemble_design_record's completeness self-check re-runs it
+        downstream, its rows riding the item-27 resync per interface
+        needs); repo citations are world-bound provenance the doer cannot
+        mint (the repo is read-only at a pinned revision); the
+        design-quality half is rung 2, re-settled downstream by
+        review_campaign_design against the pre-existing consumer contract
+        (rubric written before this work, judge is not the doer) - no new
+        review node is added.
+
+      activities:
+        - Derive the increment sequence from the kickoff-declared target,
+          the delta report's source traces, and the pin feasibility note's
+          confirmed surfaces; on a re-entry lap, answer the specific
+          material findings and realize the untried lever the note names
+          (following its citation into the rederivation record when one
+          exists). Assign each increment its stable id and file surface at
+          the pinned revision.
+        - Author each increment's CPU-mode acceptance command WITH expected
+          result - command runnable under the repo's CPU-mode flag,
+          expected result a measurement against a declared threshold,
+          never a bare exit check. Self-consistency duty - a command that
+          invokes a test the same plan's test layout does not add is a
+          plan defect; check the pair per increment.
+          Failure-mode-inline - an exit-only acceptance entry passes a
+          careless completeness read but is refused downstream by
+          scope_next_increment's mechanical precondition
+          (plan_unrealizable_as_designed); authoring it here wastes a full
+          gate-2 lap, so the field checklist counts exit-only entries as
+          missing.
+        - Anti-shallowness coverage trace - record a one-to-one trace from
+          the union of per-increment file surfaces back to the delta
+          report's source traces and the pin note's confirmed surfaces; a
+          reviewer diffing the plan against those two artifacts (neither
+          written by this doer) catches a narrowed or shallow plan.
+        - Test-layout additions per increment plus the campaign-level
+          layout. Upstream ships zero test or CI content at the pinned
+          versions; every existing test file is a fork-side overlay
+          artifact, and the overlay is re-applied per rebase - so the
+          overlay is the campaign's only regression safety net, and every
+          addition names where it lives in the fork overlay. No addition
+          may presume an upstream test to extend.
+        - Patch-decision register - enumerate every known patch mechanism
+          from the built patch-mechanism inventory reference shipped in
+          the generated plugin (the ad hoc monkeypatches - a set that has
+          already grown across pins, so the register binds to the built
+          inventory, never a frozen count - plus the centralized patch
+          entry point, present but unused with a now-misleading
+          docstring) and record an explicit design decision per mechanism
+          per touching increment - touch, avoid, or centralize - each
+          with rationale, including explicit "no touch" entries.
+          Failure-mode-inline - silence in the register is exactly the
+          gap implementer initiative later fills; the register is
+          complete over the built inventory or the plan is incomplete.
+        - Refined predicted file surface - the union of per-increment
+          surfaces ranked by the known collision order (the
+          high-collision integration surface first), read from the built
+          collision-ranking domain reference and the consumed delta
+          report, with the delta against the kickoff-predicted surface
+          noted, for the lead's scheduling-holds re-derivation.
+        - Venv plan by the freeze-replicate recipe, recording the
+          private-index precondition as a HARD precondition with its
+          named silent-failure mode - a core dependency resolves only
+          from the private index while the public index serves a
+          placeholder, so the recipe must name the index-or-preinstalled
+          check that detects the placeholder, not merely mention the
+          index - and recording the open assumption (the freeze-and-replay
+          step has no local end-to-end evidence) as a stated precondition
+          to verify at hardware intake, never a silent assumption.
+        - Hardware lease plan as its own component - which downstream
+          phases need a leased host, expected lease windows, and the host
+          requirements the kickoff contract declares; this design node
+          itself makes no hardware contact.
+        - Sizing duty - judge every increment against the one-context test
+          and record a falsifiable sizing line per increment (what one
+          agent does and how it settles that increment's acceptance).
+          When the decomposition itself cannot be held coherently in this
+          node's bounded context, emit scope_exceeded naming the breaching
+          target-or-delta subset with citations - never a shallow plan.
+        - Outcome discipline - two declared outcomes only; plan_drafted
+          only when every field-checklist entry passes; any breach of the
+          bound emits scope_exceeded with the named breach.
+
+      enforcement:
+        - rule: increment_plan_draft integrity (plan_drafted evidence)
+          gameability: >
+            GAMEABLE - doer-written design artifact, three directions.
+            (a) Narrowing - fewer increments than the target needs.
+            (b) Vacuous acceptance - exit-only commands or unmeasurable
+            expected results dressed as thresholds. (c) Optimistic sizing
+            - oversized increments declared one-context to look complete.
+          hardening_in_order:
+            - Coverage trace one-to-one to the delta report's source
+              traces and the pin note's confirmed surfaces - narrowing is
+              visible by diffing persisted artifacts the doer does not
+              write (world-bound anchors for a doer-written plan).
+            - Field checklist mechanically countable by a non-doer -
+              assemble_design_record's completeness self-check re-runs it
+              before gate 2 (rows riding the item-27 resync, pre-realized
+              by the sibling assembler); exit-only acceptance counts as a
+              missing field.
+            - Downstream mechanical refusal - scope_next_increment's
+              precondition read refuses a plan without per-increment
+              acceptance (plan_unrealizable_as_designed), and
+              realize_increment re-settles every expected result at rung 1
+              by running the declared command.
+            - Gate-2 adversarial review of the whole record challenges
+              sizing lines against file-surface volume and the collision
+              ranking.
+          rung_chosen: Persistent record plus existing downstream
+            independent review (gate 2) plus the consumer's existing
+            mechanical refusal - no new node.
+          why_not_stronger: Per direction - a vacuous-acceptance plan is
+            refused mechanically at scope_next_increment before any code
+            spend; narrowing is caught at gate 2 only when the reviewer
+            runs the coverage-trace diff (hence the named re-check in the
+            reviewer brief); optimistic sizing that survives the gate-2
+            challenge surfaces at increment_stuck - a bounded loop cost
+            after some code spend but before any hardware spend. Each
+            escape path is bounded and pre-hardware; a dedicated
+            plan-reviewer node would duplicate review_campaign_design.
+          failure_mode_inline: If the gate-2 reviewer does not diff the
+            plan's coverage trace against the delta report and pin note,
+            narrowing survives to implementation where it surfaces as a
+            parity gap at measurement - the reviewer brief must name the
+            coverage-trace re-check explicitly (assembly-stage note for
+            the lead).
+        - rule: patch-decision register completeness
+          gameability: >
+            GAMEABLE by omission - an absent register entry silently
+            delegates a monkeypatch or centralization move to implementer
+            initiative, the exact failure the frozen contract exists to
+            prevent.
+          hardening_in_order:
+            - The register enumerates the full patch-mechanism inventory
+              from the built domain reference shipped in the generated
+              plugin - a source this doer does not write - so omission is
+              visible by diffing register against inventory.
+            - Explicit "no touch" entries required per mechanism; silence
+              is an incompleteness the assemble_design_record self-check
+              and gate-2 review can count.
+          rung_chosen: Persistent record plus gate-2 review.
+          why_not_stronger: A missed entry loops back through
+            record_incomplete at design time, before any implementation
+            spend; mechanical enforcement would need a fixed inventory
+            schema the run does not otherwise need.
+          failure_mode_inline: If the built inventory itself missed a
+            patch mechanism, the register inherits the miss - the
+            implementation-stage reviewer seeing an unregistered patch
+            touch treats it as a design defect (design_defect_found), not
+            license. The inventory has already grown by one across pins,
+            so assembly keeps the reference current per pin.
+        - rule: venv plan presence and substance (drop-prone component)
+          gameability: >
+            GAMEABLE by omission or vacuous form under schedule pressure -
+            the boundary reviewer named the venv-and-lease material the
+            component most easily dropped.
+          hardening_in_order:
+            - Named required row (its own row, split from lease) in
+              assemble_design_record's completeness checklist - a
+              mechanical presence check by a non-doer before gate 2.
+            - The recorded hard private-index precondition names the
+              index-or-preinstalled check that detects the
+              silent-placeholder failure, and the untested freeze-replay
+              assumption is a stated intake precondition - both checkable
+              statements, not boilerplate; gate-2 review challenges an
+              empty-form plan.
+          rung_chosen: Reflective here plus downstream mechanical presence
+            check plus gate-2 review.
+          why_not_stronger: A drop loops back via record_incomplete at
+            zero external cost; the expensive failure (venv divergence on
+            hardware) is separately guarded at run_hardware_attempts
+            intake in the frozen graph, which verifies the recorded
+            precondition.
+          failure_mode_inline: A present-but-vacuous venv plan passes the
+            presence check and fails at hardware intake as a named unmet
+            precondition - and because the placeholder failure is silent
+            by nature, a precondition that names no detection check would
+            let intake false-pass; the substance duty above is the
+            pre-emption.
+        - rule: lease plan presence and substance (drop-prone component)
+          gameability: >
+            GAMEABLE by omission or vacuous form - same pressure as the
+            venv plan; a missing lease plan defers host scheduling to
+            implementer improvisation at hardware time.
+          hardening_in_order:
+            - Named required row (its own row, split from venv) in
+              assemble_design_record's completeness checklist -
+              mechanical presence check by a non-doer before gate 2.
+            - Lease demand is derived from the kickoff contract's declared
+              hosts and spend - a consumed artifact the doer does not
+              write - so an invented or narrowed lease need is diffable
+              against the kickoff declarations.
+          rung_chosen: Reflective here plus downstream mechanical presence
+            check plus gate-2 review.
+          why_not_stronger: A drop loops back via record_incomplete at
+            zero external cost; a wrong lease plan surfaces at
+            run_hardware_attempts' lease acquisition with pre-action
+            identity re-verification (frozen graph) before any host
+            mutation.
+          failure_mode_inline: A vacuous lease plan passes presence and
+            strands at lease acquisition as a scheduling stall, not a
+            safety failure - bounded delay, caught by the existing lease
+            machinery.
+        - rule: scope_exceeded emission (escape-work direction)
+          gameability: >
+            GAMEABLE - emitting the valve avoids the design lap. Cost is
+            bounded - the valve maps to the parent's no_progress route
+            into first-principles re-derivation (per the parent v2
+            repair), where rederive_approach re-reads the same persisted
+            evidence and would contradict a false breach, and its exits
+            land on operator-owned gates.
+          hardening_in_order:
+            - The frozen meaning already requires naming what breaches the
+              bound - the emission must cite the breaching target-or-delta
+              subset against the delta report, so a bare "too big" claim
+              is checkable against artifacts the doer does not write.
+          rung_chosen: Reflective plus persistent record.
+          why_not_stronger: A false valve self-corrects within one bounded
+            rederivation lap; adding review here would duplicate
+            rederive_approach's first-principles pass.
+          failure_mode_inline: If the emission omitted the named breach,
+            rederive_approach would re-derive scope from the raw delta
+            anyway - degraded efficiency, not a wrong campaign fate.
+
+      model_and_effort:
+        model: top_capability
+        effort: high
+        rationale: >
+          Confirms the parent assignment. This is the judgment that
+          compounds - every downstream node (the scope/realize loop,
+          measurement, both gate reviews) executes against this plan;
+          ambiguity is high (decomposing an entangled delta into
+          one-context increments with self-consistent acceptance), and
+          the blast radius of a wrong answer spans the whole campaign.
+          Evidence volume is moderate and artifact-resident (read as
+          needed), so high effort suffices; xhigh is unjustified because
+          the node is a single bounded authoring pass, not a
+          long-horizon tool loop.
+
+      evidence_questions:
+        - question: Is the freeze-replicate venv recipe and its
+            private-index precondition grounded in persisted evidence?
+          closed_by: Planning-time reads of
+            exploration/host-and-environment.md and the system-map
+            ADDENDUM item 3 - recipe rationale grounded locally; the
+            ADDENDUM upgrades the private-index precondition to HARD (a
+            core dependency resolves only from the private index; the
+            public index serves a silent placeholder, so the recipe must
+            name a detection check); the freeze-and-replay step itself
+            has no local end-to-end evidence, which the venv activity
+            records as a hardware-intake precondition. At runtime the
+            doer reads these facts from the built domain references and
+            the consumed delta report, not from the planning workspace.
+        - question: Is the monkeypatch and patch-centralization surface
+            enumerated in persisted evidence, or must this node derive it?
+          closed_by: Planning-time reads of exploration/target-plugin.md
+            superseded where they conflict by the system-map ADDENDUM
+            item 2 - the ad hoc patch set grew by one at the re-baselined
+            pin (same pattern), and the centralized patch entry point
+            remains present, unused, with a now-misleading docstring.
+            Consequence encoded in activity 5 - the register enumerates
+            against the built patch-mechanism inventory reference kept
+            current per pin, never a frozen count.
+        - question: Does a collision ranking exist to order the refined
+            file surface by?
+          closed_by: Planning-time reads of exploration/target-plugin.md
+            and the system-map ADDENDUM item 2 - the platform integration
+            surface remains the highest-collision surface and the ranking
+            carries forward across the pin change; activity 6 ranks by
+            this order via the built collision-ranking reference and the
+            consumed delta report.
+        - question: What exactly does the downstream consumer refuse, and
+            where?
+          closed_by: Direct read of
+            planning/implement_increments.v4.draft.pave.yaml -
+            scope_next_increment emits plan_unrealizable_as_designed by
+            first precedence on a plan missing per-increment acceptance
+            (mechanical precondition read); realize_increment runs one
+            increment per bounded context and exits increment_stuck when
+            sizing was wrong - confirming the granularity duty and the
+            rung-1 downstream re-settling this draft's enforcement relies
+            on.
+        - question: Is CPU-first acceptance realizable in the target repo
+            as the frozen contract presumes?
+          closed_by: Planning-time reads of
+            exploration/host-and-environment.md and
+            exploration/target-plugin.md - the CPU-mode flag is a
+            first-class, heavily-used mechanism; the test files that
+            default it on are FORK-SIDE overlay artifacts (fork-only
+            P-EAGLE additions per the system-map ADDENDUM item 1 -
+            upstream ships zero tests), which confirms both the CPU-first
+            precedent and the overlay as the only test vehicle.
+            Pin-generic wording ("the repo's CPU-mode flag") keeps the
+            plan portable across pins.
+        - note: No explorer dispatches were needed - all five questions
+            closed by bounded direct reads of persisted exploration
+            reports (as superseded by the system-map ADDENDUM) and
+            planning drafts.
+
+      uncertainty_ledger:
+        facts:
+          - The frozen contract declares exactly two outcomes -
+            plan_drafted (evidence increment_plan_draft) and
+            scope_exceeded (planning/design_campaign.draft.pave.yaml,
+            draft_increment_plan node).
+          - The parent v2 repair (prose-only) maps this node's
+            scope_exceeded to the parent's no_progress outcome into
+            rederive_approach - re-scoping is re-derivation's job, and an
+            unmapped valve would strand the campaign
+            (planning/design_campaign.v2.draft.pave.yaml, loop_bounds).
+          - The consumer contract is confirmed and encoded - refusal at
+            scope_next_increment, rung-1 re-execution at
+            realize_increment, one-item-per-context atomicity
+            (planning/implement_increments.v4.draft.pave.yaml).
+          - The kickoff contract enumerates target, route, source,
+            thresholds, methods, hosts, spend, predicted surface, and
+            preflights - so lease and host inputs are consumed via
+            kickoff_contract_record, not a missing input
+            (planning/assemble_kickoff_contracts.v2.draft.pave.yaml, per
+            the sibling screen fragment's closed question).
+          - The target repo is read-only at a pinned revision (run
+            constraints); repo lookups are world evidence, not a consumed
+            artifact.
+          - System-map ADDENDUM item 1 (supersedes the exploration body
+            text where they conflict) - the surveyed spec-decode test
+            files are FORK-ONLY overlay artifacts; upstream ships ZERO
+            test or CI content at both pinned versions, and the fork
+            overlay must be re-applied per rebase. The frozen purpose's
+            "upstream ships no test suite" is confirmed correct as
+            written; the v1 draft's contrary ledger fact and its
+            parent-prose note are struck.
+          - System-map ADDENDUM items 2 and 3 - the ad hoc patch set grew
+            across pins with the centralized entry point still unused,
+            and the venv private-index precondition is hard with a
+            silent-placeholder failure mode; both folded into activities
+            5 and 7.
+          - Lead run-wide decision (round 1) - load-bearing exploration
+            findings ship as BUILT domain references inside the generated
+            plugin; the planning workspace's exploration corpus is NOT
+            ambient at runtime.
+        assumptions:
+          - The built domain references this node's doer reads at runtime
+            (patch-mechanism inventory; collision ranking; venv-recipe
+            grounding including the hard private-index precondition and
+            the untested freeze-replay assumption; fork-overlay test
+            facts) exist in the generated plugin by the time this node
+            first runs - booked as an interface need; assembly settles
+            exact names.
+          - One campaign's increment count is small enough (single-digit
+            to low-double-digit) that the plan artifact stays reviewable
+            in one gate-2 pass; the scope_exceeded valve covers the
+            violation, and the falsifier in the elaboration names how a
+            shallow-plan evasion is caught.
+          - The built patch-mechanism inventory is kept current per pin
+            at assembly; an inventory miss surfaces downstream as
+            design_defect_found, not as implementer license (enforcement
+            entry 2, failure-mode-inline).
+
+      interface_needs:
+        - BUILT domain references (lead run-wide decision, round 1) - this
+          node's runtime activities cite the built patch-mechanism
+          inventory reference (references/<topic>.md, exact name settles
+          at assembly). The other load-bearing findings this node reads -
+          collision ranking, venv freeze-replicate grounding with the
+          hard private-index precondition and the untested freeze-replay
+          assumption, fork-overlay test facts, CPU-mode flag facts -
+          ride the same built-reference mechanism or the consumed
+          delta_report; assembly assigns each finding a home and settles
+          names.
+        - increment_plan_draft declared as a graph-level evidence id under
+          the campaign's design artifact directory (already listed in the
+          parent draft's interface findings; restated).
+        - The lead re-derives scheduling holds from the refined predicted
+          file surface (existing check scheduling_holds_recorded) - the
+          plan's collision-ranked surface section is the input format.
+        - assemble_design_record's completeness checklist rows - the
+          per-increment field checklist (five fields, exit-only
+          acceptance counts as missing), venv plan (own row), lease plan
+          (own row), patch-decision register, coverage trace, refined
+          surface. CITATION, not a new ask - the row set originates in
+          the parent frozen purpose and rides the lead's resync bundle
+          (frontier item 27); the sibling assembler is pre-realizing the
+          rows. Cited here because that self-check is this draft's
+          downstream mechanical rung.
+        - Gate-2 reviewer brief should explicitly name two re-checks - the
+          coverage-trace diff (plan surfaces vs delta source traces and
+          pin note) and the sizing-line challenge (per-increment
+          one-context claims vs surface volume and collision rank).
+        - scope_exceeded edge is lead-authored at graph level to the
+          parent's no_progress destination per the v2 repair; this draft
+          adds no routing.
+        - On re-entry laps, this node reaches rederivation detail through
+          the pin feasibility note's lever citation (the sibling screen
+          fragment's conflict resolution) - no consumes change needed
+          here; noted so the lead's resynchronization of the screen's
+          consumes keeps the citation duty.
+
+      conflicts: []

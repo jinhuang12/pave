@@ -1,0 +1,543 @@
+pave:
+  name: measure_against_baseline
+  status: draft
+  nodes:
+    realize_measurement_procedures:
+      intent: execute
+      instance_per: approved_campaigns
+      roles: [measurer, delegate_dispatcher]
+      purpose: Turn the pre-registered comparator set in this campaign's
+        design record into runnable measurement procedures - the
+        kickoff-declared acceptance procedures for this campaign's route
+        (upgrade routes execute the regression matrix instead of
+        correctness+perf) - each with a fixed invocation, declared inputs,
+        and a declared output shape, smoke-verified end-to-end on scratch
+        inputs before any measured run that cites that procedure revision. The measurer realizes what the
+        design record froze; it never chooses or alters a comparator. On
+        re-entry with a procedure-defect record, revise the defective
+        realization to match the frozen comparator - never the comparator
+        itself - and re-verify by smoke. Out of scope - any measured run
+        against the candidate or the baseline.
+      consumes: [campaign_design_record]
+      produces: [measurement_procedure_record]
+      activities:
+        - Read the frozen comparator set and route-scoped acceptance
+          procedures from the design record; enumerate every declared
+          measurement this campaign must produce.
+        - Realize each declared measurement as a runnable procedure with a
+          fixed invocation, reusing verified in-repo primitives where they
+          match the declared method and building thin harnesses where no
+          repeatable procedure exists.
+        - Avoid the known tool traps - the stock serving-benchmark path
+          undercounts speculative-decode configurations (use a streaming
+          harness for those); the decode-only bench connector produces no
+          correctness signal and is never a correctness procedure.
+        - Smoke-verify every procedure end-to-end on scratch inputs and
+          record the smoke evidence and the fixed invocation per procedure.
+        - On re-entry with a procedure-defect record, revise only the
+          defective realization against the frozen comparator, re-smoke it,
+          and record the revision in the procedure record - revision entries
+          VERSION each realization and NAME the comparisons a revision
+          touches.
+      allowed_effects:
+        - In-band SSH to leased Neuron hosts for smoke verification only.
+      forbidden_effects:
+        - Choosing or altering comparators after measurement begins.
+        - Any measured run recorded as campaign evidence.
+      outcomes:
+        procedures_ready:
+          meaning: Every declared measurement for this campaign's route has
+            a runnable, smoke-verified procedure with a fixed invocation
+            recorded before any measured run that cites that procedure
+            revision.
+          required_evidence: [measurement_procedure_record]
+        procedure_unrealizable:
+          meaning: A declared measurement has no realizable procedure
+            (capability gap, including an unusable declared method), or its
+            smoke verification cannot proceed because the leased serving
+            state cannot be re-established within the declared retry bound;
+            routed to re-derivation with the evidence.
+
+    capture_baseline_reference:
+      intent: execute
+      instance_per: approved_campaigns
+      roles: [measurer]
+      purpose: Produce the GPU-baseline side of every declared comparison
+        for this campaign's route, strictly read-only on the named GPU
+        baseline over in-band SSH - reference outputs captured against
+        hash-pinned inputs using the fixed procedures, with the
+        baseline-skew record (the GPU-side vLLM version read live from the
+        baseline environment plus the kickoff-recorded known cross-version
+        behavior differences) written into the capture. When this
+        campaign's route declares no GPU-baseline comparator, record the
+        justified skip and pass through. On re-entry after a procedure
+        revision, re-capture only the comparisons whose procedure changed;
+        unchanged captures stand. Out of scope - any durable host-state
+        mutation on the baseline, ever (persistent writes including cache
+        writes, restarts, reboots, resets); the ephemeral lifecycle of a
+        serving process launched for capture is not a durable mutation -
+        the operational definition of durable host state lives once in the
+        consolidated artifact-layout entry and is cited here.
+      consumes: [campaign_design_record, measurement_procedure_record]
+      produces: [baseline_reference_capture]
+      activities:
+        - Verify the baseline instance identity and read its live vLLM
+          version; refuse to capture if it contradicts the kickoff record.
+        - Run the fixed reference-capture procedures against hash-pinned
+          inputs; record outputs one file per event.
+        - Write the baseline-skew record into the capture.
+      allowed_effects:
+        - Read-only use of the named GPU baseline over in-band SSH.
+      forbidden_effects:
+        - Autonomous GPU-baseline reboot or reset.
+        - Choosing or altering comparators after measurement begins.
+      outcomes:
+        reference_captured:
+          meaning: Every declared GPU-baseline comparison has its reference
+            side captured with the skew record, or a justified skip is
+            recorded for a route that declares none.
+          required_evidence: [baseline_reference_capture]
+        baseline_unusable:
+          meaning: The named baseline is unreachable, contradicts the
+            kickoff record, would require a reset to proceed, or a pinned
+            capture input's live digest contradicts its design-record pin;
+            routed to re-derivation with the evidence.
+
+    run_candidate_measurements:
+      intent: execute
+      instance_per: approved_campaigns
+      roles: [measurer, delegate_dispatcher]
+      purpose: Execute the smoke-verified procedures against the serving
+        candidate on this campaign's leased Neuron host(s) over in-band
+        SSH, exactly as pre-registered - the measurer executes, never
+        chooses; a defective procedure or reference is routed back to the
+        node that produced it, never patched in place. Every run record
+        stamps the measured git revision read at measurement time from the
+        checked-out commit on the leased host (a git-issued identifier,
+        never a branch name), plus the invocation, configuration, and
+        environment used. When outcomes co-hold they settle in the
+        precedence order fixed in the activities. Out of scope - any
+        verdict on the numbers produced.
+      consumes: [measurement_procedure_record, baseline_reference_capture,
+        hardware_attempt_log, campaign_design_record]
+      produces: [candidate_measurement_runs]
+      activities:
+        - Confirm the candidate serves per the attempt log; read and record
+          the checked-out commit's git-issued revision identifier before
+          the first measured run.
+        - Execute each declared measurement's fixed invocation; write raw
+          outputs one file per event, each stamped with the measured
+          revision, invocation, and environment.
+        - Write every defect finding (procedure or reference) as its own
+          event file under the runs directory, so the shared
+          per-measurement repair count is derivable by counting
+          defect-record files by path.
+        - On a lost serving state, re-establish serving from the recorded
+          attempt recipe within the declared retry bound, re-verify the
+          checked-out revision, then resume.
+        - When a measurement's shared repair budget is already spent, record
+          the defect and complete forward - packaging settles
+          declared_measurement_unproducible; do not route backward.
+        - 'Settle co-held outcomes in this order, with these reasons:
+          serving_exhausted first (nothing in this boundary executes
+          without the leased serving state - even smoke verification needs
+          it - and re-derivation receives the full defect trail as
+          evidence); procedure_defect_found second (a defective realization
+          invalidates both the reference captured with it and every number
+          it produced, and its repair re-traverses reference capture, so it
+          subsumes a co-held reference defect on the same measurement);
+          reference_defect_found third (reference repair with no co-held
+          procedure defect); runs_complete last (only when no defect or
+          serving outcome holds within budget).'
+      allowed_effects:
+        - In-band SSH to this campaign's leased Neuron hosts.
+      forbidden_effects:
+        - Choosing or altering comparators after measurement begins.
+        - Any action on the GPU baseline.
+        - Editing the candidate checkout or switching its revision.
+      outcomes:
+        runs_complete:
+          meaning: Every declared measurement has raw run records,
+            revision-stamped from the checked-out commit at measurement
+            time; a measurement whose shared repair budget is spent
+            completes forward with its defect trail recorded for packaging
+            to settle. Taken last in the fixed precedence order - only when
+            no defect or serving outcome holds within budget.
+          required_evidence: [candidate_measurement_runs]
+        procedure_defect_found:
+          meaning: A run exposes a procedure that measured the wrong
+            property - a defective realization of a frozen comparator;
+            routed back to procedure realization within the shared
+            per-measurement repair budget. Subsumes a co-held reference
+            defect on the same measurement, since the repaired procedure
+            re-traverses reference capture.
+        reference_defect_found:
+          meaning: A run exposes a missing or defective baseline reference
+            for a declared comparison, with no co-held procedure defect;
+            routed back to reference capture within the shared
+            per-measurement repair budget.
+        serving_exhausted:
+          meaning: The serving state cannot be re-established within the
+            declared retry bound; takes precedence over every co-held
+            defect outcome - nothing in this boundary executes without the
+            leased serving state - and routes to re-derivation with the
+            full defect trail as evidence.
+
+    stabilize_and_package_evidence:
+      intent: execute
+      instance_per: approved_campaigns
+      roles: [measurer]
+      purpose: Assemble the campaign's measurement evidence bundles - one
+        file per event under the campaign measurements directory - and
+        settle their completeness and stability before any verdict. Each
+        bundle names the GPU-side vLLM version and the known cross-version
+        behavior differences from the skew record, carries the measured git
+        revision copied verbatim from the run records (this node never
+        mints or rewrites it), and links the pre-registered comparator and
+        procedure it realizes. Completeness is checked against the
+        kickoff-declared acceptance procedures for this campaign's route
+        (upgrade routes execute the regression matrix instead of
+        correctness+perf); stability is settled by consecutive matching
+        re-reads over time, never a first sighting.
+      consumes: [campaign_design_record, baseline_reference_capture,
+        candidate_measurement_runs, measurement_procedure_record]
+      produces: [measurement_artifacts]
+      activities:
+        - Assemble one evidence bundle per declared measurement with skew
+          record, measured revision (verbatim from run records), comparator
+          identity, and procedure reference.
+        - Check bundle completeness against the route-scoped declared
+          measurement list; record any gap or instability as its own
+          defect-record event file, so the shared per-measurement repair
+          count is derivable by counting defect-record files by path.
+        - Re-read every bundle until the declared count of consecutive
+          matching reads passes; record the stability trace.
+        - Settle exhaustion - a measurement whose shared repair budget
+          (derived from its on-disk defect-record files) is spent and still
+          defective is declared unproducible; never route it backward.
+      allowed_effects:
+        - Writes under this campaign's measurements artifact directory
+          only.
+      forbidden_effects:
+        - Minting or altering a measured revision value.
+        - Choosing or altering comparators after measurement begins.
+        - Any verdict on the numbers packaged.
+      outcomes:
+        bundles_stable:
+          meaning: Every kickoff-declared measurement exists as a complete,
+            stable-read-verified evidence bundle.
+          required_evidence: [measurement_artifacts]
+        collection_defect_found:
+          meaning: A bundle is missing, incomplete, or changed on re-read;
+            routed back to candidate measurement within the shared
+            per-measurement repair budget.
+        declared_measurement_unproducible:
+          meaning: A declared measurement cannot be produced after its
+            shared repair budget - derived by counting its defect-record
+            files - is spent; routed to re-derivation with the evidence.
+
+  extensions:
+    x_planning:
+      dispatched_node: measure_against_baseline
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#measure_against_baseline
+      supersedes: planning/measure_against_baseline.v2.draft.pave.yaml
+      lead_resync_v3_note: >
+        v3 is a lead resynchronization batch (2026-08-25, no planner
+        dispatch), the NON-BUDGET half of the measure-parent register
+        items. Landed - 27(p) revision-scoped smoke predicate ("that
+        cites that procedure revision") at all four parent sites per the
+        three-category container split (realize purpose, procedures_ready
+        meaning, elaboration gameability, proposed_checks(1)); 27(q)
+        procedure_unrealizable second disjunct (leased serving state not
+        re-establishable within the declared retry bound; the fragment
+        carries the bring-up-transcript evidence branch); 27(s)
+        measurement_procedure_record added to
+        stabilize_and_package_evidence's consumes; 27(t) the
+        b1_procedure_revision_scope clause verbatim in realize's re-entry
+        activity (revision entries VERSION each realization and NAME the
+        comparisons a revision touches); c11 the read-only-baseline
+        prohibition scoped to DURABLE host state naming cache writes
+        explicitly (ephemeral serving-process lifecycle allowed; full
+        operational definition lands once in the artifact-layout entry);
+        c12 baseline_unusable widened by the pinned-input digest-mismatch
+        disjunct (destination unchanged; the outcome name now also covers
+        a design-side defect first surfacing here - recorded residual,
+        smallest-change ruling). DEFERRED to a second touch pending the
+        landing-set sweep - the c13 two-tier budget landing at the nine
+        booked sites (checklist A1), the at-ceiling wording confirmation
+        (A2), and the 27(r) co-hold tie-breaker (A5, same site as A1's
+        stabilize edit). The inherited-check retargeting (A8) is assembly
+        work at the flat-graph build, recorded in
+        inherited_check_retargeting below. v2 stays provenance.
+      revision_deltas:
+        high_procedure_defect_route: >
+          Landing sites - nodes.run_candidate_measurements.outcomes
+          .procedure_defect_found (new outcome); run_candidate_measurements
+          .purpose (defect routed back, never patched in place) and
+          .activities (defect event files; budget-spent forward clause;
+          precedence line); realize_measurement_procedures.purpose and
+          .activities (re-entry revision clause - revise the realization,
+          never the comparator); capture_baseline_reference.purpose
+          (re-capture only changed procedures); interface_findings
+          .reentry_routing (procedure-defect path and its rationale);
+          interface_findings.loop_bounds (third loop sharing the one
+          budget, no new bound or exhaustion outcome or state);
+          stabilize_and_package_evidence unchanged as the single exhaustion
+          decider.
+        low1_derived_repair_count: >
+          Landing sites - interface_findings.loop_bounds (count derived by
+          path from defect-record files, no stored counter, no lead write
+          per lap, falsifier inline); interface_findings.state_fields
+          (repair counter removed from state, recorded as a non-slot);
+          run_candidate_measurements.activities and
+          stabilize_and_package_evidence.activities (defect findings
+          written as their own event files so the count is derivable by
+          path); outcome meanings referencing the budget now say shared
+          repair budget derived from defect-record files
+          (procedure_defect_found, reference_defect_found, runs_complete,
+          collection_defect_found, declared_measurement_unproducible).
+        low2_inherited_check_retargeting: >
+          Landing sites - new interface_findings
+          .inherited_check_retargeting recording the two on_failure_route
+          landings for the lead's resynchronization (item 26); no node body
+          changed - retargeting is lead work.
+        low3_child3_precedence: >
+          Landing sites - run_candidate_measurements.activities (four-way
+          precedence order with reasons, in contract text per the
+          where-it-lands clause); run_candidate_measurements.purpose
+          (pointer to the fixed order); all four run_candidate_measurements
+          outcome meanings (each states its precedence position);
+          interface_findings.reentry_routing (pointer that precedence lives
+          in child-3 contract text). stabilize_and_package_evidence left
+          alone per review - sequenced by the repair bound in its meanings,
+          bundles_stable exclusive by universal quantification.
+        low4_identity_predicate_citation: >
+          Landing sites - interface_findings.measured_revision_field (cites
+          the repaired two-conjunct downstream predicate with its authority
+          files instead of paraphrasing the bare empty-diff form);
+          elaboration.run_candidate_measurements.gameability (same
+          citation replaces the content-diff paraphrase).
+      elaboration:
+        measure_against_baseline:
+          verdict: decompose
+          justification: One agent cannot both build this campaign's
+            never-yet-existing route-scoped measurement procedures (the
+            repeatable GPU-baseline correctness plus perf story was built
+            once, forensically, by hand; the in-repo framework's newer
+            orchestration tier is unread) and execute them to stable-read
+            bundles in one context - procedure realization, reference
+            capture, candidate runs, and stabilization each fail
+            differently, recover differently, and need their own persisted
+            evidence as resume points for the re-measurement repair loops
+            that re-enter this boundary. Framing prediction confirmed.
+        realize_measurement_procedures:
+          prediction: atomic
+          justification: Realizes an already-frozen comparator set into
+            runnable procedures and smoke-verifies each; judgment is
+            bounded by the design record. Overturned if the unread
+            accuracy-orchestration tier forces its own explore/build split
+            - procedure_unrealizable covers the capability dead end.
+          model_effort: strong model, high effort - judgment-heavy new
+            construction where a wrong procedure silently corrupts every
+            downstream number.
+          gameability: gameable (measurer-produced smoke evidence);
+            hardened by structure first - fixed invocations recorded before
+            any measured run that cites that procedure revision, comparators
+            frozen upstream by the
+            comparators_preregistered check, and a wrong-property
+            realization that survives smoke returns through
+            run_candidate_measurements.procedure_defect_found - then
+            downstream adjudication and verdict review.
+        capture_baseline_reference:
+          prediction: atomic
+          justification: Runs fixed read-only capture procedures against
+            hash-pinned inputs on one named host; settles via captured
+            files plus the skew record.
+          model_effort: strong model, medium effort - procedure execution
+            against a frozen design on an irreplaceable host; the
+            forbidden-reset rule leaves no autonomous recovery to reason
+            about.
+          gameability: gameable (measurer-produced); hardened by structure
+            - live-read vLLM version must match the kickoff record or the
+            node refuses, hash-pinned inputs - then adversarial verdict
+            review.
+        run_candidate_measurements:
+          prediction: atomic
+          justification: Executes frozen, smoke-verified invocations over
+            SSH and records raw outputs; per campaign the declared
+            measurement list is bounded by the kickoff contract; four-way
+            outcome routing is precedence-ordered judgment, not volume.
+          model_effort: strong model, medium effort - mechanical execution
+            of a frozen design; wrong answers caught by adjudication.
+          gameability: gameable (measurer-produced); hardened by structure
+            - revision stamps verified mechanically downstream by the cited
+            two-conjunct identity predicate (rev-parse verifies AND empty
+            diff at exit 0 - see measured_revision_field), pre-registered
+            invocations, one-file-per-event raw outputs - then adjudication
+            and verdict review.
+        stabilize_and_package_evidence:
+          prediction: atomic
+          justification: Checklist-driven assembly plus stability polling
+            against a declared list; no design judgment.
+          model_effort: small fast model, medium effort - mechanical
+            assembly and re-read polling; defects are caught by the
+            lead-evaluated evidence_stable_before_verdict check and by
+            adjudication.
+          gameability: gameable (measurer-produced stability trace);
+            hardened by structure - the outbound
+            evidence_stable_before_verdict check is lead-evaluated and
+            re-reads independently, the measured revision must match the
+            run records verbatim - then adversarial verdict review.
+      interface_findings:
+        entry_and_exit_routing: |
+          Parent inbound edge serving_candidate_to_measurement (with its
+          comparators_preregistered check) lands on
+          realize_measurement_procedures. Internal happy path:
+          realize_measurement_procedures.procedures_ready ->
+          capture_baseline_reference; capture_baseline_reference
+          .reference_captured -> run_candidate_measurements;
+          run_candidate_measurements.runs_complete ->
+          stabilize_and_package_evidence. Parent outcome mapping:
+          stabilize_and_package_evidence.bundles_stable realizes
+          measurements_recorded - the parent outbound edge
+          measurements_to_adjudication with its evidence_stable_before_verdict
+          and measurer_not_adjudicator checks moves to this outcome.
+          procedure_unrealizable, baseline_unusable, serving_exhausted, and
+          declared_measurement_unproducible all realize measurement_blocked
+          and route to rederive_approach with their evidence.
+        reentry_routing: |
+          Both parent re-entry edges - unstable_evidence_to_remeasure (from
+          adjudicate_results.evidence_unstable) and evidence_gap_to_remeasure
+          (from prepare_pr.evidence_gap_found) - land on
+          run_candidate_measurements: procedures and references are
+          persisted resume points and are not rebuilt on re-entry. A
+          re-entry whose defect names the reference side flows through
+          run_candidate_measurements.reference_defect_found ->
+          capture_baseline_reference, whose reference_captured edge
+          re-enters run_candidate_measurements. A re-entry whose defect
+          names the PROCEDURE - the fixed invocation measured the wrong
+          property - flows through run_candidate_measurements
+          .procedure_defect_found -> realize_measurement_procedures; the
+          revised realization re-traverses reference capture (re-capturing
+          only comparisons whose procedure changed; unchanged captures
+          stand) and re-enters run_candidate_measurements. Without this
+          route a re-entry would re-run the same fixed invocation and
+          reproduce the same inadequate number - child 3 executes and never
+          alters, so the repair must return to the node that realizes.
+          When these routes co-hold, the precedence order fixed in child
+          3's contract text (activities and outcome meanings) decides.
+        loop_bounds: |
+          The three internal repair loops - stabilize_and_package_evidence
+          .collection_defect_found -> run_candidate_measurements,
+          run_candidate_measurements.reference_defect_found ->
+          capture_baseline_reference, and run_candidate_measurements
+          .procedure_defect_found -> realize_measurement_procedures - share
+          ONE per-measurement repair budget: suggested three repair passes
+          per declared measurement without new evidence. The count is
+          never a stored campaign-state integer (which would raise a
+          writer question against the lead-sole-writer rule) - it is
+          derived by counting the defect-record event files the measurer
+          children already write under the campaign measurements directory
+          (run_candidate_measurements under its runs subdirectory,
+          stabilize_and_package_evidence beside its bundles), counted by
+          path the way delta-scan grants are counted under a scan-entry
+          id; bound accounting stays atomic with routing and needs no lead
+          write per lap. Falsifier: a defect event landing outside the
+          measurements directory would undercount the budget - the
+          children's allowed_effects confine their writes to that
+          directory, so a stray write is an effect violation before it is
+          a count bug. A spent budget never routes backward: the defect is
+          recorded, the flow completes forward, and
+          stabilize_and_package_evidence settles
+          declared_measurement_unproducible (-> parent measurement_blocked
+          -> rederive_approach, the designed stop). Serving
+          re-establishment inside run_candidate_measurements keeps its own
+          declared retry bound (suggested two bring-up retries per lost
+          serving state from the recorded attempt recipe) before
+          serving_exhausted.
+        inherited_check_retargeting: |
+          For the lead's resynchronization (item 26; retargeting is lead
+          work, recorded here as the finding): the two checks inherited
+          onto the outbound edge - evidence_stable_before_verdict and
+          measurer_not_adjudicator - carry
+          on_failure_route: measure_against_baseline in the frozen root,
+          a route that resolves to nothing once the node becomes this
+          subgraph. Adopted landings: evidence_stable_before_verdict
+          failure -> stabilize_and_package_evidence (re-verify and
+          re-stabilize the bundles); measurer_not_adjudicator failure ->
+          run_candidate_measurements (re-collect under a fresh agent seat
+          - the artifact producers' identity set is what tripped the
+          check).
+        proposed_checks: |
+          Two new mechanical checks for the lead to mint. (1)
+          procedures_smoke_verified on realize_measurement_procedures
+          .procedures_ready: does every declared measurement for this
+          campaign's route have a runnable procedure with a passing smoke
+          record and a fixed invocation, recorded before any measured run
+          that cites that procedure revision?
+          on_failure_route realize_measurement_procedures. (2)
+          revision_stamped on run_candidate_measurements.runs_complete:
+          does every run record carry a git-issued revision identifier
+          read from the checked-out commit at measurement time - never a
+          branch name - and do all records for one measurement agree?
+          on_failure_route run_candidate_measurements.
+        measured_revision_field: |
+          BINDING interface from the lead's F-PR repair: measurement_artifacts
+          bundles carry a measured_revision field - the git-issued
+          identifier of the checked-out commit, read at measurement time on
+          the leased host (rev-parse of the checkout, never a branch name).
+          run_candidate_measurements is the sole origin; every run record
+          stamps it; stabilize_and_package_evidence copies it verbatim into
+          each bundle and is forbidden from minting or altering it. The
+          adjudication verdict inherits it by reference. The downstream
+          identity predicate is cited, not restated - authority:
+          planning/prepare_pr.v3.draft.pave.yaml and
+          planning/review_pr_evidence.v4.draft.pave.yaml (on any drift
+          those files win). As repaired there it is two conjuncts, both
+          required: (a) git rev-parse --verify succeeds on the measured
+          revision AND (b) git diff between the measured revision and the
+          final branch head exits status 0 with empty output. An empty
+          diff alone false-passes when the revision is unresolvable (the
+          diff errors with empty stdout) - which is why this field cites
+          the predicate rather than paraphrasing it. Post-measurement
+          branch tidying stays legal because the predicate compares
+          content, not SHA equality.
+        intermediate_evidence: |
+          Three intermediate evidence definitions for the lead to mint, all
+          kind observation-or-derivation as noted, all under
+          artifacts/campaigns/<campaign>/measurements/:
+          measurement_procedure_record (derivation, produced by
+          realize_measurement_procedures - runnable route-scoped procedures,
+          fixed invocations, smoke evidence; subdir procedures/);
+          baseline_reference_capture (observation, produced by
+          capture_baseline_reference - reference outputs against hash-pinned
+          inputs plus the baseline-skew record naming the GPU-side vLLM
+          version read live and the known cross-version behavior
+          differences, or a justified route-scoped skip; subdir reference/);
+          candidate_measurement_runs (observation, produced by
+          run_candidate_measurements - raw one-file-per-event run records,
+          each revision-stamped, including defect-record event files;
+          subdir runs/). measurement_artifacts keeps its frozen definition
+          and directory; bundles link the three by path.
+        state_fields: |
+          Campaign-state additions: the baseline-skew record values
+          (GPU-side vLLM version read live at capture, known cross-version
+          differences from kickoff) stored as run-state values so graph
+          text stays pin-generic. Explicitly NOT state slots: the
+          per-measurement repair count (derived from on-disk defect-record
+          files - see loop_bounds; no stored counter, no writer question)
+          and measured_revision (artifact-resident only - per run record
+          and per bundle; never a run-state slot).
+        measurer_identity: |
+          All four children are measurer seats. For the
+          measurer_not_adjudicator check, every agent identity that acted
+          in any of the four children counts as having produced the
+          measurement artifacts under verdict.
+        route_scoping: |
+          Finding G applies to every child: the declared measurement list
+          is always the kickoff-declared acceptance procedures for this
+          campaign's route (upgrade routes execute the regression matrix
+          instead of correctness+perf). An upgrade-route campaign whose
+          regression matrix declares no GPU-baseline comparator flows
+          through capture_baseline_reference as a recorded justified skip -
+          the node is conditional in effect, not in structure.

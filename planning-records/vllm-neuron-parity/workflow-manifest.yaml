@@ -1,0 +1,20 @@
+# Run-workspace revision lineage record for vllm-neuron-parity.
+# Shape and rules: pave-init references/pave-revisions.md.
+# This records the v0 lineage for a later pave-init update run. The
+# delivered plugin is evolving-tier and carries its own authoritative
+# revision workspace (workflow-manifest.yaml + history/ at
+# /Users/jinhun/GitHub/pave/generated-plugins/vllm-neuron-parity/);
+# after delivery, lineage authority lives THERE, not here.
+# 2026-08-26 (post-delivery, user request): plugin relocated from
+# NeuronAgenticDevelopment/plugins/ to the pave repo's generated-plugins/
+# and listed in its .claude-plugin/marketplace.json; package verified
+# intact after the move (digest unchanged, graph PASS, hooks parse).
+draft: workflow.draft.pave.yaml
+draft_digest: sha256:9b61e293a492db2f8d2822e9395b68e6e166f77273c46e2db0ca0162188cf263
+draft_version: v0
+draft_status: approved
+active_revision: null
+bundle_digest: null
+history_dir: history
+delivered_to: /Users/jinhun/GitHub/pave/generated-plugins/vllm-neuron-parity
+delivered_on: 2026-08-26

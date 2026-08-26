@@ -1,0 +1,14 @@
+# Revision lineage for vllm-neuron-parity (evolving tier).
+# Shape and rules: pave-init references/pave-revisions.md.
+# At delivery this records the approved v0 draft and no active revision;
+# history/ is empty. The first real execution freezes v1 with
+# scripts/freeze_revision.py, which then rewrites active_revision and
+# bundle_digest. Every run records and verifies the active revision and
+# bundle digest at start and uses that frozen bundle.
+draft: workflow.pave.yaml
+draft_digest: sha256:9b61e293a492db2f8d2822e9395b68e6e166f77273c46e2db0ca0162188cf263
+draft_version: v0
+draft_status: approved
+active_revision: null
+bundle_digest: null
+history_dir: history

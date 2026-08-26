@@ -1,0 +1,1689 @@
+{
+ "run_identity": {
+  "run_id": "vllm-neuron-parity-2026-08-25",
+  "started": "2026-08-25",
+  "pave_init_version": "2.2.8"
+ },
+ "target_system": "vLLM-Neuron platform plugin (/Users/jinhun/GitHub/vllm-neuron) vs upstream vLLM on NVIDIA GPUs; goal brief: /Users/jinhun/GitHub/NeuronAgenticDevelopment/vllm-neuron-parity-goal-brief.md (v3, backport-first)",
+ "planning_workspace": "/Users/jinhun/GitHub/NeuronAgenticDevelopment/.pave/vllm-neuron-parity",
+ "generated_skill_name": "vllm-neuron-parity",
+ "generated_skill_output": "/Users/jinhun/GitHub/NeuronAgenticDevelopment/plugins/vllm-neuron-parity",
+ "requirements_status": "approved",
+ "fitness_verdict": "fit",
+ "fitness_override": null,
+ "exploration_lenses": [
+  "target-plugin",
+  "upstream-and-tpu-sources",
+  "absorbed-machinery",
+  "delegates-and-runtime",
+  "validation-and-acceptance",
+  "host-and-environment"
+ ],
+ "explorer_results": [
+  {
+   "lens": "target-plugin",
+   "artifact": "exploration/target-plugin.md",
+   "status": "verified"
+  },
+  {
+   "lens": "upstream-and-tpu-sources",
+   "artifact": "exploration/upstream-and-tpu-sources.md",
+   "status": "verified"
+  },
+  {
+   "lens": "absorbed-machinery",
+   "artifact": "exploration/absorbed-machinery.md",
+   "status": "verified"
+  },
+  {
+   "lens": "delegates-and-runtime",
+   "artifact": "exploration/delegates-and-runtime.md",
+   "status": "verified"
+  },
+  {
+   "lens": "validation-and-acceptance",
+   "artifact": "exploration/validation-and-acceptance.md",
+   "status": "verified"
+  },
+  {
+   "lens": "host-and-environment",
+   "artifact": "exploration/host-and-environment.md",
+   "status": "verified"
+  },
+  {
+   "lens": "plugin-024-delta",
+   "artifact": "exploration/plugin-024-delta.md",
+   "status": "verified"
+  }
+ ],
+ "frontier_entries": "planning/frontier.yaml",
+ "boundary_review_results": [
+  {
+   "boundary": "root",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "root (round 2, v4)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "root (round 3, v5)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "root (round 4, v6)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "cost_routes_and_rank_backlog (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_route_verdicts (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_campaign_design (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_measurement_verdict (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "rederive_approach (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "prepare_pr (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_pr_evidence (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "verify_run_closure (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "verify_run_preconditions (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "assemble_kickoff_contracts (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "adjudicate_results (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "close_campaign (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_implementation (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "cost_routes_and_rank_backlog (round 2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_pr_evidence (round 2, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_route_verdicts (round 2, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "verify_run_closure (round 2, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "prepare_pr (round 2, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "close_campaign (round 2, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_measurement_verdict (round 2, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "implement_increments (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "scan_upstream_delta (round 1, full decompose)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_route_verdicts (round 3, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_pr_evidence (round 3, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "prepare_pr (round 3, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "review_pr_evidence (round 4, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "implement_increments (round 2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "scan_upstream_delta (round 2, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "implement_increments (round 3, delta)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "design_campaign (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "record_changeset (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "run_hardware_attempts (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "assemble_delta_report (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "trace_target_delta (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "realize_increment (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "measure_against_baseline (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "assemble_regression_matrix (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "run_hardware_attempts (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "record_changeset (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "design_campaign (round 2, v2)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "screen_pin_and_progress (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "measure_against_baseline (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "scope_next_increment (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "assemble_design_record (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "preregister_acceptance (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "draft_increment_plan (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "design_campaign (round 3, v3)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "recover_leased_host (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "acquire_hardware_lease (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "screen_pin_and_progress (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "replicate_campaign_venv (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "execute_attempt_loop (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "assemble_design_record (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "preregister_acceptance (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "draft_increment_plan (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "run_candidate_measurements (round 1)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "realize_measurement_procedures (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "capture_baseline_reference (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "stabilize_and_package_evidence (round 1)",
+   "verdict": "REVISE",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "replicate_campaign_venv (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "execute_attempt_loop (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "realize_measurement_procedures (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "stabilize_and_package_evidence (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  },
+  {
+   "boundary": "capture_baseline_reference (round 2, v2)",
+   "verdict": "PASS",
+   "artifact": "reviews/plan-review.md"
+  }
+ ],
+ "approval_bundle_revisions": 0,
+ "plan_review_rounds": 1,
+ "user_plan_approval": {
+  "approved": true,
+  "recorded_at": "reviews/user-plan-approval.md"
+ },
+ "build_units": "skill-package-plan.md section 6 (four units: lead skill + hooks; agents; canonical graph + schemas + scripts; references)",
+ "validation_results": "PASS 10/10 (reviews/validation.md): structure, skill quality, graph 31/89/5, traceability 171 rows after recorded reformat, tests x2, no workflow scripts (N/A), hooks pass/fail + registration, evolving freeze/verify/tamper, zero residue, README+VERSION rendered",
+ "final_review_rounds": 4,
+ "forward_test_result": "PASS with 3 transferable doc defects, all repaired same day (reviews/forward-test.md): gate 1 reached headless across 4 session legs, native skill+agent resolution, fork byte-identical at 0e19f00, no-live-mutation held, deviations self-disclosed. Repairs doc-only; post-repair gates: validation steps 1/2/9/10 + final-review delta round.",
+ "delivery_manifest_state": "v0 delivered 2026-08-26: shipped plugin workflow-manifest.yaml records draft workflow.pave.yaml (sha256:9b61e293a492db2f8d2822e9395b68e6e166f77273c46e2db0ca0162188cf263), draft_version v0 approved, active_revision null, history/ empty (pre-freeze, per pave-revisions.md delivery rules); run-workspace workflow-manifest.yaml mirrors the lineage and points at the delivered plugin as post-delivery authority.",
+ "terminal_classification": {
+  "status": "delivered",
+  "reason": "All Stage 5 gates closed 2026-08-26: 10/10 integration validation, final review PASS (2 lanes + post-forward-test delta round), clean-room forward test PASS (gate 1 reached headless, fork byte-identical, 3 transferable defects repaired and re-verified). Delivered automatically per review-and-build.md sec 6."
+ },
+ "traversal_history": [
+  {
+   "node": "initialize_run",
+   "outcome": "run_ready",
+   "at": "2026-08-25",
+   "evidence": [
+    "run-contract.md"
+   ],
+   "note": "Workspace created; .pave-init-run marker rewritten from the superseded vllm-neuron-feature-port redesign run (marked abandoned) to this run."
+  },
+  {
+   "node": "interview_system",
+   "outcome": "requirements_ready",
+   "at": "2026-08-25",
+   "evidence": [
+    "requirements.md"
+   ],
+   "note": "Goal brief pre-answered all sufficiency categories; one Stage-1 question round (runtime=uv ephemeral, name=vllm-neuron-parity, output=plugins/, tier=evolving)."
+  },
+  {
+   "node": "assess_pave_fitness",
+   "outcome": "fit",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/requirements-brief.md"
+   ],
+   "note": "Long-horizon cross-run state, rich recovery routing, real role separation."
+  },
+  {
+   "node": "interview_system",
+   "outcome": "requirements_ready",
+   "at": "2026-08-25",
+   "evidence": [
+    "requirements.md",
+    "reviews/requirements-brief.md"
+   ],
+   "note": "Round 2 at the approval gate: user added the TPU cousin-source requirement (route-A analysis costs GPU vs TPU reference sources per target). Goal brief, requirements.md, and brief amended; open question 9 added; re-presenting approval."
+  },
+  {
+   "node": "approve_requirements_and_fit",
+   "outcome": "approved",
+   "at": "2026-08-25",
+   "evidence": [
+    "requirements.md",
+    "reviews/requirements-brief.md"
+   ],
+   "note": "User verbatim: 'Requirements LGTM, I just want to emphasize the importance of practical adversarial review stages after high stakes investigations, implementations, decisions, etc, you know what i'm saying?' - LGTM recorded as approval; the emphasis folded in as UR (requirement 10, adversarial review after high-stakes steps) in requirements.md, brief, and goal brief before proceeding. Earlier same-gate round added the TPU cousin-source UR."
+  },
+  {
+   "node": "dispatch_exploration",
+   "outcome": "explorers_dispatched",
+   "at": "2026-08-25",
+   "note": "6 lenses (user mid-turn authorized more than the default 4 under ultracode): target-plugin, upstream-and-tpu-sources, absorbed-machinery, delegates-and-runtime, validation-and-acceptance, host-and-environment. All read-only, no SSH; upstream lens may browse public sources."
+  },
+  {
+   "node": "verify_exploration",
+   "outcome": "partial_verified",
+   "at": "2026-08-25",
+   "evidence": [
+    "exploration/target-plugin.md",
+    "exploration/host-and-environment.md",
+    "exploration/validation-and-acceptance.md",
+    "exploration/delegates-and-runtime.md"
+   ],
+   "note": "4/6 reports read and spot-checked (all citations held): entry point + exact pin + 8278-line runner monolith; FileLock/atomic-rename multi-writer cache; dead NEURON_COMPILE_CACHE_URL; contamination evidence; logit thresholds (0.03/0.05, BC 0.99); GLM 143/320 exact match; equivalence 0.24 pin; STOP gate; two delegates prescribe forbidden rm -rf of compile cache; contribution-validation delegate mismatch; deploy copies skills to ~/.claude (delegates are an external dependency, not bundleable). Load-bearing contradiction: GPU-vLLM-baseline gates + Level1-3 accuracy framework never actually executed in any campaign - design intent, not established practice. Awaiting absorbed-machinery + upstream-and-tpu-sources (resumed after transient ENOTFOUND)."
+  },
+  {
+   "node": "verify_exploration",
+   "outcome": "partial_verified",
+   "at": "2026-08-25",
+   "evidence": [
+    "exploration/absorbed-machinery.md"
+   ],
+   "note": "5/6 verified. absorbed-machinery spot checks held: corrupt JSON line 90 reproduced, 19,174,734-byte resume3 (86% one traversal_history field), autoport release bundle with 5 sub-workflows exists. Key inputs: autoport root+sub-workflow composition (44 nodes/6 files) is the structural ancestor for the two-campaign-type plugin; authorize-and-lease sub-workflow prefigures the hardware-queue lease; both engines converged on failure fingerprints; P1-P9 enforcement-rung table in prior-run-2026-08-12/skill-package-plan.md is the reusable template; shipped schema never exercised against a real run. Awaiting upstream-and-tpu-sources."
+  },
+  {
+   "node": "verify_and_synthesize",
+   "outcome": "system_map_ready",
+   "at": "2026-08-25",
+   "evidence": [
+    "exploration/upstream-and-tpu-sources.md",
+    "system-map.md"
+   ],
+   "note": "6/6 lenses verified (upstream lens spot checks held first-hand: v0.21.0 tpu.py already delegates to tpu_inference, torch-xla removal tag-reachable v0.14.0, MXFP8 llama3 files exist, LoRA TODO stubs). Three stale facts corrected in goal brief + requirements.md (TPU A2 = tpu-inference only; MXFP8 partial; DFlash MRv2 tiered). system-map.md written: 8 missing capabilities enumerated as new construction, autoport root+sub-workflow bundle named structural ancestor, P1-P9 rung table named enforcement template."
+  },
+  {
+   "node": "freeze_root_skeleton",
+   "outcome": "queue_opened",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/root-contract.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Stage 3 opened after full read of pave-spec/pave-yaml/pave-composition/technique-selection/pave-revisions. Root five-part contract frozen (fixed root outcome set run_complete/run_paused/run_blocked/run_aborted; 6 forbidden effects verbatim; shared-state single-writer table; two-tier breaker budgets; source-binds-behavior rule stated for planners). Frontier opened with root entry, prediction=split; validated PASS; root node-planner dispatched to planning/root.draft.pave.yaml. Retained planning reviewer will spawn at the first planner return."
+  },
+  {
+   "node": "interview_system",
+   "outcome": "requirements_ready",
+   "at": "2026-08-25",
+   "evidence": [
+    "requirements.md"
+   ],
+   "note": "Mid-Stage-3 Stage-1 reopening, user-initiated: Neuron SDK 2.32 (2026-08-17) ships vllm-neuron 0.24.0.1.1.0 pinned to vLLM 0.24.0; branch release-0.24.0.1.1.0 + tag v0.24.0.1.1.0 verified on vllm-project/vllm-neuron; fork carries only release-0.21.0.1.0.0. Impact assessed and presented: pin fact + protected branches + host SDK/compiler change; equivalence-delegate 0.24 conflict dissolves; v0.25 MRv2 cliff now directly above pin; Stage-2 target-plugin facts stale pending 0.21-to-0.24 delta re-scan; debt-ledger absorption pass; deepseek re-evaluation under 2.32. Graph shape unaffected (pin already invocation-scoped). In-flight root planner messaged to keep graph pin-generic."
+  },
+  {
+   "node": "approve_requirements_and_fit",
+   "outcome": "approved",
+   "at": "2026-08-25",
+   "evidence": [
+    "requirements.md",
+    "vllm-neuron-parity-goal-brief.md",
+    "planning/root-contract.md"
+   ],
+   "note": "User decisions via AskUserQuestion: 'Full re-baseline (Recommended)' (fork syncs release-0.24.0.1.1.0, hosts on 2.32 DLAMI, gap scan 0.24-to-upstream) and 'You, manually (Recommended)' for the fork sync (manual-sync exclusion intact; kickoff preflight verifies branch present and refuses start until then). Goal brief amendment block, requirements.md pin/forbidden-effect-1/runtime/open-question edits, and root-contract amendment applied. Fitness verdict unchanged: fit."
+  },
+  {
+   "node": "verify_exploration",
+   "outcome": "verified",
+   "at": "2026-08-25",
+   "evidence": [
+    "exploration/plugin-024-delta.md",
+    "system-map.md"
+   ],
+   "note": "7th lens (plugin-024-delta, teammate delta-scan-024) verified: 5 lead spot checks held via GitHub API (fork on feature/p-eagle-gpt-oss-20b@0e19f00; libtorch-neuronx-lite unpinned in 0.24 core.txt with private-index-only resolution; compile/fx_passes/overrides deleted + nki gutted; apply_patches() stub still empty; _reject_v2_model_runner at platform.py:287 called from check_and_update_config:311). Report's v0.25 web-only caveat closed by cross-reference to the verified upstream lens. system-map.md ADDENDUM written: provenance correction (target-plugin surveyed the FORK; upstream ships zero tests at both versions; 8-file fork overlay must re-apply on rebase), freeze-replicate gains Neuron-extra-index precondition, compile-touching campaigns need re-scoping, 4th monkeypatch, EPD encoder-disagg new, LoRA confirmed unsupported, accuracy_debugger orchestration layer new/unread, new open item: SDK 2.32's neuron-framework-autoport-vllm-neuron skill."
+  },
+  {
+   "node": "plan_root_skeleton",
+   "outcome": "skeleton_ready",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/root.v3.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Root skeleton delivered by teammate root-planner (attempt 3; attempts 1-2 died producing nothing - killed at 1h of reference study / vanished without task record). Lead re-settled validation first-hand: validate_pave.py PASS (18 nodes, 42 edges, 5 control endpoints); pin-generic grep clean (single 'deepseek' hit mirrors the frozen contract's carry-over item). Verdict: decompose (confirms framing prediction). 18 children framed, 6 predicted decompose (scan_upstream_delta, design_campaign, implement_increments, run_hardware_attempts, measure_against_baseline) per x_planning.elaboration; conflicts: none; 4 open questions incl. join/fan-in runtime semantics for verify_run_closure (flagged for assembly). Frontier root entry marked planned. Boundary sent to retained plan reviewer (teammate plan-reviewer) per review_boundary; children enqueue only after PASS."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md"
+   ],
+   "note": "Round-1 ROOT boundary verdict from retained teammate plan-reviewer: REVISE, 4 HIGH + 3 LOW, all dispositioned FIX (full record + lead dispositions in reviews/plan-review.md). HIGH: route B costed but not executable (regression-matrix gate homeless, single-pin state model); conflict-aware scheduling produced twice, consumed by nobody; gate 2 unowned (adversarial reviewer listed as approval-record producer); four review-repair loops satisfy neither loop-bound disjunct and the loop_bounds ledger names undeclared rederive_approach routes. Reviewer also disproved 6 hypotheses (pin-generic clean, sizing falsifiable, 3 gates exact, completion fails closed) and logged 5 nonblocking residuals for assembly (terminal semantics surfaced to user at plan gate; resume_at join convention; forbidden-effect-6 enforcement rung; close_campaign cross-run-artifact write serialization; deepseek text in reusable check). Repair round: findings to SAME retained planner root-planner on fresh path planning/root.v4.draft.pave.yaml; reviewer standing by to re-verify."
+  },
+  {
+   "node": "plan_root_skeleton",
+   "outcome": "skeleton_ready",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/root.v4.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Round-1 repair delivered by retained teammate root-planner: root.v4.draft.pave.yaml, all 7 findings fixed as dispositioned, nothing changed outside them, v3 kept as provenance. Fix shapes: route B gets regression_confirmed outcome + confirmed_regression_to_repair edge + design_campaign matrix ownership + campaign_target_pins state field; scheduling gets lead authority + scheduling_holds state field + scheduling_holds_recorded check on the fan-out edge; gate 2 gets roles [adversarial_reviewer, lead, user] + gate_approval_record in design_sound.required_evidence; loops get no_progress outcomes to rederive_approach x3 + costing_stalled to run_paused; plus the 3 LOW fixes. Lead re-settled first-hand: validate_pave.py PASS (18 nodes, 47 edges, 5 control endpoints); all claimed identifiers spot-checked on disk; pin-generic grep clean (only category words). Frontier root entry re-marked planned; v4 sent to retained plan-reviewer for round-2 re-verification against the round-1 findings. User completed the manual fork sync (verified via GitHub API: release-0.24.0.1.1.0 @ f8abae64 on jinhuang12/vllm-neuron)."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md"
+   ],
+   "note": "Round-2 ROOT boundary verdict from retained plan-reviewer (line-by-line v3-to-v4 diff): REVISE. Findings 2/3/5/6/7 CLOSED on disk; scope check passed (5 new edges all map to findings; 2 undeclared touches judged in-service, not drift; pin-genericity survives; no new sibling ambiguity). Residues, all dispositioned FIX: (A HIGH, finding-1 residue) route-B success path missing at both ends - pass_confirmed still backport-only so a PASSING upgrade campaign cannot reach prepare_pr, and gate-1 completeness never requires the upgrade base or regression-matrix criteria that adjudicate_results/campaign_target_pins consume; (B HIGH, finding-4 residue) design_campaign<->review_campaign_design loop still has no no_progress exit and loop_bounds claims a gate-2 stop unreachable while looping; (C LOW) three no-progress detectors do not consume adversarial_review_findings; (D LOW) design-refined file surface never re-derives scheduling_holds; (E LOW) run_paused.meaning does not cover the stalled-intake inbound. Repair round 2 to retained root-planner on fresh path planning/root.v5.draft.pave.yaml; reviewer re-verifies A-E only. Reviewer's 5 round-1 residuals stand unchanged."
+  },
+  {
+   "node": "plan_root_skeleton",
+   "outcome": "skeleton_ready",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/root.v5.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Round-2 repair delivered by retained root-planner: root.v5.draft.pave.yaml. A(i) pass_confirmed.meaning generalized to every-kickoff-declared-acceptance-verdict-for-the-route (no new outcome; passing upgrade campaigns reach prepare_pr via existing confirmed_pass_to_pr_prep); A(ii) upgrade base + regression-matrix criteria added to kickoff_contract_approved question AND assemble_kickoff_contracts completeness list, upgrade-route-scoped; B design_campaign gains no_progress outcome + edge design_no_progress_to_rederivation, loop_bounds gate-2 claim replaced with the real edge; C findings-history consume added to the three detectors; D scheduling_holds meaning states lead re-derives holds on design-refined surfaces; E run_paused.meaning covers stalled intake. One declared touch-up: design_campaign also consumes adversarial_review_findings (mirror of C for its new detector). Lead re-settled first-hand: validate_pave.py PASS (18 nodes, 48 edges, 5 control endpoints); full v4-to-v5 diff reviewed - every hunk maps to A-E or the declared touch-up; pin grep clean. Frontier re-marked planned; v5 sent to retained plan-reviewer for round-3 re-verification (A-E only)."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md"
+   ],
+   "note": "Round-3 ROOT boundary verdict from retained plan-reviewer: REVISE with ONE finding. A(ii)/B/C/D/E CLOSED on disk; touch-up in scope; counts and pin-genericity re-confirmed; reviewer rejected a per-refinement check for D as over-enforcement. Finding F (HIGH): v5 asserts two acceptance scopes for upgrade routes - adjudicate_results.purpose route-scopes gates (backport) vs matrix (upgrade), but pass_confirmed.meaning demands all three for upgrades, and correctness_shortfall/no_benefit outcomes stay reachable for upgrade routes (no-benefit cell measured-not-viable-at-pin is meaningless for a pin-leaving campaign). Approved UR requirements.md:178-179 says matrix INSTEAD - the added reading is the one the UR excludes. Lead disposition: FIX per reviewer option 1 (route-scope all three verdict outcomes to match adjudicate_results.purpose); option 2 (widen criteria to all three gates) rejected without user - it would change approved acceptance criteria (root-contract.md:127), and the UR already settles the reading; settled reading to be surfaced in the plan brief. New nonblocking residual 6: repair-detector consumes of adversarial_review_findings is empty on first lap - benign, must be stated in builder briefs/skill-package-plan.md. Repair round 3 to retained root-planner on fresh path planning/root.v6.draft.pave.yaml; reviewer re-verifies F only, expects PASS."
+  },
+  {
+   "node": "plan_root_skeleton",
+   "outcome": "skeleton_ready",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/root.v6.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Round-3 repair delivered by retained root-planner: root.v6.draft.pave.yaml, meaning-text-only (structure unchanged 18 nodes/48 edges/5 endpoints). The four F changes: adjudicate_results.purpose 'plus' -> 'instead' (ambiguity source removed); pass_confirmed route-scoped (backport = correctness+perf, upgrade = regression matrix instead); correctness_shortfall_confirmed and no_benefit_confirmed marked backport-route-only with upgrade failures routing through regression_confirmed. One acceptance scope per route everywhere, matching UR requirements.md:178-179. Lead re-settled validate_pave.py PASS and diffed v5-to-v6 in full - exactly F plus header comment. Frontier re-marked planned; v6 to retained plan-reviewer, round 4, F only."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/root.v6.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Round-4 ROOT boundary verdict from retained plan-reviewer: PASS. F closed on disk; per-route outcome sets re-tested exhaustive and mutually exclusive; correct-but-slower-upgrade probe holds (regression_confirmed -> repair -> no_progress -> rederive_approach -> gate 3, does not fail open); scope clean; rounds 1-3 unregressed. Boundary total: 13 findings across 4 rounds, all FIX, all verified closed. One LOW carried (G: three backport-worded measurement-side texts) into the design_campaign and measure_against_baseline child planner briefs; parent-text generalization queued for assembly. Reviewer residuals 1-6 nonblocking, carried to assembly (authoritative list reviews/plan-review.md). Root frontier entry marked reviewed - authoritative root draft is planning/root.v6.draft.pave.yaml. All 18 children enqueued pending_dispatched with minted draft paths and dependencies, and dispatched as NAMED node-planner teammates (np-preflight, np-delta-scan, np-costing, np-route-review, np-kickoff, np-design, np-design-review, np-implement, np-impl-review, np-hardware, np-rederive, np-measure, np-adjudicate, np-verdict-review, np-prepare-pr, np-pr-review, np-close, np-run-closure) per the user's standing named-teammate requirement. Retained root-planner retired (boundary closed). Each planner return goes to lead verification then to retained plan-reviewer per review_boundary."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/cost_routes_and_rank_backlog.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Child wave 1 status. Five spawns (verify_run_preconditions, assemble_kickoff_contracts, review_implementation, adjudicate_results, close_campaign) died at spawn with the transient 400 retention-mode deployment error producing nothing; per the user's mid-run directive 'just retry fable always' they were redispatched identically on v2 draft paths, same model, no downgrade (harness suffixed names to np-*-2; memory note updated to supersede the old opus-fallback guidance). First return VERIFIED and marked planned: cost_routes_and_rank_backlog (np-costing) - ATOMIC confirmed, criteria-first pre-registration design, mechanical enumeration DoD, stall fingerprinting; fragment parses, nodes empty, pin-generic. Two conflicts registered lead-only: c1 (costing consumes lacks adversarial_review_findings for the re-entry/stall read - raised convergently by np-costing and np-route-review; resolve as declarative consumes addition at resync) and c2 (route-review coverage refutation needs the frozen intake target request - prefer consumes addition at resync). Second return review_route_verdicts (np-route-review) is a DEFECTIVE RETURN: lead validation caught a YAML parse error (~line 77, colon in plain multi-line scalar) the planner's self-check missed - sent back to the same planner to repair in place; entry stays pending_dispatched. Costing boundary forwarded to retained plan-reviewer. 11 other fragments already on disk parse clean (planners still working; returns pending)."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/review_pr_evidence.draft.pave.yaml",
+    "planning/review_campaign_design.draft.pave.yaml",
+    "planning/prepare_pr.draft.pave.yaml",
+    "planning/verify_run_closure.draft.pave.yaml",
+    "planning/rederive_approach.draft.pave.yaml",
+    "planning/review_measurement_verdict.draft.pave.yaml",
+    "planning/review_route_verdicts.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Batch return: SEVEN more boundaries planned, all ATOMIC confirming their framing predictions, all lead-verified (uv parse, nodes empty, no re-authoring, pin-generic) and frontier-validated (14 fragments checked, PASS). review_pr_evidence (np-pr-review), review_campaign_design (np-design-review, two-authorities split weighed and rejected), prepare_pr (np-prepare-pr, rung-1 mechanical DoD, never re-measures in-node), verify_run_closure (np-run-closure), rederive_approach (np-rederive), review_measurement_verdict (np-verdict-review, 7-category rubric + route-scoped confirmation cells), and review_route_verdicts (np-route-review repaired its YAML defect in place; re-verified). Three new conflicts registered lead-only: c3 (rederive consumes gaps, five read-only inputs), c4 (verdict-review consumes omits kickoff criteria - wrong-baseline class uncatchable without it), c5 (no declared outcome for a claimed closure failing first-hand verification; default binding-level surfacing, reviewer input requested). Lead decision recorded: rederive_approach keeps the frozen TWO outcomes (the dispatch brief wrongly said three; blocked = close_out_recommended with recommended closure type blocked). np-impl-review-2 failed AGAIN with the 400 retention error; third dispatch np-impl-review-3 on fresh v3 path, same model per user directive. All seven boundaries forwarded to retained plan-reviewer. Outstanding: 5 planners working (delta-scan, design, implement, hardware, measure) + 4 respawns (preflight-2, kickoff-2, adjudicate-2, close-2) + impl-review-3."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/verify_run_preconditions.v2.draft.pave.yaml",
+    "planning/assemble_kickoff_contracts.v2.draft.pave.yaml",
+    "planning/adjudicate_results.v2.draft.pave.yaml",
+    "planning/close_campaign.v2.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Four fable-respawn boundaries planned, all ATOMIC confirming their framing predictions, all lead-verified (uv parse, nodes {}, no re-authoring, pin-generic grep clean) and frontier-validated PASS: verify_run_preconditions (np-preflight-2, rung-1 transcript battery), assemble_kickoff_contracts (np-kickoff-2, hash-bound gate-1 approval), adjudicate_results (np-adjudicate-2, re-derivable verdict lines; planner self-checked via ruby/Psych for lack of pyyaml, lead re-verified with uv), close_campaign (np-close-2, serialization seam + approval-precedes-execution). No new conflicts; assembly items recorded in frontier entry notes. All four forwarded to retained plan-reviewer. Outstanding planners: np-delta-scan, np-design, np-implement, np-hardware, np-measure (decompose-predicted), np-impl-review-3."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "First child-boundary verdict from retained plan-reviewer: cost_routes_and_rank_backlog round 1 REVISE - H1 HIGH (criteria-precede-costing ordering anchored in doer-owned directory = self-report; fix: persist criteria registration digest into lead-owned run state before any per-target costing record, mirroring comparator_registrations), H2 LOW (costing_stalled must also fire when the finding set does not materially shrink across two consecutive re-entries), H3 LOW (citation 9.2 -> 5.3.1). Atomic verdict not challenged; c1/c2 resolutions adequate. Reviewer re-homed debt-ledger absorption to verify_run_preconditions (correcting its own round-1 call) and asked for backlog_ranked.meaning alignment at resync - both recorded as resync items in frontier notes. Findings routed to the SAME retained planner np-costing on fresh path cost_routes_and_rank_backlog.v2.draft.pave.yaml; v1 kept as provenance."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/review_implementation.v3.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "review_implementation planned by np-impl-review-3 (third dispatch after two 400 spawn failures; fable retained per user directive): ATOMIC confirmed; oversized changeset absorbed as material finding routed to implement_increments; hardware-cost-calibrated materiality; node doubles as run-level hardening rung for CPU-mode evidence. Five interface findings recorded as assembly items in frontier notes; no conflicts. Lead-verified (uv parse, nodes {}, pin-generic) and forwarded to retained plan-reviewer. Outstanding planners now 6: np-costing (v2 repair), np-delta-scan, np-design, np-implement, np-hardware, np-measure."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/cost_routes_and_rank_backlog.v2.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Costing repair round 1 delivered by the SAME retained planner np-costing on fresh v2 path (v1 kept as provenance): H1 criteria-registration digest into lead-owned run state before any costing record (mirrors comparator_registrations; backlog_ranked requires digest match), H2 costing_stalled adds no-material-shrink trigger across two consecutive re-entries, H3 citation 9.2->5.3.1 + rung-2 gloss corrected. New resync item n25: lead-owned costing-criteria registration entry (extend comparator_registrations meaning or add sibling state entry). Lead delta-verified on disk via string probes; parses, atomic, pin-generic; frontier PASS. Forwarded to retained plan-reviewer for round-2 re-verification of H1/H2/H3 only. Outstanding planners now 5, all decompose-predicted: np-delta-scan, np-design, np-implement, np-hardware, np-measure."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Seven-boundary reviewer batch, PASS half: review_campaign_design, review_measurement_verdict, rederive_approach marked reviewed (lead two-outcome rederive reading CONFIRMED; c3/c4 resolutions adequate - c4 as explicit consumes add; c3 LOW folded at assembly: completeness check requires citing prior rederivation records). review_route_verdicts also PASSED but was immediately reopened by lead for the carried-H1 rubric amendment (criteria-precedence materiality category) on fresh v2 path - delta-only re-verify planned. Reviewer-tested rejected hypotheses and residuals 7-11 recorded in reviews/plan-review.md."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Seven-boundary reviewer batch, REVISE half - two HIGH findings: F-PR (prepare_pr + review_pr_evidence): revision-currency predicate (SHA identity) unsatisfiable after the node's own history tidy -> unbounded re-measure spend or honest close_out for a passing campaign; FIX = content-identity predicate (empty git diff measured-revision..final-head, transcript persisted), mirrored in both fragments, + evidence_gap stall rider. c5 (verify_run_closure): option (a) inadequate - discrepant claimed closure has no live instance, join livelocks; LEAD DECISION = option (b): closure_unverified outcome + edge to close_campaign + gate-3-user loop bound; parent edit lands at resynchronization via c5. Three repairs dispatched to the SAME retained planners on fresh v2 paths (np-prepare-pr, np-pr-review, np-run-closure) + rubric amendment to np-route-review. Frontier updated and PASS; conflicts register c5 updated to resolved-in-principle."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Five-boundary reviewer batch, all PASS: verify_run_preconditions, assemble_kickoff_contracts, review_implementation marked reviewed; adjudicate_results reviewed (consumes LOW batched into c4); close_campaign PASS but reopened on v3 for the trap-required-set LOW; review_measurement_verdict reopened on v2 for the unadjudicable-criterion rubric clause + hash-anchor alignment. URGENT reviewer self-correction folded in: c5 option (b) gains a FOURTH part - re-entry supersession semantics in the artifact-layout reference (prior closure/approval records archived; exactly-one reads current) or the loop cannot converge; addendum sent to np-run-closure mid-repair. New conflict c6 registered: reviewed_impl_to_hardware mechanical edge check (checkout == findings-record stamp). Resync items 3-7 appended to frontier notes (inputs_missing widening, run_aborted verbatim declination, two-place debt-ledger clause, real CPU-evidence hardening chain in enforcement record, binding producer/detector key interfaces). Two v2 repairs also delivered and lead-verified this turn: review_pr_evidence.v2 (content-identity predicate) and review_route_verdicts.v2 (rubric category (e)) - both planned and forwarded for delta re-verify. In-flight: np-run-closure v2, np-prepare-pr v2, np-verdict-review v2, np-close-2 v3, np-delta-scan, np-design, np-implement (binding triple interface sent), np-hardware, np-measure."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Three PASS verdicts: cost_routes_and_rank_backlog round 2 - boundary CLOSED (digest gates backlog_ranked; n25 decided as SIBLING run-state field per mask-risk argument; registration record shape defined once = assembly item; carried-H1 rubric category self-downgraded by reviewer to defense-in-depth). review_pr_evidence v2 and review_route_verdicts v2 delta-PASS, each with one LOW stale-sibling-text -> v3 micro-amendments dispatched (np-pr-review: DoD phrase to content-identity; np-route-review: matching evidence question for category (e)). Reviewer process rule adopted: repair briefs must propagate to EVERY property-referencing text (resync item 10). Retirements per user directive: np-costing, np-preflight-2 (plus earlier np-design-review, np-rederive, np-kickoff-2, np-adjudicate-2, np-impl-review-3); two-place debt-ledger amendment goes to a fresh planner at resync."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/verify_run_closure.v2.draft.pave.yaml",
+    "planning/prepare_pr.v2.draft.pave.yaml",
+    "planning/close_campaign.v3.draft.pave.yaml",
+    "planning/review_measurement_verdict.v2.draft.pave.yaml",
+    "planning/implement_increments.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Five deliveries lead-verified and forwarded: verify_run_closure.v2 (four-part c5: closure_unverified precedence, discrepancy payload, current-record read under supersession, f6 layout dependency), prepare_pr.v2 (full SHA->content-identity sweep + NEVER-SHA edge-check guard + gap-path stall clause + detector keyed on review_pr_evidence's normalized form), close_campaign.v3 (trap reads pass_confirmed record first-hand; supersede-then-write), review_measurement_verdict.v2 (category (h) unadjudicable criterion + per-finding measurement hashes), implement_increments (FIRST DECOMPOSE: 3 children scope_next_increment/realize_increment/record_changeset, instance_per approved_campaigns, entailment check recorded, binding review-triple adopted, class-(e) repackaging absorbed; children enqueue after boundary PASS). Outstanding planners: np-delta-scan, np-design, np-hardware, np-measure."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/review_route_verdicts.v3.draft.pave.yaml",
+    "planning/review_pr_evidence.v3.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Two v3 micro-amendments delivered and lead-verified (probes: evidence question for category (e) present; stale revision-hash-match phrase zero hits, planner sweep confirms content-identity everywhere except explicit negations/history). Both marked planned and forwarded for trivial delta re-verify. Outstanding: reviewer verdicts on 7 units (verify_run_closure v2, prepare_pr v2, close_campaign v3, review_measurement_verdict v2, implement_increments decompose, plus these two); planners np-delta-scan, np-design, np-hardware, np-measure still working."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/scan_upstream_delta.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "scan_upstream_delta planned by np-delta-scan: second DECOMPOSE - trace_target_delta (instance_per requested_targets) + assemble_delta_report; Runtime-Binding-first rule checked (split stands on evidence/resume/re-entry identity); bounded re-trace (1 per target per scan entry) with costing's evidence_gap as the designed stop beyond it; assembly needs + two binding open questions recorded in fragment; no conflicts. Lead-verified and forwarded for FULL boundary review; children enqueue on PASS. Outstanding planners: np-design, np-hardware, np-measure."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Four-PASS batch: verify_run_closure.v2 (all 4 c5 parts verified; fan-out edge form added to c5 register), prepare_pr.v2 (F-PR CLOSED; findings-record 4-element shape pinned to artifact-layout reference; LOW exit-code amendment -> v3), close_campaign.v3 (LOW dropped per reviewer offer), review_measurement_verdict.v2 (category (h) closes waiver hole; fingerprint pair #2 RESOLVED). All four -> reviewed in frontier. review_pr_evidence gets matching LOW exit-code amendment -> v4. Carries sent: np-measure (BINDING revision field in measurement_artifacts), np-design (sharpening expectations + refusal clause + category-(h) adjudicability). Retired: np-run-closure, np-close-2, np-verdict-review. Resync items 12-16 registered in frontier notes."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "implement_increments REVISE (round 1): decompose sound, children NOT enqueued. HIGH: coverage_gap_found->scope and increment_stuck->scope loops invisible to every stall detector (neither writes findings history; gap sub-classes (b)/(c) get CPU-command acceptance that cannot verify the gap). Fix = 2 clauses on scope_next_increment: (1) gap-item acceptance IS the recomputed gap check that found it; (2) no-progress detector inputs extend to lap records' own gap/stuck entries (prepare_pr.v2 idiom). LOW: precedence line over scope's five outcomes. Repair to SAME planner np-implement, fresh path implement_increments.v2.draft.pave.yaml, with propagate-to-every-referencing-text rule."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Evening batch: scan_upstream_delta PASS (2nd decompose; entailment verified; 6 LOWs - 4 in-fragment batched to np-delta-scan as scan_upstream_delta.v2 micro-amendment (L1 mixed-instance-scope rationale, L2 stop mislabel, L3 precedence, L4 sufficiency-by-honest-gap), 2 outside (items 18/19)); review_route_verdicts.v3 PASS - boundary CLOSED, stealth-narrowing residual DROPPED, np-route-review retired; review_pr_evidence.v3 PASS (carried exit-code LOW = v4's sole delta). Fingerprint pair #3 CLOSED no-finding (leg-independence); CONSOLIDATED five-field findings-record shape registered (item 17) superseding pairwise pins. Standing 3+-outcome precedence rule adopted (item 20). Children trace_target_delta + assemble_delta_report ENQUEUED (pending; dispatch waits for scan v2 since L3/L4 edit child bodies). prepare_pr.v3 + review_pr_evidence.v4 lead-verified and cleared to reviewer for trivial re-verify. np-implement v2 delivery failed lead parse gate - mechanics-only v3 requested, v2 retained for reviewer substance diff. Frontier: 21 entries, validation PASS."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "prepare_pr.v3 + review_pr_evidence.v4 PASS - both boundaries CLOSED (14/21 reviewed). F-PR chain fully settled: exit-code predicate verified correct at both locations, sibling-coupling holds, mechanism recorded inline (fix-carries-its-own-falsifier adopted as repair-brief habit), emptiness-only and SHA sweeps clean. Retired: np-prepare-pr, np-pr-review, np-route-review (deferred stop executed). implement_increments v2/v3 baseline RECONCILED (lead's failing parse was a mid-repair snapshot; final v2 md5 matches reviewer's pin; v3 byte-identical outside header) - v3 lead-verified and cleared to reviewer for round 2; status planned. In flight: scan_upstream_delta.v2 amendment, np-design/np-hardware/np-measure, two delta-scan child planners blocked on scan v2."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/scan_upstream_delta.v2.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "scan_upstream_delta.v2 amendment delivered by np-delta-scan: all four LOWs landed (L1 mixed-instance-scope justification, L2 automatic-edge/operator-stop relabel at 3 sites, L3 exactly-one-outcome precedence reports_insufficient > sources_unreachable > delta_mapped, L4 sufficiency-by-honest-residual-gap-recording on 7 texts). Lead mechanical pass clean (parse, schema, children intact, no minted c-ids, pin-generic, L1-L4 probes 6/4/8/5 hits); status planned; sent to plan-reviewer for delta re-verify + scope check vs v1. Child dispatch UNBLOCKED: np-trace (trace_target_delta) and np-assemble (assemble_delta_report) spawned as named teammates against v2 contract paths, briefs carrying items 19/20/22 + propagation + falsifier-inline habits; both entries pending_dispatched. Frontier 21 entries, validation PASS."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "implement_increments round 2 PASS: HIGH closed (per-sub-class gap acceptance eliminates the false-pass mechanism - reviewer re-ran its failure construction; detector second input family mechanical via lap-record identity persistence), precedence LOW closed, substance identity + earned growth verified (11/11 hunks traced). ONE LOW residual -> v4 micro-amendment to np-implement: detector conjunct 1 scoped to 'no new PASSING evidence record' (prepare_pr idiom needed adapting - every stuck lap grows the investigation record, making 'directory unchanged' unsatisfiable). Children CLEARED pre-v4 (LOW is parent-prose only): scope_next_increment / realize_increment / record_changeset enqueued and dispatched to np-scope / np-realize / np-record against v3 child bodies (contracts re-anchor to v4 once verified child-body-identical). np-trace retention-mode 400 at spawn, zero writes, respawned identically on fable same name/path. Frontier 24 entries (14 reviewed / 9 pending_dispatched / 1 planned), validation PASS."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "scan_upstream_delta round 2 PASS - boundary CLOSED (15/24 reviewed). All four LOWs closed, scope clean (11 hunks traced; two beyond-text additions earned). L3 ordering independently derived and matched, starvation check passes. L4 selects-not-blocks explicit. Forward residual carried to np-trace as BINDING brief addition: the 'requires' discriminator in source_unreachable is load-bearing (unavailable required source = source_unreachable, never a residual gap); reviewer checks that seam in the child fragment. np-delta-scan retired. np-realize retention-mode 400 at spawn (zero writes) - respawned identically on fable as np-realize-2 per standing directive. Live planners: np-trace, np-assemble, np-scope, np-realize-2, np-record, np-design, np-hardware, np-measure + np-implement (v4 amendment)."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/implement_increments.v4.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "implement_increments.v4 delivered by np-implement, crossing a reviewer URGENT about the lead's defective v4 brief wording ('do not edit any child' literally excluded the two NORMATIVE detector texts inside scope_next_increment). np-implement resolved the contradiction correctly toward the propagation rule: conjunct 1 re-scoped to 'no new passing increment evidence record' at all 4 sites (scope purpose, no_new_route meaning, enforcement entry, findings_history_location) with the adaptation rationale inline + 'Do not restore the original idiom'. Lead verification ran to the reviewer's CORRECTED expectation: scope_next_increment changed only in {purpose, outcomes.no_new_route}; realize_increment/record_changeset byte-stable vs v3; stale conjunct absent; no c-ids; pin-generic. Brief-wording defect on record in frontier. Remedies: np-scope sent an AUTHORITATIVE contract amendment (v4 supersedes stale conjunct; reconcile-if-started); all three child contracts re-anchored to v4. v4 cleared to reviewer for trivial delta re-verify; status planned."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/design_campaign.draft.pave.yaml",
+    "planning/run_hardware_attempts.draft.pave.yaml",
+    "planning/assemble_delta_report.draft.pave.yaml",
+    "planning/record_changeset.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Four-return batch, all lead-verified and forwarded to plan-reviewer: design_campaign DECOMPOSE (5 children instance_per approved_campaigns; sharpening expectations encoded verbatim; refusal clause = criteria_unadjudicable; edge/state needs = item 25), run_hardware_attempts DECOMPOSE (4 children; identity-refusal lease, freeze-replicate venv, two-tier breaker loop, roster-bounded recovery; breaker_tripped early-exhaustion conflict lead-registered as c7 with widen-meaning resolution proposed), assemble_delta_report ATOMIC (grant-file counter minted in same act as reports_insufficient; hash-bound verdicts; i6 allowed-effects SET reading recorded for reviewer challenge; needs = item 24), record_changeset ATOMIC (exit-code discipline adopted unprompted; complete-gap-set persistence; precedence rule N/A with reason; needs = item 23). Statuses -> planned x4. Decompose children enqueue only on PASS. Frontier 24 entries + c7, validation PASS. In flight: np-trace, np-scope, np-realize-2, np-measure + reviewer queue of 5."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "implement_increments.v4 PASS - boundary FULLY CLOSED (16/24 reviewed; first decompose done). All 5 hunks/4 sites verified; child bodies independently confirmed stable; old idiom retired to warnings only. Beyond-spec credit: 'for that item' scoping closes the mixed-progress masking hole. np-implement retired with credit note (resolved contradictory brief toward propagation rule). Reviewer watch item recorded: np-scope's detector restatement checked against v4 wording."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/trace_target_delta.draft.pave.yaml",
+    "planning/realize_increment.draft.pave.yaml",
+    "planning/measure_against_baseline.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Three deliveries lead-verified and forwarded: trace_target_delta ATOMIC (requires-discriminator seam anchored with L4-incentive falsifier at 7 touch points; misfiling = second named gameable path hardened via queried-source + transcript-in-gap-entry; outcome discrimination rule, source_unreachable wins co-hold; trigger-tagged event files, count derived), realize_increment ATOMIC (precedence realization note evidence_contradicts_design > passed > stuck; fresh-bounded-context BINDING interface; no node-local blocking duplicate), measure_against_baseline DECOMPOSE #5 (4 children; run_candidate_measurements = sole origin of measured_revision via rev-parse, packaging child forbidden from minting it; lead-mint items = notes item 26). Statuses -> planned. Reviewer queue: 3 decomposes + 4 atomics; np-scope last writer. Frontier: 16 reviewed / 7 planned / 1 pending_dispatched, c7 registered, validation PASS."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "design_campaign round 1 REVISE: structure sound (5 children earned; preregistration = best H1-pattern instance; carries landed), both HIGHs in lead-deferred routing. HIGH-1 record_incomplete lap counter contradicts parent no_progress meaning (converging design would exhaust) -> detector idiom fix. HIGH-2 scope_exceeded valve has NO route -> map to no_progress + name in routing. L1 precedence (3 children) + L3 superset-consumes DELEGATED to child planners; L2 gameability entries in v2. Repair to np-design on design_campaign.v2 (child bodies = hard byte-identity constraint). Five children ENQUEUED + dispatched in parallel per reviewer clearance: np-screen, np-draft-plan, np-matrix, np-prereg, np-design-record (all spawns clean). Record-accuracy: two refusal clauses distinguished. Frontier 29 entries, validation PASS. Reviewer queue: hardware + measure decomposes, 4 atomics; np-scope still writing."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_approved",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "record_changeset round 1 PASS (1 LOW accepted): two beyond-spec credits (import-scan false-pass mode; complete-gap-set emission load-bearing for the v4 detector); byte-identity verified by live diff; prepare_pr.v3 explicitly NOT reopened (each node's rev-parse discipline fits its inputs). LOW: extend explicit-count discipline to evidence-index + diff-coverage gap counts so completeness is recomputable. Micro-amendment to SAME planner np-record on fresh path record_changeset.v2."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "run_hardware_attempts round 1 REVISE (1 HIGH, 4 LOW): entailment clean; c7 ENDORSED (tier-1 exhaustion widening forced - identical retry is a parent forbidden effect); blocking identity precondition AFFIRMED (textbook 9.14.1, no downstream catch). HIGH: fault/recovery flap loop unbounded - fault-episode reset never defined; fix = re-fault after successful recovery -> host_unrecoverable, lease released for roster replacement (counting faults against attempt budget REJECTED as false-outcome defect). LOW-1 early-exhaustion enumeration + gameability entry; LOW-2 boot-id-only delta expected after logged reboot + host_unrecoverable widened to refused-to-act (lead decision); LOW-3 item-20 precedence x2; LOW-4 fifth fingerprint pair cites item-17 layout entry. Repair to SAME planner np-hardware on run_hardware_attempts.v2; CHILDREN HELD (HIGH + LOW-2b touch child bodies). Also: np-draft-plan revived by user, np-draft-plan-2 stopped pre-write (single writer preserved)."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_approved",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Three PASSes booked: assemble_delta_report (i6 set reading AFFIRMED via the frozen persist activities - stronger proof than the fragment's; metadata escape hatch disproved on allowed_effects exhaustiveness; LOW -> item 24 hash-scope+ownership same layout entry); trace_target_delta (requires-discriminator seam CLOSED - three attacks die, discriminator anchored in the activity list; LOW -> item 27 citation repoint); realize_increment (v3/v4 byte-identity independently verified; precedence ordering credited; LOW -> item 20 where-it-lands clause + item 27 relocation). Statuses -> reviewed."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "measure_against_baseline round 1 REVISE (fifth decompose): HIGH - defective procedure has no return route (re-entry lands on child 3's fixed invocations; smoke gate cannot catch wrong-property measurement by design; fix = procedure_defect_found on child 3 -> child 1, shared repair budget, exhausts to declared_measurement_unproducible). LOW-1 derive counter from child-4 defect records (item 22); LOW-2 retarget two inherited checks' failure routes (item 26); LOW-3 child-3 precedence in contract text; LOW-4 cite repaired identity predicate. Repair to SAME planner np-measure on measure_against_baseline.v2; children HELD."
+  },
+  {
+   "node": "plan_boundaries",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/frontier.yaml"
+   ],
+   "note": "Seven deliveries lead-verified in one batch: design_campaign.v2 (both HIGHs + L2, child bodies verified byte-identical), record_changeset.v2 (count discipline, 10 deltas), run_hardware_attempts.v2 (all 5 fixes, revision_deltas map, all four child bodies changed as expected), scope_next_increment (ATOMIC + v4 re-anchor verified by planner diff), screen_pin_and_progress (ATOMIC; prose conflict -> lead-minted c8 consumes gap on rederive re-entry), assemble_regression_matrix (ATOMIC, rung-1 dual checks), assemble_design_record (ATOMIC, d1-d8 citation checklist). All parse, schema-valid, no minted c-ids, pin-generic. v2s + scope to plan-reviewer; three design children to plan-reviewer-2 (user-directed second retained reviewer, continuity per-boundary, item 28). Seats: np-draft-plan failed twice with the 400 (zero writes both times) -> np-draft-plan-3 respawned identically; np-draft-plan-2 stopped pre-write when user revived the original."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_approved",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "assemble_regression_matrix round 1 PASS (2 LOW) - FIRST verdict from plan-reviewer-2. LOW-1 precedence-in-x_planning (LOW because both outcomes feed the same parent no_progress; parent-level contract-text edits registered item 27); LOW-2 gate-2 re-run reliance not required by review_campaign_design a2 (one resync clause). Five rejected hypotheses recorded. Stale thin-suite premise correction item 27 (ADDENDUM: upstream ships zero tests)."
+  },
+  {
+   "node": "plan_boundaries",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/frontier.yaml"
+   ],
+   "note": "Three deliveries lead-verified: preregister_acceptance (np-prereg, ATOMIC, rung-1 twice + two-actor falsifier) and draft_increment_plan (np-draft-plan - the revived ORIGINAL seat recovered and delivered; np-draft-plan-3 respawn never entered the registry, no duplicate writer; ATOMIC, coverage-trace anti-shallowness) both -> plan-reviewer-2 (fresh boundaries); measure_against_baseline.v2 (np-measure, all 5 findings, HIGH procedure_defect_found route landed with child-2 partial-recapture semantics) -> plan-reviewer for delta re-verify. All parse, schema-valid, no minted c-ids, pin-generic."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_approved",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Two boundaries CLOSED: run_hardware_attempts v2 PASS (flap bound verified: one recovery per host, finite roster; planner closed a front-door hole the reviewer missed via no_host_available widening; four children RELEASED and dispatched to np-lease/np-venv/np-attempt-loop/np-recover) and record_changeset v2 PASS (counts re-derivable; truncation evasion closed; disjointness now mechanical; np-record retired). scope_next_increment detector check PASSED (both v4 qualifiers at both sites), full review outstanding."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Two REVISEs: design_campaign v2 round 2 (2 one-clause HIGHs: exhaustion condition conjoins the parent disjunction with unbounded literal reading - dropped v4 qualifier, item 29 pins the predicate once; scope_exceeded->no_progress right destination wrong door - lead minted c9 to widen the parent meaning; repair to np-design on v3) and screen_pin_and_progress round 1 by plan-reviewer-2 (HIGH: divergent-pair precedence x_planning-only - routes diverge unlike matrix; c8 REAL, resolution narrowed to limb 1 only - limb 2 rejected for the versioned-directory hazard; repair to np-screen on v2). Retirements: np-record, np-hardware (boundaries closed)."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Two PASSes: measure_against_baseline v2 round 2 (1 new LOW adopted - repair-budget count derived by (measurement, defect identity) pair, item 26 second append; boundary CLOSED, four children released and dispatched to np-mproc/np-mbase/np-mruns/np-mstab) and scope_next_increment round 1 (1 LOW - family-1 deliberate-asymmetry reason lands beside v4's parenthetical, item 27(g); implement_increments boundary now FULLY closed). Retirements: np-measure, np-scope."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Three REVISEs by plan-reviewer-2 (units 3/4/5): assemble_design_record (HIGH design-lap identity -> lead decision item 31a: design-entry id mirroring scan_entry_id, binding contract text + layout ask; claimed-not-landed L1 discharge registered item 27(h)); preregister_acceptance (HIGH shipped-package citation -> lead decision item 30: built domain references; LOW-4 commitment timing decided item 31b: lead commits on consume, d6 strengthens to committed); draft_increment_plan (HIGH-1 inverted ledger fact per system-map ADDENDUM - strike, no parent edit; HIGH-2 item 30; HIGH-3 parent-originated checklist rows ride item 27(e)). All three repairs dispatched to SAME planners on fresh v2 paths; re-verify plan-reviewer-2 same-thread."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/frontier.yaml"
+   ],
+   "note": "Seven deliveries lead-verified (battery: parse+schema, name, no minted c-ids, pin-generic): design_campaign.v3 (child bodies byte-identical to v1; to plan-reviewer round 3), screen_pin_and_progress.v2 (HIGH-1 booked as interface_needs[0]; to plan-reviewer-2), recover_leased_host, acquire_hardware_lease (prose conflict n1 -> lead-minted c10 allowance-filter flap), replicate_campaign_venv (worktree-ownership ask lead-pending), execute_attempt_loop (attempt_accounting reading flagged for reviewer confirmation). USER DIRECTIVE booked as item 32: reviews divided evenly - fresh units split 4/4 (venv + attempt-loop + 2 measure children to plan-reviewer-2), in-flight continuity preserved. Network blip ~19:50: eight seats dropped on connection/DNS errors, all resumed by lead message, zero respawns, no draft paths orphaned."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Four PASSes, four boundaries CLOSED: design_campaign v3 round 3 (HIGH-1 resolved by citation of the item-29 pinned predicate, HIGH-2 contingent-on-c9 surfaced form; reviewer note adopted - gap-closing defined by the completeness-checklist re-run, item 29 second amendment); recover_leased_host (1 LOW - conditional rung statement, item 27(i); forged-reboot-log hypothesis rejected - exception is boot-id-only; item 17 sixth pair); acquire_hardware_lease (no findings; c10 confirmed independently and endorsed; item 17 seventh pair); screen_pin_and_progress v2 by plan-reviewer-2 (0/0/0; HIGH-1 landing stays OPEN against item 27(e) until the parent edit is on disk - booking is a promise, not a landing). Retirements: np-design, np-screen, np-recover, np-lease."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/frontier.yaml"
+   ],
+   "note": "Five deliveries lead-verified (battery incl. supersedes + v1-untouched for v2s): assemble_design_record.v2 (HIGH landed as design_entry_identity binding text; d10/d11 contingent rows; d7 COMMITTED; new lead-pending routing question -> item 31 addendum), preregister_acceptance.v2 (built-reference citations per item 30 with dangling-section falsifier; commitment_timing key), draft_increment_plan.v2 (ADDENDUM-corrected ledger; built-inventory citation; per-direction enforcement claims) - all three to plan-reviewer-2 same-thread; run_candidate_measurements (pair keying in defect-record paths; comparator freeze with forward completion) to plan-reviewer; stabilize_and_package_evidence (verbatim comparator revision per bundle; re-derivable budget; two proposed mechanical checks) to plan-reviewer-2. np-mbase resumed after second drop."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Two hardware-children REVISEs (plan-reviewer-2) + one PASS. replicate_campaign_venv (3 HIGH: freeze-SCREENING unbooked where-it-lands -> item 27(k); declared venv retry bound does not exist -> threshold-read clause item 27(l); hardening leg (b) rests on an unrouted artifact -> lead cheap-option decision, metadata-intrinsic restatement; cross-boundary venv-dead-end wrong door -> c7 AMENDED, one widening closes three conditions; worktree ownership DECIDED). execute_attempt_loop (HIGH: attempt_accounting limb (a) contradicted by frozen count-every-attempt text -> three-piece landing item 27(m); LOW: repo-tracked fingerprint file unresolvable -> path + absent-file semantics; root cross-run-artifact declaration gap -> item 33). assemble_design_record v2 PASS (2 new LOW adopted: 27(n) own-item fold; d7 commitment-absent gap exempt from detector key space, item 31 addendum) - boundary CLOSED, np-design-record retired. Repairs to SAME planners np-venv/np-attempt-loop on v2 paths."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/frontier.yaml"
+   ],
+   "note": "Final two measure children delivered + lead-verified: realize_measurement_procedures (np-mproc; parent overturn trigger tested, does not fire; closed_review_realization section; flags: parent loop_bounds pair-reading amendment -> item 26 third append; serving-loss-during-smoke prose gap with proposed smallest reading) to plan-reviewer; capture_baseline_reference (np-mbase; ATOMIC after three attempted falsifications; comparator freeze in g3/g4; two prose conflicts lead-minted as c11 serving-launch scope and c12 pinned-input digest door) to plan-reviewer-2. All eight measure/hardware/design child boundaries now delivered at least once; frontier has zero pending-undispatched entries."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_revision_required",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Six-verdict round: 3 PASS / 3 REVISE. PASSes close preregister_acceptance v2 (0/0/0; item 34(a) final-gate placeholder sweep), draft_increment_plan v2 (1 LOW -> 27(e) rider: coverage-trace re-check BOOKED not standing), run_candidate_measurements (2 LOW: 27(o) bundle fields gain defect records; keying-contingent per-measurement->pair substitution; EIGHTH item-17 pair proposed, held). REVISEs: realize_measurement_procedures (HIGH-1 smoke-gate/repair-route livelock, contract fix = 27(p) revision-scoped temporal predicate; 27(q) serving-loss disjunct; LOW-3 evidence-grade facts->assumptions; repair to np-mproc on v2 path), capture_baseline_reference (HIGH-1 g4 false falsifier -> c13; HIGH-2 sibling contract gap = 27(t); c11 confirmed + cache-write refinement; c12 confirmed; repair HELD on c13), stabilize_and_package_evidence (HIGH-1 pair keying -> c13; HIGH-2 cross-measurement co-hold tie-breaker = 27(r); HIGH-3 consumes gap = 27(s); 27(u) read-count home; repair HELD on c13). c13 MINTED: cross-reviewer conflict on the (measurement, defect identity) pair keying (item 26 second append) - reviewer-1 re-confirmed the mechanism, reviewer-2 argues the no-new-evidence qualifier suffices and pair keying unbounds the loop; cross-briefs to both reviewers, lead adjudicates. Retired: np-prereg, np-draft-plan, np-mruns."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/frontier.yaml"
+   ],
+   "note": "Two REVISE repairs delivered + lead battery PASS: replicate_campaign_venv.v2 (np-venv; screen booking verbatim + falsifier-on-booking; threshold read realized in-node; metadata-intrinsic DoD clause 2; worktree ownership folded) and execute_attempt_loop.v2 (np-attempt-loop; three-piece contract_text_landing with piece 3 mandatory; stale comfort claims purged; fingerprint concrete-path + absent-file semantics landed). Both forwarded to plan-reviewer-2 same-thread for re-verify."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "Two v2 re-verifies PASS 0/0/0 (replicate_campaign_venv - booking shape adopted as register standard; execute_attempt_loop - battery-grep correction on record). Boundaries CLOSED; np-venv + np-attempt-loop retired. c13 ADJUDICATED same round: reviewer-1 withdrew pair keying (qualifier redundancy conceded), reviewer-2 conceded the builder failure mode (qualifier is x_planning-only, no contract text states the magnitude); lead synthesis = per-measurement two-tier budget (filtered three without-new-evidence via the mechanized NEW field + unfiltered ceiling nine counted by path), qualifier/magnitudes land in contract text (item 26 fifth append), pair keying struck run-wide, EIGHTH pair narrowed + booked, g4 falsifier struck with at-ceiling re-verify condition. Held repairs RELEASED: np-mstab + np-mbase dispatched on v2 paths; np-mproc updated mid-repair."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/frontier.yaml"
+   ],
+   "note": "realize_measurement_procedures.v2 delivered by np-mproc and patched in place for the c13 shrink (delivery and adjudication update crossed in flight; lead battery caught the residue, planner patched same path). Battery PASS x2. Forwarded to plan-reviewer for same-thread re-verify. Remaining open boundaries: this one (in review), stabilize + capture (repairs in flight with np-mstab/np-mbase)."
+  },
+  {
+   "node": "elaborate_boundary",
+   "outcome": "boundary_planned",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/frontier.yaml"
+   ],
+   "note": "Final two repairs delivered + lead battery PASS: stabilize_and_package_evidence.v2 (np-mstab; c13 two-tier realized, three bookings in register-standard shape, eighth-pair new-evidence-field rider lead-adopted) and capture_baseline_reference.v2 (np-mbase; g4 falsifier struck in full + re-grounded, pair leaks fixed incl. two propagation-caught echoes, 27(t) booked, c11 cache-write refinement adopted). Both forwarded to plan-reviewer-2. ALL 37 boundaries now delivered; 34 reviewed + 3 in re-verify (mproc with plan-reviewer; mstab + mbase with plan-reviewer-2). Two reviewer sweeps still running."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "realize_measurement_procedures.v2 PASS by plan-reviewer (diff-verified, all four findings resolved, frozen substance intact). 27(p) amended with the three-category container split for the four parent sites (contract text / minted-from planning text / pure planning echo - all four land, for three different reasons); one layout clause booked (run-record procedure-revision reference). Boundary CLOSED; np-mproc retired. Remaining open: stabilize + capture re-verifies with plan-reviewer-2; two plan-reviewer sweeps running."
+  },
+  {
+   "node": "review_boundary",
+   "outcome": "boundary_passed",
+   "at": "2026-08-25",
+   "evidence": [
+    "reviews/plan-review.md",
+    "planning/frontier.yaml"
+   ],
+   "note": "STAGE-3 REVIEW COMPLETE: stabilize_and_package_evidence.v2 + capture_baseline_reference.v2 both PASS (plan-reviewer-2; recomputability rider verified as file-arithmetic; g4 struck in full; zero pair residue both units). All 37 boundaries reviewed. Item 35 minted: whole-graph booked-rule sweep at the bundle round (four x_planning-vs-contract REVISEs = one shape; the assembled file carries no x_planning). np-mstab + np-mbase retired; reviewer-2 nominal holds released. Next: reviewer-1's landing-set sweep return, then the resynchronization bundle (items 26/27 registers + c1-c13) and flat-graph assembly."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-25",
+   "evidence": [
+    "assembly-checklist.md",
+    "planning/run_hardware_attempts.v3.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Resynchronization phase entered: assembly-checklist.md written (sections A-F, two-gate status per item 35 amendment). First parent resync revision landed: run_hardware_attempts.v3 (supersedes v2) carrying checklist section C - 27(k) freeze-SCREENING clause, 27(l) threshold-read + replication_failed disjunct + worktree-ownership widening, 27(m) three-piece attempt accounting, 27(i) conditional settlement rung; loop_bounds aligned. All landings battery-confirmed verbatim; frontier draft path updated; run-state + frontier validation PASS. c7 widening moved to root.v6 batch (checklist D8). Gate-1 verification pinged: R2 (k/l/m + widening), R1 (i). Blocked-on-sweep: A1/B5 await R1's landing-set completeness sweep."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/root.v7.draft.pave.yaml",
+    "planning/frontier.yaml",
+    "assembly-checklist.md"
+   ],
+   "note": "Second resync revision: root.v7 (supersedes v6) carrying checklist section D root-side batch - c1/c2/c3/c4(both consumers)/c5(closure_unverified + fan-out edge + loop_bounds + precedence)/c6(impl_commit_is_reviewed edge check)/c7(three-condition breaker)/c9(sizing-valve widening), item 18 (costing_stalled widening + precedence), item 33 (cross_run_artifact_refs + discrepant_campaigns fields), tidies 1-5 root half. validate_pave.py PASS (18 nodes, 49 edges, 5 endpoints). c10 landed in hardware v3 (in-place, same fresh revision, acquire allowance-exclusion). Scan-fragment items verified already landed in Stage 3 (L2/L4) - D3/D4 need no fragment mint. Fresh planner np-preflight-3 dispatched for the fragment half of the two-place debt-ledger clause (register-mandated). Section B reads in progress (design parent v4 prep)."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/design_campaign.v4.draft.pave.yaml",
+    "planning/assemble_regression_matrix.v2.draft.pave.yaml",
+    "planning/assemble_design_record.v3.draft.pave.yaml",
+    "planning/draft_increment_plan.v3.draft.pave.yaml",
+    "planning/review_campaign_design.v2.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Third resync wave: checklist section B (design family). design_campaign.v4 parent batch (c8, 27(e) four edits incl. screen HIGH-1 three verbatim pieces, 27(f) split, 27(a) matrix precedence, 27(n) design-entry id, 27(u), 27(h)/L1 precedence, 31(b)) + four sibling micro-mints (matrix v2: 27(c)/(d); record v3: 27(h) claim fix, 31-addendum confirmed home + key-space exemption, d12, d10/d11 ACTIVE; draft-plan v3: 27(e) rider; review v2: 27(b) + named re-checks). All parse; frontier updated, PASS. 27(g) remapped to implement family (E batch). B5 item-20 audit still blocked-on-sweep. R2 gate-1 ping next."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/implement_increments.v5.draft.pave.yaml",
+    "planning/trace_target_delta.v2.draft.pave.yaml",
+    "planning/run_candidate_measurements.v2.draft.pave.yaml",
+    "planning/assemble_regression_matrix.v2.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "Fourth resync wave: checklist section E (closed-fragment micro-fixes). implement_increments.v5 (realize_increment precedence RELOCATED into outcome meanings per item 20; 27(g) asymmetry reason beside conjunct-1 scoping); trace_target_delta.v2 (sizing citation to sect 3.4, unsupported negative dropped, carrying-argument naming, discriminator-anchored-in-activity-list sentence); run_candidate_measurements.v2 (c13: pair keying STRUCK as budget key, per-measurement two-tier rewrite at six sites, identity reframed to record FIELD, assembly item shrunk to name-the-defect); matrix v2 second touch (34(b): thresholds-in-code clause re-sourced to validation-and-acceptance.md:57-61). All parse; frontier draft paths + LEAD RESYNC notes updated, PASS. E1-E4 g1-pass pending; E5 waits on A1. R1 gate-1 ping next. Remaining fragment work: section A (measure parent, blocked-on-sweep for A1) + verify_run_preconditions v3 (np-preflight-3 running)."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/measure_against_baseline.v3.draft.pave.yaml",
+    "planning/frontier.yaml",
+    "assembly-checklist.md"
+   ],
+   "note": "Fifth resync wave: measure parent v3, NON-BUDGET half of section A. Landed: 27(p) revision-scoped smoke predicate at four sites per the three-category container split; 27(q) procedure_unrealizable serving-re-establishment disjunct; 27(s) stabilize consumes += measurement_procedure_record; 27(t) b1 clause verbatim in realize re-entry activity; c11 durable-host-state scoping naming cache writes (ephemeral serving lifecycle allowed, definition to land once at F2); c12 baseline_unusable digest-mismatch disjunct (name-misdescription residual recorded). Battery green (27(p) x4 regex, all verbatims whitespace-normalized, zero minted c-ids, zero pin hits). DEFERRED to v4 second touch pending R1 landing-set sweep: A1 nine-site two-tier budget, A2 at-ceiling wording, A5 27(r) tie-breaker. A8 inherited-check retarget confirmed x_planning-resident, lands at F1. Gate-1 splits: R1 owns 27(p)/(q)+c11/c12, R2 owns 27(s)/(t). Checklist section A updated. Waiting on: R1 sweep + gate-1 verdicts, R2 gate-1 verdicts (hardware v3 + B batch + now A), np-preflight-3 delivery."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/verify_run_preconditions.v3.draft.pave.yaml",
+    "planning/frontier.yaml"
+   ],
+   "note": "np-preflight-3 delivered verify_run_preconditions.v3: fragment half of the two-place debt-ledger clause (Cross-run artifact load activity re-verifies every scorecard row AND every debt-ledger entry against the frozen pin; demote-to-unverified semantics + rationale word-matched to the parent half in root.v7; re-verification table extended per-row/per-entry as one carrier). Lead battery PASS (single-site diff, supersedes v2, zero minted c-ids, zero pin hits, parent-half cross-check). Frontier draft path -> v3 + note, PASS. Forwarded to plan-reviewer (boundary continuity) for the pre-announced two-place verification. With this, ALL sweep-independent fragment work is on disk; remaining fragment work = measure parent v4 second touch (A1/A2/A5, blocked on R1 landing-set sweep). np-preflight-3 to be retired after its delivery report + reviewer verdict close cleanly."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "flat_graph_assembled",
+   "at": "2026-08-25",
+   "evidence": [
+    "workflow.draft.pave.yaml",
+    "build/assemble_flat_graph.py",
+    "build/assembly-overlay.yaml",
+    "build/f1-integration-record.md"
+   ],
+   "note": "F1 FIRST PASS: flat graph assembled from root.v7 + five parent fragments via re-runnable script + lead-authored overlay. 31 nodes, 89 edges, 12 checks, 24 evidence ids, 11 state fields; validate_pave.py PASS; script-enforced referential closure (all outcomes routed, all nodes reachable, all references resolve). Lead mints landed: item 24 (scan fan-outs, preflight_record_complete, scan_entry_id), item 25 (design internals incl. record_incomplete owning-sibling edges + exhaustion door, four design evidence ids, comparator-commitment state_effects per 31(b)), item 26 (measure internals, procedures_smoke_verified with 27(p) scoping, revision_stamped, three measurement evidence ids, A8 inherited-check retargets), item 31(a) (design_entry_id + pin_infeasibility_socratic_guard verbatim from screen v2), 31 addendum check re-homes (comparators_preregistered -> prereg re-emission; design_approved_by_user -> screen), c9/c10/27(i) groundings in edge rationales. RE-RUN required after measure v4 second touch (A1/A2/A5) - script picks up fragment revisions automatically. Next build units: F2 artifact-layout reference, F3 enforcement record."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "assembly_artifact_drafted",
+   "at": "2026-08-25",
+   "evidence": [
+    "build/artifact-layout-reference.md"
+   ],
+   "note": "F2 DRAFTED: artifact-layout reference at build/artifact-layout-reference.md (promotes into the plugin at Stage 5). Carries: tree with cross-run committed paths (fingerprint file absent = empty set, item 33), write ownership per node incl. reviews/<campaign>/ reviewer-owned names, current-beats-archive precedence + c5 archive rule + item-14 current-record marker, and the pinned single-authority shapes - item 17 five findings-record fields + all EIGHT pairs (pair 8 narrowed per c13 with the novelty field), item 29 detector predicate one-shape-two-bindings with instrument-determined gap-closing + d7 exemption, item 26-sixth two-tier budget (one instrument two predicates, single-definition rule, at-ceiling rides forward-completion, recomputability honesty clause), item 9 registration shape, item 23 evidence-index + exit-code discipline + ported-code definition + revision phrasing rule, items 22/24 scan grant/report-hash scope+ownership joint entry, items 25/31/27(u) design-entry-id + archive + stability count/spacing, 27(p) smoke/run-record revision join, c11 durable-host-state definition. F8 reviewer sweep will re-check the five-fields+eight-pairs citer count. Next: F3 enforcement record."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "assembly_artifact_drafted",
+   "at": "2026-08-25",
+   "evidence": [
+    "build/enforcement-record.md",
+    "skill-package-plan.md",
+    "traceability.md",
+    "build/f1-integration-record.md"
+   ],
+   "note": "F3/F4/F5 drafted. F3: enforcement record (12 run-wide prohibitions with rungs + why-not-stronger; blocking hooks only for branch/cache/venv-opt where all four blocking conditions hold; 6 costly-transition guards; CPU-mode evidence chain per item 6; rung-accuracy per item 15; lead-alignment hook pair default entry, no omission condition). F4: assembled-graph audit CLEAN - zero .pave/, exploration/, or placeholder paths; layout + domain citations generic per item 30; filename binding recorded in skill-package-plan. F5: skill-package-plan.md (plugin layout, role->agent map with model tiers - opus for all worker roles, fable for the rederiver seat per fragment session-top assignment, sonnet dispatch at stabilize; 4 build units; evolving-tier workspace; hooks disclosure) + traceability.md (all 31 nodes, 12 checks, edges/state/extensions mapped to package elements). Approval bundle now complete on disk pending re-assembly after measure v4: requirements.md, system-map.md, workflow.draft.pave.yaml, traceability.md, skill-package-plan.md. Remaining before Stage 4: A1/A2/A5 second touch (blocked on R1 sweep) -> re-run assembly -> F6 revalidate -> F7 simplicity pass -> F8/F9 bundle-round sweeps -> F10 plan brief + whole-bundle review + user approval."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/measure_against_baseline.v4.draft.pave.yaml"
+   ],
+   "note": "SECOND TOUCH v4 (budget half, A1+A2+A5): c13 two-tier budget landed in contract text per R1's eleven-site enumeration - qualifier 'without new evidence', magnitudes suggested three filtered / nine backstop, one-instrument-two-predicates at both derivation clauses, either-tier at all three budget-spent clauses, A2 at-ceiling riding the runs forward-completion clause, A5 27(r) co-hold tie-breaker stated on both sides, and the sweep-found 27(q) retry-bound magnitude (suggested two bring-up retries) in both halting outcome meanings. v3 stays provenance; frontier path+note updated; parse + pin battery green. R2 owes the eleven-site gate-1 check."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/root.v7.draft.pave.yaml"
+   ],
+   "note": "ROOT SECOND TOUCH (same day): breaker_tripped first condition re-worded to 'tenth budget-counted hardware attempt ... (host faults are recorded but never charged)' - closes R2's unbooked gate-1 HIGH on c7's landing (ancestor stated trip condition in un-exempted units; child counts only non-host-level failures per 27(m)). x_planning note appended; parse OK; frontier note updated. R2 to re-verify."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-25",
+   "evidence": [
+    "planning/run_hardware_attempts.v3.draft.pave.yaml"
+   ],
+   "note": "HARDWARE SECOND TOUCH (same day, R2 optional rider): execute_attempt_loop purpose parenthetical now 'every 10 budget-counted hardware attempts per target' - units aligned with the 27(m) exemption sentence and the root breaker wording. revision_deltas.second_touch_units_alignment records it; parse OK; frontier note updated."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "flat_graph_assembled",
+   "at": "2026-08-25",
+   "evidence": [
+    "workflow.draft.pave.yaml",
+    "build/assembly-overlay.yaml"
+   ],
+   "note": "RE-ASSEMBLY after measure v4 + root/hardware second touches: overlay repointed at measure v4; build/assemble_flat_graph.py re-run - 31 nodes / 89 edges / 12 checks / 24 evidence / 11 state fields; validate_pave.py PASS. Gate-2 spot check: qualifier, magnitudes, budget-counted units, retry-bound magnitude, and the 27(r) tie-breaker all present in the assembled file. F6 re-validation DONE; F7 first pass CLEAN (the two multi-edge outcomes - plan_drafted route-conditional pair, record_incomplete owning-sibling fan - are deliberate; no ceremony found; item 21 stays dropped). F8 scope RULING recorded in checklist: the item-35 sweep covers the built deliverable set (workflow + layout + enforcement references), answering R2's c11-home HIGH - the c11 definition home exists at build/artifact-layout-reference.md sect 4.10, now with the capture-cache-write boundary ruling R1 required."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-26",
+   "evidence": [
+    "planning/root.v7.draft.pave.yaml",
+    "planning/measure_against_baseline.v4.draft.pave.yaml"
+   ],
+   "note": "R2 gate-1 returns: root breaker second touch PASS (c7 conditions intact), hardware units rider PASS, c11-home HIGH withdrawn-to-resolved per F8 scope ruling, measure v4 A1/A2/A5/27(q) ALL PASS (sect-4.4 read directly, no drift), execute_attempt_loop.v2 exemption booking DISCHARGED (landing exceeds booking). TWO NEW HIGHs, both fixed same day: (1) second un-exempted threshold copy in root principles :55-57 - now 'every 10 budget-counted hardware attempts per target - host faults are recorded but never charged' + one-word x_planning loop_bounds alignment; (2) layout sect-4.10 refusal ground had no outcome door - baseline_unusable widened by the unredirectable-persistent-cache-write disjunct (c12's exact shape, destination unchanged), sect-4.10 now cross-references the door. F8 grep set gains bare 'hardware attempts per target'."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "flat_graph_assembled",
+   "at": "2026-08-26",
+   "evidence": [
+    "workflow.draft.pave.yaml"
+   ],
+   "note": "Re-assembly after the two HIGH fixes: 31 nodes / 89 edges; validate_pave.py PASS; budget-counted now at 5 sites incl. principles; the new baseline_unusable disjunct present in the assembled file."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-26",
+   "evidence": [
+    "planning/measure_against_baseline.v4.draft.pave.yaml"
+   ],
+   "note": "R2 B5 item-20 audit PASS (audited parent contract substance, not fragment claims; runs four-way reasoned precedence credited strongest discharge; all magnitude bookings honest, all discharged in v4; stable-re-reads correctly not filed per n-a ruling). One LOW fixed same day: v4 loop_bounds recorded tier 1 only - tier-2 backstop clause appended + forward-completion sentence keyed to either tier (x_planning, non-shipping, no re-assembly; also makes mruns v2's five-sites-plus-loop_bounds claim true). R2 process adoptions booked into F8: mechanical phrase-grep per register magnitude/rule diffing hit set vs booked landing set (incomplete-landing is the run's dominant defect shape); search substance not labels ('item 20' string appears in zero fragments); site-list correction - mproc :417 is the v1 file, v2 sites are :371-374/:568-574."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-26",
+   "evidence": [
+    "assembly-checklist.md"
+   ],
+   "note": "R2 verified BOTH same-day HIGH fixes PASS: (1) root principles budget-counted line - principles block otherwise byte-identical, whole-file residue sweep clean (all three threshold sites carry units, zero un-exempted copies in assembled file); (2) baseline_unusable disjunct + sect-4.10 BIDIRECTIONAL cross-reference (credited stronger than proposed - ruling names its door, door names its ruling); A1/A2/A5/27(q) confirmed untouched by content-match. R2 also spot-checked the assembled graph early (timestamps post-fix, budget-counted x5, disjunct at :1733). F8 row gains R2's matching-method warning: multi-line block scalars defeat line greps - whitespace-normalized or single-line-fragment matching, case-insensitive; a clean line-based F8 is less trustworthy than a noisy one. Remaining R2 item: loop_bounds one-clause verify (fix already in its inbox, messages crossed). R1 still out on D column + E5."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-26",
+   "evidence": [
+    "assembly-checklist.md"
+   ],
+   "note": "R2 loop_bounds one-clause verify PASS (newline-flattened match; sect-4.4 single-definition rule satisfied on all three named citers; either-tier forward-completion credited). R2's ENTIRE pre-gate-2 queue is now CLOSED - gate 2 owed on nineteen clauses + layout citer-count re-check. F8 row gains the third method caveat (inverse false positive: qualifier wrapping to next line reads as un-qualified copy) + zero-misses-means-check-the-method rule. R2's defect-shape summary on record: post-round-1 findings were majority INCOMPLETE LANDINGS (principles, loop_bounds, mstab enumeration, root breaker) - invisible to per-node review, exactly what F8's phrase-grep sees; F8 = highest-value remaining checklist item. Waiting only on R1 (D column + E5)."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-26",
+   "evidence": [
+    "planning/implement_increments.v5.draft.pave.yaml"
+   ],
+   "note": "F8 FIRST-PASS FINDING fixed: 27(g) deliberate-asymmetry parenthetical had landed only in implement v5's x_planning copy of the detector text (:535, past extensions :262) - R2's incomplete-landing shape, fourth instance. Now landed in the shipped no_new_route outcome meaning beside the conjunct-1 scoping; v5 note + frontier record the amendment; R1 re-verifies the shipped site."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "flat_graph_assembled",
+   "at": "2026-08-26",
+   "evidence": [
+    "workflow.draft.pave.yaml",
+    "build/f8_sweep.py"
+   ],
+   "note": "F8 LEAD FIRST PASS COMPLETE via re-runnable build/f8_sweep.py (67 rules x expected homes over graph + layout + enforcement; whitespace-flattened case-insensitive single-fragment matching per the F8 method rules). First run: 10 misses -> triaged one-by-one: 1 REAL (27(g), fixed + re-assembled), 9 manifest wording corrections verified against landed text (incl. c7's three conditions shipping SPLIT across the two children + the replication_dead_end_to_rederivation edge rationale - structurally intact; 27(k) present behind YAML apostrophe doubling). Second run: ALL 67 PRESENT. validate_pave.py PASS after re-assembly. Remaining F8 at bundle round: R2 gate-2 verification + layout citer-count re-check (five fields + eight pairs)."
+  },
+  {
+   "node": "resynchronize_and_assemble",
+   "outcome": "resync_revision_landed",
+   "at": "2026-08-26",
+   "evidence": [
+    "planning/root.v7.draft.pave.yaml",
+    "planning/frontier.yaml",
+    "build/enforcement-record.md"
+   ],
+   "note": "R1 delivered D column (all six rows PASS; c6 wording credited better than booked; item-20 root audit complete; four adversarial hypotheses killed on primary evidence incl. the adjudicate/prepare loop-convergence proof) + E5 PASS (sect-4.4 reduction claim sound). Three R1 dispositions taken same day: (1) E5 LOW-1 g4 record-count fabrication -> enforcement-record residual at REVIEWED rung, sect-4.4 unchanged, recomputable signature named; (2) root loop_bounds under-description -> SECOND TOUCH (c), the review-repair bullet now names the measure-side file-derived budget as the outcome-choice-independent second bound (x_planning, non-shipping); (3) conflict register c1-c13 statuses open->resolved (schema value; R1's F8 mis-scope warning). D9 residual grows to 4 outcomes (verify_run_closure resumable_stop + no_route_remains added). All gate-1 register work is now VERIFIED except R1's one-clause 27(g) shipped-site re-verify (crossed in its inbox). Next: F10 plan-brief render, then whole-bundle round (R1) incl. F9 + 34(b) rendered-view."
+  },
+  {
+   "node": "assemble_flat_graph",
+   "outcome": "plan_brief_rendered",
+   "evidence": [
+    "reviews/plan-brief.md"
+   ],
+   "note": "F10: Stage-4 plan approval brief rendered from assembled workflow.draft.pave.yaml (31 nodes / 89 edges extracted; six stage sub-diagrams per >25-node split rule). Next: whole-bundle review round (R1 brief-vs-bundle + F9 + 34(b); R2 gate-2 nineteen-clause + citer-count re-check)."
+  },
+  {
+   "node": "assemble_flat_graph",
+   "outcome": "resync_revision_landed",
+   "evidence": [
+    "planning/root.v7.draft.pave.yaml",
+    "planning/implement_increments.v5.draft.pave.yaml",
+    "build/artifact-layout-reference.md",
+    "workflow.draft.pave.yaml",
+    "build/f8_sweep.py"
+   ],
+   "note": "Whole-bundle round repair for R2 HIGH (pair-1 key divergence): ruled the increment-id+surface+defect-class triple the deliberate binding; layout pair-1/4.1/4.3 amended to enumerate it, producer obligation added to review_implementation (root.v7 second touch d), planning-path citation replaced in scope_next_increment (v5 second touch), two overlay rationales stripped of planning-file names (R2 LOWs), layout 4.4 dangling citer re-worded (R2 LOW). Re-assembled 31/89/12/24/11, validate_pave PASS. f8_sweep upgraded per R2 MEDIUM: 71 presence + 10 exact-count + 5 negative rules, ALL PRESENT. R2 re-verify + R1 pair-1 one-glance pending."
+  },
+  {
+   "node": "assemble_flat_graph",
+   "outcome": "resync_revision_landed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "reviews/plan-brief.md",
+    "skill-package-plan.md",
+    "traceability.md",
+    "planning/scan_upstream_delta.v2.draft.pave.yaml",
+    "planning/implement_increments.v5.draft.pave.yaml",
+    "workflow.draft.pave.yaml"
+   ],
+   "note": "Whole-bundle round R1 verdict REVISE (2 HIGH, 1 MEDIUM, 4 LOW) — all seven repaired same day: rederiver fable pin removed (inherits session model), brief discloses acceptance-machinery new-construction gap + enforcement totals + gate-2 legend + dated self-certification, item-19 seat binding landed as booked in scan v2, plan_satisfied binds increment_evidence_records. Item 13 confirmed nonexistent (lead assignment error, F9 scope corrected to items 12+19+26). Re-assembled 31/89 validate PASS; sweep 72 presence + 10 count + 5 negative ALL PRESENT. Both reviewers' re-verify pending."
+  },
+  {
+   "node": "assemble_flat_graph",
+   "outcome": "resync_revision_landed",
+   "evidence": [
+    "planning/implement_increments.v5.draft.pave.yaml",
+    "planning/root.v7.draft.pave.yaml",
+    "build/assembly-overlay.yaml",
+    "workflow.draft.pave.yaml",
+    "reviews/plan-review.md"
+   ],
+   "note": "Re-verify round: R2 accepted pair-1 ruling, verified repair; R2 MEDIUM (limb-1 missing PASSING) fixed both sites + anchor-clause ruling on the recur-after-answer case (fires limb 1, never spins behind gate 2). R1 positional 12/12 PASS, D9 corrected to five and ruled PASS, LOW-5/6/7 fixed (autoport + runner-default in preflight purpose; version suffixes stripped). Re-assembled 31/89 PASS; sweep 75+11+12 ALL PRESENT. Awaiting R2 four-limb count re-verify and R1's disposition acknowledgment of the seven bundle fixes."
+  },
+  {
+   "node": "assemble_flat_graph",
+   "outcome": "resync_revision_landed",
+   "evidence": [
+    "skill-package-plan.md",
+    "traceability.md",
+    "reviews/plan-brief.md",
+    "reviews/plan-review.md"
+   ],
+   "note": "R1 final re-verify PASS 7/7; LOW-5/6/7 already fixed (crossed messages); LOW-8 fixed same hour (top-tier overclaim dropped from plan :27/:57, traceability, brief - seat inherits session model by design, operator pin option named). R1 lane CLEAR for render. Remaining gate: R2 four-limb count re-verify."
+  },
+  {
+   "node": "assemble_flat_graph",
+   "outcome": "resync_revision_landed",
+   "evidence": [
+    "build/artifact-layout-reference.md",
+    "build/f8_sweep.py",
+    "reviews/plan-review.md"
+   ],
+   "note": "R1 HIGH-3 fixed: layout 4.3 re-anchored to match the graph's answering-record anchor (shape line anchor-parameterized, impl binding declares the anchor + consequence, design binding keeps naming-lap anchor with rationale, pair-1 falsifier states the narrowed protection). Graph untouched, no re-assembly needed. Sweep 78 presence + 11 count + 12 negative ALL PRESENT. R1 re-verifies on sight; R2 four-limb re-verify still pending."
+  },
+  {
+   "node": "assemble_flat_graph",
+   "outcome": "resync_revision_landed",
+   "evidence": [
+    "planning/implement_increments.v5.draft.pave.yaml",
+    "build/artifact-layout-reference.md",
+    "workflow.draft.pave.yaml",
+    "reviews/plan-review.md"
+   ],
+   "note": "R2 HIGH fixed: 'for that item' at both limb-1 sites (graph count 4); falsifier prose at both homes downgraded from eliminates to NARROWS with the deliberate residual stated; R1's why-the-anchors-differ rationale in 4.3; R2 LOW one-word fix (passing evidence records). Re-assembled 31/89 PASS, sweep 78+13+12 ALL PRESENT. R1's HIGH-3 confirmation crossed with the fix (already on disk). Pending: R2 re-verify (scoping + falsifiers + third-conjunct re-read), R1 on-sight of layout anchor fix."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "reviews/plan-brief.md",
+    "assembly-checklist.md"
+   ],
+   "note": "Whole-bundle Stage-4 gate PASS: R1 lane clear (3 HIGH, 1 MEDIUM, 8 LOW fixed+verified; positional 13/13; D9 PASS; item 13 void), R2 confirm-clear (gate-2 19/19; pair-1 closed; detector pin complete at all three elements across all four limb statements; residual note adjudicated no-finding). Rendering brief in full to user for explicit approval."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "build/artifact-layout-reference.md",
+    "assembly-checklist.md"
+   ],
+   "note": "Post-gate R1 LOW-9 dispositioned FIX: layout 4.3 impl-binding pin was written for limb 1 only while the graph's detector has two limbs; one clause added scoping the answering-record anchor to limb 1 and pinning limb 2's naming-lap anchor (safe: key and clearing evidence share one instrument). Layout-only change, graph untouched, brief untouched. f8 sweep 79+13+12 ALL PRESENT. Sent to R2 per standing 4.3 boundary; R1 notified of disposition. Brief already rendered; awaiting explicit user approval."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "build/artifact-layout-reference.md",
+    "assembly-checklist.md"
+   ],
+   "note": "LOW-9 tail round CLOSED, PASS both reviewers: R2 confirmed both 4.3 sentences at layout mtime 21:28:53 (anchor scoping clause + gap-sub-key phrase + 'on the ground given above' tail); R1 verified independently and owned the 'same reason' root cause. Six Stage-5 process carries booked at checklist W9/W10. Graph unchanged (21:12:46). Both lanes clear; brief unchanged; awaiting explicit user approval — the only open Stage-4 item."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "reviews/plan-brief.md",
+    "assembly-checklist.md"
+   ],
+   "note": "User-requested brief amendment before approval: agent-seat color coding on all 7 diagrams (node fill = first-listed graph role; dashed red edges = 46 repair/recovery routes, indices mechanically verified), legend color key, section-4 Color column, and investigator role corrected to include the design screen (screen_pin_and_progress is investigator-run per graph). Presentation-only re nodes/edges. R1 delta verify in flight. Re-rendering changed sections; explicit user approval still the open Stage-4 item."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "requirements.md",
+    "workflow.draft.pave.yaml",
+    "build/enforcement-record.md",
+    "reviews/plan-brief.md",
+    "assembly-checklist.md"
+   ],
+   "note": "USER-DIRECTED AMENDMENT during approval deliberation - verbatim: 'option 2, add nki rule' (electing run-wide kernel-substrate rule; prior message defined it: new functionality not present in existing neuron NKI lib must be implemented in NKI, not torch, e.g. DSA-indexer). Landed at reviewed rung across requirements (amendment paragraph), root.v7 principle + both review rubrics, design_campaign.v4 substrate declaration, enforcement-record P13, brief section-5 row (totals 13). Re-assembled 31/89 PASS; sweep 84+13+12 ALL PRESENT. R1 primary amendment review + R2 bounded confirm dispatched; user approval remains open."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "workflow.draft.pave.yaml",
+    "build/enforcement-record.md",
+    "assembly-checklist.md"
+   ],
+   "note": "R1 NKI-amendment review REVISE - HIGH-4 classification-escape-by-omission, MEDIUM-2 P13 rung split, LOW-11 simulator route - ALL FIXED same round per R1's prescribed clauses: every-increment substrate decision, substrate register in completeness self-check (mirrors patch-register device), classification challenge at both rubrics, mechanical substrate-fidelity presence predicate at record_changeset + gap class (d) + both enumeration homes, P13 split rung, NKI_SIMULATOR=1 acceptance route. Re-assembled 31/89 PASS; sweep 89+16+12 ALL PRESENT. R1 re-verify and R2 boundary confirm in flight; user approval remains open."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "workflow.draft.pave.yaml",
+    "assembly-checklist.md"
+   ],
+   "note": "NKI-amendment round CLOSED: R1 re-verify PASS on all three items (HIGH-4 escape closed, P13 split honest, class-(d) propagation complete at three enumeration homes plus two producing sites); R2 CONFIRM (a)(b)(c) - producer obligation verbatim and first, gap class (d) rides limb 2 cleanly (instrument-identical acceptance, strongest of the four classes), four limb statements byte-intact - and WITHDREW their rung pointer (principle justification defeats it: no mechanical scan tells kernel-class torch from legitimate glue). R2 NEW LOW-12: root principle still stated the rung as reviewed-only after the MEDIUM-2 split - a builder reading the principle would build review-only and drop class (d). FIXED with R2 prescribed clause (split rung - mechanical substrate-fidelity check for items declared kernel-class; reviewed rung for the classification itself; colon converted to dash for YAML, reason-clause attached to reviewed leg). R2-flagged grep done: skill-package-plan.md clean (cites enforcement record, never restates the rung); enforcement-record P13 already split. Re-assembled 31/89 validate PASS; sweep 90+16+12 ALL PRESENT. R2 bounded confirm on the one clause in flight; LOW does not gate approval - user approval ask presented with R1 context note (nki/ gutted at pin, rule bites harder than it reads)."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "skill-package-plan.md",
+    "assembly-checklist.md"
+   ],
+   "note": "User-directed pre-approval plan touches (2026-08-26), skill-package-plan.md only, graph untouched: (1) para 6 unit-1 lead duty - generated lead carries pave-spec para 9.8 default-recovery loop for undeclared failures verbatim (plugin ships without pave-spec); user challenged the pause-on-unexpected-error summary and the spec answer (retry once, investigate with persisted record, weight-matched fix, re-prove; pause only when investigation blocked) is now a build obligation. (2) para 7 successor rule 4 pinned at pave-revisions.md 2.2.9 wording (semantic-diff why must name the missed gap and justify generality; incident-shaped reason = review finding) - sourced from jinhuang12/pave e626694 per user fetch direction. Both greppable at final-skill gate. R1 bounded delta verify dispatched."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "skill-package-plan.md",
+    "reviews/plan-review.md",
+    "assembly-checklist.md"
+   ],
+   "note": "R1 delta verify: para-7 PASS verbatim vs e626694; composition PASS (loop inside node meaning, then rule-3 block-honestly). MEDIUM-3 fixed: para-6 step 3 restored verbatim to pave-spec :828-835 (tier-2 or-several-candidates, tier-3 many+trade-offs plus cause-resists-localization, prefer correctness then simplicity) + priors gained failure-text-searched-in-public-sources. R1 LOW booked as LOW-13 (label collision with R2 LOW-12): para-7 obligation now Unit-1-tagged. W9 extended: verbatim asks get flattened diff vs source. R1 re-verify in flight; nothing blocks approval per R1."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "skill-package-plan.md",
+    "assembly-checklist.md"
+   ],
+   "note": "R1 re-verify PASS: MEDIUM-3 closed (step 3 word-by-word faithful to spec :829-835; dropped section citation ruled correct), LOW-13 closed (Unit-1 single greppable owner). Residual on record not a finding (the deliberate only-sharpening of the recovery-loop exit). All reviewer lanes closed on all pre-approval amendments; user approval is the sole open item at plan_review_gate."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "skill-package-plan.md",
+    "traceability.md",
+    "reviews/plan-brief.md",
+    "assembly-checklist.md"
+   ],
+   "note": "Two user-directed pre-approval amendments: (1) rederiver pinned fable/xhigh - user declared the fable dispatch failure fixed, superseding R1 HIGH-1 inherit-session design on new information; four homes updated with the retry-identically-never-downgrade fallback retained; (2) teammate dispatch - each node instance primary seat spawns as a named background teammate (SendMessage-continuable, retired at node close), one-shot subagents for internal fan-out, authority unchanged (lead single writer, no teammate edge traversal, forbidden-effects inheritance intact). Graph untouched. R1 bounded delta verify in flight."
+  },
+  {
+   "node": "plan_review_gate",
+   "outcome": "bundle_review_passed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "skill-package-plan.md",
+    "build/enforcement-record.md",
+    "reviews/plan-brief.md"
+   ],
+   "note": "R1 delta verify on pin+teammate amendments: PASS all six asks. MEDIUM-4 fixed (guardrail scope widened to every spawned seat, teammate or sub-agent - plan delegate row + enforcement P2); LOW-14 fixed (three-identical-failures operator pause added to retry policy, plan + brief); both nits landed (peer-escalation clause in brief; doer/reviewer continuity parenthetical). Sweep 90+16+12 ALL PRESENT after enforce touch."
+  },
+  {
+   "node": "approve_graph_plan",
+   "outcome": "approved",
+   "evidence": [
+    "reviews/user-plan-approval.md",
+    "reviews/plan-brief.md",
+    "workflow.draft.pave.yaml"
+   ],
+   "note": "User approval VERBATIM: approve plan (2026-08-26, mid-turn while MEDIUM-4/LOW-14 prescribed fixes were landing; R1 had ruled neither blocks). Covers the bundle with all six pre-approval user amendments folded in; R1 NKI-bites-harder context note surfaced before approval. Draft designated v0. Stage 5 build begins: four units per skill-package-plan.md section 6."
+  },
+  {
+   "node": "build_skill_component",
+   "outcome": "unit_ready",
+   "evidence": [
+    "build/stage5-integration.md"
+   ],
+   "note": "Unit 3 (canonical graph + schemas + scripts) ready in worktree agent-a7e76ff8fb71512a6: workflow.pave.yaml byte-identical to approved v0 (sha 9b61e293..., cmp exit 0, validate PASS 31/89/5), 21-field run-state schema + validator + passing tests, freeze/validate scripts verbatim. Lead rulings: field-count brief error corrected (required=21, fields=11 annotated subset); references/pave.schema.json ships as accepted deviation (validator self-containment); freeze staging-step obligation sent to unit 1."
+  },
+  {
+   "node": "build_skill_component",
+   "outcome": "unit_ready",
+   "evidence": [
+    "build/stage5-integration.md"
+   ],
+   "note": "Unit 2 (six role agents) ready in worktree agent-a6df3cf5c511536ad: models/efforts verbatim per plan section 2 (rederiver fable/xhigh + retry-then-pause), reference citations at point of use, P13 split carried (implementer design-declaration + reviewer classification half), measurer_not_adjudicator active self-check, reviews-never-repairs inherited into reviewer sub-agents. Seam note sent to unit 1 (rederive_approach binds to rederiver seat in dispatch table). No semantic gaps."
+  },
+  {
+   "node": "build_skill_component",
+   "outcome": "unit_ready",
+   "evidence": [
+    "build/stage5-integration.md"
+   ],
+   "note": "Unit 1 (lead skill + hooks + plugin manifest) ready in worktree agent-ab3ec3c6b5982b589: 38/38 hook behavior tests, 18/18 lead-alignment invariants, verbatim-fidelity diffs on section 9.8 loop and evolution contract, all graph identifiers implemented, all three coordinator additions landed. Lead rulings: run-state.json standardized (unit 4 instructed to supersede state.json in shipped layout); inlined hook discovery accepted (five-script booked count wins). Residual for final gate: P1 bare-push branch resolution fails open when git unanswerable."
+  },
+  {
+   "node": "build_skill_component",
+   "outcome": "unit_ready",
+   "evidence": [
+    "build/stage5-integration.md"
+   ],
+   "note": "Unit 4 (four domain references) ready in worktree agent-ace1bcb9ec1a978c4: artifact-layout.md 333 (run-state.json naming substitution applied per lead ruling, section 4.3 two-limb anchor byte-verbatim), collision-ranking.md 133, measurement-pitfalls.md 104 (builder corrected agg_sigma_ratio_threshold key + added :206-215 citation; stable-reads N deferred to campaign design record per artifact-layout 4.8 — lead accepted), patch-mechanism-inventory.md 138 (8 vLLM-internal patch targets verified vs exploration's three; 0.24-delta claims dropped at 0.21 pin; dead-stub apply_patches warning). Zero .pave/ residue, zero TODO, all claims re-verified against read-only fork. Stranded-worker relays via build/scratch/relay-extract-*.md (sub-agent name resolution is lead-session-scoped). No semantic gaps."
+  },
+  {
+   "node": "assemble_and_integrate_package",
+   "outcome": "integration_complete",
+   "evidence": [
+    "build/stage5-integration.md"
+   ],
+   "note": "Integration pass 2: unit 4 references rsynced (4 files); README.md rendered by lead from approved plan brief per approval-briefs.md (updated to shipped tree: pave.schema.json, tests/, v0-not-v1 revision note, permanent-phrasing rederiver row, installation steps); VERSION seeded 1.0.0 with initial-capability entry. Package now 30 files. Citation check: all four references cited by SKILL.md; implementer cites all four; each agent cites its own. Next: 10-step integration validation (review-and-build.md section 4)."
+  },
+  {
+   "node": "validate_generated_skill",
+   "outcome": "validation_passed",
+   "evidence": [
+    "reviews/validation.md"
+   ],
+   "note": "10-step integration validation ALL PASS. Notable: step 4 required a lead reformat of traceability.md into validate_traceability.py's row contract (171 rows, content unchanged, original archived at planning/archive/); step 5 tests run as documented __main__ scripts (pytest collects zero by design); step 8 freeze/verify/tamper exercised on scratch with the staging step, authority envelope confirmed at SKILL.md:286. Validator-lag notes recorded (rederiver model fable allow-list, plugin.json compatibility key, effort frontmatter key). Open items carried to final review listed at record end."
+  },
+  {
+   "node": "review_generated_skill",
+   "outcome": "reviewer_lane_closed",
+   "evidence": [
+    "reviews/plan-review.md"
+   ],
+   "note": "R1 (retained plan reviewer) final-gate own-lane re-verify: 4/4 bookings PASS (MEDIUM-4 wrapper both spawn paths; par-6/par-7 verbatim fidelity incl. MEDIUM-3 site re-diff; rederiver fable/xhigh contract in two homes; substrate none-declaration device all five parts). P1 bare-push fail-open residual ruled ACCEPTABLE at blocking rung. New LOW-15(a) missing-cwd branch resolution / LOW-15(b) push.default=upstream — optional hardening, does not block; lead holds disposition until fresh final reviewer closes. Fresh reviewer (final-reviewer) still running the whole-package gate."
+  },
+  {
+   "node": "review_generated_skill",
+   "outcome": "material_findings_fixed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "reviews/validation.md"
+   ],
+   "note": "Final-gate round 1: fresh reviewer verdict REVISE (1 HIGH, 3 MEDIUM, 1 LOW, no BLOCKING; all seven booked items satisfied/ruled; 4 own-worker hypotheses rejected on evidence). Lead landed all five fixes + R1 LOW-15(a): HIGH-1 freeze target corrected to plugin root; MEDIUM-1 chunk-count pitfall reattributed to any-harness with stock-tool claim marked unverified; MEDIUM-2 README stop-guard wording aligned to SKILL.md:14; MEDIUM-3 P1 fail-open residual disclosed in README + hook comment widened (cd/-C, push.default); LOW-1 exact branch names; LOW-15(a) no-cwd skip. Hook re-verified 6/6, bash -n clean. LOW-15(b) deferred (reviewers diverge on hardening shape, both sized optional). Fixes sent to final-reviewer for re-verify."
+  },
+  {
+   "node": "review_generated_skill",
+   "outcome": "review_passed",
+   "evidence": [
+    "reviews/plan-review.md"
+   ],
+   "note": "Final-skill gate CLOSED: fresh reviewer re-verify PASS on all five round-1 findings (HIGH-1 freeze target, MEDIUM-1 chunk-count attribution, MEDIUM-2 stop-guard wording, MEDIUM-3 P1 residual disclosure, LOW-1 exact names); adjacent LOW-15(a) verified no-regression via reviewer-run 11/11 hook matrix; package integrity re-confirmed (graph byte-identical v0, validators/tests PASS, 29 files, zero residue). R1 lane closed earlier same day. Refuse-bare-push suggestion withdrawn by its author; hardening deferred with disclosure. Non-finding noted: verify command in freeze paragraph omits history/vN arg. Both reviewers released. Next: clean-room forward test per review-and-build.md section 6."
+  },
+  {
+   "node": "forward_test_generated_skill",
+   "outcome": "test_dispatched",
+   "evidence": [
+    "build/stage5-integration.md"
+   ],
+   "note": "Clean-room forward test dispatched: fresh pave-init:forward-tester (no model/effort override, session defaults per role contract), temp output dir /tmp/vnp-forward-test-20260826, no-live-mutation rule, fork READ-ONLY. Representative prompt constructed by lead from the approved goal (intake + delta scan for the speculative-decode family, stop at gate 1) — RECORDED GAP: skill-package-plan.md carries no approved representative prompt, so the lead derived one from the frozen goal statement and README invocation contract; tester was told no expected answers or suspected defects. In parallel: unit-2 booking discharged via a direct live fable spawn check (general-purpose agent, model fable, trivial echo task) — result pending."
+  },
+  {
+   "node": "forward_test_generated_skill",
+   "outcome": "booking_discharged",
+   "evidence": [
+    "build/stage5-integration.md"
+   ],
+   "note": "Unit-2 forward-test booking DISCHARGED with world evidence: live spawn of a model-fable agent succeeded on this deployment (returned FABLE-SPAWN-OK, 3.3s, no retry needed). The rederiver seat pin (fable/xhigh) is dispatchable; the retry-identically/three-failure-pause contract remains as the operational fallback for intermittent 400s. Clean-room forward test still running."
+  },
+  {
+   "node": "forward_test_generated_skill",
+   "outcome": "test_in_progress",
+   "evidence": [
+    "build/stage5-integration.md"
+   ],
+   "note": "Forward test progress checkpoint (~75 min in): headless session 1 completed intake/preflight (preflight-record.md + p1-p7 transcripts) and dispatched nine delta tracers (eagle, eagle3, medusa, ngram, ngram_gpu, suffix, draft_model, ...) with per-target reports and verification transcripts under the temp dir; session 2 (resumed 12:33) is assembling the delta report, costing, and ranking toward gate 1. Temp-dir run-state.json actively written; fork untouched. USER DECISION (verbatim: \"okay another half an hour should be fine\"): 30-minute cap approved — background timer armed; on expiry the lead stops the headless session and grades the test on emitted artifacts."
+  },
+  {
+   "node": "forward_test_generated_skill",
+   "outcome": "cap_enforced",
+   "evidence": [
+    "build/stage5-integration.md"
+   ],
+   "note": "User-approved 30-min cap expired at 13:35 without gate 1: session 2 closed 13:17 after landing the delta index (per-target verdict-*.md, coverage-diff.md, sufficiency-record.md); tester had launched session 3 (13:25, costing leg). Lead directed the tester to terminate session 3, launch no further legs, and write the final report from emitted artifacts — grading what ran; the stop is a cap decision, not a package failure. Awaiting tester report."
+  },
+  {
+   "node": "forward_test_generated_skill",
+   "outcome": "test_passed_with_transferable_defects",
+   "evidence": [
+    "reviews/forward-test.md"
+   ],
+   "note": "Tester final report received; lead independently verified fork clean at 0e19f00, marker, emitted run-state discipline, deviation self-disclosure, and gate-1 stop. Grade: PASS with 3 transferable doc defects (headless seat-kill note missing; seat-report write path vs harness guard unbacks the report-hash implication; README run-state-validator fail-closed overclaim). CORRECTED: cap directive and tester report crossed in flight; tester confirmed (pgrep zero sessions) all four legs incl. S4 exited BEFORE the cap message and none launched after - no cap violation; gate 1 reached, no mutation. Full record: reviews/forward-test.md."
+  },
+  {
+   "node": "repair_generated_skill",
+   "outcome": "repairs_landed",
+   "evidence": [
+    "reviews/forward-test.md"
+   ],
+   "note": "Three doc-only repairs landed: SKILL.md Dispatch mechanics 'Non-interactive sessions' paragraph (wait synchronously, poll artifact paths); references/artifact-layout.md sec 4.7 + sec 2 row (lead-transcribed verbatim seat report = first-class landing path, recorded in run state, hash implication restated); README sec 1 validator dependency claim split (validate_pave fails closed; validate_run_state degrades to labeled stdlib basic). No graph/hook/schema/script change. Next: repeat validation steps 1,2,9,10 and a final-review delta round with a fresh material reviewer."
+  },
+  {
+   "node": "review_generated_skill",
+   "outcome": "delta_round_revise_fixed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "reviews/forward-test.md"
+   ],
+   "note": "Post-repair gates: plugin-validator PASS, skill-reviewer PASS (steps 1/2/9/10 repeated). Final-review delta round (fresh reviewer final-reviewer-2) round 1 REVISE: 1 HIGH (fail-closed claim survived in SKILL.md frontmatter compatibility + plugin.json, both outranking the corrected README), 2 MEDIUM (sec 4.7 transcription provenance had no named record/home; polling exit condition unreachable on the refused-write path), 1 LOW (sec 2 blanket stray-write sentence). All four fixed + validator nit (replan_required -> plan_unrealizable_as_designed, pre-existing) + pycache residue deleted. Re-verify requested on same reviewer thread; round 2 pending."
+  },
+  {
+   "node": "review_generated_skill",
+   "outcome": "review_passed",
+   "evidence": [
+    "reviews/plan-review.md",
+    "reviews/forward-test.md"
+   ],
+   "note": "Final-review delta round 2 PASS (final-reviewer-2): all 4 findings re-verified against primary evidence; provenance fix self-sealing (citation inside report-hash scope); reviewer swept all 71 backticked identifiers in SKILL.md - zero dangling; drain-then-pause suggestion ruled not material and declined under proportionality. plugin-validator PASS + skill-reviewer PASS recorded same round. All Stage 5 gates now closed; reviewer retired. Delivery proceeds automatically per review-and-build.md sec 6."
+  },
+  {
+   "node": "deliver_generated_skill",
+   "outcome": "delivered",
+   "evidence": [
+    "reviews/validation.md",
+    "reviews/plan-review.md",
+    "reviews/forward-test.md"
+   ],
+   "note": "Delivered: plugins/vllm-neuron-parity/ (29 files) - plugin manifest 1.0.0, lead skill + 5 hooks, 6 role agents, canonical graph v0 (sha256 9b61e293...8cf263), workflow-manifest (v0 approved, active_revision null, evolving tier), schema + 3 validators, 4 references, 2 tests, README + VERSION 1.0.0. Post-forward-test doc repairs folded in pre-delivery (9 fixes total this stage). Run-workspace workflow-manifest.yaml records the v0 lineage for a later update run. First real execution freezes v1 at the plugin root per the shipped evolution contract."
+  }
+ ],
+ "notes": "Validation runtime (user-approved alternate interpreter): `uv run --no-project --with pyyaml --with jsonschema python` - no system Python carries jsonschema; nothing is installed persistently. Evolution tier: EVOLVING (user decision 2026-08-25; changes from the prior skill's static tier). Supersedes .pave/vllm-neuron-feature-port (Stage-1 revision_requested, now abandoned); its materials plus skills/vllm-neuron-feature-port and the autoport/model-port domain are exploration inputs. Goal brief already carries a 24-decision interview (2026-08-24) and a 12-finding adversarial review (2026-08-25)."
+}

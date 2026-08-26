@@ -1,0 +1,992 @@
+# Root draft v3 — vllm-neuron-parity
+# Planner dispatch: root node. Frozen contract: planning/root-contract.md
+# (referenced, never copied). Pin-generic per the 2026-08-25 amendment:
+# no vllm version, branch name, or SDK version appears in graph text; all
+# are invocation-time run inputs frozen into state at intake.
+pave:
+  version: "0.3.0"
+  name: vllm_neuron_parity
+  status: draft
+  purpose: >
+    Bring the vLLM-Neuron platform plugin fork to parity with upstream vLLM
+    on NVIDIA GPUs, measured on the repo-tracked feature x model parity
+    scorecard. One run: scan the upstream delta against the pinned release,
+    cost each requested target's routes (backport at the pin vs pin upgrade),
+    rank the backlog, and execute user-approved campaigns (feature port and
+    model port; shared intake and shared validation back-end) until each
+    target closes through gate 3 as exactly one of: evidence-backed PR opened
+    on the fork, no-benefit closure, or honest blocked terminal.
+  entrypoints: [verify_run_preconditions]
+
+  scope:
+    in:
+      - Delta scan of upstream reference sources against the pinned release,
+        computed once per run at invocation.
+      - Route costing (backport-at-pin route A with sources A1 upstream GPU
+        vLLM and A2 tpu-inference design-port; pin-upgrade route B as
+        cost-justified fallback, run exclusively, gated on a regression
+        matrix) and backlog ranking.
+      - Campaign execution for both campaign types with a shared validation
+        back-end against a GPU baseline, three user gates per campaign, and
+        gate-3 closure with cross-run artifact updates.
+    out:
+      - Continuous upstream tracking after the per-run delta scan.
+      - Fork sync with official plugin releases (manual, user-owned).
+      - Merging PRs (human).
+      - Hardware provisioning of any kind.
+      - Changing kickoff-declared metrics, thresholds, or methods without an
+        explicit user decision recorded in run state.
+
+  principles:
+    - The pinned base, release-branch name, and SDK version are run inputs
+      read at intake and frozen in state; graph text stays pin-generic.
+    - The agent that measured a number never adjudicates it; comparator sets
+      are pre-registered before measurement; verdicts read stable artifacts,
+      never first-sighting signals.
+    - Adversarial review is material-findings-only and follows every
+      high-stakes artifact - route verdicts, campaign designs,
+      implementations (pre-hardware-spend and pre-PR), measurement verdicts.
+    - CPU-first increments before any hardware attempt; no attempt caps -
+      two-tier breaker instead (fingerprint no-identical-retry; halt and
+      re-derive at every 10 hardware attempts per target).
+    - Cross-run artifacts (scorecard, backlog, debt ledger, fingerprints)
+      have one serialized writer (lead) and never live on campaign branches.
+    - All hardware work is in-band over SSH within the workflow; out-of-band
+      handoff files are the named anti-pattern.
+    - Success evidence settles on world-produced signals (resolvable PR URLs,
+      command transcripts, stable measurement artifacts), never doer
+      self-report.
+
+  roles:
+    lead:
+      purpose: Route outcomes, own run state, present gates, arbitrate the
+        hardware queue, and serialize single-writer updates to the cross-run
+        artifacts.
+    user:
+      purpose: Approval authority at the three campaign gates, criterion
+        changes, GPU-baseline reboot confirmation, PR merge.
+    investigator:
+      purpose: Gap scan, route analysis, costing, and first-principles
+        re-derivation; gathers and weighs evidence, never approves results.
+    implementer:
+      purpose: Design and build campaign candidates in isolated worktrees,
+        run hardware attempts under lease, and assemble PR evidence packages.
+    measurer:
+      purpose: Execute pre-registered measurement procedures against the GPU
+        baseline and write stable evidence artifacts; never adjudicates.
+    adjudicator:
+      purpose: Issue gate verdicts from stable, pre-registered evidence;
+        never the agent that measured; also settles run closure.
+    adversarial_reviewer:
+      purpose: Material-findings-only adversarial review of high-stakes
+        artifacts; independent of the artifact's producer.
+    delegate_dispatcher:
+      purpose: Dispatch external delegate skills through guardrails -
+        intercept forbidden cache-clear remedies, force the equivalence
+        adapter's target stack, scope the benchmark skill away from
+        self-provisioning.
+
+  evidence:
+    run_input_and_preflight_record:
+      kind: observation
+      produced_by: verify_run_preconditions
+      subject: frozen run inputs and preflight command transcripts
+      artifact: artifacts/run/intake-preflight/
+    delta_report:
+      kind: observation
+      produced_by: scan_upstream_delta
+      subject: per-target upstream delta against the pinned release, with
+        source traces
+      artifact: artifacts/run/delta/
+    route_costing_and_backlog:
+      kind: derivation
+      produced_by: cost_routes_and_rank_backlog
+      subject: per-target route costing and the ranked backlog
+      artifact: artifacts/run/backlog/
+    kickoff_contract_record:
+      kind: derivation
+      produced_by: assemble_kickoff_contracts
+      subject: per-campaign kickoff contracts with per-campaign preflights
+      artifact: artifacts/campaigns/<campaign>/kickoff/
+    gate_approval_record:
+      kind: judgment
+      produced_by: [assemble_kickoff_contracts, review_campaign_design, close_campaign]
+      subject: verbatim user decisions at gates 1, 2, 3
+      artifact: artifacts/campaigns/<campaign>/approvals/
+    campaign_design_record:
+      kind: derivation
+      produced_by: design_campaign
+      subject: increment plan, test layout, pre-registered comparator set,
+        predicted file surface, venv and lease plan
+      artifact: artifacts/campaigns/<campaign>/design/
+    implementation_changeset:
+      kind: observation
+      produced_by: implement_increments
+      subject: campaign branch diffs plus CPU-mode increment evidence
+      artifact: artifacts/campaigns/<campaign>/increments/
+    hardware_attempt_log:
+      kind: observation
+      produced_by: run_hardware_attempts
+      subject: one-file-per-event attempt, fingerprint, lease, and recovery
+        records
+      artifact: artifacts/campaigns/<campaign>/attempts/
+    rederivation_record:
+      kind: derivation
+      produced_by: rederive_approach
+      subject: first-principles re-derivation verdict and revised approach
+      artifact: artifacts/campaigns/<campaign>/rederivations/
+    measurement_artifacts:
+      kind: observation
+      produced_by: measure_against_baseline
+      subject: correctness and performance measurements against the GPU
+        baseline, stable-read collected
+      artifact: artifacts/campaigns/<campaign>/measurements/
+    adjudication_verdict:
+      kind: judgment
+      produced_by: adjudicate_results
+      subject: gate verdicts against kickoff-declared thresholds
+      artifact: artifacts/campaigns/<campaign>/verdicts/
+    adversarial_review_findings:
+      kind: judgment
+      produced_by: [review_route_verdicts, review_campaign_design, review_implementation, review_measurement_verdict, review_pr_evidence]
+      subject: material findings, or the recorded absence of any
+      artifact: artifacts/reviews/
+    pr_evidence_package:
+      kind: derivation
+      produced_by: prepare_pr
+      subject: contribution-checklist-complete PR draft with linked evidence
+      artifact: artifacts/campaigns/<campaign>/pr/
+    closure_record:
+      kind: observation
+      produced_by: close_campaign
+      subject: exactly one executed closure (resolvable PR URL, no-benefit
+        bundle with upstream-issue draft, or blocked record) plus the
+        cross-run artifact updates
+      artifact: artifacts/campaigns/<campaign>/closure/
+    run_closure_verdict:
+      kind: judgment
+      produced_by: verify_run_closure
+      subject: per-campaign closure verification against world evidence
+      artifact: artifacts/run/closure/
+
+  checks:
+    kickoff_contract_approved:
+      style: reviewed
+      question: Does every campaign entering execution carry a complete
+        kickoff contract (targets, routes, sources, thresholds, methods,
+        models, hosts, test layout, spend notes, delegate/venv/weights/
+        GPU-baseline preflights, pinned-release-branch-present-on-fork and
+        SDK-uniformity preflight, deepseek carry-over decision) approved
+        verbatim by the user at gate 1?
+      evaluated_by: user
+      on_failure_route: assemble_kickoff_contracts
+    design_approved_by_user:
+      style: reviewed
+      question: Does the user approve this campaign design at gate 2, and
+        does any change to kickoff-declared criteria carry an explicit
+        recorded user decision?
+      evaluated_by: user
+      on_failure_route: design_campaign
+    comparators_preregistered:
+      style: mechanical
+      question: Is the comparator set for this campaign recorded and frozen
+        in run state with a timestamp preceding every measurement artifact?
+      evaluated_by: lead
+      on_failure_route: design_campaign
+    evidence_stable_before_verdict:
+      style: mechanical
+      question: Are all measurement artifacts complete and stable on re-read
+        (never first-sighting signals) before adjudication begins?
+      evaluated_by: lead
+      on_failure_route: measure_against_baseline
+    measurer_not_adjudicator:
+      style: mechanical
+      question: Is the adjudicating agent identity distinct from every agent
+        that produced the measurement artifacts under verdict?
+      evaluated_by: lead
+      on_failure_route: measure_against_baseline
+    closure_evidence_settled:
+      style: mechanical
+      question: Does the closure record carry the verbatim gate-3 approval
+        and world-produced evidence (a PR URL resolvable on the fork, or the
+        recorded no-benefit or blocked bundle), and do the scorecard,
+        backlog, debt ledger, and fingerprint file reflect it?
+      evaluated_by: lead
+      on_failure_route: close_campaign
+
+  nodes:
+    verify_run_preconditions:
+      intent: execute
+      purpose: Read the invocation inputs (pinned release descriptor, target
+        request, instance roster), freeze them in run state, and verify every
+        run precondition before any other work - pinned release branch
+        present on the fork, delegate skills available (namespaced addressing
+        resolved), SDK and compiler uniformity across named hosts, GPU
+        baseline reachable, per-target weight artifacts present, venv
+        replication precondition (Neuron private-index or DLAMI-preinstalled
+        dependency check), cross-run artifacts loaded, prior-run carry-over
+        decisions surfaced to the user. Out of scope - any fork sync (manual,
+        user-owned) and any provisioning.
+      roles: [lead, investigator]
+      produces: [run_input_and_preflight_record]
+      allowed_effects:
+        - Read-only SSH probes to the named instances.
+        - Read-only gh and git queries against fork and upstream sources.
+      forbidden_effects:
+        - Any write to the fork, the hosts, or the cross-run artifacts.
+      outcomes:
+        preconditions_met:
+          meaning: Every precondition verified with a recorded command
+            transcript; run inputs frozen in state.
+          required_evidence: [run_input_and_preflight_record]
+        inputs_missing:
+          meaning: A user-owned input is absent (for example the pinned
+            release branch is not on the fork); resumable state preserved.
+
+    scan_upstream_delta:
+      intent: explore
+      purpose: Compute, once per run, the delta between the pinned release
+        and the upstream reference sources for each requested target - route
+        A1 traces against upstream GPU vLLM, route A2 design traces against
+        tpu-inference where the target is TPU-supported - including
+        mechanical runner-entanglement checks and traceability sweeps. Out of
+        scope - route selection, costing, and any continuous tracking after
+        this scan.
+      roles: [investigator]
+      consumes: [run_input_and_preflight_record]
+      produces: [delta_report]
+      outcomes:
+        delta_mapped:
+          meaning: Every requested target has a delta report with source
+            traces sufficient for costing.
+          required_evidence: [delta_report]
+        sources_unreachable:
+          meaning: A reference source required for the scan is unavailable;
+            resumable state preserved.
+
+    cost_routes_and_rank_backlog:
+      intent: plan
+      purpose: For each requested target, cost route A backport at the pin
+        (choosing between sources A1 and A2) against route B pin upgrade
+        (fallback, justified on cost, exclusive-execution, regression-matrix
+        gated), predict the touched-file surface for conflict-aware
+        scheduling, and rank the backlog. Out of scope - starting any
+        campaign.
+      roles: [investigator]
+      consumes: [delta_report]
+      produces: [route_costing_and_backlog]
+      outcomes:
+        backlog_ranked:
+          meaning: Every requested target carries a costed route verdict and
+            a backlog rank with recorded rationale.
+          required_evidence: [route_costing_and_backlog]
+        evidence_gap:
+          meaning: Costing exposed a named gap the delta scan must close.
+
+    review_route_verdicts:
+      intent: review
+      purpose: Adversarial, material-findings-only review of the gap-scan
+        and route-analysis verdicts before any user gate consumes them.
+      roles: [adversarial_reviewer]
+      consumes: [delta_report, route_costing_and_backlog]
+      produces: [adversarial_review_findings]
+      outcomes:
+        verdicts_sound:
+          meaning: No material finding stands against the route verdicts.
+          required_evidence: [adversarial_review_findings]
+        material_findings:
+          meaning: Named material defects require re-costing.
+
+    assemble_kickoff_contracts:
+      intent: execute
+      purpose: For each target the user elects from the reviewed backlog,
+        assemble the complete kickoff contract - target, route, source,
+        thresholds, methods, models, hosts, test layout, spend notes, all
+        per-campaign preflights, and prior-run carry-over decisions - present
+        gate 1, and record the approved campaign set in run state. The run
+        refuses to start any campaign whose kickoff contract is incomplete.
+      roles: [lead, user]
+      consumes: [route_costing_and_backlog, adversarial_review_findings]
+      produces: [kickoff_contract_record, gate_approval_record]
+      outcomes:
+        contracts_ready:
+          meaning: At least one campaign has a complete kickoff contract and
+            a verbatim gate-1 approval record.
+          required_evidence: [kickoff_contract_record, gate_approval_record]
+        no_campaign_approved:
+          meaning: The user approves no campaign; the run closes without
+            execution.
+
+    design_campaign:
+      intent: plan
+      instance_per: approved_campaigns
+      purpose: Produce this campaign's design under its kickoff contract -
+        CPU-first increment plan, test layout, pre-registered comparator set
+        for both gates, predicted file surface for conflict-aware scheduling,
+        venv and lease plan. One design shape serves both campaign types.
+        Out of scope - any code change or hardware contact.
+      roles: [implementer, investigator]
+      consumes: [kickoff_contract_record, delta_report]
+      produces: [campaign_design_record]
+      outcomes:
+        design_ready:
+          meaning: A complete design exists, comparator set frozen before any
+            measurement.
+          required_evidence: [campaign_design_record]
+        infeasible_at_pin:
+          meaning: Design-time evidence shows the target cannot be realized
+            at the pinned release (for example a required subsystem left the
+            repo); routed to close-out with the evidence.
+
+    review_campaign_design:
+      intent: review
+      instance_per: approved_campaigns
+      purpose: Adversarial, material-findings-only review of the campaign
+        design before the user sees it at gate 2.
+      roles: [adversarial_reviewer]
+      consumes: [campaign_design_record]
+      produces: [adversarial_review_findings, gate_approval_record]
+      outcomes:
+        design_sound:
+          meaning: No material finding stands; design ready for gate 2.
+          required_evidence: [adversarial_review_findings]
+        material_findings:
+          meaning: Named material defects require redesign.
+
+    implement_increments:
+      intent: execute
+      instance_per: approved_campaigns
+      purpose: Realize the approved design as CPU-first increments in this
+        campaign's isolated worktree and branch, dispatching delegate skills
+        only through guardrails. Out of scope - hardware attempts and any
+        write outside the campaign worktree and branch.
+      roles: [implementer, delegate_dispatcher]
+      consumes: [campaign_design_record]
+      produces: [implementation_changeset]
+      allowed_effects:
+        - Writes inside this campaign's worktree and branch on the fork.
+        - CPU-mode execution on local or assigned hosts.
+        - Guardrailed delegate dispatch.
+      forbidden_effects:
+        - Mutating protected base branches (the pinned release branches,
+          main, mainline) on fork or upstream.
+        - NxDI imports in ported code.
+        - Clearing the shared Neuron compile cache.
+      outcomes:
+        increments_ready:
+          meaning: All planned increments pass their CPU-mode evidence and
+            the branch diff is recorded.
+          required_evidence: [implementation_changeset]
+        design_defect_found:
+          meaning: Implementation evidence contradicts the approved design.
+        scope_exceeded:
+          meaning: The increment plan does not fit this node as sized;
+            returns to design with the exhaustion evidence.
+
+    review_implementation:
+      intent: review
+      instance_per: approved_campaigns
+      purpose: Adversarial, material-findings-only review of the
+        implementation before any hardware spend.
+      roles: [adversarial_reviewer]
+      consumes: [implementation_changeset, campaign_design_record]
+      produces: [adversarial_review_findings]
+      outcomes:
+        ready_for_hardware:
+          meaning: No material finding stands; hardware spend justified.
+          required_evidence: [adversarial_review_findings]
+        material_findings:
+          meaning: Named material defects require implementation repair.
+
+    run_hardware_attempts:
+      intent: execute
+      instance_per: approved_campaigns
+      purpose: Bring the candidate to a serving state on this campaign's
+        assigned Neuron host(s) - acquire an exclusive hardware-queue lease
+        with pre-action identity re-verification, replicate the venv by the
+        freeze-replicate recipe (private-index precondition verified at
+        intake), run compile and serve attempts with fingerprint
+        no-identical-retry against the repo-tracked fingerprint file, and
+        recover the campaign's own assigned host autonomously under lease
+        (drain and checkpoint first, everything logged). Out of scope -
+        recovery or reboot of any host not leased to this campaign, and the
+        GPU baseline always.
+      roles: [implementer, lead, delegate_dispatcher]
+      consumes: [implementation_changeset, campaign_design_record]
+      produces: [hardware_attempt_log]
+      allowed_effects:
+        - In-band SSH to the campaign's leased hosts.
+        - Per-campaign venv creation by freeze-replicate.
+        - Autonomous recovery of leased hosts only, logged.
+      forbidden_effects:
+        - Clearing the shared Neuron compile cache (delegate remedies
+          intercepted).
+        - cp -a venv cloning or any pip write into /opt.
+        - Any action on the GPU baseline without user confirmation.
+        - Identical retry of a fingerprinted failure.
+      outcomes:
+        candidate_serving:
+          meaning: The candidate compiles and serves on the leased host with
+            attempt evidence recorded.
+          required_evidence: [hardware_attempt_log]
+        breaker_tripped:
+          meaning: Ten hardware attempts on this target since the last
+            re-derivation; the two-tier breaker halts the loop.
+        hardware_unavailable:
+          meaning: No assigned host is recoverable under lease and no
+            replacement exists in the roster; routed to close-out with the
+            evidence.
+
+    rederive_approach:
+      intent: plan
+      instance_per: approved_campaigns
+      purpose: First-principles re-derivation after the breaker trips, a
+        measurement path dead-ends, or the user declines a close-out -
+        re-read the accumulated evidence and produce exactly one of - a
+        revised design, a route-change proposal (a kickoff-criteria change
+        requiring an explicit user decision at the next gate), or a close-out
+        recommendation.
+      roles: [investigator, lead]
+      consumes: [hardware_attempt_log, adjudication_verdict, campaign_design_record]
+      produces: [rederivation_record]
+      outcomes:
+        revised_approach:
+          meaning: A materially different approach is recorded and re-enters
+            design and its gates.
+          required_evidence: [rederivation_record]
+        close_out_recommended:
+          meaning: The evidence supports closing this campaign; routed to
+            gate 3.
+          required_evidence: [rederivation_record]
+
+    measure_against_baseline:
+      intent: execute
+      instance_per: approved_campaigns
+      purpose: Execute the kickoff-declared correctness and performance
+        procedures for this campaign against the GPU baseline using only the
+        pre-registered comparator set, writing stable one-file-per-event
+        measurement artifacts. Out of scope - any verdict on the numbers
+        this node produces.
+      roles: [measurer, delegate_dispatcher]
+      consumes: [campaign_design_record, hardware_attempt_log]
+      produces: [measurement_artifacts]
+      allowed_effects:
+        - In-band SSH to leased Neuron hosts and read-only use of the named
+          GPU baseline.
+      forbidden_effects:
+        - Choosing or altering comparators after measurement begins.
+        - Autonomous GPU-baseline reboot or reset.
+      outcomes:
+        measurements_recorded:
+          meaning: Every kickoff-declared measurement exists as a stable
+            artifact.
+          required_evidence: [measurement_artifacts]
+        measurement_blocked:
+          meaning: A declared measurement cannot be produced (capability or
+            baseline gap); routed to re-derivation with the evidence.
+
+    adjudicate_results:
+      intent: review
+      instance_per: approved_campaigns
+      purpose: Issue the correctness-gate and performance-gate verdicts for
+        this campaign by reading the stable measurement artifacts against the
+        kickoff-declared thresholds. The adjudicating agent never produced
+        any artifact under verdict.
+      roles: [adjudicator]
+      consumes: [measurement_artifacts, campaign_design_record]
+      produces: [adjudication_verdict]
+      outcomes:
+        verdict_recorded:
+          meaning: Both gate verdicts recorded with their evidence trail.
+          required_evidence: [adjudication_verdict]
+        evidence_unstable:
+          meaning: An artifact under verdict is incomplete or changed on
+            re-read; measurement must re-collect.
+
+    review_measurement_verdict:
+      intent: review
+      instance_per: approved_campaigns
+      purpose: Adversarial, material-findings-only review of the measurement
+        verdicts, then confirm exactly one consequence - gates passed,
+        correctness shortfall, or correct-but-no-benefit.
+      roles: [adversarial_reviewer]
+      consumes: [adjudication_verdict, measurement_artifacts]
+      produces: [adversarial_review_findings]
+      outcomes:
+        pass_confirmed:
+          meaning: Both gates passed and the verdict withstood review.
+          required_evidence: [adversarial_review_findings]
+        correctness_shortfall_confirmed:
+          meaning: The correctness gate failed and the verdict withstood
+            review; implementation resumes.
+          required_evidence: [adversarial_review_findings]
+        no_benefit_confirmed:
+          meaning: Correct port, performance gate failed, verdict withstood
+            review; routed to no-benefit close-out.
+          required_evidence: [adversarial_review_findings]
+        material_findings:
+          meaning: Named material defects in the verdict require
+            re-adjudication.
+
+    prepare_pr:
+      intent: execute
+      instance_per: approved_campaigns
+      purpose: Assemble the evidence-backed PR package on the campaign
+        branch - contribution-checklist-complete description, linked
+        measurement and review evidence, clean diff against the pinned
+        release branch. Out of scope - opening the PR (a gate-3 closure
+        action).
+      roles: [implementer]
+      consumes: [implementation_changeset, measurement_artifacts, adjudication_verdict]
+      produces: [pr_evidence_package]
+      outcomes:
+        pr_package_ready:
+          meaning: The package is complete and every claim links to world
+            evidence.
+          required_evidence: [pr_evidence_package]
+        evidence_gap_found:
+          meaning: A claim lacks its evidence; measurement must fill the gap.
+
+    review_pr_evidence:
+      intent: review
+      instance_per: approved_campaigns
+      purpose: Adversarial, material-findings-only review of the PR package
+        before anything is pushed for closure.
+      roles: [adversarial_reviewer]
+      consumes: [pr_evidence_package]
+      produces: [adversarial_review_findings]
+      outcomes:
+        pr_ready:
+          meaning: No material finding stands; the package may close through
+            gate 3.
+          required_evidence: [adversarial_review_findings]
+        material_findings:
+          meaning: Named material defects require package repair.
+
+    close_campaign:
+      intent: execute
+      instance_per: approved_campaigns
+      purpose: Present gate 3 with the closure candidate and its evidence,
+        record the verbatim user decision, execute exactly one approved
+        closure - push the branch and open the PR on the fork, record the
+        no-benefit bundle with its upstream-issue draft, or record the
+        blocked terminal - then apply the serialized single-writer updates to
+        the scorecard, backlog, debt ledger, and fingerprint file. Out of
+        scope - merging the PR (human) and any write to a campaign branch
+        during artifact updates.
+      roles: [lead, user, implementer]
+      consumes: [pr_evidence_package, adjudication_verdict, rederivation_record, hardware_attempt_log]
+      produces: [closure_record, gate_approval_record]
+      allowed_effects:
+        - Branch push and PR open on the fork only.
+        - Serialized writes to the cross-run artifacts in the workflow repo.
+      forbidden_effects:
+        - Mutating protected base branches on fork or upstream.
+        - More than one closure type per campaign.
+      outcomes:
+        closure_recorded:
+          meaning: Exactly one closure executed with its world evidence and
+            the cross-run artifacts updated.
+          required_evidence: [closure_record, gate_approval_record]
+        closure_declined:
+          meaning: The user declines the closure at gate 3 and directs
+            further work; routed to re-derivation.
+
+    verify_run_closure:
+      intent: review
+      purpose: Settle the run outcome from world evidence only - for each
+        gate-1-approved campaign, read its close-out approval record and its
+        closure evidence (PR URL resolvable on the fork, or the recorded
+        no-benefit or blocked bundle) and confirm the cross-run artifacts on
+        disk reflect every closure. Never settled by the lead's own
+        assertion. Runs at each campaign closure; holds until all campaigns
+        settle.
+      roles: [adjudicator]
+      consumes: [closure_record, gate_approval_record]
+      produces: [run_closure_verdict]
+      outcomes:
+        run_closed_complete:
+          meaning: Every approved campaign reached exactly one verified
+            gate-3 closure and the artifacts reflect it.
+          required_evidence: [run_closure_verdict]
+        campaigns_remaining:
+          meaning: Verified closures so far recorded; other approved
+            campaigns are still open.
+          required_evidence: [run_closure_verdict]
+        resumable_stop:
+          meaning: Remaining campaigns cannot proceed now but resumable
+            state is preserved.
+        no_route_remains:
+          meaning: A required capability, resource, or authority is gone and
+            no declared route remains for the open campaigns.
+
+  edges:
+    - id: preconditions_to_delta_scan
+      from: verify_run_preconditions.preconditions_met
+      to: scan_upstream_delta
+    - id: missing_inputs_to_pause
+      from: verify_run_preconditions.inputs_missing
+      to: run_paused
+    - id: delta_to_costing
+      from: scan_upstream_delta.delta_mapped
+      to: cost_routes_and_rank_backlog
+    - id: unreachable_sources_to_pause
+      from: scan_upstream_delta.sources_unreachable
+      to: run_paused
+    - id: backlog_to_route_review
+      from: cost_routes_and_rank_backlog.backlog_ranked
+      to: review_route_verdicts
+    - id: costing_gap_to_delta_scan
+      from: cost_routes_and_rank_backlog.evidence_gap
+      to: scan_upstream_delta
+    - id: sound_verdicts_to_kickoff
+      from: review_route_verdicts.verdicts_sound
+      to: assemble_kickoff_contracts
+    - id: route_findings_to_recosting
+      from: review_route_verdicts.material_findings
+      to: cost_routes_and_rank_backlog
+    - id: approved_campaigns_fan_out
+      from: assemble_kickoff_contracts.contracts_ready
+      to:
+        fan_out: design_campaign
+        for_each: approved_campaigns
+      checks: [kickoff_contract_approved]
+    - id: no_campaigns_to_abort
+      from: assemble_kickoff_contracts.no_campaign_approved
+      to: run_aborted
+    - id: design_to_design_review
+      from: design_campaign.design_ready
+      to: review_campaign_design
+    - id: infeasible_design_to_closeout
+      from: design_campaign.infeasible_at_pin
+      to: close_campaign
+    - id: sound_design_to_implementation
+      from: review_campaign_design.design_sound
+      to: implement_increments
+      checks: [design_approved_by_user]
+    - id: design_findings_to_redesign
+      from: review_campaign_design.material_findings
+      to: design_campaign
+    - id: increments_to_impl_review
+      from: implement_increments.increments_ready
+      to: review_implementation
+    - id: design_defect_to_redesign
+      from: implement_increments.design_defect_found
+      to: design_campaign
+    - id: implementation_scope_to_redesign
+      from: implement_increments.scope_exceeded
+      to: design_campaign
+    - id: reviewed_impl_to_hardware
+      from: review_implementation.ready_for_hardware
+      to: run_hardware_attempts
+    - id: impl_findings_to_repair
+      from: review_implementation.material_findings
+      to: implement_increments
+    - id: serving_candidate_to_measurement
+      from: run_hardware_attempts.candidate_serving
+      to: measure_against_baseline
+      checks: [comparators_preregistered]
+    - id: breaker_to_rederivation
+      from: run_hardware_attempts.breaker_tripped
+      to: rederive_approach
+    - id: lost_hardware_to_closeout
+      from: run_hardware_attempts.hardware_unavailable
+      to: close_campaign
+    - id: revised_approach_to_redesign
+      from: rederive_approach.revised_approach
+      to: design_campaign
+    - id: rederived_closeout_to_gate
+      from: rederive_approach.close_out_recommended
+      to: close_campaign
+    - id: measurements_to_adjudication
+      from: measure_against_baseline.measurements_recorded
+      to: adjudicate_results
+      checks: [evidence_stable_before_verdict, measurer_not_adjudicator]
+    - id: blocked_measurement_to_rederivation
+      from: measure_against_baseline.measurement_blocked
+      to: rederive_approach
+    - id: verdict_to_verdict_review
+      from: adjudicate_results.verdict_recorded
+      to: review_measurement_verdict
+    - id: unstable_evidence_to_remeasure
+      from: adjudicate_results.evidence_unstable
+      to: measure_against_baseline
+    - id: confirmed_pass_to_pr_prep
+      from: review_measurement_verdict.pass_confirmed
+      to: prepare_pr
+    - id: confirmed_shortfall_to_repair
+      from: review_measurement_verdict.correctness_shortfall_confirmed
+      to: implement_increments
+    - id: confirmed_no_benefit_to_closeout
+      from: review_measurement_verdict.no_benefit_confirmed
+      to: close_campaign
+    - id: verdict_findings_to_readjudication
+      from: review_measurement_verdict.material_findings
+      to: adjudicate_results
+    - id: pr_package_to_pr_review
+      from: prepare_pr.pr_package_ready
+      to: review_pr_evidence
+    - id: evidence_gap_to_remeasure
+      from: prepare_pr.evidence_gap_found
+      to: measure_against_baseline
+    - id: reviewed_pr_to_closeout
+      from: review_pr_evidence.pr_ready
+      to: close_campaign
+    - id: pr_findings_to_package_repair
+      from: review_pr_evidence.material_findings
+      to: prepare_pr
+    - id: closure_to_run_verification
+      from: close_campaign.closure_recorded
+      to: verify_run_closure
+      checks: [closure_evidence_settled]
+    - id: declined_closure_to_rederivation
+      from: close_campaign.closure_declined
+      to: rederive_approach
+    - id: verified_run_to_complete
+      from: verify_run_closure.run_closed_complete
+      to: run_complete
+    - id: open_campaigns_to_join
+      from: verify_run_closure.campaigns_remaining
+      to: await_remaining_closures
+    - id: resumable_stop_to_pause
+      from: verify_run_closure.resumable_stop
+      to: run_paused
+    - id: no_route_to_blocked
+      from: verify_run_closure.no_route_remains
+      to: run_blocked
+
+  control_endpoints:
+    run_complete:
+      kind: terminal
+      meaning: Every gate-1-approved campaign reached exactly one verified
+        gate-3 closure and the cross-run artifacts reflect each closure.
+      terminal_status: accepted
+    run_paused:
+      kind: pause
+      meaning: The user pauses, or a required input, source, or hardware
+        capability is unavailable; resumable state preserved. A run that
+        closes in this condition records terminal classification incomplete.
+      resumable: true
+    run_blocked:
+      kind: terminal
+      meaning: A required capability, resource, or authority is unavailable
+        and no declared route remains.
+      terminal_status: blocked
+    run_aborted:
+      kind: terminal
+      meaning: The user stops the run before the approved campaign set
+        closes.
+      terminal_status: closed_unaccepted
+    await_remaining_closures:
+      kind: join
+      meaning: Hold until every approved campaign instance reaches its
+        verified closure; run-closure verification re-runs at each closure.
+
+  state:
+    required:
+      - workflow_identity
+      - pinned_release
+      - requested_targets
+      - instance_roster
+      - cross_run_artifact_refs
+      - ranked_backlog
+      - approved_campaigns
+      - campaign_states
+      - comparator_registrations
+      - hardware_attempt_counts
+      - hardware_lease_record
+      - gate_approval_records
+      - active_node_runs
+      - completed_outcomes
+      - evidence_references
+      - open_questions
+      - terminal_classification
+    fields:
+      pinned_release:
+        meaning: Frozen at intake - base version, release-branch name, SDK
+          and compiler versions. The single pin authority for the run; graph
+          text never names these values.
+      approved_campaigns:
+        meaning: Fan-out collection - one entry per gate-1-approved campaign
+          with target, route, source, type, and kickoff-contract reference.
+      hardware_attempt_counts:
+        meaning: Per-target shared budget across all routes that spend
+          hardware attempts; the tier-2 breaker reads it at every 10.
+      campaign_states:
+        meaning: Pointer per campaign to its own state and evidence
+          directory (one-file-per-event); never inlined into run state.
+    checkpoint:
+      after_every_consequential_transition: true
+
+  completion:
+    acceptance: Every gate-1-approved campaign closed through gate 3 as
+      exactly one declared closure, each verified against world-produced
+      evidence, with all four cross-run artifacts updated.
+    closure: The run records an honest terminal classification and preserves
+      open risks, discoveries, and resumable state.
+
+  extensions:
+    x_planning:
+      dispatched_node: root
+      frozen_contract_reference: planning/root-contract.md
+      elaboration:
+        root:
+          verdict: decompose
+          justification: Multi-session run with parallel campaigns, three
+            user gates per campaign, and authority separation
+            (measure/adjudicate/review) cannot settle in one bounded
+            context; overturned only if one agent could run intake, one
+            campaign, validation, and closure end-to-end.
+        verify_run_preconditions:
+          prediction: atomic
+          justification: One agent runs read-only SSH/gh/file preflights and
+            freezes run inputs; settles on recorded command transcripts.
+        scan_upstream_delta:
+          prediction: decompose
+          justification: Per-target tracing across two reference sources
+            with grep/log sweeps likely exceeds one context for multi-target
+            requests; overturned if the request names one or two headline
+            targets.
+        cost_routes_and_rank_backlog:
+          prediction: atomic
+          justification: Costing consumes finished delta reports plus the
+            mechanical entanglement check; overturned if costing demands
+            fresh repo archaeology beyond the reports.
+        review_route_verdicts:
+          prediction: atomic
+          justification: Bounded adversarial read of two artifacts; settles
+            on a findings record.
+        assemble_kickoff_contracts:
+          prediction: atomic
+          justification: Template-driven assembly plus per-campaign
+            preflights and one gate presentation; settles on complete
+            contract plus verbatim approval records.
+        design_campaign:
+          prediction: decompose
+          justification: Comparator pre-registration, increment plan, test
+            layout, and conflict prediction span several judgment surfaces;
+            the validation procedure it pre-registers is new construction.
+        review_campaign_design:
+          prediction: atomic
+          justification: Bounded adversarial read of one design record.
+        implement_increments:
+          prediction: decompose
+          justification: Multi-increment implementation across
+            collision-heavy surfaces (runner, platform, scheduler) with
+            CPU-mode evidence per increment.
+        review_implementation:
+          prediction: atomic
+          justification: Bounded adversarial read of one changeset against
+            one design.
+        run_hardware_attempts:
+          prediction: decompose
+          justification: Lease service, freeze-replicate venv (never yet
+            executed anywhere), attempt loop, and host recovery are each new
+            construction with distinct recovery; one context cannot hold all
+            four plus the attempt loop.
+        rederive_approach:
+          prediction: atomic
+          justification: Bounded first-principles read of one campaign's
+            accumulated evidence producing one of three recorded outcomes.
+        measure_against_baseline:
+          prediction: decompose
+          justification: The repeatable GPU-baseline correctness plus perf
+            procedure exists nowhere as a procedure (built once by hand,
+            forensically); building and running it spans harness
+            construction and stable-read collection.
+        adjudicate_results:
+          prediction: atomic
+          justification: Reads stable artifacts against pre-registered
+            thresholds; settles on a verdict record with an evidence trail.
+        review_measurement_verdict:
+          prediction: atomic
+          justification: Bounded adversarial read of verdict plus artifacts;
+            four-way routing is judgment, not volume.
+        prepare_pr:
+          prediction: atomic
+          justification: Checklist-driven packaging of existing evidence;
+            overturned if evidence gaps force repeated re-measurement loops.
+        review_pr_evidence:
+          prediction: atomic
+          justification: Bounded adversarial read of one package.
+        close_campaign:
+          prediction: atomic
+          justification: One gate presentation, one closure execution, four
+            serialized artifact writes; settles on a resolvable PR URL or
+            recorded bundle.
+        verify_run_closure:
+          prediction: atomic
+          justification: Reads closure records, resolves PR URLs via gh, and
+            diffs the artifacts on disk; pure evidence reading.
+      pin_generic_dependencies:
+        - scan_upstream_delta - the delta volume and the
+          compile-subsystem-left-the-repo consequence hold at the current
+          pin; a different pin changes scan scope, not node meaning.
+        - design_campaign - compile-touching targets need re-scoping or an
+          upstream-issue path at the current pin.
+        - run_hardware_attempts - the freeze-replicate private-index
+          precondition (a core dependency resolving only from the vendor
+          index at the current pin) is verified at intake, consumed here.
+        - verify_run_preconditions - the runner-default boundary one release
+          above the current pin informs the entanglement check the delta
+          scan runs; recorded at intake.
+      fan_in_note: verify_run_closure is run-scoped and receives edges from
+        an instance-per-campaign node; it runs at each closure and routes
+        campaigns_remaining to the await_remaining_closures join endpoint
+        until every approved campaign settles. Runtime binding realizes the
+        join; the node's own verdict logic is idempotent per closure.
+      loop_bounds:
+        - Hardware and correctness-repair loops carry no attempt caps by
+          contract; they are bounded by the persisted fingerprint file
+          (no-identical-retry) plus two designed operator stops - the tier-2
+          breaker at every 10 hardware attempts per target
+          (hardware_attempt_counts is a recorded shared budget across all
+          routes that spend attempts) and the three user gates.
+        - Review-repair loops (design, implementation, measurement, PR) are
+          bounded by material-findings-only review plus the same persisted
+          evidence records; repeated identical findings route to
+          rederive_approach via the producing node's judgment.
+      evidence_gameability:
+        - run_input_and_preflight_record - gameable (doer-run probes);
+          hardened by requiring raw command transcripts in the artifact.
+        - delta_report / route_costing_and_backlog - gameable (judgment
+          text); hardened by UR-10 adversarial review before any gate
+          consumes them.
+        - implementation_changeset - low (git-produced diffs); CPU-mode
+          evidence hardened by pre-hardware adversarial review.
+        - hardware_attempt_log - low (one-file-per-event logs plus lease
+          records).
+        - measurement_artifacts - gameable (measurer-produced); hardened
+          first by structure - pre-registered comparators, stable-read
+          checks, measurer-never-adjudicates - then adversarial review.
+        - closure_record - not gameable for the PR path (gh-resolvable URL);
+          no-benefit and blocked bundles hardened by gate-3 verbatim
+          approval plus run-closure verification.
+      model_effort_assignments:
+        lead: session top model, high effort - routing and gate judgment
+          compound across the whole run.
+        investigator: strong model, high effort - costing and re-derivation
+          are judgment-heavy with wide blast radius.
+        implementer: strong model, high effort - collision-heavy code
+          surfaces; xhigh only for long hardware-attempt sessions.
+        measurer: strong model, medium effort - procedure execution against
+          a frozen design; wrong answers are caught by adjudication.
+        adjudicator: strong model, high effort - verdicts have direct
+          gate authority.
+        adversarial_reviewer: strong model, high effort - material-findings
+          judgment guards every high-stakes transition.
+        delegate_dispatcher: small fast model, low effort - scoped
+          single-question dispatches through fixed guardrails.
+      open_questions:
+        - Join and fan-in runtime semantics for verify_run_closure - assumed
+          the runtime binding re-dispatches it per closure and
+          await_remaining_closures holds; flag for the assembly stage.
+        - The vendor SDK release notes name an adjacent autoport agentic
+          skill - competing tool, prerequisite, or irrelevant; routed into
+          verify_run_preconditions delegate preflight scope.
+        - Namespaced delegate addressing (observed prefix form) unresolved;
+          routed into verify_run_preconditions preflight scope.
+        - One doc-only possible regression (segmented prefill on a
+          multimodal model) unverified against code; routed into
+          scan_upstream_delta scope for affected targets.
+      conflicts: []

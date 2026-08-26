@@ -1,0 +1,378 @@
+pave:
+  name: run_candidate_measurements
+  status: draft
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: run_candidate_measurements
+      frozen_contract_reference: planning/measure_against_baseline.v2.draft.pave.yaml#run_candidate_measurements
+      parent_authority_chain: planning/root.v6.draft.pave.yaml#measure_against_baseline
+
+      elaboration:
+        run_candidate_measurements:
+          verdict: atomic
+          justification: >
+            One agent executes the already smoke-verified fixed invocations
+            over in-band SSH against the serving candidate and settles the
+            definition of done from artifact files, never from held context
+            - raw outputs land one file per event, defect findings land as
+            their own event files, and the four-way routing judgment is
+            precedence-ordered by the frozen contract text itself, so the
+            runtime judgment is bounded per-run classification (does this
+            output indict the procedure, the reference, or the serving
+            state), not design. Runtime-Binding check taken first - the
+            declared measurement list is bounded per campaign by the
+            kickoff contract, individual measurement legs are minutes-scale
+            in the prior campaign's artifacts, and the delegate_dispatcher
+            seats already give the binding its fan-out for independent
+            measurement invocations, so parallelism cannot force child
+            nodes. All construction judgment (procedure realization) and
+            all reference production live in sibling nodes; this node
+            executes and never chooses. Confirms the parent's atomic
+            prediction. Overturned if per-run defect classification cannot
+            be settled by reading the run output beside the procedure
+            record and reference capture (forcing design-depth comparator
+            reasoning into this seat), if raw run outputs prove too large
+            to classify from files, or if one campaign's declared list
+            exceeds a session horizon even with delegate fan-out - a lost
+            session is otherwise lossless, since run records, defect
+            records, and the attempt recipe are all persisted resume
+            points.
+
+      uncertainty_ledger:
+        facts:
+          - fact: A full prior campaign executed this measurement shape end
+              to end - a manual streaming harness over the completions
+              endpoint, seventy-two requests per leg, roughly one to five
+              minutes per leg, re-entered about eight times across two
+              days, with results persisted as per-request JSON artifacts.
+            source: exploration/validation-and-acceptance.md, benefit-gate
+              history and the measurement-procedure inventory table.
+            bearing: One agent demonstrably drove this volume with results
+              in artifact files; the capability warning sign does not
+              apply, and legs are minutes-scale, not the half-hour-plus
+              compile cycles that earned the attempt loop its higher
+              effort tier.
+          - fact: The prior run's wrong-baseline incident arose because the
+              seat that measured a number also picked which comparators
+              counted; the recorded repair is pre-registration before
+              measurement plus measurer-never-adjudicates.
+            source: exploration/validation-and-acceptance.md, verdict-
+              correction narrative.
+            bearing: This node's execute-never-choose boundary is that
+              lesson encoded; classification stays bounded because
+              comparator choice is frozen upstream, and a finding that
+              indicts the comparator itself has no in-boundary repair
+              route by design (see comparator_freeze_realization).
+          - fact: In-band one-shot SSH execution has a full-campaign
+              precedent - every command agent-typed as ssh with a single
+              command string, no session persistence, evidence written to
+              artifacts.
+            source: exploration/host-and-environment.md section 3d.
+            bearing: The transport this node needs is proven; no new
+              mechanism.
+          - fact: The frozen contract already carries the four-way
+              precedence order with reasons in activities, echoed in
+              purpose and all four outcome meanings, and the budget-spent
+              forward clause.
+            source: frozen contract, planning/measure_against_baseline.v2
+              .draft.pave.yaml#run_candidate_measurements.
+            bearing: The standing precedence rule is satisfied in contract
+              text; this fragment realizes it and adds nothing.
+        assumptions:
+          - Raw measurement outputs stay out of working context because
+            classification reads the run-record files, the procedure
+            record, and the reference capture side by side as needed. If
+            classification turns out to need design-depth comparator
+            reasoning, the atomic verdict is overturned (falsifier in the
+            elaboration justification).
+          - A session lost mid-campaign resumes losslessly - completed run
+            records, defect records, and the recorded attempt recipe are
+            persisted; a fresh seat re-verifies the checked-out revision
+            and resumes at the first undone measurement. No in-context
+            tally is authoritative, including the repair-budget counts,
+            which are always re-derived from defect-record files by path.
+        open_questions_closed:
+          - question: How is the shared repair budget counted so routing
+              text and the exhaustion decider agree?
+            closed_by: The binding closed-review keying - three repair
+              passes per (measurement, defect identity) PAIR without new
+              evidence, never a count of all defect records for a
+              measurement. Realized as layout, not contract edit - see
+              repair_budget_keying; flagged for reviewer confirmation.
+          - question: What happens when a run exposes a defect in the
+              COMPARATOR rather than in its realization or reference?
+            closed_by: The frozen boundary - the measurer executes, never
+              chooses, and comparator re-derivation is an explicit,
+              recorded event, never a side effect. The finding is written
+              as a defect-record event for the trail, the measurement
+              completes forward as declared, and comparator adequacy is
+              owned downstream by adjudication and verdict review;
+              rederive_approach is the only seat that can open a
+              comparator re-derivation. Flagged for reviewer confirmation.
+          - question: Does lost-serving recovery pull attempt-loop-scale
+              work into this node?
+            closed_by: The frozen contract bounds it - re-establish from
+              the RECORDED attempt recipe within the declared retry bound
+              (suggested two bring-up retries per lost serving state),
+              then serving_exhausted. Recipe replay, not attempt design;
+              no tier-one fingerprint reasoning enters this seat.
+
+      research_dispatches: >
+        None. Every sizing-relevant question closed from exploration
+        reports already on disk (cited per ledger fact) plus the frozen
+        parent fragment and the binding closed-review items; no read of
+        the target system was needed and none was made.
+
+      definition_of_done: >
+        Confirmed as frozen, on the acceptance-evidence ladder's
+        measurement rung - runs_complete is settled by raw one-file-per-
+        event run records whose values come from the serving engine and
+        the harness instruments, never from the doer's judgment, each
+        stamped with the invocation, configuration, environment, and the
+        measured revision: a git-issued identifier from rev-parse of the
+        checked-out commit on the leased host, read before the first
+        measured run and re-verified after any serving re-establishment.
+        World-binding beyond the doer's own text - the identifier is
+        content-addressed by git, not mintable by the doer; the lead-
+        evaluated revision_stamped check (lead-mint item) verifies every
+        record carries a git-issued identifier and all records for one
+        measurement agree; the downstream identity predicate is cited,
+        never restated - authority planning/prepare_pr.v3.draft.pave.yaml
+        and planning/review_pr_evidence.v4.draft.pave.yaml, two conjuncts
+        both required, and on any drift those files win; and
+        stabilize_and_package_evidence copies the revision verbatim into
+        bundles the lead-evaluated stability check re-reads independently.
+        The three defect and serving outcomes are routing outcomes with no
+        required_evidence, but every defect finding still lands as its own
+        event file because the shared repair budget is derived from those
+        files.
+
+      repair_budget_keying: >
+        Reconciles the frozen routing text with the binding closed-review
+        keying, without changing frozen text. The contract says the shared
+        per-measurement repair count is derivable by counting defect-
+        record files BY PATH; the binding keying says the count is per
+        (measurement, defect identity) pair - three repair passes per
+        pair without new evidence - never a count of all defect records
+        for a measurement, which would conflate distinct defects and
+        spend the budget prematurely when two different defects co-occur
+        on one measurement. Realized mechanically: the defect-record path
+        pattern in the consolidated artifact-layout entry encodes BOTH the
+        measurement id and the defect identity, so counting files by path
+        IS counting per pair - the frozen text and the keying are the
+        same operation once the layout lands. The defect identity is
+        derived from defect content (the procedure or comparison indicted
+        plus the property mismatch observed), recorded as a field in the
+        record, never a free label. Both budget readers - this node's
+        budget-spent routing check before any backward route, and
+        stabilize_and_package_evidence as the sole exhaustion decider -
+        cite the ONE layout entry and restate no shape. Flagged for the
+        plan reviewer: this realizes the keying as layout plus record
+        fields; if the reviewer prefers explicit contract text, that is a
+        lead resynchronization, not this fragment's edit.
+
+      comparator_freeze_realization: >
+        Realizes the binding closed-review item that a procedure repair
+        keeps the comparator FROZEN and never re-derives the baseline
+        reference as a side effect. Two record duties make it mechanical:
+        (a) every procedure-defect record names the frozen comparator its
+        defective realization was meant to realize and enumerates exactly
+        the comparisons the defect invalidates - that enumeration is the
+        explicit, recorded re-capture scope capture_baseline_reference
+        honors on its re-entry (re-capture only comparisons whose
+        procedure changed; unchanged captures stand, per its frozen
+        purpose); (b) a defect record never proposes a comparator change
+        - a comparator-indicting finding completes forward per the closed
+        question above, and any reference re-capture event that no
+        procedure-defect record names is a material finding, because a
+        re-derived reference with no recorded cause is exactly the
+        forbidden side effect.
+
+      realization_notes:
+        - Read and record the checked-out commit's git-issued revision
+          identifier BEFORE the first measured run; re-verify it after
+          every serving re-establishment before resuming; never a branch
+          name. Any mismatch stops measurement - the candidate checkout is
+          never edited or switched by this seat (frozen forbidden effect).
+        - Every measured run writes its raw output plus a run record
+          stamping revision, invocation, configuration, and environment;
+          environment entries are values read live from the leased host,
+          so graph and fragment text stay pin-generic.
+        - Defect findings (procedure or reference) are written as their
+          own event files at the pair-keyed path BEFORE any routing
+          decision, so bound accounting stays atomic with routing and
+          needs no lead write per lap (frozen loop-bounds finding).
+        - Before routing any defect backward, count the defect-record
+          files for that (measurement, defect identity) pair; at the
+          budget, record the defect and complete forward -
+          stabilize_and_package_evidence settles
+          declared_measurement_unproducible; never route backward on a
+          spent budget (frozen contract).
+        - On lost serving, re-establish from the recorded attempt recipe
+          within the declared retry bound (suggested two bring-up retries
+          per lost serving state), writing each re-establishment attempt
+          as its own event file citing the recipe; then serving_exhausted
+          with the full defect trail.
+        - Co-held outcomes settle in the precedence order already fixed in
+          the frozen contract text - purpose, activities, and all four
+          outcome meanings; realized as written, nothing to add.
+        - Delegate dispatch only through the guardrail wrapper; every
+          runtime sub-agent seat inherits this node's forbidden_effects -
+          no action on the GPU baseline, no comparator alteration, no
+          candidate-checkout edits - plus the run-wide blocking hooks
+          (shared compile-cache clear, provisioning, /opt writes),
+          which are the lead's enforcement record, cited not restated.
+
+      enforcement:
+        budget_spent_routing_check:
+          strength: procedural blocking precondition inside the node - no
+            backward route at the pair's threshold; arithmetic on
+            persisted defect-record files counted by path.
+          rationale: >
+            Blocking is justified - an unbounded repair loop is plausible
+            (a stubborn defect re-presenting every lap), costly (each lap
+            re-traverses realization, capture, and measurement on leased
+            hardware), and precisely detectable (file counts at a
+            pair-keyed path). The count is persisted state a resumed
+            session re-derives, so nothing depends on the session that
+            died, and the sole exhaustion VERDICT stays with
+            stabilize_and_package_evidence - this check only stops the
+            backward route and completes forward.
+        defect_identity_stability:
+          strength: record structure plus downstream falsification - the
+            content-derived identity field, checked by the repair target
+            on re-entry and by the exhaustion decider across records.
+          rationale: >
+            Pair keying opens one gaming vector the per-measurement count
+            did not have - relabeling one persistent defect with a fresh
+            identity each lap would mint a fresh budget every time.
+            Hardened first by structure: the identity is derived from
+            defect content, and realize_measurement_procedures re-enters
+            holding the prior defect records for that measurement - a new
+            identity indicting the same defective realization as a prior
+            record is a material finding, as is identity proliferation on
+            one measurement visible to stabilize_and_package_evidence at
+            exhaustion time. No review seat added.
+          falsifier: >
+            Divergent identity derivation between writers or readers lets
+            one defect masquerade as many (budget never spends) or many
+            as one (budget spends prematurely). Mitigation is structural,
+            not local - the derivation rule lives ONCE in the
+            consolidated artifact-layout entry beside the path pattern;
+            every writer and both budget readers cite that single entry,
+            and assembly validates them against it.
+        revision_stamp_discipline:
+          strength: node-local recorded precondition (read-and-record
+            before the first measured run, re-verify on every resume)
+            plus the lead-evaluated revision_stamped mechanical check on
+            runs_complete (lead-mint item) plus the cited downstream
+            two-conjunct identity predicate.
+          rationale: >
+            Three rungs cover different failure surfaces - the
+            precondition stops an unstamped run from ever being measured,
+            the lead check catches a missing or disagreeing stamp before
+            the outcome settles, and the downstream predicate binds the
+            stamped revision to the final branch content at PR time.
+        delegate_guardrail_wrapper:
+          strength: run-wide blocking hooks are the lead's enforcement
+            record - cited, not restated; node-local addition is the
+            dispatch-wrapper activity inheriting this node's
+            forbidden_effects into every sub-agent seat.
+          rationale: >
+            A delegate's documented remedy (cache clear, host
+            re-provisioning) is exactly the plausible path to an
+            irreversible violation on a leased host or the shared compile
+            cache; the hook stops the command, the wrapper stops the
+            instruction from becoming a command.
+
+      evidence_gameability:
+        candidate_measurement_runs: >
+          Gameable raw (measurer-produced records); hardened by structure
+          first - invocations are pre-registered and smoke-verified
+          upstream before any measured run, so the doer executes a fixed
+          text it did not choose; outputs are raw one-file-per-event
+          artifacts adjudication reads directly, never doer summaries;
+          revision stamps are git-issued and verified mechanically by the
+          lead check and the cited downstream predicate; and the bundles
+          built from these records must survive consecutive matching
+          re-reads plus the lead-evaluated stability check - then
+          adjudication and adversarial verdict review.
+        procedure_defect_found: >
+          Gameable in BOTH directions. Claiming a procedure defect dodges
+          recording an unfavorable number (a repair lap instead of a bad
+          result); staying silent lets a wrong-property number flow to
+          adjudication. Hardened first by record structure: the defect
+          record must name the property the procedure measured, the
+          property the frozen comparator declares, and cite the run
+          output that exposes the mismatch - realize_measurement_
+          procedures falsifies that claim on re-entry against the design
+          record, and a claim it cannot reproduce is a material finding.
+          The silent direction is caught downstream by adjudication and
+          verdict review reading the same raw outputs. The identity-
+          relabeling vector is covered under defect_identity_stability.
+        reference_defect_found: >
+          Gameable the same two ways; hardened the same way - the record
+          names the declared comparison and the missing or defective
+          reference element with the run output cited, and
+          capture_baseline_reference falsifies on re-entry against the
+          existing capture and the hash-pinned inputs. Only taken with no
+          co-held procedure defect on the same measurement (frozen
+          precedence).
+        serving_exhausted: >
+          Gameable - claiming exhaustion dodges the remaining measurement
+          work and routes the campaign to re-derivation. Hardened first by
+          evidence structure: each re-establishment attempt within the
+          declared retry bound is its own event file citing the recorded
+          attempt recipe and carrying the machine transcript of the
+          failed bring-up; rederive_approach receives the full defect
+          trail and a claimed exhaustion whose transcripts do not show
+          recipe-faithful attempts is a material finding. Precedence-
+          first position (frozen) means it cannot be used to bury a
+          co-held defect - the defect records are already on disk before
+          routing settles.
+
+      model_effort:
+        measurer: >
+          Strong model, medium effort - confirms the parent's assignment
+          with no divergence: mechanical execution of a frozen design
+          with bounded per-run classification judgment; measurement legs
+          are minutes-scale in the prior campaign's artifacts, and the
+          long-horizon xhigh carve-out belongs to the hardware attempt
+          loop, whose compile-and-serve cycles this node never runs -
+          lost-serving recovery is recipe replay bounded at two retries.
+          Wrong answers are caught by adjudication and verdict review.
+        delegate_dispatcher: >
+          Small fast model, low effort - scoped single-question dispatches
+          through fixed guardrails, no compounding judgment; consistent
+          with the run's other delegate seats.
+
+      assembly_interface_needs:
+        - Consolidated artifact-layout entry for the runs subdirectory
+          (candidate_measurement_runs, lead-mint intermediate evidence)
+          defines ONCE - the run-record fields (measurement id, comparator
+          and procedure reference, invocation as executed, measured
+          revision, configuration, environment values, raw-output path);
+          the defect-record path pattern encoding measurement id AND
+          defect identity so count-by-path is count-per-pair; the defect-
+          record fields (content-derived identity with its derivation
+          rule, defect class, invalidated-comparisons enumeration for
+          procedure defects, cited evidence, count-after for the pair);
+          and the serving re-establishment event shape citing the attempt
+          recipe. Both budget readers and all writers cite this single
+          entry; assembly validates them against it (falsifiers recorded
+          under enforcement).
+        - The revision_stamped mechanical check (lead-mint item) needs the
+          layout entry to name where the measured revision lives in each
+          run record, so the check is pure field arithmetic.
+        - Delegate guardrail wrapper wiring (which hooks bind the
+          sub-agent seats, wrapper text) is Runtime Binding - needs
+          assembly realization; the node contract already carries the
+          rule.
+        - Environment and skew-adjacent stamps are live-read VALUES stored
+          in records and run state, never literals in graph text -
+          keeps the assembled plugin pin-generic (parent state_fields
+          finding; nothing new to mint).
+
+      conflicts: []

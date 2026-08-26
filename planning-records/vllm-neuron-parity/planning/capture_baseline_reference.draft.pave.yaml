@@ -1,0 +1,403 @@
+pave:
+  name: capture_baseline_reference
+  status: draft
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: capture_baseline_reference
+      frozen_contract_reference: planning/measure_against_baseline.v2.draft.pave.yaml#capture_baseline_reference
+
+      elaboration:
+        capture_baseline_reference:
+          verdict: atomic
+          justification: One agent executes the whole capture in one bounded
+            context - read the design record's route-scoped declared
+            comparator list, settle the skip question first (a route that
+            declares no GPU-baseline comparator records the justified skip
+            and never contacts the baseline), verify the baseline identity
+            and live-read its vLLM version against the kickoff record or
+            refuse, run each fixed, already-smoke-verified procedure against
+            digest-verified pinned inputs over in-band SSH, write one
+            capture event file per comparison plus the skew record - and
+            settles reference_captured by enumerating a document it did not
+            author against files bound to identifiers it cannot mint.
+            Confirms the parent fragment's atomic prediction. Attempted
+            falsifications, all failed - (1) the one credible splitter is
+            capture-procedure construction (the exploration corpus shows no
+            repeatable GPU-baseline procedure ever existed; the nearest
+            artifact is one ad hoc token-level oracle tool from one
+            model-port campaign), but the frozen contract consumes
+            measurement_procedure_record and runs FIXED procedures, so the
+            novel construction lands in realize_measurement_procedures by
+            contract, not here; (2) per-comparison volume is a bounded
+            route-scoped list executed sequentially against ONE standing
+            host - parallel seats would serialize on the host anyway, and
+            the Runtime Binding handles in-context iteration without a
+            split; (3) recovery cannot force a split because the frozen
+            forbidden-reset rule removes autonomous recovery entirely -
+            baseline_unusable is a designed stop, not a sub-goal with its
+            own route. Overturned if a campaign's declared comparator list
+            grows past what one capture-and-record sweep holds in one
+            context, or if reference capture is shown to require
+            multi-session interactive work on the baseline (both would
+            surface at design review, upstream of this node).
+          runtime_binding_first: Checked before sizing - re-entry repair
+            laps are parent-graph edges, not internal structure; fan-out
+            over comparisons is one seat iterating a bounded list; no
+            binding feature forces or removes a split. The one binding
+            question found is an interpretation question (interface need
+            i1), not a sizing question.
+
+      definition_of_done:
+        rung: measurement_with_provenance_binding
+        statement: >
+          reference_captured - for every GPU-baseline comparison the design
+          record declares for this campaign's route, a capture event file
+          exists under the campaign measurements reference subdirectory
+          recording: the fixed invocation copied verbatim from the procedure
+          record (a file this node does not write), the content digests of
+          the inputs it actually ran against - equal, reviewer-recomputable,
+          to the design-record pins this node cannot mint - the raw captured
+          output, the exact in-band SSH command line and raw transcript so a
+          reviewer re-runs the capture in one step, and the GPU-side vLLM
+          version string read live from the baseline environment in that
+          same session; plus one skew record naming that live-read version -
+          matching the kickoff record this node does not write - and the
+          kickoff-recorded known cross-version behavior differences. For a
+          route that declares no GPU-baseline comparator, the settling
+          artifact is instead a skip record that quotes the route-scoped
+          declared measurement list and shows, per declared measurement, the
+          absence of a GPU-baseline comparator - falsifiable against the
+          design record, settled before any baseline contact. Settlement is
+          enumeration of the design record's declared list against the
+          capture files, never this node's assertion: completeness comes
+          from a document the doer did not author, and every doer-written
+          capture is bound to the world by three identifiers it cannot mint
+          - the upstream input digests, the upstream fixed invocation, and
+          the kickoff-recorded version its live read must match. On
+          re-entry the same enumeration settles it, with one addition that
+          makes the frozen-comparator rule checkable: every reference file
+          that differs from a prior capture traces to an explicit re-capture
+          event record naming its trigger - the procedure revision it
+          follows or the (measurement, defect identity) it repairs; a
+          reference file that changed with no matching re-capture event
+          fails settlement.
+        outcome_count_note: >
+          Two declared outcomes, mutually exclusive by construction - a
+          justified skip settles reference_captured without baseline
+          contact (the skip question is settled first, from the design
+          record alone), and reference_captured's universal quantification
+          over declared comparisons contradicts baseline_unusable, which
+          holds exactly when a declared comparison cannot proceed. The
+          three-co-holdable-outcomes precedence rule is not triggered.
+
+      uncertainty_ledger:
+        facts:
+          - The frozen contract passed adversarial boundary review round 2
+            in the parent v2 fragment; its purpose already carries the
+            re-entry rule (re-capture only comparisons whose procedure
+            changed; unchanged captures stand) and the hard out-of-scope
+            line (no write, restart, reboot, or reset on the baseline,
+            ever). Source - planning/measure_against_baseline.v2.draft
+            .pave.yaml, frontier round-2 notes.
+          - BINDING closed-review context from the dispatch brief, this
+            node owns the frozen comparator - a procedure repair routes
+            back with the comparator FROZEN; the baseline reference is
+            never re-derived as a side effect of a procedure repair;
+            re-derivation of a reference is an explicit, recorded event
+            with its own record. Landed here in the definition of done
+            (changed-file-traces-to-explicit-event clause) and enforcement
+            g3. Source - dispatch brief.
+          - BINDING closed-review context, shared repair budget - three
+            repair passes per measurement without new evidence, the count
+            keyed by (measurement, defect identity) PAIR and derived by
+            grouping defect-record event files by both fields, never by
+            counting all defect records for a measurement. Landed in
+            enforcement g4. Source - dispatch brief; same keying carried
+            in all four sibling child briefs per the frontier entries.
+          - No repeatable GPU-baseline capture procedure exists anywhere
+            in the explored corpus; no campaign ever ran a GPU-vLLM
+            baseline for its gates; the nearest artifact is one ad hoc
+            oracle-capture tool comparing token identity, from one
+            model-port campaign. Bears on sizing - the novelty lands
+            upstream in realize_measurement_procedures by the frozen
+            consumes. Source - exploration/validation-and-acceptance.md
+            sections 3.1 and 4.
+          - The GPU baseline is one named, already-standing instance,
+            preflighted run-wide (reachability, identity, serving-stack
+            version probe) at verify_run_preconditions; hardware
+            provisioning is forbidden run-wide. Source - planning/
+            verify_run_preconditions.v2.draft.pave.yaml activities;
+            exploration/delegates-and-runtime.md section 5.
+          - Autonomous GPU-baseline reboot/reset is a run-wide prohibition
+            carried as blocking hooks including ssh-wrapped forms; user
+            confirmation is the only door. Source - requirements.md
+            Forbidden item 5; dispatch brief hardware rules.
+          - The skew-record values (GPU-side vLLM version read live at
+            capture, known cross-version differences from kickoff) are
+            run-state values so graph text stays pin-generic; the lead is
+            the sole run-state writer. Source - parent v2
+            interface_findings.state_fields; frontier notes item 26.
+        assumptions:
+          - Read-only use of the baseline permits ephemeral
+            serving-process lifecycle within a capture session (starting
+            and stopping a model-serving process for the campaign's
+            declared configuration) while forbidding every durable host
+            mutation - config edits, package installs, cache clears,
+            reboot, reset. Bears on feasibility - under the strict
+            contrary reading, any campaign whose model is not already
+            served settles baseline_unusable on lap one. Carried as
+            interface need i1 and conflict n1.
+          - Hash-pinned capture inputs are fetchable and digest-verifiable
+            at capture time; transient fetch corruption is retried
+            in-node. A PERSISTENT digest mismatch is a design-side gap
+            with no covering outcome meaning - carried as conflict n2.
+          - The procedure record versions its realizations per procedure,
+            so a re-capture event can cite the exact procedure revision it
+            follows. Bears on the definition of done's explicit-door
+            clause; carried as interface need i4.
+          - The route-scoped declared comparator list per campaign is
+            small enough that one capture sweep fits one context. Bears on
+            the atomic verdict; its failure is a named overturn condition.
+        open_questions:
+          - Whether serving the campaign model on the baseline needs a
+            process launch or an already-serving endpoint - no sizing
+            effect (either fits one seat); the read-only interpretation is
+            n1/i1, lead-owned.
+          - Skip-record and re-capture-event field shapes - no sizing
+            effect; routed to assembly as interface needs i2/i3.
+
+      evidence_questions:
+        explorer_dispatches: none
+        reason: The dispatch brief, the parent v2 fragment, root.v6, the
+          requirements record, and the cited exploration reports
+          (validation-and-acceptance.md, delegates-and-runtime.md,
+          host-and-environment.md) answer every sizing-bearing question;
+          each remaining unknown is a runtime unknown already routed, with
+          its landing place named in the uncertainty ledger. The
+          vllm-neuron repo itself binds nothing here - this node runs
+          procedures another node builds.
+
+      enforcement:
+        g1_read_only_baseline:
+          rule: No state-changing command on the GPU baseline host, ever -
+            no write outside the capture session's declared ephemeral
+            scope, no service or host restart, no reboot, no reset, no
+            package or cache mutation. A capture that cannot proceed
+            without mutating the baseline settles baseline_unusable with
+            the specific required mutation recorded verbatim - the door
+            out is the declared outcome, never an in-place mutation.
+          strength: Frozen forbidden effect plus run-level blocking hooks
+            (the reboot/reset prohibition carries over as blocking hooks
+            including ssh-wrapped forms, per the requirements record) plus
+            the designed-stop route. The hooks are the lead's run-wide
+            enforcement record; no node-local hook added.
+          why_no_stronger_rung: The blast radius this rule protects is the
+            one irreplaceable comparator host; the mechanical hook layer
+            already blocks the irreversible command forms, and the residual
+            judgment (is this command state-changing?) is a semantic call a
+            pattern hook cannot fully evaluate - the designed stop makes
+            the safe direction the cheap direction.
+          falsifier_inline: Without the recorded-required-mutation clause,
+            "unusable" degrades into an unfalsifiable lazy exit; with it, a
+            reviewer can check whether the named mutation was actually
+            required or a recoverable-in-band condition was misclassified.
+        g2_version_match_or_refuse:
+          rule: Before the first capture of a session, read the GPU-side
+            vLLM version live from the baseline environment; on any
+            contradiction with the kickoff record, capture nothing and
+            settle baseline_unusable quoting both strings verbatim. The
+            live-read string is written into the skew record and into each
+            capture event from that session.
+          strength: Procedural blocking precondition inside the node, with
+            a persistent record (both version strings, verbatim, in the
+            refusal or the skew record).
+          why_no_stronger_rung: The read is one read-only probe; the
+            comparison is exact string equality against a record this node
+            does not write, so a wrong evaluation is mechanically
+            re-checkable downstream at adjudication and verdict review from
+            the persisted strings.
+          falsifier_inline: Skip the live read and a silently upgraded
+            baseline produces references that satisfy every fixed procedure
+            while contradicting the kickoff methodology - every downstream
+            verdict inherits unflagged skew. The verbatim-both-strings rule
+            makes the refusal itself falsifiable against a fresh probe.
+        g3_frozen_comparator_explicit_recapture_door:
+          rule: Every capture event cites the frozen comparator identity
+            from the design record and the procedure-record revision it
+            executed. Existing capture files are never edited - one file
+            per event, supersession only. A reference is re-captured ONLY
+            through an explicit re-capture event record naming its trigger
+            - the procedure revision it follows (re-entry after procedure
+            repair - re-capture only comparisons whose procedure changed,
+            unchanged captures stand) or the (measurement, defect identity)
+            of the reference-defect record it repairs. A procedure repair
+            never re-derives a reference as a side effect; comparator
+            choice never happens here at all.
+          strength: Structural settle-time detection - the definition of
+            done fails any reference file that differs with no matching
+            re-capture event record, so a silent re-derivation fails the
+            settling act itself, not just a review.
+          why_no_stronger_rung: The violation is precisely detectable at
+            settle time by diffing capture files against re-capture event
+            records; a mechanical hook cannot know which file changes are
+            legitimate (a triggered re-capture) and which are silent - the
+            event-record requirement is exactly the information that makes
+            the check decidable, downstream and by the stability re-reads
+            in stabilize_and_package_evidence.
+          falsifier_inline: Without the explicit door, the frozen
+            contract's "unchanged captures stand" clause is unverifiable -
+            no reviewer can tell a standing capture from a silently
+            re-derived one, and a procedure repair could quietly move the
+            reference it is being judged against.
+        g4_budget_keying:
+          rule: A re-entry repair lap here consumes the shared
+            per-measurement repair budget - suggested three repair passes
+            without new evidence - counted per (measurement, defect
+            identity) PAIR - the count for a pair is derived by grouping the
+            defect-record event files under the campaign measurements
+            directory by both fields. Counting all defect records for a
+            measurement is the named miscount and never the derivation.
+          strength: Derivation rule stated where the repair lands, matching
+            the binding closed-review context carried in every sibling
+            brief; the files grouped are written by siblings whose
+            allowed_effects confine them to the measurements directory, so
+            a stray record is an effect violation before it is a count bug
+            (parent loop_bounds falsifier, inherited).
+          why_no_stronger_rung: The count is a pure function of on-disk
+            files; any seat, including the reviewer, re-derives it
+            identically - no stored counter exists to guard.
+          falsifier_inline: Keyed per measurement instead of per pair, one
+            reference defect plus two distinct procedure defects on the
+            same measurement would falsely exhaust the budget and settle
+            declared_measurement_unproducible with repair room remaining -
+            the exact miscount the pair keying forbids.
+
+      evidence_gameability:
+        reference_captured:
+          judgment: Gameable raw - every capture file is doer-produced; a
+            transcript can be fabricated, run against the wrong host, the
+            wrong serving version, or unpinned inputs. The skip half is a
+            doer-produced negative claim - also a lazy exit that skips GPU
+            work entirely.
+          hardening: >
+            Provenance first - three identifiers the doer cannot mint,
+            each persisted in an artifact the doer does not write: input
+            digests must equal the design-record pins
+            (reviewer-recomputable), the invocation must be verbatim from
+            the procedure record (diffable), the live-read version must
+            match the kickoff record (re-probeable; the run preflight
+            recorded the same probe). The transcript records the exact SSH
+            command line and raw output so a reviewer re-runs one command.
+            The skip is hardened by positive enumeration - it quotes the
+            route-scoped declared measurement list and shows the absence
+            per measurement, falsifiable against the design record.
+            Downstream catch - stability re-reads and lead-evaluated
+            evidence_stable_before_verdict at packaging, adjudication
+            against pre-registered thresholds, adversarial verdict review,
+            and measurer_not_adjudicator counting every agent that acted in
+            any of the four children as a producer.
+          post_hardening: Low-moderate. No independent-review rung added
+            in-node - a false capture is caught by re-derivable provenance
+            plus three downstream independent reads before any verdict.
+        baseline_unusable:
+          judgment: Gameable raw - the doer's negative claim, and the
+            cheap way to skip an entire capture campaign.
+          hardening: >
+            Require the verbatim evidence per g1/g2 - the failed probe
+            transcript, both version strings on a contradiction, or the
+            specific mutation the procedure would require. The claim is
+            checkable against the run preflight's recorded reachability
+            and version probe, and the receiving node (rederive_approach)
+            reads the evidence first-principles rather than trusting the
+            classification.
+          post_hardening: Low-moderate. Routed to re-derivation, where an
+            evidence-free or contradicted refusal fails the read.
+
+      model_effort:
+        implementer: Strong model, medium effort - confirms the parent
+          fragment's assignment. Procedure execution against a frozen
+          design on an irreplaceable read-only host; the forbidden-reset
+          rule leaves no autonomous recovery to reason about, and every
+          judgment surface is a refusal discipline (version mismatch,
+          digest mismatch, mutation-required) that must not be
+          rationalized away by a weak model. Medium is the justified
+          step-down from the default high pin - procedures arrive fixed
+          and smoke-verified, decisions are exact comparisons against
+          upstream-pinned values, and downstream re-reads catch errors.
+        note: Frozen roles are [measurer] only - no delegate_dispatcher
+          seat on this node; capture is one seat's sequential work.
+
+      interface_needs:
+        i1_read_only_operational_definition: The operational definition of
+          read-only baseline use is defined ONCE at assembly (runtime
+          binding / artifact-layout reference) - ephemeral serving-process
+          lifecycle within a capture session allowed, every durable host
+          mutation forbidden. Readers - this node, the
+          verify_run_preconditions preflight, the run-level blocking
+          hooks. Falsifier inline - two readers normalizing "read-only"
+          differently make the same capture session legal to one and a
+          forbidden-effect breach to the other. See conflict n1.
+        i2_capture_and_skip_record_shape: The capture event, skew record,
+          and skip record shapes live in the consolidated artifact-layout
+          reference, under the parent-assigned reference/ subdirectory of
+          the frozen measurements path. The skip record's shape must force
+          the positive enumeration (route, declared list quoted, per-item
+          absence shown).
+        i3_recapture_event_fields: The re-capture event record carries
+          mandatory trigger fields - procedure revision followed, or the
+          (measurement, defect identity) repaired - so the g3 explicit-door
+          check is mechanical for the stability re-reads and reviewers.
+        i4_procedure_record_revisions: measurement_procedure_record (from
+          realize_measurement_procedures) versions each procedure's
+          realization, and its revision entries name which comparisons a
+          revision touches - this node's re-entry rule (re-capture only
+          comparisons whose procedure changed) is derivable only from that
+          record; alignment with the sibling planner's fragment.
+        i5_skew_values_to_run_state: The lead mirrors the skew-record
+          values (live-read GPU-side vLLM version, kickoff-recorded known
+          cross-version differences) into run state per the parent
+          state_fields finding - this node writes the artifact copy only
+          and never run state; the reporting handshake is a runtime
+          binding item.
+
+      conflicts_reported:
+        - label: n1_read_only_strict_reading
+          interface: planning/measure_against_baseline.v2.draft.pave.yaml#
+            capture_baseline_reference purpose (out-of-scope line) and
+            allowed_effects.
+          reason: The frozen out-of-scope line "any write, restart, reboot,
+            or reset on the baseline, ever" read strictly classifies
+            launching a serving process for the campaign's declared model
+            as a forbidden act. Under that reading, any campaign whose
+            model is not already being served settles baseline_unusable on
+            lap one - a wrong-but-safe stop that burns a re-derivation lap
+            per campaign and can make every GPU-comparator campaign
+            unmeasurable. The intended sense (host/instance mutation, per
+            the requirements' reboot/reset prohibition) and the strict
+            sense diverge on exactly the act every capture needs.
+          smallest_change: One clarifying clause at resynchronization or in
+            the assembly operational definition (interface need i1) -
+            "restart" and "write" scope to durable host state; ephemeral
+            serving-process lifecycle inside a capture session is read-only
+            use. Lead decision; no conflict id minted - assignment is the
+            lead's.
+        - label: n2_pinned_input_mismatch_no_door
+          interface: planning/measure_against_baseline.v2.draft.pave.yaml#
+            capture_baseline_reference outcomes.baseline_unusable meaning.
+          reason: A capture input whose live content digest persistently
+            contradicts its design-record pin blocks capture (substituting
+            an unpinned input would breach the comparator freeze), but the
+            frozen baseline_unusable meaning covers only the baseline -
+            unreachable, kickoff contradiction, or reset-required. The
+            defect is design-side (a stale or wrong pin), it first
+            surfaces here (upstream smoke runs on scratch inputs by the
+            sibling contract), and this node has no procedure-defect or
+            design-defect outcome - a literal implementer has no honest
+            door and must misfile the evidence under a baseline claim.
+          smallest_change: Widen the parent outcome meaning by one clause -
+            "or a pinned capture input whose live digest contradicts its
+            design-record pin" - destination already right (re-derivation
+            reads design-side gaps first-principles). Lead
+            resynchronization; no conflict id minted.

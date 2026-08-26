@@ -1,0 +1,397 @@
+pave:
+  name: screen_pin_and_progress
+  status: draft
+  nodes: {}
+
+  extensions:
+    x_planning:
+      dispatched_node: screen_pin_and_progress
+      frozen_contract_reference: planning/design_campaign.draft.pave.yaml#screen_pin_and_progress
+      supersedes: planning/screen_pin_and_progress.draft.pave.yaml
+      deltas:
+        - "HIGH-1: interface_needs now opens with a contract-text landing
+          BOOKING for the divergent-pair precedence - three named pieces
+          (ordering into the failure-outcome meanings, ambiguity rule into
+          pin_infeasible's meaning, detector-basis duty into the
+          resync-added activities key), wording verbatim from this draft;
+          cross-reference landing lines added under outcome_precedence and
+          no_progress_detector so no realization text implies x_planning
+          reaches the built graph."
+        - "LOW-1: conflict narrowed to limb 1 only (consumes +
+          rederivation_record); campaign_design_record read-access limb
+          removed. Design-evidence movement now settles from the
+          design-revision stamps findings records carry - detector idiom,
+          activity 3, and the evidence-question closure rewritten to match
+          (propagation); the stable-named-subjects interface need promoted
+          to also require the design-revision stamp."
+        - "LOW-2: the proposed socratic guard's on_failure_route now
+          declares its bound in the proposal itself - a re-screen that
+          still cannot produce re-executable absence evidence falls through
+          to the progress screen; ambiguity rule as terminator, no counter.
+          Enforcement failure_mode_inline updated to match (propagation)."
+
+      elaboration:
+        screen_pin_and_progress:
+          verdict: atomic
+          justification: One investigator derives the required-capability
+            checklist from the kickoff contract and the delta report's source
+            traces, resolves each entry at the pinned revision with recorded
+            read-only commands, compares the campaign's adversarial findings
+            history lap-over-lap against the design-evidence trail, writes
+            pin_feasibility_note, and emits exactly one outcome by the
+            declared precedence - all inputs are bounded per-campaign
+            artifacts plus a handful of repo lookups; no sub-goal needs its
+            own recovery route, evidence, role, or resume point, and the
+            per-campaign multiplicity is already the parent's instance_per
+            fan-out (Runtime Binding), never a reason to split. Framing
+            prediction (atomic) CONFIRMED. Falsifier - a kickoff contract
+            whose implicit capability set is so large or semantic that
+            presence cannot be settled by lookup; the anti-narrowing trace
+            (checklist 1:1 to kickoff declarations) makes that visible to
+            gate-2 review rather than silently absorbed.
+
+      definition_of_done: >
+        Every capability the kickoff-declared target and source need resolves
+        at the pinned revision, AND the adversarial findings history leaves a
+        viable design lever (an empty history on the first lap passes by
+        definition; on re-entry the note names the lever against the specific
+        finding it answers) - settled by re-checkable read-only commands
+        against the pinned repo, one per required surface, each recorded
+        verbatim with the pinned revision identifier in pin_feasibility_note,
+        and by a lap-over-lap comparison of the persisted findings history
+        and design-evidence trail that a reviewer who did not write the note
+        can re-run from the same artifacts. Ladder position - the feasibility
+        half is rung 1 (command output against a declared presence condition
+        per required surface; the doer runs the command, the repo produces
+        the output). The progress half is a derivation over persisted world
+        artifacts, re-settleable by a non-doer from the same artifacts; its
+        substantive judgment is re-settled downstream by the existing gate-2
+        adversarial review of the design record that embeds this note - no
+        new review node is added.
+
+      activities:
+        - Derive the required-capability checklist from the kickoff contract
+          (target, route, source) plus the delta report's source traces;
+          record the checklist in the note with a one-to-one trace back to
+          the kickoff declarations (anti-narrowing - a reviewer diffing note
+          against kickoff catches a shortened list).
+        - Resolve each checklist entry at the pinned revision with read-only
+          commands; record each command and its output verbatim together
+          with the pinned revision identifier, so any reviewer can re-run it.
+        - Compare the campaign's adversarial findings history lap-over-lap -
+          gap identity (the same named material finding recurring) and
+          design-evidence movement, settled from the design-revision stamps
+          the findings records carry (a newer stamp on the latest entry
+          means new design evidence was reviewed) plus any rederivation
+          record newer than the newest findings entry. Cite the compared
+          artifact entries in the note.
+        - On re-entry with a non-empty history, name the viable untried
+          design lever against the specific recurring finding it answers and
+          cite the history showing it untried, or record that none can be
+          named.
+        - Write pin_feasibility_note and emit exactly one outcome per the
+          declared precedence below; when failure meanings co-hold, the note
+          records the co-holding observation for the design record while the
+          run still emits one outcome.
+
+      outcome_precedence:
+        landing: >
+          This realization binds the built graph only through contract
+          text - the booking entry that opens interface_needs names the
+          exact landing for each piece; x_planning alone does not reach a
+          built artifact (standing item 20, where-it-lands clause).
+        rule_order: [pin_infeasible, progress_exhausted, screen_passed]
+        discipline: Evaluate both screens every lap (both feed the note);
+          emit the single highest-precedence outcome whose meaning holds.
+        reasons:
+          pin_infeasible_first: >
+            The materially divergent pair is pin_infeasible vs
+            progress_exhausted - close-out with an infeasibility record vs
+            continued re-derivation, different campaign fates. Infeasibility
+            wins because re-derivation cannot restore a surface absent at
+            the pinned revision; routing an infeasible campaign to
+            rederive_approach burns its bounded rederivation laps toward the
+            same wall. The campaign-ending direction is made safe by the
+            evidence hardening (positive, re-checkable command evidence of
+            absence - see enforcement) plus the existing gate-3 user
+            decision before any close-out executes.
+          progress_exhausted_second: >
+            Applies only when the pin is feasible (or absence cannot be
+            positively shown) but the no-progress detector fired and no
+            viable untried lever can be named from the history.
+          screen_passed_last: >
+            Holds only when neither failure meaning holds; its meaning is
+            the conjunction of the two passes, so it can never co-hold with
+            either failure.
+        ambiguity_rule: >
+          A surface that cannot be shown ABSENT with re-checkable command
+          output is not infeasible - the question falls through to the
+          progress screen. False infeasibility is the expensive direction; a
+          truly-missing-but-unproven surface resurfaces with stronger
+          evidence at design or implementation time and loops back through
+          this screen carrying it. Landing - booked into pin_infeasible's
+          contract meaning via the interface_needs booking entry.
+
+      no_progress_detector:
+        falsifier_anchor: >
+          The parent no_progress meaning - "repeated identical review
+          findings or no new design evidence across repair attempts" - is
+          the anchor; any detector reading that diverges from it is the
+          defect a reviewer should name.
+        idiom: >
+          Gap-identity plus design-evidence movement, never a bare lap
+          counter (per the parent v2 repair's detector direction). The
+          detector FIRES when either anchor branch holds - the same named
+          material finding appears in the two most recent findings entries
+          for this campaign, OR no new design evidence appeared since the
+          previous findings entry, settled from the design-revision stamps
+          the findings records carry plus any rederivation record newer
+          than the newest findings entry. A fired detector triggers the
+          lever question; progress_exhausted is EMITTED only when the
+          detector fired AND no viable untried lever can be named from the
+          history. A nameable lever - including the revised approach in a
+          rederivation record newer than the newest findings entry - passes
+          the screen with the lever named in the note.
+        first_lap: An empty findings history passes by definition; the
+          detector never fires with fewer than one prior findings entry for
+          this campaign.
+        landing: >
+          The detector-basis recording duty binds the built graph through
+          the resync-added activities key - see the interface_needs booking
+          entry; x_planning alone does not reach a built artifact.
+        failure_mode_inline: >
+          If the detector compared laps by count instead of by named-gap
+          identity and evidence movement, a lap that produced genuinely new
+          design evidence would be miscounted as stall (false exhaustion,
+          one wasted rederivation lap) and a lap that recycled the same
+          finding under new wording would be miscounted as progress
+          (unbounded loop). Gap identity is judged on the finding's named
+          subject, not its prose.
+
+      enforcement:
+        - rule: pin_feasibility_note integrity (screen_passed evidence)
+          gameability: >
+            GAMEABLE - doer-written derivation. The doer could narrow the
+            capability checklist (screen fewer surfaces than the target
+            needs), assert a vacuous lever ("iterate further"), or
+            stale-date the history comparison.
+          hardening_in_order:
+            - Checklist traced one-to-one to the kickoff declarations and
+              delta source traces - narrowing is visible by diffing two
+              persisted artifacts the doer does not both control.
+            - Verbatim command plus pinned revision identifier per presence
+              claim - re-runnable by any reviewer against the read-only repo.
+            - Lever claims name the specific finding entry they answer and
+              cite the history showing the lever untried.
+          rung_chosen: Persistent record plus existing downstream
+            independent review - the retained gate-2 adversarial review of
+            the design record that embeds this note.
+          why_not_stronger: A false pass costs one design lap and is caught
+            at gate 2 before implementation or hardware spend; a dedicated
+            reviewer node would duplicate review_campaign_design.
+          failure_mode_inline: If the gate-2 reviewer does not re-check the
+            note's checklist against the kickoff contract, narrowing
+            survives - the reviewer brief must name this re-check
+            explicitly (assembly-stage note for the lead).
+        - rule: pin_infeasible transition (costly - ends a campaign)
+          gameability: >
+            GAMEABLE, error direction dominant - a wrong absence claim
+            (surface moved, renamed, or behind a different entry point)
+            closes a viable campaign.
+          hardening_in_order:
+            - Positive world evidence only - the note carries the verbatim
+              read-only command and the pinned revision identifier whose
+              re-execution reproduces the absence, plus the named
+              kickoff-declared capability the absence breaks. No
+              re-checkable command, no pin_infeasible (ambiguity_rule).
+            - Proposed node-local guard for the lead to author at graph
+              level (checks are lead-owned) - socratic check on the
+              pin_infeasible edge; question - "Does the note name the
+              missing surface with a verbatim re-checkable command at the
+              pinned revision, does re-execution reproduce the absence, and
+              does the note tie the surface to a kickoff-declared
+              capability?"; evaluated by a role that did not write the note
+              (lead, or the assemble_design_record implementer at
+              assembly); on_failure_route - screen_pin_and_progress
+              (re-screen). Bound, declared where the graph sees it - a
+              re-screen that still cannot produce re-executable absence
+              evidence falls through to the progress screen; the ambiguity
+              rule is the terminator, no counter needed.
+            - Existing gate-3 user decision before any close-out executes -
+              the final catch, already in the frozen graph.
+          rung_chosen: Hardened rung-1-style evidence plus a reviewed
+            (socratic) guard plus the existing user gate.
+          why_not_stronger: A fully mechanical check (grep-only) would
+            false-pass a moved-not-removed surface - mapping "surface" to
+            "kickoff capability" needs judgment; mechanical enforcement
+            here is the wrong-match stranding case.
+          failure_mode_inline: Guard failure means re-execution found the
+            surface present or the note lacked the command - a false
+            close-out averted; the on_failure_route re-screens, and a
+            re-screen that still cannot produce re-executable absence
+            evidence falls through to the progress screen rather than
+            looping - the run is never stranded and never loops on this
+            guard.
+        - rule: progress_exhausted emission
+          gameability: >
+            GAMEABLE, escape-work direction - an agent could emit
+            progress_exhausted to avoid a design lap. Cost is bounded - one
+            rederivation lap; rederive_approach re-reads the same persisted
+            history first-principles and would contradict a false
+            exhaustion, and both its exits land on operator-owned gates.
+          hardening_in_order:
+            - The note records the detector basis - the compared findings
+              entry references and the design-evidence-movement comparison -
+              even though the frozen outcome declares no required_evidence
+              (lands in the resync-added activities key per the
+              interface_needs booking entry).
+          rung_chosen: Reflective plus persistent record.
+          why_not_stronger: A false positive self-corrects within one
+            bounded lap at rederive_approach; adding review here would
+            duplicate that node's first-principles pass.
+          failure_mode_inline: If the note omitted the detector basis,
+            rederive_approach would re-derive from raw history anyway -
+            degraded efficiency, not a wrong campaign fate.
+
+      model_and_effort:
+        model: strong
+        effort: high
+        rationale: >
+          Moderate evidence volume (per-campaign artifacts plus repo
+          lookups), but the wrong-answer blast radius on pin_infeasible is
+          campaign-ending, which justifies high effort on the judgment; top
+          capability is unneeded because the compounding design judgments
+          live in draft_increment_plan and the campaign-ending direction is
+          evidence-hardened, guard-checked, and user-gated. Confirms the
+          parent draft's suggestion (strong, high).
+
+      evidence_questions:
+        - question: Does the kickoff contract enumerate required
+            capabilities explicitly?
+          closed_by: Direct read of
+            planning/assemble_kickoff_contracts.v2.draft.pave.yaml - the
+            contract enumerates target, route, source, thresholds, methods,
+            hosts, spend, predicted surface, preflights; capabilities derive
+            from target plus source plus the delta report's source traces
+            (activity 1 owns the derivation, anti-narrowing trace makes it
+            reviewable).
+        - question: Where does tried-lever memory live after a
+            rederivation, and does this node see it?
+          closed_by: Direct read of planning/rederive_approach.draft.pave.yaml
+            and root.v6 evidence - it lives in rederivation_record at the
+            campaign's rederivations directory, which this node's frozen
+            consumes list does NOT include; exposed the interface conflict
+            below (lead-registered as c8; narrowed to limb 1 in this
+            revision - design-evidence movement settles from the
+            design-revision stamps findings records carry, so no read
+            access to prior design record versions is needed).
+        - note: No explorer dispatches were needed - both questions closed
+            by two bounded direct reads of planning drafts.
+
+      uncertainty_ledger:
+        facts:
+          - Frozen contract has three outcomes with the stated meanings
+            (planning/design_campaign.draft.pave.yaml, screen node).
+          - All four parent re-entry edges (design_findings_to_redesign,
+            design_defect_to_redesign, implementation_scope_to_redesign,
+            revised_approach_to_redesign) land at this node (root.v6 edges;
+            parent interface_findings routing).
+          - delta_report is a per-target upstream delta with source traces
+            (root.v6 evidence block).
+          - rederivation_record carries the revised approach and exhaustion
+            memory (root.v6 evidence; rederive_approach draft).
+          - A gate-3 user decision precedes any campaign close-out (root.v6
+            close_campaign; rederive_approach draft).
+          - The target repo is read-only at a pinned revision (run
+            constraints).
+          - Findings records are design-revision-stamped -
+            review_campaign_design commits to stamping (its a1/a3 per the
+            boundary review; its own interface finding says redesign passes
+            need the stamps), which is what lets design-evidence movement
+            settle without reading sibling artifact directories.
+        assumptions:
+          - The required-capability set for one campaign is enumerable from
+            kickoff plus delta traces and small enough for presence checks;
+            the anti-narrowing trace surfaces a violation to gate-2 review
+            rather than hiding it.
+          - adversarial_review_findings entries are per-campaign-addressable
+            and name material findings stably enough for gap-identity
+            comparison - the parent v2 repair's record_incomplete detector
+            rests on the same assumption, so a format decision at assembly
+            serves both.
+
+      interface_needs:
+        - booking: divergent-pair precedence lands in CONTRACT TEXT at
+            parent resync (lead-owned edit; child bodies are byte-frozen,
+            so this draft cannot make it). Three pieces, wording verbatim
+            from this draft -
+          pieces:
+            - target: pin_infeasible and progress_exhausted outcome
+                meanings (the ordering)
+              text: >-
+                pin_infeasible is "reported ahead of progress_exhausted
+                when both hold, because re-derivation cannot restore a
+                surface absent at the pinned revision".
+            - target: pin_infeasible outcome meaning (the ambiguity rule)
+              text: >-
+                "a surface that cannot be shown absent with re-checkable
+                command output is not infeasible; the question falls
+                through to the progress screen".
+            - target: the resync-added activities key (the frozen contract
+                has none; the resync edit adds one)
+              text: >-
+                it must carry the detector-basis recording duty - "the
+                note records the detector basis - the compared findings
+                entry references and the design-evidence-movement
+                comparison - even though the frozen outcome declares no
+                required_evidence"; the full five-activity list in this
+                draft is available for the same landing.
+          failure_mode_inline: >
+            If this booking does not land, the shipped graph carries an
+            unordered co-hold on divergent routes - it either re-derives
+            against a surface absent at the pin (looping with no cap) or
+            sends a viable campaign to close-out; x_planning text does not
+            reach a built artifact, so contract text is the only landing
+            that binds (standing item 20, where-it-lands clause).
+        - The socratic guard on the pin_infeasible edge (enforcement entry
+          above) is lead-authored at graph level, with on_failure_route
+          back to this node and the declared fall-through bound (ambiguity
+          rule as terminator, no counter).
+        - pin_feasibility_note declared as a graph-level evidence id under
+          the campaign's design artifact directory (already listed in the
+          parent draft's interface findings).
+        - The gate-2 reviewer brief should name the note-vs-kickoff
+          checklist re-check (anti-narrowing) explicitly.
+        - Findings-artifact format requirement for assembly - material
+          findings need stable named subjects AND the design-revision stamp
+          (confirming what review_campaign_design already commits to, not a
+          new requirement), so gap-identity comparison and
+          design-evidence-movement settling (here and in the parent's
+          record_incomplete detector) are settleable from the findings
+          records alone.
+
+      conflicts:
+        - finding: frozen consumes cannot settle the no-progress question
+            on a post-rederivation re-entry (lead-registered as c8;
+            narrowed to limb 1 only per boundary review round 1)
+          detail: >
+            The frozen consumes list (kickoff_contract_record, delta_report,
+            adversarial_review_findings) does not include
+            rederivation_record. On the revised_approach_to_redesign
+            re-entry, the fresh lever lives only in the rederivation record;
+            reading only its declared inputs this node would see identical
+            findings and no new design evidence and could emit
+            progress_exhausted immediately after rederive_approach produced
+            a revised approach - a screen-to-rederivation ping-pong that
+            burns the bounded rederivation laps. Smallest change - extend
+            this node's consumes with rederivation_record ONLY; a
+            rederivation record newer than the newest findings entry counts
+            as new design evidence and names the untried lever.
+            Design-evidence movement otherwise settles from the
+            design-revision stamps the findings records carry, so no read
+            access to prior campaign_design_record versions is needed - the
+            earlier second limb is withdrawn (it would have handed this
+            node read access across a sibling's versioned artifact
+            directory, the two-revisions-in-one-path hazard the layout
+            rules exist to prevent). No new producer, edge, or check. Lead
+            resynchronizes; this draft does not touch the frozen body.

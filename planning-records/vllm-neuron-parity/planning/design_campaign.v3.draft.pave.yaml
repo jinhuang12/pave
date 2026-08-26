@@ -1,0 +1,424 @@
+pave:
+  name: design_campaign
+  status: draft
+  nodes:
+    screen_pin_and_progress:
+      intent: explore
+      instance_per: approved_campaigns
+      purpose: Entry triage for this campaign's design lap. Settle two
+        questions against read-only evidence - (1) feasibility at the pin -
+        does every capability the kickoff-declared target needs still exist
+        in the pinned repo (the expected real failure - a target whose
+        required subsystem left the repo at the pin, needing re-scope or an
+        upstream-issue path); (2) progress - does the adversarial findings
+        history from prior design laps leave a viable untried design lever
+        (an empty history on the first lap passes by definition). Out of
+        scope - any design authoring, code change, or hardware contact.
+      roles: [investigator]
+      consumes: [kickoff_contract_record, delta_report, adversarial_review_findings]
+      produces: [pin_feasibility_note]
+      forbidden_effects:
+        - Code changes to the target repo.
+        - Hardware contact of any kind.
+      outcomes:
+        screen_passed:
+          meaning: Target realizable at the pin, and the findings history
+            (empty on first lap) leaves a viable design lever, named in the
+            note on re-entry laps.
+          required_evidence: [pin_feasibility_note]
+        pin_infeasible:
+          meaning: A capability the target requires is absent at the pinned
+            release; the note names the missing surface with repo evidence
+            and lists candidate re-scope and upstream-issue paths for the
+            design record.
+          required_evidence: [pin_feasibility_note]
+        progress_exhausted:
+          meaning: The findings history shows the same material finding
+            recurring across design laps with no untried lever; feeds the
+            parent's no_progress route to first-principles re-derivation.
+
+    draft_increment_plan:
+      intent: plan
+      instance_per: approved_campaigns
+      purpose: Draft this campaign's CPU-first increment plan, test layout,
+        venv and lease plan, and refined predicted file surface, all under
+        the kickoff contract. Per increment the plan declares - a stable
+        increment id; the file surface it touches; the CPU-mode acceptance
+        command WITH its expected result (a rung-1 measurement against a
+        declared threshold, never a bare exit check - downstream refuses a
+        plan without per-increment acceptance rather than inventing
+        criteria); test-layout additions (upstream ships no test suite; the
+        fork uses an overlay re-applied per rebase); and single-agent-context
+        sizing. Any touch of the patch-application entry point or the ad hoc
+        monkeypatches, and any patch centralization, is a design decision
+        recorded here - never implementer initiative. The refined predicted
+        file surface is the union of per-increment surfaces ranked by known
+        collision order; it feeds the lead's scheduling-holds re-derivation.
+        The venv plan uses the freeze-replicate recipe and records the
+        private-index precondition for dependencies that do not resolve from
+        public PyPI. Out of scope - acceptance-criteria authoring, code
+        changes, hardware contact.
+      roles: [implementer]
+      consumes: [kickoff_contract_record, delta_report, pin_feasibility_note,
+        adversarial_review_findings]
+      produces: [increment_plan_draft]
+      activities:
+        - Per-increment contract - stable id, file surface, CPU-mode
+          acceptance command with expected result, test-layout additions,
+          single-agent-context sizing.
+        - Monkeypatch and patch-centralization decisions recorded as design
+          decisions with rationale.
+        - Refined predicted file surface with collision ranking for
+          scheduling holds.
+        - Venv plan (freeze-replicate, private-index precondition) and
+          hardware lease plan.
+      forbidden_effects:
+        - Code changes to the target repo.
+        - Hardware contact of any kind.
+      outcomes:
+        plan_drafted:
+          meaning: Increment plan, test layout, venv and lease plan, and
+            refined predicted file surface drafted; every increment carries
+            its full per-increment contract.
+          required_evidence: [increment_plan_draft]
+        scope_exceeded:
+          meaning: The campaign as kicked off cannot be planned within this
+            node's bounded context; names what breaches the bound for
+            re-planning.
+
+    assemble_regression_matrix:
+      intent: plan
+      instance_per: approved_campaigns
+      purpose: For upgrade-route campaigns only (routing gates on the
+        kickoff-declared route) - assemble the regression matrix the
+        campaign's acceptance gate reads. New construction - generated from
+        the support table plus the in-repo accuracy framework. Each row is
+        adjudicable as written - a model-by-feature cell, a procedure
+        reference into the framework, and a verbatim-quotable threshold.
+        Rows that depend on the framework's newer orchestration layer
+        (unread at exploration time) are flagged as a higher risk tier than
+        rows on the stable primitives. Out of scope - running any procedure,
+        code changes, hardware contact.
+      roles: [implementer, investigator]
+      consumes: [kickoff_contract_record, delta_report, pin_feasibility_note]
+      produces: [regression_matrix_draft]
+      activities:
+        - Sweep the support table for cells the pin change puts at risk.
+        - Select a framework level and procedure reference per row; quote
+          its threshold verbatim.
+        - Flag rows on the unread orchestration layer as higher risk tier.
+      forbidden_effects:
+        - Code changes to the target repo.
+        - Hardware contact of any kind.
+        - Executing any matrix procedure; assembly is design-time only.
+      outcomes:
+        matrix_assembled:
+          meaning: Every at-risk support-table cell has an adjudicable row
+            with procedure reference and verbatim threshold; risk tiers
+            flagged.
+          required_evidence: [regression_matrix_draft]
+        matrix_blocked:
+          meaning: The support table plus framework evidence cannot yield
+            adjudicable rows for a kickoff-declared cell; names the gap.
+            Criteria changes need an explicit user decision, so this feeds
+            the parent's no_progress route to re-derivation.
+        scope_exceeded:
+          meaning: Matrix assembly breaches this node's bounded context;
+            names what breaches the bound for re-planning.
+
+    preregister_acceptance:
+      intent: plan
+      instance_per: approved_campaigns
+      purpose: Pre-register the kickoff-declared acceptance procedures for
+        this campaign's route, separated from all measurement - the codified
+        remedy for the observed wrong-baseline failure where the measuring
+        agent picked its own comparators. Freeze the comparator set -
+        baseline identity, configuration, and versions, including the
+        GPU-side reference version and known cross-version behavior
+        differences (baseline-skew statement). Record every criterion
+        adjudicable as written - verbatim-quotable thresholds or matrix rows
+        with procedure references; a criterion that cannot be registered
+        adjudicably is surfaced, never reworded, because kickoff-declared
+        criteria change only by explicit user decision. Record known
+        measurement-tool pitfalls per procedure as pre-emptions the
+        measurement design must honor. The registration artifact goes to the
+        lead for commitment into run state before any measurement starts.
+        Out of scope - any measurement, code change, or hardware contact.
+      roles: [implementer]
+      consumes: [kickoff_contract_record, regression_matrix_draft,
+        adversarial_review_findings]
+      produces: [acceptance_preregistration]
+      activities:
+        - Comparator set frozen - identity, config, versions, baseline-skew
+          statement.
+        - Criteria registered verbatim with procedure references, scoped to
+          this campaign's route.
+        - Per-procedure measurement-pitfall pre-emptions recorded.
+      forbidden_effects:
+        - Running any measurement; pre-registration completes before
+          measurement begins.
+        - Code changes to the target repo.
+        - Hardware contact of any kind.
+      outcomes:
+        acceptance_preregistered:
+          meaning: Comparator set and route-scoped criteria frozen and
+            adjudicable as written, ready for lead commitment into run state
+            ahead of all measurement.
+          required_evidence: [acceptance_preregistration]
+        criteria_unadjudicable:
+          meaning: A kickoff-declared criterion cannot be registered as
+            adjudicable without changing it; names the criterion and the
+            ambiguity for an explicit user decision.
+
+    assemble_design_record:
+      intent: plan
+      instance_per: approved_campaigns
+      purpose: Join point - assemble the campaign_design_record in this
+        campaign's design artifact directory from the sibling outputs, then
+        run the completeness self-check before the record reaches gate 2 -
+        every increment carries its full per-increment contract including
+        acceptance command with expected result; every criterion is
+        adjudicable as written; wording is scoped to the kickoff-declared
+        acceptance procedures for this campaign's route; comparator
+        registration is present and marked for run-state commitment; the
+        refined file surface, test layout, venv and lease plan, and (for
+        upgrade-route campaigns) the regression matrix are present. When
+        routed from a pin-infeasibility screen, assemble the infeasibility
+        variant instead - the evidence, re-scope options, and upstream-issue
+        draft path close-out needs. Out of scope - authoring or altering any
+        design content owned by a sibling; code changes; hardware contact.
+      roles: [implementer]
+      consumes: [kickoff_contract_record, pin_feasibility_note,
+        increment_plan_draft, acceptance_preregistration,
+        regression_matrix_draft]
+      produces: [campaign_design_record]
+      activities:
+        - Assemble the record from sibling outputs; point at artifacts,
+          never inline bulk content.
+        - Completeness self-check against the declared checklist; name the
+          owning sibling for any gap.
+        - Infeasibility variant when routed from pin_infeasible.
+      forbidden_effects:
+        - Authoring design content owned by a sibling node.
+        - Code changes to the target repo.
+        - Hardware contact of any kind.
+      outcomes:
+        record_ready:
+          meaning: Complete, self-checked design record assembled; feeds the
+            parent's design_ready outcome into gate-2 review.
+          required_evidence: [campaign_design_record]
+        record_incomplete:
+          meaning: The self-check found a missing or non-adjudicable
+            component; names the owning sibling for a bounded repair loop.
+        infeasibility_recorded:
+          meaning: The record documents pin infeasibility with evidence,
+            re-scope options, and an upstream-issue draft path; feeds the
+            parent's infeasible_at_pin outcome toward close-out.
+          required_evidence: [campaign_design_record]
+
+  extensions:
+    x_planning:
+      dispatched_node: design_campaign
+      frozen_contract_reference: planning/root.v6.draft.pave.yaml#design_campaign
+      supersedes: planning/design_campaign.v2.draft.pave.yaml
+      revision: >
+        v3 repairs boundary-review round-2 findings in parent prose only -
+        HIGH-1(v2): the exhaustion predicate now cites the pinned
+        two-qualifier idiom (named-gap recurrence PLUS no gap-closing
+        artifact FOR THAT GAP), replacing the v2 any-artifact qualifier;
+        HIGH-2(v2): the scope_exceeded to no_progress mapping is stated as
+        contingent on lead-minted c9 and surfaced under conflicts, never
+        asserted settled. Carried from v2 - HIGH-1(v1) lap-counter
+        withdrawal, HIGH-2(v1) valve routing, L2 per-child gameability
+        entries, L1/L3 delegations. The five child node bodies remain
+        byte-identical to v1; v1 and v2 stay as provenance.
+      elaboration:
+        design_campaign:
+          verdict: decompose
+          justification: One agent cannot, in one bounded context, settle
+            pin feasibility, draft a per-increment plan whose every
+            increment carries a rung-1 acceptance command with expected
+            result, assemble an upgrade-route regression matrix over a
+            partially-unread framework, and freeze route-scoped comparators
+            separated from measurement - five children with the record
+            assembler as the join point realize the definition of done.
+            Framing prediction (decompose) CONFIRMED.
+        screen_pin_and_progress:
+          prediction: atomic
+          justification: Reads kickoff contract, delta report, and findings
+            history against the pinned repo; settles via a written
+            feasibility note naming present or absent surfaces.
+        draft_increment_plan:
+          prediction: atomic
+          justification: One coherent design act over evidence already in
+            hand; the per-increment contract bounds the output;
+            scope_exceeded is the sizing valve.
+        assemble_regression_matrix:
+          prediction: atomic
+          justification: One campaign's rows come from the support table;
+            stable-primitive procedure refs are known; the unread
+            orchestration layer is a bounded read. Uncertain - the
+            scope_exceeded valve covers a wrong call; its own dispatch
+            decides.
+        preregister_acceptance:
+          prediction: atomic
+          justification: Transcribes kickoff-declared criteria into frozen
+            adjudicable registrations; wording-critical but judgment-light
+            and small in volume.
+        assemble_design_record:
+          prediction: atomic
+          justification: Mechanical join plus checklist self-check against
+            declared completeness rules; no new design judgment.
+      interface_findings:
+        routing: >
+          Lead-authored edges needed. Entry (fan-out per approved campaign,
+          and every re-entry edge - design_findings_to_redesign,
+          design_defect_to_redesign, implementation_scope_to_redesign,
+          revised_approach_to_redesign) lands at screen_pin_and_progress,
+          which triages feasibility and progress before any design work.
+          screen_passed routes to draft_increment_plan and, for
+          upgrade-route campaigns only (edge condition reading the kickoff
+          contract's declared route), in parallel to
+          assemble_regression_matrix; backport-route campaigns never
+          instantiate the matrix node and route screen_passed directly to
+          preregister_acceptance alongside draft_increment_plan.
+          matrix_assembled routes to preregister_acceptance (the matrix IS
+          the upgrade route's acceptance content). plan_drafted and
+          acceptance_preregistered join at assemble_design_record.
+          record_ready settles the parent's design_ready; pin_infeasible
+          routes to assemble_design_record whose infeasibility_recorded
+          settles the parent's infeasible_at_pin (evidence requirement -
+          campaign_design_record - is met by the infeasibility variant).
+          progress_exhausted, matrix_blocked, and criteria_unadjudicable
+          feed the parent's no_progress route to rederive_approach -
+          matrix_blocked and criteria_unadjudicable because kickoff-declared
+          criteria change only by explicit user decision, so re-derivation
+          (route change, re-scope, or close-out) is the only in-graph move.
+          scope_exceeded (on draft_increment_plan and
+          assemble_regression_matrix) has the same destination -
+          rederive_approach, because a re-scoped campaign plan is itself a
+          first-principles re-derivation product - but its only parent door
+          is no_progress, whose frozen meaning does not cover a sizing-valve
+          firing; the mapping is therefore CONTINGENT on the c9 widening
+          pending at resync (lead-minted; see conflicts), not settled here.
+          Falsifier without the widening - the valve can fire on lap 1 with
+          abundant new design evidence, so a strict reader of the frozen
+          no_progress meaning rejects the traffic and the valve strands
+          again, the defect HIGH-2(v1) named one level up.
+          record_incomplete routes back to the owning sibling; its
+          exhaustion condition is in loop_bounds.
+        loop_bounds: >
+          record_incomplete loops back to the owning sibling with the named
+          gap. It exhausts into the parent's no_progress on the exhaustion
+          predicate pinned once, with both qualifiers, in the artifact-layout
+          reference at assembly - CITED here, not re-typed: the same named
+          gap recurs AND no gap-closing artifact FOR THAT GAP has been
+          produced since that lap. Falsifiers held inline: (a) the v1 lap
+          counter - the completeness checklist has about seven components,
+          so a converging first draft can repair a DIFFERENT gap on each of
+          four or more laps, producing new design evidence every lap, and
+          the counter would route that converging design to first-principles
+          re-derivation with neither no_progress disjunct true; (b) the v2
+          any-artifact qualifier - under "no new draft artifact", a sibling
+          producing some new draft every lap while never closing gap X would
+          NEVER exhaust, leaving the loop unbounded behind gate 2 where the
+          user cannot see it spin; the FOR-THAT-GAP qualifier is what bounds
+          it. scope_exceeded on draft_increment_plan and
+          assemble_regression_matrix maps to the parent's no_progress under
+          the c9 widening pending at resync (see routing and conflicts); the
+          v1 recommendation "routes back to a plan node with an exhaustion
+          bound" stays superseded by that mapping - without a declared
+          route, a firing sizing valve would strand the campaign with no
+          realized parent outcome.
+        state_and_checks: >
+          Run state is lead-owned single-writer - preregister_acceptance
+          produces the registration artifact; the LEAD commits it to run
+          state with the timestamp that the existing mechanical check
+          comparators_preregistered compares against every later measurement
+          artifact. increment_plan_draft carries the refined predicted file
+          surface; the lead re-derives scheduling holds from it (existing
+          check scheduling_holds_recorded). New intermediate evidence ids to
+          declare at graph level - pin_feasibility_note,
+          increment_plan_draft, regression_matrix_draft,
+          acceptance_preregistration - all under the campaign's design
+          artifact directory.
+        consumer_contract: >
+          The reviewed implement_increments boundary is honored by
+          construction - per-increment stable id, file surface, CPU-mode
+          acceptance command with expected result, test-layout additions,
+          and single-agent-context sizing live in draft_increment_plan's
+          activities; assemble_design_record's self-check pre-empts the
+          frozen-acceptance refusal (plan_unrealizable_as_designed) and the
+          adjudicability material-finding category by blocking an incomplete
+          record before gate 2; monkeypatch and patch-centralization moves
+          are design-record decisions, never implementer initiative.
+        enforcement_and_gameability: >
+          Every child's success evidence is doer-written; each entry below
+          records the gameability judgment, the hardening, and the
+          acceptance rung it settles on. (1) screen_pin_and_progress /
+          pin_feasibility_note - gameable in isolation; hardening already
+          designed in - an infeasibility claim must name the missing surface
+          WITH repo evidence, re-checkable by any later actor against the
+          pinned repo (rung 1 - world-produced repo state). False
+          infeasibility is the expensive direction (pin_infeasible ends a
+          campaign), and the close-out gate reads the same re-checkable
+          evidence. (2) draft_increment_plan / increment_plan_draft -
+          per-increment expected results are doer-written; hardened
+          downstream where the increment executor runs the declared command
+          against the declared expected result (rung 1) and by gate-2
+          adversarial review of the whole record. (3)
+          assemble_regression_matrix / regression_matrix_draft - rows are
+          doer-written; hardened by verbatim-quotable thresholds with
+          procedure references re-checkable against the support table and
+          framework (rung 2 - pre-written rubric), and by the run-state
+          anchor the rows inherit when preregister_acceptance freezes them
+          (lead-committed timestamp, a world identifier in a second
+          artifact). (4) preregister_acceptance / acceptance_preregistration
+          - gameable in isolation; hardened by the lead-committed run-state
+          timestamp plus the mechanical comparators_preregistered check
+          already in the frozen graph (rung 1 - mechanical). (5)
+          assemble_design_record / campaign_design_record - the completeness
+          self-check is doer-run and gameable alone; the settling judgment
+          is gate-2 adversarial review by the sibling review_campaign_design
+          node (rung 2 - pre-written checklist, judge is not the assembler),
+          and the record points at sibling artifacts rather than restating
+          them, so every claim stays re-checkable at source. No child
+          self-approves - the only review of this design is the sibling
+          review_campaign_design node.
+        model_and_effort: >
+          screen_pin_and_progress - strong model, effort high (feasibility
+          judgment over moderate evidence). draft_increment_plan - top
+          capability, effort high (this judgment compounds into every
+          downstream node). assemble_regression_matrix - strong model,
+          effort high (evidence-heavy construction; its dispatch may raise
+          effort if the orchestration read runs long). preregister_acceptance
+          - strong model, effort medium (wording-critical, small volume).
+          assemble_design_record - mid-tier model, effort medium
+          (checklist-mechanical; a miss only loops, never ships).
+        delegations: >
+          Recorded per boundary-review round 1, not fixed here. L1 -
+          per-child outcome precedence lines for screen_pin_and_progress,
+          assemble_regression_matrix, and assemble_design_record (each holds
+          three or more co-holdable outcomes, including the divergent
+          pin_infeasible vs progress_exhausted pair on the screen) - realized
+          by those children's own planners; their dispatch briefs carry the
+          duty. L3 - preregister_acceptance declares a consumes superset on
+          backport routes (regression_matrix_draft is absent there); its
+          planner adds the entry-paths-note idiom the close-out boundary
+          (close_campaign.v2) uses.
+        conflicts: >
+          One, surfaced at round 2 and lead-minted as c9 (referenced here,
+          never minted by this planner) - the parent's frozen no_progress
+          meaning ("repeated identical review findings or no new design
+          evidence across repair attempts") does not cover a child
+          sizing-valve firing, which can happen on lap 1 with abundant new
+          design evidence. The agreed destination for scope_exceeded is
+          rederive_approach; the only parent door there is no_progress; c9
+          proposes the minimal widening of that meaning to also cover a
+          child sizing-valve firing (naming the breaching subset), with
+          resolution at resync. Until resolved, every scope_exceeded mapping
+          in this fragment is stated as contingent on c9, never settled.
+          Everything else - frozen contract, sibling interfaces, checks -
+          accommodates this decomposition unchanged. Finding G applied - all
+          authored wording is route-scoped ("the kickoff-declared acceptance
+          procedures for this campaign's route"); all text is pin-generic.
