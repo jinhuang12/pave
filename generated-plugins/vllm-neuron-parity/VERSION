@@ -1,4 +1,14 @@
-version: 1.0.0
+version: 1.1.0
+
+## 1.1.0 — 2026-08-27
+
+Codex CLI runtime binding. Adds the validated `.codex-plugin` manifest,
+schema-valid active-run-scoped plugin hooks, six native custom-agent TOML
+contracts, an explicit project or user agent installer, a durable project-local
+evolution workspace, dual-root Codex dispatch instructions, and focused
+runtime-binding tests. The approved PAVE graph and packaged v0 seed are
+unchanged. The original Claude lead and role sources remain as provenance
+records.
 
 ## 1.0.0 — 2026-08-26
 

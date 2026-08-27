@@ -5,11 +5,10 @@ Usage:
   validate_run_state.py <path/to/run-state.json>
 
 The schema is the single shape authority for run state; this script only
-applies it. Full validation uses the jsonschema package when importable.
-Without it, falls back to a stdlib check of the required keys and of the
-completed_outcomes entry shape, so run state stays checkable on a bare
-python3 (this must never fail closed for a missing dependency; the graph
-validator scripts/validate_pave.py owns fail-closed behavior).
+applies it. Validation uses the jsonschema package when importable. A
+dependency-free Draft 7 subset validator covers every keyword used by this
+schema on a bare python3. The graph validator scripts/validate_pave.py keeps
+its separate fail-closed dependency contract.
 
 Exit codes: 0 valid, 1 invalid, 2 usage or schema error.
 """
@@ -19,6 +18,101 @@ import sys
 from pathlib import Path
 
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "schemas" / "run-state.schema.json"
+SUPPORTED_SCHEMA_KEYS = {
+    "$id",
+    "$schema",
+    "additionalProperties",
+    "description",
+    "enum",
+    "items",
+    "maximum",
+    "minLength",
+    "minimum",
+    "oneOf",
+    "properties",
+    "required",
+    "title",
+    "type",
+}
+
+
+def _type_matches(value, expected):
+    checks = {
+        "array": lambda item: isinstance(item, list),
+        "boolean": lambda item: isinstance(item, bool),
+        "integer": lambda item: isinstance(item, int) and not isinstance(item, bool),
+        "null": lambda item: item is None,
+        "number": lambda item: isinstance(item, (int, float)) and not isinstance(item, bool),
+        "object": lambda item: isinstance(item, dict),
+        "string": lambda item: isinstance(item, str),
+    }
+    return expected in checks and checks[expected](value)
+
+
+def _stdlib_validate(value, schema, path="<root>"):
+    """Validate the Draft 7 keyword subset used by run-state.schema.json."""
+    problems = []
+    unsupported = set(schema) - SUPPORTED_SCHEMA_KEYS
+    if unsupported:
+        rendered = ", ".join(sorted(unsupported))
+        return [f"{path}: validator does not support schema keyword(s): {rendered}"]
+    branches = schema.get("oneOf")
+    if isinstance(branches, list):
+        matches = [not _stdlib_validate(value, branch, path) for branch in branches]
+        if sum(matches) != 1:
+            problems.append(f"{path}: does not match exactly one allowed shape")
+        return problems
+
+    expected = schema.get("type")
+    expected_types = expected if isinstance(expected, list) else [expected]
+    if expected is not None and not any(
+        _type_matches(value, item) for item in expected_types
+    ):
+        rendered = ", ".join(str(item) for item in expected_types)
+        return [f"{path}: expected type {rendered}"]
+
+    if "enum" in schema and value not in schema["enum"]:
+        problems.append(f"{path}: value is not in the allowed enum")
+
+    if isinstance(value, str):
+        minimum = schema.get("minLength")
+        if isinstance(minimum, int) and len(value) < minimum:
+            problems.append(f"{path}: string is shorter than {minimum}")
+
+    if isinstance(value, int) and not isinstance(value, bool):
+        minimum = schema.get("minimum")
+        maximum = schema.get("maximum")
+        if isinstance(minimum, (int, float)) and value < minimum:
+            problems.append(f"{path}: value is less than {minimum}")
+        if isinstance(maximum, (int, float)) and value > maximum:
+            problems.append(f"{path}: value is greater than {maximum}")
+
+    if isinstance(value, list) and isinstance(schema.get("items"), dict):
+        for index, item in enumerate(value):
+            problems.extend(_stdlib_validate(item, schema["items"], f"{path}/{index}"))
+
+    if isinstance(value, dict):
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+        problems.extend(
+            f"{path}: missing required field: {key}"
+            for key in required
+            if key not in value
+        )
+        extras = set(value) - set(properties)
+        additional = schema.get("additionalProperties", True)
+        if additional is False:
+            problems.extend(f"{path}: undeclared field: {key}" for key in sorted(extras))
+        elif isinstance(additional, dict):
+            for key in sorted(extras):
+                problems.extend(
+                    _stdlib_validate(value[key], additional, f"{path}/{key}")
+                )
+        for key in sorted(set(value) & set(properties)):
+            problems.extend(
+                _stdlib_validate(value[key], properties[key], f"{path}/{key}")
+            )
+    return problems
 
 
 def load_schema():
@@ -44,11 +138,7 @@ def validate_run_state(state_path: Path) -> int:
         print("FAIL: top level is not an object")
         return 1
 
-    problems = [
-        f"missing required field: {key}"
-        for key in schema.get("required", [])
-        if key not in state
-    ]
+    problems = []
 
     try:
         import jsonschema
@@ -60,21 +150,8 @@ def validate_run_state(state_path: Path) -> int:
         )
         mode = "full (jsonschema)"
     except ImportError:
-        declared = set(schema.get("properties", {}))
-        problems.extend(
-            f"undeclared field: {key}" for key in sorted(set(state) - declared)
-        )
-        history = state.get("completed_outcomes")
-        if history is not None:
-            if not isinstance(history, list):
-                problems.append("completed_outcomes: not a list")
-            else:
-                problems.extend(
-                    f"completed_outcomes[{i}]: missing node/outcome"
-                    for i, entry in enumerate(history)
-                    if not (isinstance(entry, dict) and entry.get("node") and entry.get("outcome"))
-                )
-        mode = "basic (stdlib only; install jsonschema for full validation)"
+        problems.extend(_stdlib_validate(state, schema))
+        mode = "full schema subset (stdlib)"
 
     return report(problems, mode, state_path)
 

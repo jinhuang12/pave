@@ -6,7 +6,7 @@
 # likely (the run-wide reflection of realize_increment's addition), /opt damage
 # breaks co-tenants, and both patterns are precise.
 #
-# Event: PreToolUse, matcher "Bash". Run-wide across lead, teammates, and
+# Event: PreToolUse, matcher "Bash". Run-wide across lead, custom agents, and
 # one-shot sub-agents.
 #
 # Exit semantics: exit 2 with the reason on stderr refuses the call; exit 0

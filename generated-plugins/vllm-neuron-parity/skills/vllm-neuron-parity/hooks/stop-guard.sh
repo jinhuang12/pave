@@ -47,7 +47,7 @@ SESSION_ID="$(printf '%s\n' "$FIELDS" | sed -n 2p)"
 # session, so this hook acts only on a marker hit.
 FOUND_STATE=""
 FOUND_VIA=""
-for root in "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
+for root in "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
   [ -n "$root" ] || continue
   marker="$root/.vllm-neuron-parity-run"
   [ -f "$marker" ] || continue
@@ -142,12 +142,12 @@ You decided to stop. Socratic check -- answer to yourself, then act:
   c. Is every consequential transition since $LAST written to run state, with
      its evidence indexed at the declared artifact path? You are the single
      writer (P10) -- nobody else records it.
-  d. Are any teammates or sub-agents finished or no longer needed? Retire the
+  d. Are any custom-agent threads or sub-agents finished or no longer needed? Retire the
      node instance's seat now -- an idle seat costs tokens, and a late message
      from one can derail the run.
 
 Valid reasons to stop exist: a pending user decision at gate 1, 2, or 3; a
-recorded pause (run_paused); waiting on a background teammate; a settled
+recorded pause (run_paused); waiting on a retained custom-agent thread; a settled
 terminal. If stop is the right call, stop again -- the next $((STOP_EVERY - 1))
 stops pass through before this check fires again.
 EOF

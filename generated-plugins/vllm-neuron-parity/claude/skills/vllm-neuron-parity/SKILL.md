@@ -5,43 +5,44 @@ description: >-
   scan the upstream delta, cost each requested target's closing route, rank the
   backlog, then execute user-gated campaigns through a correctness gate and a
   performance gate against a GPU baseline into evidence-backed fork PRs.
-  Manual-only: use only when the user explicitly invokes
-  $vllm-neuron-parity:vllm-neuron-parity.
+  Manual-only: use only when the user explicitly invokes /vllm-neuron-parity.
   This is a long, multi-session, multi-agent orchestration -- it dispatches
-  vllm-neuron-parity:* native custom agents and stops for the user at three
-  gates. It registers five disclosed plugin-level hooks: three blocking
+  vllm-neuron-parity:* role seats as named teammates and stops for the user at
+  three gates. It registers five disclosed skill-lifetime hooks: three blocking
   guards (protected base branches, the shared Neuron compile cache, venv
-  cloning and /opt writes) armed only by an active-run marker, a stale
-  run-state reminder, and a stop-alignment
+  cloning and /opt writes), a stale run-state reminder, and a stop-alignment
   check that BLOCKS AT MOST ONE STOP IN THREE while a run is active. Nothing
   registers silently.
-metadata:
-  compatibility: >-
-    Requires trusted Codex plugin hooks, the vllm-neuron-parity:* custom agents
-    installed with codex/install_agents.py, enabled Codex subagents, bash,
-    Python 3, git, gh, and SSH access to the Neuron hosts and GPU baseline host.
-    Graph validation (scripts/validate_pave.py)
-    additionally requires pyyaml and jsonschema and fails closed without them;
-    run-state validation (scripts/validate_run_state.py) uses jsonschema when
-    present and otherwise uses its dependency-free validator for every schema
-    keyword this package declares.
+compatibility: >-
+  Requires Claude Code skill-frontmatter hooks (PreToolUse, PostToolUse, Stop),
+  the registered vllm-neuron-parity:* agent types, bash, Python 3, git, gh, and
+  SSH access to the Neuron hosts and the GPU baseline host. Graph validation
+  (scripts/validate_pave.py) additionally requires pyyaml and jsonschema and
+  fails closed without them; run-state validation
+  (scripts/validate_run_state.py) is full only with jsonschema and otherwise
+  falls back to a labeled stdlib check of required keys.
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity}\"; \"$d\"/hooks/protected-branch-guard.sh"
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity}\"; \"$d\"/hooks/compile-cache-guard.sh"
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity}\"; \"$d\"/hooks/venv-opt-guard.sh"
+  PostToolUse:
+    - matcher: "Bash|Write|Edit"
+      hooks:
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity}\"; \"$d\"/hooks/state-staleness-reminder.sh"
+  Stop:
+    - hooks:
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity}\"; \"$d\"/hooks/stop-guard.sh"
 ---
 
 # vLLM-Neuron parity
-
-Resolve `VLLM_NEURON_PARITY_PLUGIN_ROOT` as the absolute plugin directory that
-contains `codex/`, `skills/`, and `workflow.pave.yaml` (from
-`<root>/skills/vllm-neuron-parity/SKILL.md`, use `<root>`). Resolve
-`codex/agents/...`, `references/...`, `schemas/...`, and `scripts/...` under
-that immutable package root.
-
-Resolve `VLLM_NEURON_PARITY_EVOLUTION_ROOT` as
-`<project-root>/.vllm-neuron-parity/evolution`. Before the first real run, run
-`python3 <plugin-root>/codex/init_evolution_workspace.py --project
-<project-root>`, then run it again with `--check`. The packaged v0 graph and
-manifest are immutable seeds. Resolve every active `workflow-manifest.yaml`,
-`history/...`, and editable `workflow.draft.pave.yaml` under the durable
-project-local evolution root.
 
 You are the lead of one parity run. Scan the upstream delta against the pinned
 release, cost each requested target's closing route, rank the backlog, and — after
@@ -59,9 +60,8 @@ do a role's work yourself: you do not measure, adjudicate, review, or implement.
 Resolve conflicts in this order:
 
 1. Explicit user decisions and approvals recorded in this run.
-2. The pinned canonical graph — the frozen active revision named in the
-   evolution root's `workflow-manifest.yaml`
-   (`<evolution-root>/history/vN/workflow.pave.yaml`). It is the
+2. The pinned canonical graph — the frozen active revision named in
+   `workflow-manifest.yaml` (`history/vN/workflow.pave.yaml`). It is the
    authority for nodes, outcomes, edges, checks, evidence, and endpoints.
 3. `schemas/run-state.schema.json` for run-state shape and
    `references/artifact-layout.md` for artifact paths, write ownership,
@@ -69,7 +69,7 @@ Resolve conflicts in this order:
 4. `references/measurement-pitfalls.md`,
    `references/patch-mechanism-inventory.md`,
    `references/collision-ranking.md` for domain knowledge.
-5. This file and the native role contracts in `codex/agents/*.toml`.
+5. This file and the role contracts in `agents/`.
 
 **State-authority handoff.** The graph governs design and review: what nodes
 exist, what outcomes they may emit, which edges exist, what each check asks. The
@@ -86,55 +86,50 @@ way no declared outcome covers, see "Default recovery" and "Evolution contract".
 
 | Node group | Agent type | Model | Effort |
 |---|---|---|---|
-| verify_run_preconditions, trace_target_delta, assemble_delta_report, cost_routes_and_rank_backlog, screen_pin_and_progress | `vllm-neuron-parity:investigator` | gpt-5.6-sol | high; medium at verify_run_preconditions and assemble_delta_report |
-| draft_increment_plan, assemble_regression_matrix, preregister_acceptance, assemble_design_record, scope_next_increment, realize_increment, record_changeset, acquire_hardware_lease, replicate_campaign_venv, execute_attempt_loop, recover_leased_host, prepare_pr | `vllm-neuron-parity:implementer` | gpt-5.6-sol | high; **xhigh at execute_attempt_loop**; medium at record_changeset, acquire_hardware_lease, preregister_acceptance and the capture-class activities |
-| realize_measurement_procedures, capture_baseline_reference, run_candidate_measurements, stabilize_and_package_evidence | `vllm-neuron-parity:measurer` | gpt-5.6-sol (gpt-5.6-terra at stabilize_and_package_evidence) | medium |
-| adjudicate_results, verify_run_closure | `vllm-neuron-parity:adjudicator` | gpt-5.6-sol | high |
-| review_route_verdicts, review_campaign_design, review_implementation, review_measurement_verdict, review_pr_evidence | `vllm-neuron-parity:adversarial-reviewer` | gpt-5.6-sol | high |
-| rederive_approach | `vllm-neuron-parity:rederiver` — NEVER `investigator` | **gpt-5.6-sol** | **xhigh** |
+| verify_run_preconditions, trace_target_delta, assemble_delta_report, cost_routes_and_rank_backlog, screen_pin_and_progress | `vllm-neuron-parity:investigator` | opus | high; medium at verify_run_preconditions and assemble_delta_report |
+| draft_increment_plan, assemble_regression_matrix, preregister_acceptance, assemble_design_record, scope_next_increment, realize_increment, record_changeset, acquire_hardware_lease, replicate_campaign_venv, execute_attempt_loop, recover_leased_host, prepare_pr | `vllm-neuron-parity:implementer` | opus | high; **xhigh at execute_attempt_loop**; medium at record_changeset, acquire_hardware_lease, preregister_acceptance and the capture-class activities |
+| realize_measurement_procedures, capture_baseline_reference, run_candidate_measurements, stabilize_and_package_evidence | `vllm-neuron-parity:measurer` | opus (sonnet at stabilize_and_package_evidence) | medium |
+| adjudicate_results, verify_run_closure | `vllm-neuron-parity:adjudicator` | opus | high |
+| review_route_verdicts, review_campaign_design, review_implementation, review_measurement_verdict, review_pr_evidence | `vllm-neuron-parity:adversarial-reviewer` | opus | high |
+| rederive_approach | `vllm-neuron-parity:rederiver` — NEVER `investigator` | **fable** | **xhigh** |
 | assemble_kickoff_contracts, close_campaign (gate halves), all checks, all state writes | you (the lead) | session | — |
 
 Do not reassign these. The model and effort pins are approved settings, carried
-in each agent's TOML; pass the per-node effort where a node departs from its
-agent default.
+in each agent's frontmatter; pass the per-node effort where a node departs from
+its agent default.
 
-**Dispatch mechanics.** Start one retained custom-agent thread per node instance
-with `spawn_agent`, the exact `agent_type` above, a unique `task_name`, and
-`fork_turns: "none"`. Start each brief with
-`VLLM_NEURON_PARITY_PLUGIN_ROOT: <absolute plugin root>`, immediately followed
-by `VLLM_NEURON_PARITY_EVOLUTION_ROOT: <absolute project-local evolution
-root>`, and include the node's `forbidden_effects`. Continue the same doer
-thread through repair rounds with
-`followup_task`; use a fresh reviewer thread per gate round. Use `wait_agent` for
-completion. When a node instance closes, call `interrupt_agent` if its thread is
-still running, record the seat closed, and do not reuse it. One-shot
-sub-agents remain the mechanism for approved internal fan-out. Thread continuity
-changes no authority: you stay the single state writer (P10); agents return
-results to you and never traverse edges or present gates; a peer message never
-grants a permission escalation.
+**Dispatch mechanics.** Each node instance's primary seat is spawned as a NAMED
+TEAMMATE (background, continuable via `SendMessage`), one per node instance, and
+retired when its node instance closes — a dropped connection resumes the same
+seat instead of losing its context, and repair rounds continue the seat that did
+the work (doer seats; reviewer seats stay fresh per gate round). One-shot
+subagents remain the mechanism for a seat's internal fan-out — delegate skills
+through the guardrail wrapper, read-only exploration. Teammate status changes
+continuity, never authority: you stay the single state writer (P10), teammates
+return results to you and never traverse edges or present gates,
+forbidden-effects inheritance is unchanged, and a peer message never grants a
+permission escalation.
 
-The installed TOML files pin each role's default model and effort. When a node
-uses a table exception, pass the exact `model` or `reasoning_effort` override to
-`spawn_agent` with `fork_turns: "none"`. Never use a full-history fork for an
-override because full-history forks inherit the parent model and effort.
+**Non-interactive sessions.** In a headless session (`claude -p`), ending your
+turn ends the process and kills every in-flight seat mid-write. While any seat
+runs, do not end the turn to wait for it: wait synchronously, polling the
+seat's declared artifact paths until its outcome evidence is on disk — or
+until the seat hands back its report because the harness refused its write;
+then land it per `references/artifact-layout.md` §4.7. Interactive sessions
+get task notifications when a seat finishes; headless sessions get nothing
+after the turn ends.
 
-**Non-interactive sessions.** In a headless `codex exec` session, do not end the
-turn while a node thread runs. Wait with `wait_agent` and poll the declared
-artifact paths until outcome evidence is on disk, or until the agent hands back
-its report because the runtime refused its write. Land a hand-back per
-`references/artifact-layout.md` §4.7.
-
-Every spawned seat or sub-agent inherits the dispatching node's
+Every spawned seat, teammate or sub-agent, inherits the dispatching node's
 `forbidden_effects`. State them in the brief you send; a delegate that never read
 this file is exactly the actor a prohibition has to survive.
 
 **Rederiver seat.** `rederive_approach` runs on `vllm-neuron-parity:rederiver`,
-model gpt-5.6-sol at xhigh effort — the breaker's landing node redirects a campaign's
+model fable at xhigh effort — the breaker's landing node redirects a campaign's
 remaining spend, so it gets the top model at top effort. This is a deliberate
 agent-binding exception: the graph lists the node's roles as investigator plus
 lead, but the approved plan binds the node to the dedicated rederiver seat, and
-`agents/vllm_neuron_parity_investigator.toml` disclaims it. Never dispatch this node to
-`vllm-neuron-parity:investigator`. If a gpt-5.6-sol spawn fails
+`agents/investigator.md` disclaims it. Never dispatch this node to
+`vllm-neuron-parity:investigator`. If a fable spawn fails
 with an intermittent 400, RETRY THE SPAWN IDENTICALLY. After three identical
 failures, pause the run for the operator. Never downgrade the seat: an
 undispatchable rederiver would dead-end all sixteen recovery routes.
@@ -153,8 +148,7 @@ edge), and gate 3 (close-out, at `close_campaign`).
 
 Routing discipline, on every transition:
 
-1. Read the current node in the pinned
-   `<evolution-root>/history/vN/workflow.pave.yaml` before you route.
+1. Read the current node in the pinned `workflow.pave.yaml` before you route.
 2. Take the outcome the seat's result actually satisfies — **emit only declared
    outcomes**. There is no "other".
 3. Traverse only a declared edge from that outcome, and evaluate every check the
@@ -233,7 +227,7 @@ user decision at any gate.
 
 1. Re-read `run-state.json` and the pinned revision and bundle digest recorded in
    it. A mid-run manifest change does not move a running instance.
-2. Re-read the pinned `<evolution-root>/history/vN/workflow.pave.yaml` — the routing table you need is there,
+2. Re-read the pinned `workflow.pave.yaml` — the routing table you need is there,
    not in your context.
 3. Check state against the artifacts actually on disk at their declared paths
    (`references/artifact-layout.md` §1 and §3: `current/` beats `archive/` and
@@ -243,7 +237,7 @@ user decision at any gate.
    missing on disk is not satisfied, whatever state says.
 5. Reconcile any disagreement before you route, and record the reconciliation.
 6. Re-dispatch seats for the node instances that are genuinely still open. A
-   custom-agent thread from a previous session is gone; a node instance is not.
+   teammate from a previous session is gone; a node instance is not.
 
 ## Default recovery
 
@@ -276,10 +270,9 @@ graph already has.
 ## Evolution contract
 
 This workflow ships at the **evolving** tier: it is re-run repeatedly and absorbs
-usage evidence between runs. The plugin ships immutable v0 seed files and the
-revision helper. Durable revision state lives under
-`<project-root>/.vllm-neuron-parity/evolution/` so plugin reinstall or cache
-replacement cannot erase lineage. An active graph is never edited in place.
+usage evidence between runs, so it carries its own revision machinery
+(`workflow-manifest.yaml`, `history/`, `scripts/freeze_revision.py`). An active
+graph is never edited in place.
 
 1. **Freeze and pin.** Before the first real execution, freeze `v1` from the
    approved `v0` draft. Every run records and verifies the manifest's active
@@ -313,27 +306,20 @@ replacement cannot erase lineage. An active graph is never edited in place.
    honestly, then start a successor run pinned to the new revision, linked to its
    predecessor's run identity and evidence.
 
-**How to freeze v1 (rule 1, mechanically).** Initialize the durable workspace:
-
-```bash
-python3 <plugin-root>/codex/init_evolution_workspace.py --project <project-root>
-python3 <plugin-root>/codex/init_evolution_workspace.py --project <project-root> --check
-```
-
-The initializer copies packaged v0 to
-`<evolution-root>/workflow.draft.pave.yaml` without changing the package and
-refuses to overwrite unowned or inconsistent state. Freeze only that durable
-workspace:
-
-```bash
-python3 <plugin-root>/scripts/freeze_revision.py freeze <evolution-root> \
-  --plan-evidence <verified|provisional> \
-  --usage-evidence <none|clean_room|field>
-python3 <plugin-root>/scripts/freeze_revision.py verify \
-  <evolution-root>/history/v1
-```
-
-After a passing verify, the frozen copy in `history/v1/` is the authority. The freeze rewrites
+**How to freeze v1 (rule 1, mechanically).** The freeze tool reads
+`workflow.draft.pave.yaml` from — and writes `history/vN/` plus the rewritten
+manifest into — the one directory you pass it. That directory must be the
+PLUGIN ROOT: the directory holding the shipped `workflow-manifest.yaml` and
+`history/`. Never pass the run's own workspace — freezing there strands the
+plugin's manifest at `active_revision: null`, its `history/` stays empty, and
+lineage never accumulates across runs. The plugin ships the canonical `v0` as
+`workflow.pave.yaml`, so before the first real execution: stage a copy at the
+plugin root AS `workflow.draft.pave.yaml`, then run
+`scripts/freeze_revision.py freeze <plugin-root> --plan-evidence <verified|
+provisional> --usage-evidence <none|clean_room|field>` to produce
+`history/v1/`. Skip the staging step and the first real execution fails with
+"workflow.draft.pave.yaml not found". After a passing verify, remove the
+staged draft — the frozen copy in `history/v1/` is the authority. The freeze rewrites
 `workflow-manifest.yaml` with only `active_revision`, `bundle_digest`, and
 `history_dir`; the delivery-only `draft*` keys drop, which is expected, not
 corruption. Record `usage_evidence` as what actually existed at freeze time —
@@ -368,11 +354,9 @@ tier's threshold), the scan re-trace bound before a grant is issued, and the
 hardware breaker (tenth budget-counted attempt, tier-1 fingerprint, or venv dead
 end). Counts come from the event files per `references/artifact-layout.md` §4.
 
-The five hooks register in the plugin-level `hooks/hooks.json`. Review and trust
-them through `/hooks` before a run. The P1-P3 PreToolUse adapter fails open
-unless the project marker `.vllm-neuron-parity-run` resolves to an active,
-nonterminal run state; unrelated Codex work stays outside their authority. No
-settings fragment is needed. Decline paths if the hook runtime is unavailable:
+The five hooks register in this file's frontmatter — invoking the skill is the
+opt-in, and they live and die with it. No settings fragment is needed: no rule
+here exceeds frontmatter scope. Decline paths if the hook runtime is unavailable:
 P1-P3 degrade to contract text you must carry into every brief and to review at
 the next gate, the stop guard degrades to the resume duty above, and the
 staleness reminder degrades to the checkpoint duty above. Record the degradation

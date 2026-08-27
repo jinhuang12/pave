@@ -8,7 +8,7 @@
 # detectable by branch-name match.
 #
 # Event: PreToolUse, matcher "Bash". Fires in every actor's loop -- lead,
-# teammate, and one-shot sub-agent -- because P1 is a run-wide prohibition
+# retained custom agent, and one-shot sub-agent -- because P1 is a run-wide prohibition
 # with no legitimate actor.
 #
 # Exit semantics (doctrine: references/lead-alignment-hooks.md "Hook

@@ -1,0 +1,32 @@
+{
+  "name": "vllm-neuron-parity",
+  "version": "1.1.0",
+  "description": "Run evidence-backed campaigns that close approved vLLM-Neuron parity gaps against upstream GPU vLLM.",
+  "author": {
+    "name": "jinhuang12"
+  },
+  "keywords": [
+    "vllm",
+    "neuron",
+    "trainium",
+    "parity",
+    "pave"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "vLLM-Neuron Parity",
+    "shortDescription": "Run evidence-backed vLLM-Neuron parity campaigns.",
+    "longDescription": "Scan upstream gaps, approve closing routes, validate Neuron changes against a GPU baseline, and prepare evidence-backed fork pull requests.",
+    "developerName": "jinhuang12",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Multi-agent orchestration",
+      "Repository write",
+      "Hooks"
+    ],
+    "defaultPrompt": [
+      "Start a vLLM-Neuron parity run for these targets.",
+      "Resume the active vLLM-Neuron parity run."
+    ]
+  }
+}

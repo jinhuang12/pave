@@ -11,7 +11,7 @@
 # hours of recompile; and the path patterns are precise.
 #
 # Event: PreToolUse, matcher "Bash". Run-wide: fires in the lead, in every
-# named teammate, and in every one-shot sub-agent -- the actor most likely to
+# retained custom agent, and in every one-shot sub-agent -- the actor most likely to
 # try a cache clear is a delegate that never read the lead contract.
 #
 # Exit semantics: exit 2 with the reason on stderr refuses the call; exit 0

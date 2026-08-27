@@ -1,14 +1,19 @@
 # vllm-neuron-parity
 
-A Claude Code plugin that brings the vLLM-Neuron platform plugin (fork
+A Codex runtime binding for the vLLM-Neuron parity plugin. It brings the
+vLLM-Neuron platform plugin (fork
 `jinhuang12/vllm-neuron`) to feature parity with upstream GPU vLLM —
 find the gaps, cost them, and close the approved ones with
 evidence-backed pull requests, measured against a GPU baseline.
 
 This README is a rendered view of the shipped package, never an
-authority. The canonical graph (`workflow.pave.yaml`), the lead skill
-(`skills/vllm-neuron-parity/SKILL.md`), and the agent contracts stay
+authority. The packaged v0 graph (`workflow.pave.yaml`), the Codex lead skill
+(`skills/vllm-neuron-parity/SKILL.md`), and the native agent contracts stay
 the source of truth; every section below links what it renders.
+
+The original Claude lead source is retained under `claude/`, and the original
+role sources remain in `agents/*.md`. They are provenance records. The Codex
+runtime does not translate them at run time.
 
 ## 1. What it does, and for whom
 
@@ -29,22 +34,53 @@ survives re-baselines. PR merge stays human; fork sync stays yours.
 
 ### Installation
 
-The plugin is the directory containing this README. In Claude Code:
+The plugin is the directory containing this README.
+
+1. Add this package to a configured local Codex marketplace, then install it:
 
 ```bash
-claude --plugin-dir /path/to/plugins/vllm-neuron-parity
+codex plugin add vllm-neuron-parity@<marketplace>
 ```
 
-Or distribute it through a plugin marketplace and install with
-`/plugin install vllm-neuron-parity@<marketplace>`. Requirements are
-declared in `.claude-plugin/plugin.json` (`compatibility`): the
-skill-frontmatter hook runtime (PreToolUse, PostToolUse, Stop), the
-registered `vllm-neuron-parity:*` agent types, bash, and Python 3.
+2. Install the six custom agents into the target project:
+
+```bash
+python3 /path/to/vllm-neuron-parity/codex/install_agents.py --project /path/to/target
+```
+
+3. Trust the target project. Accept the Codex trust prompt, or add this to
+   `~/.codex/config.toml`:
+
+```toml
+[projects."/absolute/path/to/target"]
+trust_level = "trusted"
+```
+
+4. Keep subagents enabled in the target project's `.codex/config.toml`:
+
+```toml
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 6
+```
+
+5. Verify the installed agents, then restart Codex in the target project:
+
+```bash
+python3 /path/to/vllm-neuron-parity/codex/install_agents.py --project /path/to/target --check
+```
+
+6. Open `/hooks`, review the five
+   registered controls, and trust them when their paths match this package.
+
+Requirements are declared in the lead skill's `metadata.compatibility` field: trusted
+Codex hooks, the installed `vllm-neuron-parity:*` custom agents, bash, and
+Python 3.
 Graph validation (`scripts/validate_pave.py`) additionally needs
 `pyyaml` and `jsonschema` and fails closed without them. Run-state
-validation (`scripts/validate_run_state.py`) is full only with
-`jsonschema`; without it, it falls back to a basic stdlib check of
-required keys and labels its output accordingly.
+validation (`scripts/validate_run_state.py`) uses `jsonschema` when present.
+Without it, the dependency-free validator checks every schema keyword this
+package declares.
 
 Campaign stages additionally delegate to six Neuron skills that are NOT
 shipped in this plugin and must be resolvable in the session that runs a
@@ -57,7 +93,7 @@ the NeuronAgenticDevelopment workspace's `skills/` tree). The delta scan
 through gate 1 needs none of them; a campaign whose delegate skill is
 unavailable pauses and reports rather than substituting.
 
-Start a run by invoking the `vllm-neuron-parity` skill with the fork
+Start a run by invoking `$vllm-neuron-parity:vllm-neuron-parity` with the fork
 path, the upstream pin, and the GPU baseline pin. Note (disclosed in
 the skill description): the stop guard hook blocks at most one stop in
 three while a run is active.
@@ -340,29 +376,38 @@ their target nodes' agent colors.
 
 ## 3. File structure
 
-The shipped package — a Claude Code plugin, same shape as pave-init:
+The shipped package — a native Codex plugin:
 
 ```
 vllm-neuron-parity/
-  .claude-plugin/plugin.json           # plugin manifest
-  skills/vllm-neuron-parity/
-    SKILL.md                           # the lead workflow skill
+  .codex-plugin/plugin.json            # Codex plugin manifest
+  .claude-plugin/plugin.json           # retained source-runtime manifest
+  hooks/
+    hooks.json                         # Codex plugin-level hook registration
+    pre_tool_use_router.py             # active-run scope adapter for P1-P3
+  codex/
+    install_agents.py                  # explicit safe custom-agent installer
+    init_evolution_workspace.py        # durable project-local lineage initializer
+    agents/                            # complete native role contracts
+      vllm_neuron_parity_investigator.toml
+      vllm_neuron_parity_implementer.toml
+      vllm_neuron_parity_measurer.toml
+      vllm_neuron_parity_adjudicator.toml
+      vllm_neuron_parity_adversarial_reviewer.toml
+      vllm_neuron_parity_rederiver.toml
+  skills/vllm-neuron-parity/           # standard Codex skill location
+    SKILL.md                            # native Codex lead workflow skill
     hooks/
       protected-branch-guard.sh        # blocks pushes to protected branches
       compile-cache-guard.sh           # blocks Neuron compile-cache clears
       venv-opt-guard.sh                # blocks venv cloning / /opt writes
       state-staleness-reminder.sh      # re-presents run position periodically
       stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active
-  agents/                              # six role contracts (see §4)
-    investigator.md
-    implementer.md
-    measurer.md
-    adjudicator.md
-    adversarial-reviewer.md
-    rederiver.md
-  workflow.pave.yaml                   # canonical graph (approved v0)
-  workflow-manifest.yaml               # evolving-tier revision lineage
-  history/                             # frozen graph revisions (v1+)
+  agents/*.md                          # preserved original role contracts
+  claude/skills/vllm-neuron-parity/    # retained original lead source
+  workflow.pave.yaml                   # immutable packaged graph seed (approved v0)
+  workflow-manifest.yaml               # immutable packaged v0 lineage seed
+  history/                             # immutable packaged pre-freeze placeholder
   references/
     artifact-layout.md                 # single authority for artifact shapes
     measurement-pitfalls.md            # known measurement-tool traps
@@ -381,47 +426,48 @@ vllm-neuron-parity/
   VERSION                              # package changelog
 ```
 
-Revision machinery: the shipped `workflow.pave.yaml` is the approved
-`v0`. Before the first real execution, the lead freezes it to `v1`
-per the evolution contract in `SKILL.md` (using
-`scripts/freeze_revision.py`); frozen revisions live under `history/`
-and `workflow-manifest.yaml` records the lineage. Package versions in
+Revision machinery: the shipped `workflow.pave.yaml` is the immutable approved
+`v0` seed. Before the first real execution, the Codex lead initializes
+`<project>/.vllm-neuron-parity/evolution/` and freezes `v1` there per the
+evolution contract in the native `SKILL.md`. Frozen revisions and the active
+manifest stay in that durable project-local directory, so reinstalling the
+plugin does not erase lineage. Package versions in
 `VERSION` are separate — they track what a user of the plugin would
 notice changed.
 
 ## 4. Specialized agents
 
-Source: the agent contracts under `agents/` and the dispatch table in
-`SKILL.md`.
+Source: the agent contracts under `codex/agents/` and the dispatch table in the
+native `SKILL.md`.
 
 | Agent | Color (§2) | Role | Model | Key constraint (what it cannot do) |
 |---|---|---|---|---|
 | (lead = SKILL.md itself) | gray | routing, gates, state writes | session | sole writer of run state and cross-run artifacts; never measures or adjudicates |
-| investigator | blue | intake, delta scan, costing, design screen | opus | read-only on the fork; cannot approve its own verdicts |
-| implementer | orange | design drafting, increments, hardware attempts, PR package | opus (xhigh on the attempt loop) | never edits comparators; cannot merge PRs; hardware writes confined to lease/venv/worktree scope |
-| measurer | green | procedures, baseline capture, runs, stabilize | opus (sonnet at stabilize) | executes what the design record froze — never chooses or alters a comparator; no verdicts |
-| adjudicator | purple | verdicts, run-closure verification | opus | never produces the evidence it judges (measurer_not_adjudicator check) |
-| adversarial-reviewer | pink | all five review nodes | opus | reviews only; fresh seat per gate round; cannot repair what it reviews |
-| rederiver | red | approach re-derivation after breakers | fable, xhigh | read-only inputs; its output re-enters design, it never implements. On an intermittent spawn failure the lead retries identically, never downgrades the model, and pauses for the operator after three identical failures — an undispatchable seat would dead-end all sixteen recovery routes |
+| investigator | blue | intake, delta scan, costing, design screen | gpt-5.6-sol | read-only on the fork; cannot approve its own verdicts |
+| implementer | orange | design drafting, increments, hardware attempts, PR package | gpt-5.6-sol (xhigh on the attempt loop) | never edits comparators; cannot merge PRs; hardware writes confined to lease/venv/worktree scope |
+| measurer | green | procedures, baseline capture, runs, stabilize | gpt-5.6-sol (gpt-5.6-terra at stabilize) | executes what the design record froze — never chooses or alters a comparator; no verdicts |
+| adjudicator | purple | verdicts, run-closure verification | gpt-5.6-sol | never produces the evidence it judges (measurer_not_adjudicator check) |
+| adversarial-reviewer | pink | all five review nodes | gpt-5.6-sol | reviews only; fresh seat per gate round; cannot repair what it reviews |
+| rederiver | red | approach re-derivation after breakers | gpt-5.6-sol, xhigh | read-only inputs; its output re-enters design, it never implements. On an intermittent spawn failure the lead retries identically, never downgrades the model, and pauses for the operator after three identical failures — an undispatchable seat would dead-end all sixteen recovery routes |
 
 The lead pauses if a `vllm-neuron-parity:*` agent type is unavailable —
 it never substitutes an ordinary worker.
 
-Dispatch mechanics: each node instance's primary seat runs as a named
-teammate — background, continuable via SendMessage, retired when its
-node instance closes — so a dropped connection resumes the seat instead
-of losing its context (doer seats; reviewer seats stay fresh per gate
-round). One-shot subagents remain for a seat's internal fan-out
-(guardrailed delegate skills, read-only exploration). Continuity
-changes, authority does not: the lead stays the single state writer,
-teammates never traverse edges or present gates, forbidden effects
-inherit into every spawn — teammate or sub-agent — and a peer message
-never grants a permission escalation.
+Dispatch mechanics: each node instance's primary seat runs as one retained
+Codex custom-agent thread, started with `spawn_agent`, continued with
+`followup_task`, awaited with `wait_agent`, and interrupted if still running
+when the node closes.
+Doer threads continue through repair rounds; reviewer threads stay fresh per
+gate round. One-shot sub-agents remain for approved internal fan-out.
+Continuity changes no authority: the lead stays the single state writer;
+agents never traverse edges or present gates; forbidden effects inherit into
+every spawn; a peer message never grants a permission escalation.
 
 ## 5. Hooks and enforcement
 
-Source: `SKILL.md` (prohibitions P1–P13 and transition guards) and the
-five hook scripts under `skills/vllm-neuron-parity/hooks/`. Rungs,
+Source: the native `SKILL.md` (prohibitions P1–P13 and transition guards), the
+active-run adapter under `hooks/`, and the five policy scripts under
+`skills/vllm-neuron-parity/hooks/`. Rungs,
 weakest to strongest: prose < reinjection < reviewed < mechanical
 < blocking hook.
 
@@ -445,17 +491,20 @@ weakest to strongest: prose < reinjection < reviewed < mechanical
 `SKILL.md` carries 13 run-wide prohibitions and 6 transition guards in
 total; this table shows the strongest rows, and every rule not shown
 sits at a weaker rung with its rationale in the skill and agent
-contracts. No settings fragment is required — every hook registers at
-skill frontmatter scope. Nothing registers silently.
+contracts. `hooks/hooks.json` registers the five controls at plugin scope.
+P1-P3 fail open unless `.vllm-neuron-parity-run` points to active nonterminal
+state, so they do not block unrelated Codex work.
+Nothing registers silently.
 
 ## 6. Appendix — the shipped authorities
 
-- `workflow.pave.yaml` — the canonical graph (31 nodes, 89 edges,
+- `workflow.pave.yaml` — the immutable approved v0 seed (31 nodes, 89 edges,
   12 checks, 24 evidence definitions, 5 endpoints; validates clean
   with `scripts/validate_pave.py`).
-- `skills/vllm-neuron-parity/SKILL.md` — the lead: routing, gates,
+- `skills/vllm-neuron-parity/SKILL.md` — the Codex lead: routing, gates,
   state writes, recovery loop, evolution contract.
-- `agents/*.md` — the six role contracts (registered agent types).
+- `codex/agents/vllm_neuron_parity_*.toml` — the six complete native
+  custom-agent contracts installed by `codex/install_agents.py`.
 - `schemas/run-state.schema.json` — the run-state shape authority;
   check an instance with `scripts/validate_run_state.py`.
 - `references/artifact-layout.md` — artifact tree, write ownership,

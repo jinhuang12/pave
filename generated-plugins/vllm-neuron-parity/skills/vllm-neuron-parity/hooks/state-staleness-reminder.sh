@@ -58,7 +58,7 @@ case "$(printf '%s\n' "$FIELDS" | sed -n 3p)" in ""|main|lead|root|primary) ;; *
 # --- run-state discovery (marker-authoritative; see stop-guard.sh) ----------
 FOUND_STATE=""
 FOUND_VIA=""
-for root in "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
+for root in "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
   [ -n "$root" ] || continue
   marker="$root/.vllm-neuron-parity-run"
   [ -f "$marker" ] || continue

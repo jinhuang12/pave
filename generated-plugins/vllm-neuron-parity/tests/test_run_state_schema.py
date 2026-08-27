@@ -11,6 +11,7 @@ field is rejected (exit 1).
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -45,14 +46,22 @@ MINIMAL = {
 }
 
 
-def run_case(label: str, instance: dict, expected: int) -> bool:
+def run_case(label: str, instance: dict, expected: int, *, no_site: bool = False) -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "run-state.json"
         path.write_text(json.dumps(instance, indent=2), encoding="utf-8")
+        command = [sys.executable]
+        if no_site:
+            command.append("-S")
+        command.extend([str(VALIDATOR), str(path)])
+        env = os.environ.copy()
+        if no_site:
+            env.pop("PYTHONPATH", None)
         proc = subprocess.run(
-            [sys.executable, str(VALIDATOR), str(path)],
+            command,
             capture_output=True,
             text=True,
+            env=env,
         )
     ok = proc.returncode == expected
     print(f"[{'ok' if ok else 'FAIL'}] {label}: exit {proc.returncode} (expected {expected})")
@@ -83,6 +92,14 @@ def main() -> int:
         print(f"[{'ok' if ok else 'FAIL'}] {label}")
 
     cases = [run_case("minimal valid instance accepted", MINIMAL, 0)]
+    cases.append(
+        run_case(
+            "stdlib accepts minimal valid instance",
+            MINIMAL,
+            0,
+            no_site=True,
+        )
+    )
 
     missing = dict(MINIMAL)
     del missing["pinned_release"]
@@ -91,6 +108,17 @@ def main() -> int:
     extra = dict(MINIMAL)
     extra["undeclared_field"] = "nope"
     cases.append(run_case("undeclared extra field rejected", extra, 1))
+
+    nested_invalid = dict(MINIMAL)
+    nested_invalid["workflow_identity"] = "not-an-object"
+    cases.append(
+        run_case(
+            "stdlib rejects invalid nested type",
+            nested_invalid,
+            1,
+            no_site=True,
+        )
+    )
 
     failures = [label for label, ok in results if not ok] + [
         "validator case" for ok in cases if not ok
