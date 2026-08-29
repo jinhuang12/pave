@@ -124,7 +124,7 @@ Check these before review:
 - Exactly one outcome per node means success and carries a definition of done settled on world-produced evidence.
 - Every dispatched node has an `x_planning.elaboration` verdict with a falsifiable rationale the evidence supports; every framed child has a prediction with its rationale.
 - Every child profile records the §9.12.1 packaging condition it meets, its terminal map is total, and no edge crosses a profile boundary.
-- Every run-wide prohibition and costly-transition guard has a recorded enforcement strength with a reason a stronger rung is unnecessary.
+- Every run-wide prohibition and costly-transition guard has a recorded enforcement strength with a reason a stronger rung is unnecessary and — for a rung with standing cost — a cheaper one insufficient.
 
 ### 4.8 Runtime bindings
 
@@ -162,10 +162,10 @@ Write `skill-package-plan.md` with:
 - copied, condensed, generated, and excluded resources;
 - runtime bindings: each script-eligible subgraph with its recommended binding and rationale;
 - the profile dependency tree and the §9.12.1 packaging condition each child profile meets, when packaging is used;
-- the enforcement record: each run-wide prohibition and costly-transition guard with its chosen strength, the reason a stronger rung is unnecessary, and — for each planned hook — its event, matcher, script, actor scope with its harness-native placement or identity gate, and decline path; plus the evidence-gameability judgment for every node whose success evidence the doer produces — gameable or not, with the hardening choice (`references/pave-spec.md` §9.14.1);
+- the enforcement record: each run-wide prohibition and costly-transition guard with its chosen strength, the reason a stronger rung is unnecessary (and, for a rung with standing cost, a cheaper one insufficient), and — for each planned hook — its event, matcher, script, actor scope with its harness-native placement or identity gate, and decline path; plus the evidence-gameability judgment for every node whose success evidence the doer produces — gameable or not, with the hardening choice (`references/pave-spec.md` §9.14.1);
 - the evolution tier (`static` or `evolving`) with its reason, per `references/pave-revisions.md`;
 - scripts and tests required by mechanical checks;
 - runtime dependencies and installation boundary;
-- clean-room forward-test prompt — for a manual-only generated skill the prompt names it explicitly (`/<workflow-name>:<workflow-name> <request>`), because a bare prompt may not load a manual-only skill in a headless session.
+- clean-room forward-test prompt — when the graph declares repair loops, prefer a prompt that forces at least one bounded repair edge, because a happy-path-only pass never prices the loop traffic; for a manual-only generated skill the prompt names it explicitly (`/<workflow-name>:<workflow-name> <request>`), because a bare prompt may not load a manual-only skill in a headless session.
 
 The bundle is presentable only after the planning frontier is closed or honestly exhausted. Do not start skill construction before material review and whole-bundle user approval.

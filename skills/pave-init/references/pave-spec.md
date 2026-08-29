@@ -94,6 +94,9 @@ a question belongs to before answering it.
 - Whether a node exists at all? Graph Profile.
 - Where evidence is stored? Runtime Binding.
 - What evidence a decision requires? Graph Profile.
+- Which instrument answers a node on re-entry — full seat, cheaper seat, or a
+  lead-run mechanical check? Runtime Binding: declared at design time, chosen
+  per traversal.
 - How many workers run one node? Runtime Binding.
 - Whether the work has distinct sub-goals? Graph Profile.
 The last pair matters most. "Too much work for one agent" has two different
@@ -257,7 +260,9 @@ work it governs. This principle is that counterweight.
 - Prefer one existing gate over a second gate that checks the same claim.
 - Remove any element whose absence does not change required routing,
   authority, evidence, recovery, or acceptance.
-- Compare the cost of the added structure with the risk it removes.
+- Compare the cost of the added structure with the risk it removes — priced
+  over the traversals its loops and re-entry edges can carry, not the first
+  pass alone.
 The burden of proof is on adding structure, never on staying simple.
  
 ## 5. Core graph vocabulary
@@ -794,6 +799,10 @@ Untrusted conclusion -> Review again
 Invalid objective -> Revisit purpose
 ```
  
+The same rule sizes the landing: land a repair edge at the node that resolves
+the finding, not at the boundary entrance — an entry-point landing
+re-traverses siblings whose inputs the repair never touched.
+ 
 Use a repair loop only when the cause and the bounded fix are both known. When
 the cause is unknown, investigate instead:
  
@@ -809,7 +818,11 @@ process costume. Say what happens at the bound: quarantine a bounded scope,
 pause, or change the plan.
  
 Record each repair: the finding, the change, the evidence the change
-invalidated, and the result.
+invalidated, and the result — and the evidence it did not invalidate: what
+stays settled is the cheap path for every node the repair re-enters. Scale
+the re-entered node's instrument to that record: an unchanged,
+already-verified fact settles mechanically; a changed input to a judgment
+gets fresh eyes.
  
 **Default recovery for undeclared failures.** A failure the graph has no
 edge for still needs a route. Do not invent one ad hoc; run the default
@@ -1017,8 +1030,10 @@ rungs: when debate, an advisory monitor, or a stage audit earns its cost.
 #### 9.14.1 The enforcement record
  
 For every run-wide prohibition and every guard on a costly transition,
-record two things: the strength chosen, and the reason a stronger rung is
-unnecessary.
+record two things: the strength chosen, and the reason the neighboring rungs
+are wrong — the stronger unnecessary, and, where the chosen rung carries
+standing cost (a dispatched agent, a repeated run, an always-on control),
+the cheaper insufficient to catch the defect it names.
  
 Wrong-sized enforcement is a design defect in both directions. Prose alone
 for a likely, costly, detectable violation is as much a defect as a
@@ -1251,6 +1266,7 @@ What failure does this rule prevent?
 How costly is the failure? How detectable?
 Which strength is chosen?
 Why is the next stronger rung unnecessary?
+For a rung with standing cost, why is the next cheaper rung insufficient?
 Is this an always-on invariant, or does one transition check it?
 ```
  

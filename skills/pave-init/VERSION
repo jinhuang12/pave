@@ -1,4 +1,4 @@
-version: 2.2.9
+version: 2.3.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,68 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.3.0 (2026-08-28)
+
+Improved — plans now price repair loops and re-entries, not just the first
+pass. Field evidence: a generated run re-dispatched full-strength seats on
+repair laps whose inputs had not changed.
+
+- `references/pave-spec.md`: §4.11 prices added structure over the
+  traversals its loops and re-entry edges can carry; §2.1 adds the re-entry
+  instrument as a Runtime Binding question; §9.8 repair records state the
+  evidence the change did **not** invalidate (unchanged verified facts settle
+  mechanically, changed inputs to judgment get fresh eyes) and repair edges
+  land at the resolving node, not the boundary entrance.
+- `sources/roles/node-planner.md.tmpl`: a node any re-entry edge targets
+  states its re-entry instrument, so re-entries are never silently priced at
+  first-entry effort.
+- `sources/pave-init/SKILL.md.tmpl` Stage 5: generated leads carry the
+  dispatch rule — traversal is mandatory, dispatch is not; mechanically
+  knowable re-checks settle lead-side with the check's command and output
+  recorded, carved out of the role-work prohibition.
+
+Improved — the enforcement record is two-sided: a rung with standing cost
+also records why a cheaper rung is insufficient, changed in lockstep at
+§9.14.1 and its five restatement sites.
+
+- Reviewer contract: disproportionate recurring cost is material and can
+  reach `HIGH`; worth is judged per check (a check bundling a mechanical
+  half with a judgment half gets split, never averaged); planner-return
+  checklist asks the delta question of every re-entry edge.
+
+Improved — the clean-room forward test prefers a prompt that forces at
+least one bounded repair edge; when none is affordable, loop traffic is
+recorded as untested, never a silent clean pass.
+
+Fixed — `references/lead-alignment-hooks.md` named PreCompact as a
+reinjection channel; PreCompact cannot inject (its output is discarded).
+Reinjection now names SessionStart's compact matcher, the payload carries
+standing user directives, and the ~5k-token per-skill re-injection cap is
+stated so oversized leads know their tail decays.
+
+New — the evolving-tier contract gains two rules in
+`references/pave-revisions.md`: rule 8 (usage ledger — the lead derives a
+per-boundary usage record at run close from the existing event history;
+successor drafts must read predecessors' records and their semantic diff
+must engage them; actuals exceeding declared expectations are a
+close-time successor trigger, never a mid-run gate) and rule 9 (binding
+revisions — seat, model, effort, or re-entry instrument changes ship as a
+user-approved, append-only `binding-revisions.yaml` record without a graph
+successor; same check, cheaper instrument, mechanical evidence still
+produced is not a weakening of check strength).
+
+- Companions: rule 6's "(never weaker)" points at rule 9's bound;
+  `binding-revisions.yaml` added to the workspace structure; the
+  count-coupled "seven-rule" phrasing in the builder and Stage 5 texts
+  replaced with count-free wording.
+
+New — latent-rule reminder guidance in `lead-alignment-hooks.md`: target
+reminder machinery by latent-rule count times blast radius, never wall-clock
+length, with two derived plan-time options — an advisory dispatch-time check
+edge-triggered on re-entry dispatches, and tool-class latent-rule
+reinjection for rule-heavy seats (run-wide with a recorded degradation where
+seat identity cannot be gated).
 
 ### 2.2.9 (2026-08-26)
 

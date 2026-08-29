@@ -127,4 +127,6 @@ A generated plugin's role agents resolve only through a complete harness install
 
 Do not tell the tester the expected answer or suspected defect. Inspect its artifacts after completion. Repair only transferable skill defects, then repeat affected validation and final review.
 
+When the graph declares repair loops, prefer a representative prompt that forces at least one bounded repair edge — a happy-path-only pass never prices the loop traffic. When no affordable prompt reaches one, record loop traffic as untested in `reviews/forward-test.md`: a recorded gap, never a silent clean pass.
+
 After all gates pass, deliver automatically. No third user approval is required.
