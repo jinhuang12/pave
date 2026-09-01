@@ -10,10 +10,11 @@ description: >-
   Create a PAVE-based Claude Code workflow plugin from a goal the user states.
   Manual-only: use only when the user explicitly invokes /pave-init. This long
   campaign clarifies the goal, explores the system, designs and reviews a PAVE
-  graph, and builds and tests the plugin. It registers three disclosed
-  skill-lifetime hooks: stop alignment, stale run-state reminder, and planning
-  layout warning. While a run is active, the stop check blocks at most one stop
-  in three; nothing registers silently.
+  graph, and builds and tests the plugin. It registers four disclosed
+  skill-lifetime hooks: stop alignment, stale run-state reminder, planning
+  layout warning, and a write-for-the-reader reminder on run-workspace
+  document writes. While a run is active, the stop check blocks at most one
+  stop in three; nothing registers silently.
 compatibility: >-
   Requires Claude Code skill-frontmatter hooks, registered pave-init agent
   types, bash, and Python 3. PAVE validation also requires pyyaml and
@@ -28,6 +29,8 @@ hooks:
       hooks:
         - type: command
           command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/planning-layout-warn.sh"
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/write_for_reader.sh"
   Stop:
     - hooks:
         - type: command

@@ -34,7 +34,7 @@ A worker whose active duty — its own definition of done — decays within its 
 
 Two derived applications, both plan-time options recorded in the enforcement record — one entry naming prose and reinjection as rungs of the same rule (persistence after decay, not a second gate):
 
-1. **Dispatch-time check.** A `PreToolUse` hook on the agent-spawn tool, advisory only and edge-triggered: it fires only when run state already records a completed traversal of the target node (a re-entry dispatch) and asks whether the seat's question is already settled by verified on-disk evidence. Every-spawn firing is wallpaper. The advisory must ride `additionalContext` — a reason attached to an allow decision reaches the user, not the model — and any throttle is the hook's own counter file.
+1. **Dispatch-time check.** A `PreToolUse` hook on the agent-spawn tool, advisory only and edge-triggered: it fires only when run state already records a completed traversal of the target node (a re-entry dispatch) and asks whether the seat's question is already settled by verified on-disk evidence. Every-spawn firing is wallpaper. The advisory must ride `additionalContext` — a reason attached to an allow decision reaches the user, not the model — and any throttle is the hook's own counter file. The same advisory is the natural carrier for the brief-integrity reminder: a dispatch brief renders the graph and run state — facts by evidence key or resolved path, never retyped (`references/approval-briefs.md`). A template ships below; adopting it is a plan-time enforcement-record entry like any other, never a default registration.
 2. **Latent-rule reinjection for rule-heavy seats.** Re-present a seat's standing prohibitions when it touches the matching tool class, throttled per window — tool events fire inside subagents, so this survives seat-side compaction no post-compaction event covers. Where the harness cannot gate on seat identity, ship run-wide tool-class reminders armed by the run marker and record the narrowing as a degradation.
 
 Register by native placement first. Prefer a scope that cleans up automatically and treats explicit skill invocation as opt-in. Reach for project settings only for a rule the native hook surface cannot carry, such as a deny rule; ship that as one fragment the generated lead presents at run start behind one bounded approval question, with the decline path stated: which guards degrade to instructions and which prohibitions become review-only.
@@ -300,4 +300,63 @@ PYEOF
 exit 0
 ```
 
-A worked, tested instance of all three (with a test section covering every invariant above) exists in any skill this reference generated; the templates here are the transferable shape.
+### `hooks/dispatch_advisory.sh` (PreToolUse `Agent|Task`) — optional, plan-time adoption only
+
+```bash
+#!/usr/bin/env bash
+# Dispatch advisory (OPTIONAL). Adopt only through an enforcement-record entry;
+# never register by default. PreToolUse on the agent-spawn tool. Advisory only:
+# always exits 0, and the message rides additionalContext, never a permission
+# decision. Edge-triggered: fires only when run state already records a
+# completed traversal of the dispatch's target node (a re-entry dispatch) —
+# every-spawn firing is wallpaper. Throttled by its own counter file.
+set -uo pipefail
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$HOOK_DIR/_find_run_state.sh"            # defines find_run_state
+find_run_state                              # sets FOUND_STATE ("" when none)
+[ "${FOUND_STATE_VIA:-}" = "marker" ] || exit 0   # scan hit is not ownership; stay silent
+PAYLOAD="$(cat 2>/dev/null || true)"
+# Counter keyed to the run's state path — every run's file is named the same,
+# so basename alone would share one counter across runs.
+COUNTER="${TMPDIR:-/tmp}/dispatch-advisory-$(printf %s "$FOUND_STATE" | cksum | cut -d' ' -f1).count"  # ADAPT: name per skill
+HOOK_PAYLOAD="$PAYLOAD" python3 - "$FOUND_STATE" "$COUNTER" <<'PYEOF' 2>/dev/null || exit 0
+import json, os, sys
+state_path, counter = sys.argv[1], sys.argv[2]
+try:
+    payload = json.loads(os.environ.get("HOOK_PAYLOAD") or "{}")
+    state = json.load(open(state_path, encoding="utf-8"))
+except Exception:
+    sys.exit(0)                                  # advisory: always fail open
+terminal = state.get("terminal_classification")  # ADAPT: terminal field
+if isinstance(terminal, dict) and terminal.get("status"):
+    sys.exit(0)
+prompt = str((payload.get("tool_input") or {}).get("prompt") or "")
+history = [e for e in (state.get("traversal_history") or [])  # ADAPT: history field
+           if isinstance(e, dict)]
+done = {str(e.get("node")) for e in history if e.get("node")}
+target = next((n for n in sorted(done, key=len, reverse=True) if n in prompt), None)
+if not target:
+    sys.exit(0)                                  # first-entry dispatch: silent
+try:
+    n = int(open(counter).read().strip() or 0)
+except Exception:
+    n = 0
+if n >= 3:                                       # at most 3 nudges per run
+    sys.exit(0)
+open(counter, "w").write(str(n + 1))
+text = (
+    "[dispatch-advisory] This brief targets %r, a node this run already "
+    "traversed. Before the seat starts: (1) is its question already settled by "
+    "verified on-disk evidence? A mechanically knowable answer is lead routing "
+    "work, not a seat. (2) The brief is a rendered view: facts by evidence key "
+    "or resolved path, outcome tokens copied from the node's own list, counts "
+    "pointed at rather than retyped; the artifact wins when the two disagree."
+    % target
+)
+print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                                         "additionalContext": text}}))
+PYEOF
+exit 0
+```
+
+A worked, tested instance of the default pair and its shared discovery (with a test section covering every invariant above) exists in any skill this reference generated; the templates here are the transferable shape, and the dispatch advisory ships only where a plan's enforcement record adopts it.

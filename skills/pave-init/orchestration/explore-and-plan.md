@@ -117,7 +117,8 @@ Check these before review:
 - Competing routes from one outcome are mutually exclusive.
 - Dynamic fan-out has stable instance identity and an explicit join.
 - Closure and acceptance are distinct.
-- Recovery loops preserve attempt history and define exhaustion.
+- Recovery loops preserve attempt history and define exhaustion, and a repair loop's recurrence stop counts by defect class, not site identity (`references/pave-spec.md` §9.8).
+- A plan node that feeds an expensive execute node carries the dispatch-admission duty — cheap half of the acceptance discharged pre-dispatch, unresolved-referent counts recorded (`references/pave-spec.md` §9.2).
 - A budget counter with more than one increment route either gets per-route counters or an explicit shared-budget note — otherwise one route silently spends another's attempts.
 - Domain extensions do not change core meaning.
 - Missing runtime capability is declared, not invented.

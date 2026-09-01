@@ -6,9 +6,18 @@ Usage:
   validate_run_state.py --frontier <path/to/planning/frontier.yaml>
 
 Run-state mode: full validation uses the jsonschema package when importable.
-Without it, falls back to a stdlib check of required keys and traversal-entry
-shape so run state stays checkable on a bare python3 (this mode must never
-fail closed for a missing dependency; the graph validators own that behavior).
+Without it, falls back to a stdlib check of required keys, traversal-entry
+shape, and every maxLength cap the schema declares, so run state stays
+checkable on a bare python3 (this mode must never fail closed for a missing
+dependency; the graph validators own that behavior). The basic mode names the
+keywords it does not enforce - an unenforced keyword is announced, never a
+silent pass (references/pave-spec.md section 8.1).
+
+Both modes also emit non-fatal WARN lines: a whole-file size past the declared
+escape-hatch threshold (compaction advice, never a refused write), and a
+recorded path-typed field that resolves to nothing on disk (state points,
+artifacts prove - a pointer to nothing is a defect to fix or an artifact still
+to land).
 
 Frontier mode: validates planning/frontier.yaml against $defs.frontier and
 each dispatched entry's draft fragment against $defs.fragment, then applies
@@ -38,6 +47,16 @@ DISPATCHED_STATUSES = {"pending_dispatched", "planned", "reviewed", "stale"}
 # Statuses whose draft file must already be on disk (a planner returned).
 RETURNED_STATUSES = {"planned", "reviewed", "stale"}
 
+# Whole-file warn threshold for the schema's declared escape hatch (`notes`),
+# per references/pave-spec.md section 8.1. The value is declared in the schema's
+# root and $defs.frontier descriptions; keep the two in sync. Warns only -
+# names the compaction action, never refuses the write.
+WHOLE_FILE_WARN_BYTES = 131072
+
+# Keywords the stdlib fallback does not enforce. Announced in the mode string
+# so an unenforced keyword is loud, never a silent pass.
+BASIC_MODE_UNENFORCED = "type/enum/additionalProperties/pattern/minimum"
+
 
 def load_schema():
     try:
@@ -45,6 +64,101 @@ def load_schema():
     except Exception as exc:  # noqa: BLE001
         print(f"ERROR: cannot read schema {SCHEMA_PATH}: {exc}")
         return None
+
+
+def enforce_caps(schema_node, instance, path, problems):
+    """Stdlib enforcement of the schema's maxLength caps (pave-spec section 8.1).
+
+    Walks properties/items in step with the instance so every declared cap is
+    checked without jsonschema. A capped field that overflows names the fix:
+    move the content to an artifact and cite its path.
+    """
+    if not isinstance(schema_node, dict):
+        return
+    if isinstance(instance, str):
+        cap = schema_node.get("maxLength")
+        if isinstance(cap, int) and len(instance) > cap:
+            problems.append(
+                f"{path or '<root>'}: {len(instance)} chars exceeds maxLength {cap}"
+                " - move the content to an artifact and cite its path"
+            )
+        return
+    if isinstance(instance, dict):
+        props = schema_node.get("properties")
+        if isinstance(props, dict):
+            for key, sub in props.items():
+                if key in instance:
+                    enforce_caps(sub, instance[key], f"{path}.{key}" if path else key, problems)
+    elif isinstance(instance, list):
+        items = schema_node.get("items")
+        if isinstance(items, dict):
+            for i, item in enumerate(instance):
+                enforce_caps(items, item, f"{path}[{i}]", problems)
+
+
+def iter_path_fields(state):
+    """Yield (label, value) for every recorded path-typed run-state field."""
+    for label in (
+        "planning_workspace",
+        "generated_skill_output",
+        "frontier_entries",
+        "validation_results",
+        "forward_test_result",
+    ):
+        value = state.get(label)
+        if isinstance(value, str) and value:
+            yield label, value
+    approval = state.get("user_plan_approval")
+    if isinstance(approval, dict) and isinstance(approval.get("recorded_at"), str):
+        yield "user_plan_approval.recorded_at", approval["recorded_at"]
+    for field in ("explorer_results", "boundary_review_results"):
+        entries = state.get(field)
+        if isinstance(entries, list):
+            for i, entry in enumerate(entries):
+                if isinstance(entry, dict) and isinstance(entry.get("artifact"), str):
+                    yield f"{field}[{i}].artifact", entry["artifact"]
+    history = state.get("traversal_history")
+    if isinstance(history, list):
+        for i, entry in enumerate(history):
+            if not isinstance(entry, dict):
+                continue
+            evidence = entry.get("evidence")
+            if isinstance(evidence, list):
+                for j, item in enumerate(evidence):
+                    if isinstance(item, str) and item:
+                        yield f"traversal_history[{i}].evidence[{j}]", item
+
+
+def check_recorded_paths(state, state_path: Path, warnings):
+    """WARN on recorded paths that resolve nowhere (state points, artifacts prove).
+
+    Relative paths resolve against the run workspace (the state file's parent)
+    and the current directory. Warns only: a run may validate mid-flight before
+    an artifact lands, and the traversal contract - not this helper - decides
+    when evidence must exist.
+    """
+    base = state_path.resolve().parent
+    for label, value in iter_path_fields(state):
+        candidate = Path(value)
+        candidates = [candidate] if candidate.is_absolute() else [base / value, Path(value)]
+        if not any(c.exists() for c in candidates):
+            warnings.append(
+                f"{label}: recorded path resolves nowhere ({value})"
+                " - fix the pointer or land the artifact"
+            )
+
+
+def check_file_size(path: Path, warnings):
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return
+    if size > WHOLE_FILE_WARN_BYTES:
+        warnings.append(
+            f"{path.name} is {size} bytes (warn threshold {WHOLE_FILE_WARN_BYTES})"
+            " - compact the escape hatch: prune resolved notes, move prose to"
+            " artifacts and cite paths. This warns; it never refuses the write."
+        )
 
 
 def validate_run_state(state_path: Path) -> int:
@@ -89,9 +203,17 @@ def validate_run_state(state_path: Path) -> int:
                     for i, entry in enumerate(history)
                     if not (isinstance(entry, dict) and entry.get("node") and entry.get("outcome"))
                 )
-        mode = "basic (stdlib only; install jsonschema for full validation)"
+        enforce_caps(schema, state, "", problems)
+        mode = (
+            "basic (stdlib: required keys, traversal shape, maxLength caps"
+            f" enforced; NOT enforced: {BASIC_MODE_UNENFORCED} -"
+            " install jsonschema for full validation)"
+        )
 
-    return report(problems, mode, state_path)
+    warnings = []
+    check_file_size(state_path, warnings)
+    check_recorded_paths(state, state_path, warnings)
+    return report(problems, mode, state_path, warnings)
 
 
 def schema_for(defs_schema: dict, name: str) -> dict:
@@ -244,18 +366,24 @@ def validate_frontier(frontier_path: Path) -> int:
         f"frontier ({len(entries)} entries, {fragments_checked} fragments checked,"
         f" {full_profiles_skipped} full-profile drafts left to validate_pave.py)"
     )
-    return report(problems, mode, frontier_path)
+    warnings = []
+    check_file_size(frontier_path, warnings)
+    return report(problems, mode, frontier_path, warnings)
 
 
-def report(problems, mode, subject) -> int:
+def report(problems, mode, subject, warnings=()) -> int:
     seen = set()
     unique = [p for p in problems if not (p in seen or seen.add(p))]
     if unique:
         print(f"FAIL ({mode}): {len(unique)} problem(s) in {subject}")
         for problem in unique:
             print(f"  - {problem}")
+        for warning in warnings:
+            print(f"  WARN: {warning}")
         return 1
     print(f"PASS ({mode}): {subject}")
+    for warning in warnings:
+        print(f"  WARN: {warning}")
     return 0
 
 

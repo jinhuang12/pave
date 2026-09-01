@@ -221,15 +221,31 @@ def _run_layout(payload: dict[str, Any]) -> int:
     return 0
 
 
+def _run_reader(payload: dict[str, Any]) -> int:
+    """Write-for-the-reader reminder (pave-spec section 8.5): same payload
+    adaptation as layout, routed to the canonical reader hook."""
+    contexts: list[str] = []
+    script = _canonical_script("write_for_reader.sh")
+    for item in _canonical_layout_payloads(payload):
+        _, stdout, _ = _run_canonical(script, item)
+        context = _context_from_output(stdout)
+        if context:
+            contexts.append(context)
+    _emit_context(contexts)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=("staleness", "layout"))
+    parser.add_argument("mode", choices=("staleness", "layout", "reader"))
     args = parser.parse_args(argv)
     payload = _load_payload()
     if not payload:
         return 0
     if args.mode == "staleness":
         return _run_staleness(payload)
+    if args.mode == "reader":
+        return _run_reader(payload)
     return _run_layout(payload)
 
 

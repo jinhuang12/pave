@@ -13,6 +13,12 @@ Single path-and-ownership authority for `planning/` under the run workspace, act
   <node>.v2.draft.pave.yaml        planner    redispatch = new path, never a reused one
 ```
 
+The per-redispatch draft path is collision-safety working state under the
+scope carve-out in `references/pave-spec.md` §8.4, not a standing document:
+a fresh path exists so a zombie completion cannot overwrite the live
+dispatch, and everything under `planning/` is working state, never part of
+the approval bundle.
+
 ## Who writes what
 
 | Actor | Writes | Never writes |

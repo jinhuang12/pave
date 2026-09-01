@@ -12,6 +12,9 @@
 #   layout:    every allowlisted planning/ path is silent for the lead, an
 #              undeclared path warns, and a lead-owned path warns when a
 #              subagent writes it
+#   reader:    a run-workspace .md write reminds (lead and subagent alike),
+#              throttles to every Nth write, and stays silent for exempt
+#              working-state directories and non-markdown writes
 # Also: validate_run_state.py passes a well-formed instance and fails a
 # broken one.
 #
@@ -25,6 +28,7 @@ SKILL="$(cd "$HERE/.." && pwd)"
 STOP_HOOK="$SKILL/hooks/stop_alignment_check.sh"
 STALE_HOOK="$SKILL/hooks/state_staleness_reminder.sh"
 LAYOUT_HOOK="$SKILL/hooks/planning-layout-warn.sh"
+READER_HOOK="$SKILL/hooks/write_for_reader.sh"
 VALIDATOR="$SKILL/scripts/validate_run_state.py"
 
 PASS=0
@@ -238,6 +242,64 @@ report "layout: an undeclared planning/ path warns" "$ok" "rc=$RC out=$OUT"
 OUT="$(layout_payload root-contract.md node-planner | bash "$LAYOUT_HOOK" 2>/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "a subagent wrote planning/root-contract.md" && ok=1
 report "layout: a subagent writing root-contract.md warns" "$ok" "rc=$RC out=$OUT"
+
+# --- write_for_reader --------------------------------------------------------
+# The write-for-the-reader duty (references/pave-spec.md section 8.5): remind
+# on reader-facing run-workspace document writes by any actor, throttled to
+# the 1st write and every Nth after; exempt working-state directories and
+# non-markdown writes stay silent.
+
+write_state "" complete
+WORKSPACE="$(dirname "$STATE")"
+
+reader_payload() { # $1 = workspace-relative path, $2 = session, $3 = agent_type ("" for lead)
+  python3 - "$WORKSPACE/$1" "$2" "$3" <<'PY'
+import json, sys
+path, session, agent = sys.argv[1], sys.argv[2], sys.argv[3]
+payload = {"session_id": session, "tool_name": "Write",
+           "tool_input": {"file_path": path, "content": "x"}}
+if agent:
+    payload["agent_type"] = agent
+print(json.dumps(payload))
+PY
+}
+
+OUT="$(reader_payload requirements.md r1 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "plain english" && ok=1
+report "reader: first workspace .md write reminds" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(reader_payload system-map.md r1 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: 2nd write in the window is throttled" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(reader_payload traceability.md r1 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: 3rd write in the window is throttled" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(reader_payload requirements.md r1 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "plain english" && ok=1
+report "reader: throttle spent, 4th write reminds again" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(reader_payload system-map.md r2 node-planner | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "plain english" && ok=1
+report "reader: a subagent's write reminds too" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(reader_payload planning/scratch.md r3 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: exempt planning/ write is silent" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(reader_payload exploration/lens.md r3 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: exempt exploration/ write is silent" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(reader_payload notes.txt r3 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: non-markdown write is silent" "$ok" "rc=$RC out=$OUT"
+
+rm -f "$RUN_MARKER"
+OUT="$(reader_payload requirements.md r4 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: scan-discovered state without marker is silent" "$ok" "rc=$RC out=$OUT"
 
 echo
 echo "$PASS passed, $FAIL failed"

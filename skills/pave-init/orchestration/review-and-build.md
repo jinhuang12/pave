@@ -29,6 +29,7 @@ Plan-review scope:
 - package plan can implement the graph without hidden policy;
 - the enforcement record sizes each prohibition honestly — neither prose for a violation that outlives its prose, nor a blocking hook without misfire-proof detection;
 - the evolution tier matches the workflow's real lifetime — neither evolution machinery on a one-shot workflow nor a bare `static` on a repeatedly re-run one;
+- artifact conventions hold the document budget — a bounded standing document set split by mutability, no file-per-event convention, no archive path (`references/pave-spec.md` §8.4);
 - the plan approval brief (`reviews/plan-brief.md`) matches the bundle it renders, per the rendered-view rule in `references/approval-briefs.md`: the brief is what the user actually reads at the gate.
 
 When the plan composes nodes into child profiles, structure the brief into decomposition-boundary units — for each composed node: the parent contract, the child graph, the uncertainty ledger, the ladder justification, and the contribution statement, reviewed together as one unit. The same single reviewer covers all boundaries in one gate; never spawn per-node reviewers. Instruct the reviewer to detect findings at the nearest sub-goal but rate severity against the approved root goal, and to treat an unfalsifiable decomposition justification as a finding.
@@ -41,6 +42,7 @@ Final-review scope:
 - no contradiction between lead, roles, orchestration, schemas, and scripts;
 - no silent topology or acceptance changes;
 - helpers enforce only the mechanical rules they claim;
+- the generated lead carries the document budget — events land in run state or a revision-log line, superseded prose is deleted, no per-event files or archive paths are instructed (`references/pave-spec.md` §8.4);
 - the delivered `README.md` and `VERSION` match the shipped package per `references/approval-briefs.md` — a rendered-view claim the package does not support, a workflow visual that shows undeclared nodes or edges, or a README section that restates a contract as new authority instead of linking it, is a finding.
 
 The lead reads every cited location and applies the same goal test the reviewer was given: does this finding prevent or materially impair the approved goal? Classify each finding:

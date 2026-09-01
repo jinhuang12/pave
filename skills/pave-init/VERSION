@@ -1,4 +1,4 @@
-version: 2.3.0
+version: 2.4.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,82 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.4.0 (2026-09-01)
+
+Improved — generated workflows carry a document budget: a run keeps a few
+bounded standing documents instead of minting a file per event, and evidence
+is written at the moment of world contact. Field evidence: a generated run
+accumulated dozens of per-event files and batched transcripts that one
+compaction could lose.
+
+- `references/pave-spec.md` §8.4: three standing docs by mutability plus run
+  state; events append, never mint; superseded content is deleted, not
+  archived; cite, never copy. Carve-outs: world-produced per-event evidence
+  lands at the event (applied to every world-contact node or none), and
+  collision-safety working state stays out of the budget.
+
+Improved — ten efficiency rules mined from a full production run (GLM 5.3
+Flash port) now shape generated plans, so future runs spend less on waste the
+graph can screen out cheaply.
+
+- Dispatch admission (`pave-spec.md` §9.2): a plan node feeding an expensive
+  execute node discharges the cheap half of the acceptance pre-dispatch —
+  names resolve, products exist, surfaces owned — starting as an observing
+  count, promoted to routing only on a real run's evidence.
+- Briefs are rendered views (`SKILL.md`, `references/approval-briefs.md`): a
+  dispatch brief cites evidence keys and resolved paths, never retypes facts;
+  the artifact wins on disagreement.
+- Repair recurrence counts by defect class, not site (`pave-spec.md` §9.8):
+  the second occurrence of a class widens the repair to a sweep; the third
+  routes to the declared stop.
+- Standing approvals latch (`pave-spec.md` §8.3): a re-entered gate recomputes
+  its frozen inputs and passes when nothing moved; `authority: user` evidence
+  is recorded once, never re-asked by shape.
+- Run-state hygiene (`schemas/run-state.schema.json`,
+  `scripts/validate_run_state.py`): per-entry free-text fields carry
+  maxLength caps with one declared escape hatch and a whole-file warn
+  threshold; the stdlib fallback enforces the caps itself and names what it
+  cannot enforce; recorded paths that resolve nowhere warn; question entries
+  are pruned only after the ruling is verified at its pointer.
+- Capture discipline (`pave-spec.md` §5.2/§9.10): evidence records the
+  immutable identifier actually read (commit, digest, etag) — never `HEAD` or
+  a branch name; measuring instruments register once by path and digest.
+- Reviewer routing (`sources/roles/pave-material-reviewer.md.tmpl`): the gate
+  reviewer now flags site-keyed recurrence stops, missing dispatch-admission
+  duties, re-asked approvals, moving-ref evidence, and unregistered
+  instruments as findings.
+- Optional dispatch-advisory hook (`references/lead-alignment-hooks.md`): an
+  advisory PreToolUse template that fires only on re-entry dispatches, asking
+  whether the seat's question is already settled and whether the brief cites
+  rather than retypes. Plan-time adoption only, never a default registration.
+
+New — documents are written for the reader, and a hook keeps it that way.
+Field evidence: a production run's design record compressed events into
+identifier chains and inlined checker output that no person could parse.
+
+- `references/pave-spec.md` §8.5 "Written for the reader": every entry a
+  person will read leads with one plain-english sentence, pairs each id with
+  its plain name at first use, and keeps digests and checker output in run
+  state or logs — the test is a stranger parsing the entry in one read.
+  Working state written only for the next agent is exempt.
+- The reviewer treats an illegible reader-facing entry as a **material**
+  finding (`sources/roles/pave-material-reviewer.md.tmpl`); writer roles and
+  the lead carry the duty in their contracts.
+- New registered hook `hooks/write_for_reader.sh` (fourth disclosed hook,
+  both harnesses): a throttled PostToolUse advisory that fires when any
+  actor — lead or subagent — writes a run-workspace document, re-injecting
+  the duty at the moment it binds. Generated workflows ship the same
+  reminder by default with a recorded omission condition (Stage 3/Stage 5).
+
+Changed — the spec pays for its own growth: this release's additions to
+`pave-spec.md` are offset by deleting restatement, so the document planners
+read every dispatch is no larger than before.
+
+- Removed §15 Summary and §16 Version history (git and this changelog own
+  history; the summary restated every section) and condensed the AMMO worked
+  example's diagram/roles/enforcement subsections into §12.3 prose. No
+  doctrine changed; zero external citations pointed at the removed text.
 
 ### 2.3.0 (2026-08-28)
 

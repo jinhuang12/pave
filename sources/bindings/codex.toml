@@ -11,9 +11,9 @@ description: >-
   Manual-only: use only after explicit $pave-init:pave-init invocation or
   selection through /skills. This long campaign clarifies the goal, explores
   the system, designs and reviews a PAVE graph, and builds and tests the
-  plugin. The plugin registers disclosed stop-alignment, stale-state, and
-  planning-layout hooks. While a run is active, stop alignment blocks at most
-  one stop in three.
+  plugin. The plugin registers disclosed stop-alignment, stale-state,
+  planning-layout, and write-for-the-reader hooks. While a run is active,
+  stop alignment blocks at most one stop in three.
 ---'''
 PRODUCT_INTRO = '''Turn a system or engineering process into a validated PAVE Graph Profile and a Codex plugin: a lead workflow skill plus custom role agents. Resolve `PAVE_PLUGIN_ROOT` as the absolute path three directories above this file (`<root>/codex/skills/pave-init/SKILL.md` → `<root>`) and resolve every `orchestration/...`, `references/...`, `schemas/...`, and `scripts/...` path below under `<PAVE_PLUGIN_ROOT>/skills/pave-init/`. The user's stated goal drives the run: clarify it until it is designable, then design. Treat the approved PAVE YAML as the workflow authority.'''
 MULTI_AGENT_CONTRACT = '''Every worker role is a named Codex custom agent installed from this plugin. Its TOML contains the complete role contract. Start every brief with `PAVE_PLUGIN_ROOT: <absolute plugin root>`.

@@ -8,7 +8,7 @@ An approval gate that points the user at five raw artifacts — a formal YAML gr
 
 ## The rendered-view rule
 
-A brief (and the delivered `README.md`) is a **rendered view, never an authority**. It is derived from the approval bundle; the bundle stays the source of truth. Three duties follow:
+A brief (and the delivered `README.md`) is a **rendered view, never an authority**. It is derived from the approval bundle; the bundle stays the source of truth. The same rule reaches every seat dispatch a generated lead writes: a dispatch brief renders the graph and run state, it does not restate them — facts are cited by evidence key, path, or anchor, and the artifact wins when the two disagree. Three duties follow:
 
 - The brief states nothing the underlying artifacts do not support. No new policy. No requirement that appears only in the brief.
 - Every section links the raw artifact it renders, so the user can drill down.
@@ -16,7 +16,7 @@ A brief (and the delivered `README.md`) is a **rendered view, never an authority
 
 ## Write for the reader
 
-Every document a human reviews or approves from — the briefs, the delivery report, the generated `README.md` — follows one rule: simple, plain English, as concise as the content allows. Short sentences. Common words. Define a technical term at first use in a few words, or do not use it. Lead each section with the point; detail follows for readers who want it. The reader decides from this document: prose they cannot grasp produces rubber-stamp approvals, which is the failure briefs exist to prevent. Concise never means incomplete — cut words, not material facts. pave-init's own `README.md` follows the same rule — it is the same kind of document.
+Every document a human reviews or approves from — the briefs, the delivery report, the generated `README.md` — follows one rule: simple, plain English, as concise as the content allows. Short sentences. Common words. Define a technical term at first use in a few words, or do not use it. Lead each section with the point; detail follows for readers who want it. The reader decides from this document: prose they cannot grasp produces rubber-stamp approvals, which is the failure briefs exist to prevent. Concise never means incomplete — cut words, not material facts. pave-init's own `README.md` follows the same rule — it is the same kind of document. And the gate documents are only the strictest case of a general duty: every standing document any role writes is written for its reader (`references/pave-spec.md` §8.5); a brief differs only in who that reader is.
 
 ## Stage 1: requirements brief
 

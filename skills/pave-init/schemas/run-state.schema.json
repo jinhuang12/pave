@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "pave-init-run-state",
   "title": "pave-init run state (run-state.json)",
-  "description": "Single shape authority for a pave-init run's persisted state, realizing the state contract in references/pave-init.pave.yaml. State points; artifacts prove: fields hold positions, statuses, counters, and artifact paths - never artifact content. $defs.frontier and $defs.fragment are the shape authorities for the Stage 3 planning files (planning/frontier.yaml and planner draft fragments); scripts/validate_run_state.py --frontier checks instances of them plus the hand rules a shape schema cannot express (see references/planning-layout.md).",
+  "description": "Single shape authority for a pave-init run's persisted state, realizing the state contract in references/pave-init.pave.yaml. State points; artifacts prove: fields hold positions, statuses, counters, and artifact paths - never artifact content. Per-entry free-text fields declare maxLength caps (references/pave-spec.md section 8.1); an entry that needs more cites an artifact path instead. `notes` is this file's single deliberately unconstrained escape hatch, counted against a whole-file warn threshold of 131072 bytes - scripts/validate_run_state.py warns past it and names the compaction action, never refusing the write. $defs.frontier and $defs.fragment are the shape authorities for the Stage 3 planning files (planning/frontier.yaml and planner draft fragments); scripts/validate_run_state.py --frontier checks instances of them plus the hand rules a shape schema cannot express (see references/planning-layout.md).",
   "type": "object",
   "required": [
     "run_identity",
@@ -64,9 +64,9 @@
         "required": ["lens"],
         "additionalProperties": false,
         "properties": {
-          "lens": {"type": "string"},
+          "lens": {"type": "string", "maxLength": 200},
           "artifact": {"type": "string", "description": "Path of the persisted exploration/<lens>.md report."},
-          "status": {"type": "string"}
+          "status": {"type": "string", "maxLength": 200}
         }
       }
     },
@@ -80,8 +80,8 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "boundary": {"type": "string"},
-          "verdict": {"type": "string"},
+          "boundary": {"type": "string", "maxLength": 200},
+          "verdict": {"type": "string", "maxLength": 200},
           "artifact": {"type": "string"}
         }
       }
@@ -115,7 +115,7 @@
       "additionalProperties": false,
       "properties": {
         "status": {"type": ["string", "null"]},
-        "reason": {"type": "string"}
+        "reason": {"type": "string", "maxLength": 1000}
       }
     },
     "traversal_history": {
@@ -129,19 +129,19 @@
           "outcome": {"type": "string", "minLength": 1},
           "at": {"type": "string"},
           "evidence": {"type": "array", "items": {"type": "string"}},
-          "note": {"type": "string"}
+          "note": {"type": "string", "maxLength": 500, "description": "One-line context. Longer content lives in an artifact cited under evidence, never here."}
         }
       }
     },
     "notes": {
-      "description": "Free-form prose home for anything the fields above do not carry. Intentionally unconstrained."
+      "description": "Free-form prose home for anything the fields above do not carry. This file's single deliberately unconstrained escape hatch (references/pave-spec.md section 8.1), counted against the whole-file warn threshold declared above."
     }
   },
   "$defs": {
     "frontier": {
       "type": "object",
       "title": "planning/frontier.yaml",
-      "description": "The Stage 3 planning queue. The lead is the only writer. A shape schema cannot express the write-ownership and lifecycle rules; those live in references/planning-layout.md and the hand rules of validate_run_state.py --frontier.",
+      "description": "The Stage 3 planning queue. The lead is the only writer. Per-entry free-text fields declare maxLength caps; the frontier-level `notes` is this file's single unconstrained escape hatch, counted against the same 131072-byte whole-file warn threshold as run-state.json. A shape schema cannot express the write-ownership and lifecycle rules; those live in references/planning-layout.md and the hand rules of validate_run_state.py --frontier.",
       "required": ["entries"],
       "additionalProperties": false,
       "properties": {
@@ -156,7 +156,7 @@
           "items": {"$ref": "#/$defs/conflict"}
         },
         "notes": {
-          "description": "Free-form prose home: run lessons, assembly items, scratch notes. Intentionally unconstrained."
+          "description": "Free-form prose home: run lessons, assembly items, scratch notes. This file's single deliberately unconstrained escape hatch, counted against the whole-file warn threshold."
         }
       }
     },
@@ -179,6 +179,7 @@
         },
         "prediction": {
           "type": "string",
+          "maxLength": 400,
           "description": "The framing planner's sizing prediction with its one-line rationale; the node's own dispatch confirms or overturns it."
         },
         "dependencies": {
@@ -186,9 +187,11 @@
           "items": {"type": "string"},
           "description": "Sibling entry keys whose frozen interfaces this node consumes. A resynchronization that changes an interface marks every reviewed dependent stale (orchestration/explore-and-plan.md section 4.4)."
         },
-        "risk": {"type": "string"},
+        "risk": {"type": "string", "maxLength": 300},
         "notes": {
-          "description": "Free-form entry prose: dispatch notes, review summaries, retractions. Intentionally unconstrained."
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Entry prose: dispatch notes, review summaries, retractions. Capped per entry; content that needs more lives in an artifact cited by path. The frontier-level notes field is the file's one unconstrained escape hatch, not this."
         }
       }
     },
@@ -202,7 +205,7 @@
           "pattern": "^c[0-9]+$",
           "description": "Lead-assigned, unique across the run. Planners report conflicts without ids; the lead registers and numbers them here."
         },
-        "summary": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1, "maxLength": 500},
         "status": {"enum": ["open", "resolved", "deferred_to_user"]},
         "raised_by": {"type": "string", "description": "Frontier entry key that reported it."}
       }

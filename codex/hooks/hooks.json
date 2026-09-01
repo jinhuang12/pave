@@ -21,6 +21,12 @@
             "command": "python3 \"${PLUGIN_ROOT}/codex/hooks/post_tool_use_router.py\" layout",
             "timeout": 10,
             "additionalContextLimit": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex/hooks/post_tool_use_router.py\" reader",
+            "timeout": 10,
+            "additionalContextLimit": 5000
           }
         ]
       }

@@ -14,15 +14,13 @@
 5. Core graph vocabulary — node contract §5.1, evidence §5.3, acceptance evidence ladder §5.3.1, guard §5.4
 6. PEER node intents
 7. Roles and perspectives
-8. State and external memory
+8. State and external memory — document budget §8.4, written for the reader §8.5
 9. Reusable graph patterns — enforcement rungs §9.14, node sizing §9.12, porting §9.12.2
 10. How to engineer a graph with PAVE
 11. Lightweight design canvas
 12. Worked example: AMMO GPU optimization
 13. Common graph-design smells
 14. PAVE design review
-15. Summary
-16. Version history
 
 ## 1. What PAVE is
  
@@ -407,12 +405,20 @@ Useful evidence records:
  
 - what claim it concerns;
 - where it came from;
-- what system revision it describes;
+- what system revision it describes — the immutable identifier actually read
+  at capture: a commit, a content digest, an etag, an object timestamp. A
+  branch name, `HEAD`, `main`, or `latest` names whatever was there at a
+  moment nobody recorded; capturing against a moving ref is an effect
+  violation recorded at the producing node, not a gap for a later round to
+  argue about. Re-observation stays a right; recording what was observed is
+  the duty;
 - what target or conditions applied;
 - what assumptions were used; and
 - whether later changes can make it stale.
 Evidence can be a file, database record, issue comment, conversation artifact,
-or another durable reference. The format should fit the workflow.
+or another durable reference. The format should fit the workflow. Prefer
+pointing at a standing document over minting a new file per outcome or per
+round; §8.4 sets the document budget.
  
 #### 5.3.1 Acceptance evidence ladder
  
@@ -660,7 +666,8 @@ tree, or concise checkpoint. PAVE does not prescribe the format.
 A useful rule is: persist information when later work would be unsafe,
 confusing, or wasteful without it.
  
-Three rules keep persisted state trustworthy.
+The rules below keep persisted state trustworthy — and keep the documents a
+person reads readable, the duty §8.5 defines.
  
 ### 8.1 State points; artifacts prove
  
@@ -668,6 +675,16 @@ Keep the state record compact. It holds position, history, and references.
 Bulky evidence lives at its declared location. A state file that grows to
 hold its own evidence stops being readable at exactly the moment a resume
 needs to read it.
+
+The per-entry cap is how this rule is checked rather than advised: every
+per-entry free-text field in the state schema declares a length, and an
+entry that needs more cites an evidence key instead. At most one
+deliberately unconstrained escape hatch may remain, counted against a
+declared whole-file size the validator warns on — naming the compaction
+action, never refusing the write, because a refused checkpoint wedges the
+run the budget exists to protect. A fallback validator implements the cap
+keyword itself; a keyword the validator cannot enforce is a loud failure,
+never a silent pass.
  
 ### 8.2 One writer per state record
  
@@ -685,7 +702,108 @@ A resume is reconciliation, not inference. Reread the state, check it against
 the artifacts actually present, record any disagreement as its own history
 entry, and continue from the last satisfied guard. When a required approval
 record is missing, the approval was not given.
- 
+
+The inverse also holds: an approval once given is not re-asked by shape. A
+node that any edge re-enters may not price its success outcome on a fresh
+user-authority artifact. Record the approval once, with the frozen inputs
+the decision was made over; on re-entry, recompute those inputs and pass
+when nothing moved, asking again only when something did. Mark evidence a
+person authors with `authority: user`, so the record and its latch are
+checkable rather than remembered. A gate no edge re-enters keeps its
+once-per shape.
+
+### 8.4 Mutability sets the document count
+
+Standing documents are graph design, and the default count is three, split
+by how each one changes:
+
+- **A living plan**, edited in place, holding current state only: what to
+  build, where, how it is tested, what passes. Its history is one line per
+  revision inside the same document — what changed and why, in plain words.
+  A fresh reader needs a few hundred lines, so that is the budget: proofs,
+  derivations, and transcripts live at their evidence paths, never inline.
+- **Write-once values**: preregistered thresholds, comparators, and other
+  frozen facts, in their own file precisely because it never changes —
+  "untouched" is provable with one digest check. Never merged into the
+  living plan.
+- **An append-only decision record**: verbatim user decisions and approvals,
+  one short section per decision, not writable by the actor that edits the
+  plan.
+
+Run state (§8) is the fourth artifact and already exists. A workflow that
+needs another standing document records the justification in the graph, like
+any other structure (§4.11).
+
+Events do not mint files. A revision, review round, repair, lap, or ruling
+lands as a run-state entry, a one-line revision-log entry in the living
+document it changed, or a section appended to the decision record — never as
+a new file. Delete superseded prose outright: no archive directories, no
+tombstones, no supersession chains. History is the revision log plus run
+state.
+
+The budget binds standing prose documents. Two things sit outside it:
+world-produced evidence records — transcripts, measurement captures, attempt
+records — live at their declared evidence paths and may be per-event,
+because there the event itself is the evidence; and collision-safety working
+state — a fresh scratch path minted per dispatch so a stale completion
+cannot overwrite the live one — is working state deleted or ignored at
+close, never a standing document.
+
+Per-event evidence lands at the event. A node that reads or changes the
+world persists each event's raw output before any claim cites it; batching
+transcripts to the end of a pass is how the one loss no re-read can cure
+happens. Key this on world contact, not on the evidence label, and apply it
+to every world-contact node or none — partial coverage reads as coverage
+and is worse than silence.
+
+Cite, never copy. Every number and every ruling lives in exactly one file,
+and every other document points at it. Evidence for an outcome is a digest
+plus a run-state entry pointing at a standing document, not a new artifact
+file — §5.3.1 governs evidence strength, not file count.
+
+A living document carries no defensive prose: no argument history, no ruling
+quotes, no per-clause justification essays. Preregistration and audit rigor
+bind measurement artifacts and frozen values, where tampering changes
+acceptance — not prose edits to a plan. This budget is a measured failure,
+not a preference: one long adversarial design loop that minted a file per
+event grew a design stage to fifty-plus files and a five-figure line count,
+agents needed scripts to edit the plan, and condensing to the three
+documents above lost nothing operative.
+
+### 8.5 Written for the reader
+
+Every standing document is written for a reader who was not present: the
+user auditing a gate, the next session resuming, the reviewer verifying a
+claim. The budget (§8.4) bounds how much prose exists; this rule binds what
+the prose is like. The failure it prevents is also measured: record entries
+compressed into identifier chains and inlined checker output that no one —
+including the agents that wrote them — could parse a week later.
+Compression that defeats the reader meets the budget's letter and fails its
+purpose; both are the same defect.
+
+Four duties, for every entry a person will read, written in concise simple
+plain english:
+
+- Lead with one sentence saying what happened and why — readable with no
+  lookup table.
+- An identifier is a pointer, never a noun. Pair each id with its plain
+  name at first use in the entry — "the rotary increment (`inc-025`)" —
+  and never chain bare ids where a sentence should stand.
+- Machine-check output — digests, censuses, counters, byte totals — lives
+  in run state or the check's own log and is cited in one line, never
+  interleaved with narrative prose.
+- The test is a stranger: one read of the entry says what happened, what
+  changed, and what stays open. An entry that needs the run's id table to
+  parse fails, whatever else it satisfies.
+
+The duty binds documents a person reads: the standing documents, review and
+decision records, delivered docs, and anything a user gate renders. Working
+state written for the next agent and deleted or ignored at close — a
+planning queue, a scratch draft, structured run state — is exempt, because
+plain-english ceremony with no reader is cost without a return. When in
+doubt, ask who reads it after the run; "a person might" means the duty
+applies.
+
 ## 9. Reusable graph patterns
  
 ### 9.1 Frozen purpose
@@ -712,6 +830,20 @@ claim, because a proxy can show feasibility without supplying production
 magnitude, and a report can summarize evidence without replacing it.
 **Independent proposal:** when framing convergence is a risk, generate
 alternatives independently before any cross-critique.
+
+**Dispatch admission:** a plan node that selects work for an expensive
+execute node discharges the cheap half of the acceptance first, from inputs
+it already reads. Three questions: does every name, path, value, and count
+in the selected item's acceptance resolve in those inputs; are the item's
+own products ordered before it rather than after; does every surface the
+acceptance touches belong to some declared item. The acceptance also states
+the reading it expects at the unmodified parent, and the execute node takes
+that reading before it writes a line. Record the unresolved names, the
+contradictions, and the unowned surfaces as counts in the plan node's
+run-state entry — an observing record on first ship; only after one run's
+counts exist may a successor promote it to a routing check that sends a
+non-zero count back to design. Do not give the plan node the right to build
+or measure — a screen that must compile is not a cheap screen.
  
 ### 9.3 Socratic guard
  
@@ -741,12 +873,19 @@ Give every review a scope contract:
 - A finding cites primary evidence and an exact location.
 - A finding describes a credible failure mode and its effect on the goal.
 - Stylistic preference, speculation, and unstated requirements are not
-  findings.
+  findings. Neither is the bookkeeping: the work product is the review
+  subject, and a repair that adds a standing document, archive, or
+  per-event record is itself a defect (§8.4).
+- A finding is one line — location, what is wrong, what right looks like —
+  recorded in run state, never in a per-round report file. Its repair lands
+  in the living document with one revision-log line.
 - Only findings that prevent or materially impair the goal block progress.
 - A clean pass is a successful review. Issue count is not a quality measure.
 Record which findings were rejected and why, so a rejected finding does not
-return unchanged.
- 
+return unchanged. Prefer a retained challenger across rounds at one gate: a
+fresh challenger each round forces every document to carry its full argument
+history in self-defense, which is how living documents bloat.
+
 ### 9.5 Isolated execution
  
 Keep experimental changes and their evidence separate until the workflow
@@ -822,7 +961,20 @@ invalidated, and the result — and the evidence it did not invalidate: what
 stays settled is the cheap path for every node the repair re-enters. Scale
 the re-entered node's instrument to that record: an unchanged,
 already-verified fact settles mechanically; a changed input to a judgment
-gets fresh eyes.
+gets fresh eyes. The record is a run-state entry plus the revision-log line
+in the document the repair changed — not a new file (§8.4).
+
+Count a repair loop's recurrence by defect class, not by site. The reviewer
+labels each finding's class from the first round — a label the loop's
+record can count across laps, ignoring node, surface, and wording, because
+an identity fingerprint (same node, same surface, same claim) is a stop
+that recurrence in new clothes never trips. The second occurrence of a
+class at any site widens the repair from the named line to a sweep of the
+whole artifact: the repair publishes the population it swept and the
+command it used, and the next review checks that population, not the one
+site. The third occurrence routes to the stop the loop already declares,
+with the class named. A loop that declares a total lap counter needs none
+of this.
  
 **Default recovery for undeclared failures.** A failure the graph has no
 edge for still needs a route. Do not invent one ad hoc; run the default
@@ -867,6 +1019,14 @@ issue trackers, another instrument class — stands untried.
  
 Ask whether system changes made earlier evidence stale. Refresh only the
 evidence affected by the change.
+
+The instrument that produced accepted evidence is itself an artifact.
+Register it once in the measurement-procedure record the graph already
+declares: path, content digest, the fixed way it is invoked, and its first
+clean run. A later node doing the same job cites that digest, or records
+why the registered instrument was unusable and what it changed. Retyping a
+validated instrument is how a transcription slip enters a measurement that
+already passed.
  
 ### 9.11 Child graph
  
@@ -1235,7 +1395,7 @@ What makes this edge exclusive of its siblings:
 What must persist?
 Who is the single writer?
 What becomes stale after a change?
-Where do superseded files go when work re-enters a node?
+What gets deleted when work re-enters a node, and which revision-log line records it?
 Which routes spend each bounded counter?
 What can remain conversational?
 ```
@@ -1304,65 +1464,25 @@ Success: Accepted integrated change or justified exhaustion.
 | Audit integration | Review | Independent judgment | accepted, repair required, pause |
 | Evaluate campaign | Review | Continue or stop judgment | continue, complete, exhausted |
  
-### 12.3 Important edges
- 
-```mermaid
-flowchart TD
-    T["Freeze workload - Plan"] --> B["Capture baseline - Explore"]
-    B -->|"credible"| M["Mine bottlenecks - Explore"]
-    B -->|"invalid"| B
-    M -->|"opportunity found"| P["Propose candidates - Plan"]
-    M -->|"insufficient evidence"| X["Gather focused evidence - Explore"]
-    X --> M
-    P --> C["Critique and select - Review"]
-    C -->|"winners selected"| I["Implement tracks - Execute"]
-    I --> V["Validate tracks - Review"]
-    V -->|"repairable"| I
-    V -->|"all relevant tracks resolved"| J{{"Join - control endpoint"}}
-    J --> G["Integrate - Execute"]
-    G --> A["Audit integration - Review"]
-    A -->|"repair required"| G
-    A -->|"accepted"| E["Evaluate campaign - Review"]
-    E -->|"continue"| M
-    E -->|"stop"| R["Terminal: accepted or exhausted"]
-```
- 
-The fan-out into implementation tracks converges at a named join before
-integration begins. The campaign closes at a terminal endpoint that carries
-either `accepted` or `exhausted`, so a reader can tell a win from an honest
-stop.
- 
-The AMMO profile chooses to require candidate debate even when a simpler
-graph might move directly from Explore to Execute. That is a domain decision,
-not a PAVE rule.
- 
-### 12.4 Roles
- 
-AMMO uses several perspectives: a lead coordinates the graph; a researcher
-establishes the evidence floor; champions propose and challenge candidates;
-implementers own isolated tracks; monitors review active work; auditors
-reconstruct evidence independently; investigators resolve uncertainty;
-delegates gather cited facts; and resolvers combine conflicting changes.
- 
-Which model or person fills each role is a Runtime Binding decision, and the
-graph stays valid when that decision changes.
- 
-### 12.5 Enforcement choices
- 
-AMMO applies strong enforcement to failure modes that can invalidate
-expensive work:
- 
-- workload drift;
-- contaminated measurements;
-- wrong environment or worktree;
-- unreserved shared resources;
-- incomplete parallel cohorts;
-- stale evidence;
-- self-approved consequential claims; and
-- premature stopping.
-Each of those carries an enforcement record stating why a lighter rung is
-insufficient. Another PAVE-informed workflow can address similar risks with
-lighter techniques when the consequences are lower.
+### 12.3 Shape and choices
+
+The run flows freeze → baseline → mine → propose → critique, then fans out
+into per-candidate implement-and-validate tracks that converge at a named
+join before integration; after the integration is audited, a campaign
+evaluation decides to continue mining or to close at a terminal endpoint
+carrying `accepted` or `exhausted`, so a reader can tell a win from an
+honest stop.
+
+Two of AMMO's choices are domain decisions, not PAVE rules. It requires
+candidate debate even where a simpler graph would move straight from Explore
+to Execute. And it applies strong enforcement — each entry recording why a
+lighter rung is insufficient — only to failure modes that can invalidate
+expensive work: workload drift, contaminated measurements, wrong environment
+or worktree, unreserved shared resources, incomplete parallel cohorts, stale
+evidence, self-approved consequential claims, and premature stopping.
+Another PAVE-informed workflow can address similar risks with lighter
+techniques when the consequences are lower. Which actor fills each role stays
+a Runtime Binding decision (§2.1, §7); the graph is valid under any of them.
  
 ## 13. Common graph-design smells
  
@@ -1409,6 +1529,14 @@ Make the guards exclusive, or use fan-out.
 Important state exists only in conversation. Persist the minimum facts needed
 for safe continuation.
  
+### A file per event
+
+Every revision, review round, repair, or ruling mints a new file, and
+superseded prose archives instead of dying. The document set grows until
+agents need tooling to edit it and every lap pays to re-read it. Hold the
+§8.4 budget — living plan, write-once values, append-only decisions, run
+state — and delete superseded prose outright.
+
 ### Approval by artifact
  
 A file exists, so the work is treated as approved. Record approvals as their
@@ -1491,95 +1619,3 @@ Use these questions:
 20. Which process can be removed without losing useful confidence?
 The review is successful when the workflow becomes easier to explain, operate,
 challenge, and improve.
- 
-## 15. Summary
- 
-PAVE offers a way to frame agentic engineering as graph engineering.
- 
-Its central ideas are:
- 
-- separate design guide, graph, runtime binding, and run;
-- model work as bounded nodes, and keep them as small in number as the goal
-  allows;
-- size each node with the one-agent test, and record a falsifiable
-  justification for the verdict either way;
-- classify node intent with PEER;
-- describe results as outcomes that never name their destination;
-- make the basis of belief visible as evidence, and let the world rather than
-  the doer produce the evidence that decides acceptance;
-- use guards to question consequential movement;
-- connect work through unrestricted, unambiguous edges;
-- name the destinations that are not work;
-- assign roles according to responsibility and perspective, and bound what a
-  challenger may raise;
-- preserve the state needed for coherent continuation, with one writer and
-  recorded approvals;
-- design for context decay, not against it;
-- design repair, pivot, convergence, and completion paths, and say what each
-  ending means; and
-- apply enforcement in proportion to risk, with the reasoning recorded.
-AMMO demonstrates a strongly enforced application of these patterns. Other
-workflows can use a smaller or different subset. PAVE provides the language
-for designing and discussing those choices.
- 
-## 16. Version history
- 
-### 16.1 Changes in 0.3
- 
-Version 0.3 makes node sizing testable and acceptance evidence explicit. It
-also absorbs the design content that had drifted into a separate condensed
-patterns file, so this document is the single home for PAVE meaning. No 0.2
-concept was removed.
- 
-| Change | Where |
-|---|---|
-| The one-agent test is a feasibility judgment with warning signs; no contract checklist can answer it | §9.12 |
-| Both sizing verdicts need a falsifiable justification, not only decompositions | §9.12 |
-| Decomposition adds child nodes to the same graph; child profiles become a packaging choice | §9.12.1 |
-| Existing systems bind behavior, never structure | §9.12.2 |
-| Acceptance evidence ladder; doer self-report is never sole acceptance evidence | §5.3.1 |
-| Node redefined as one goal plus a five-part provable contract; the contract is the sizing artifact | §5.1, §11 |
-| The definition of done merges the standard of done, its check, and the success outcome into one statement, so an unverifiable condition cannot be written | §5.1, §5.2, §9.12 |
-| Every definition of done is acceptance-bearing: its evidence comes from the world, never from the doer's report | §5.1, §5.3.1 |
-| A node run ends by reporting exactly one outcome; only the settling act selects success | §5.1, §5.2 |
-| `Produces` folded into Effects; intent demoted to a label read from the purpose | §5.1, §11 |
-| Enforcement mechanism named a Runtime Binding concern | §9.14.2 |
-| Four knowledge states as a grouping aid | §10 step 2 |
-| Four shapes of parallel work, each with its own join rule | §9.6 |
-| Investigation loop separated from repair loop | §9.8 |
-| Evidence authority and independent proposal | §9.2 |
-| Advisory monitor paired with execution | §6.4 |
-| Two new smells: mirrored source structure, acceptance by assertion | §13 |
- 
-### 16.2 Changes in 0.2
- 
-Version 0.2 adds concepts that emerged from building and operating
-PAVE-informed workflows. No 0.1 concept was removed.
- 
-| Change | Where |
-|---|---|
-| The four layers, and the graph-versus-binding test | §2.1 |
-| Topology is fixed during a run | §2.2 |
-| Context decay named as a distinct memory problem | §4.7 |
-| Draft versus frozen revision authority | §4.10 |
-| Smallest sufficient graph, as a philosophy entry | §4.11 |
-| Activities are not nodes | §5.1 |
-| Outcomes never encode destinations; no dead-end outcomes | §5.2 |
-| One outcome, one move; fan-out as the only multi-destination form | §5.5.1, §5.5.2 |
-| Control endpoints as a core term | §5.6 |
-| Advisory versus authoritative review | §6.4 |
-| State points, single writer, existence is not approval | §8.1–§8.3 |
-| Material-defect scope for independent challenge | §9.4 |
-| Parallel exploration and fan-in merged into one pattern | §9.6 |
-| Frozen parent contract under decomposition | §9.11 |
-| Realization ladder | §9.12 |
-| Terminal status taxonomy | §9.13 |
-| Enforcement record and the always-on invariant test | §9.14.1, §9.14.2 |
-| Sizing and simplicity added as design steps | §10 steps 4 and 13 |
-| Completion and enforcement cards | §11 |
-| Seven new smells | §13 |
- 
-Two 0.1 patterns were merged rather than kept separate: parallel exploration
-and fan-in are now one pattern, because a parallel design is incomplete
-without its join. The capability subgraph is now the child graph, with the
-realization ladder beside it.
