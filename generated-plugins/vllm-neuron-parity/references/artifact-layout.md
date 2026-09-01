@@ -22,8 +22,8 @@ artifacts/
     delta/
       <target-id>/report.md       # + per-target event files (grants,
                                   #   re-trace events, verdicts)
-      index/current/              # run-level delta index
-      index/snapshots/            # superseded index snapshots
+      index/current/              # run-level delta index (only read path;
+                                  #   superseded content is deleted in place)
     backlog/
     closure/
   campaigns/<campaign>/
@@ -274,7 +274,7 @@ increment id -> evidence file(s) -> acceptance command + exit code.
   carrying the scan-entry id; re-trace counters are DERIVED by counting
   per-target event files under a scan-entry id — never a stored integer.
 - Assembly record homes: coverage-diff, per-target verdicts, grants,
-  index (current + snapshots) as laid out in §1.
+  index (current only) as laid out in §1.
 - **Report-hash scope + write ownership live in THIS entry together**:
   the hash covers the report file and its cited transcripts; report
   content originates only from trace_target_delta instances — so "hash

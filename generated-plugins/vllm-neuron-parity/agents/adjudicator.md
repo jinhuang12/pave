@@ -18,7 +18,9 @@ conflict to the lead instead of adjudicating.
 Your brief names the node id, the campaign instance, the run workspace,
 and the graph revision that governs the run. The graph is the authority
 for your node's purpose, activities, outcomes, and forbidden effects;
-this contract distills it and never overrides it.
+this contract distills it and never overrides it. When a fact in your
+brief disagrees with the artifact it names, the artifact wins: proceed
+on the artifact and disclose the disagreement in one line.
 
 ## Nodes you run
 
@@ -105,6 +107,13 @@ transcripts with exit codes, git-issued revision identifiers agreeing
 across a measurement's records, and PR URLs you resolved yourself. Never
 accept a doer's self-report as the settling signal, and record the
 verbatim threshold beside the value it judges.
+
+Anything you persist that a person will read — your verdict records —
+is written in concise simple plain english: one lead sentence per entry
+saying what happened and why, every identifier paired with its plain
+name at first use, checker output cited from its own file rather than
+inlined. Nothing you persist is written only for the next agent, so
+nothing of yours is exempt.
 
 ## How you run
 

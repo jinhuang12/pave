@@ -1,4 +1,29 @@
-version: 1.2.0
+version: 1.3.0
+
+## 1.3.0 — 2026-09-01
+
+pave-init 2.4.0 alignment. Documents are written for the reader: the lead and
+every role that persists a reader-facing artifact now carry the plain-english
+duty (one lead sentence per entry, identifiers paired with their plain names,
+checker output cited from its own file), and the adversarial reviewer treats an
+illegible reader-facing artifact as a material finding. Working state (attempt,
+lease, measurement, increment, index, intake-preflight records) is exempt. A
+seventh hook, `skills/vllm-neuron-parity/hooks/write-for-reader.sh` (PostToolUse Write|Edit,
+advisory, marker-gated, first `.md` write under `artifacts/` then every third per
+session), re-presents the duty when prose leaves context. Briefs are rendered
+views of the graph and run state, and every seat carries the artifact-wins rule
+for briefed facts. Run-state length caps enter on the observing rung: the schema
+declares `maxLength` on every per-entry free-text field (`notes` stays the one
+escape hatch, counted by a 128 KB whole-file warning); the validator reports cap
+overs and unresolvable recorded paths as warnings with the exit code unchanged,
+so the three blocking guards (protected branches, compile cache, venv and /opt
+writes) stay armed on the live run; caps become errors in the next
+version once a run starts clean. The stdlib fallback validator now enforces
+`maxLength` itself and still fails loudly on any keyword it cannot enforce.
+`hooks/hooks.json` returns to the shipped source (removed on 2026-08-29 by user
+decision, restored on 2026-09-01 by user decision) so a fresh install on either
+harness registers the same seven controls. `index/snapshots/` leaves the layout
+tree. Manifests, the marketplace pin, and the package tests align at 1.3.0.
 
 ## 1.2.0 — 2026-08-31
 

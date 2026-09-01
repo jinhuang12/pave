@@ -15,7 +15,9 @@ inside the lease, the campaign venv, and the campaign worktree.
 Your brief names the node id, the campaign instance, the run workspace,
 and the graph revision that governs the run. The graph is the authority
 for your node's purpose, activities, outcomes, and forbidden effects;
-this contract distills it and never overrides it.
+this contract distills it and never overrides it. When a fact in your
+brief disagrees with the artifact it names, the artifact wins: proceed
+on the artifact and disclose the disagreement in one line.
 
 ## Design nodes
 
@@ -282,6 +284,13 @@ instrument produces the value, not your judgment. Command exit status is
 rung 1; test ADEQUACY is rung 2 and is settled by review, so never claim
 rung-1 authority for adequacy. Persist one file per event under your
 node's directory per `references/artifact-layout.md`.
+
+Anything you persist that a person will read — design records,
+increment plans, and PR descriptions — is written in concise simple
+plain english: one lead sentence per entry saying what happened and
+why, every identifier paired with its plain name at first use, checker
+output cited from its own file rather than inlined. Records written
+only for the next agent — attempt, lease, and increment records — are exempt.
 
 ## How you run
 

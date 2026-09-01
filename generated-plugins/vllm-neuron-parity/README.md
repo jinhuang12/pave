@@ -383,9 +383,9 @@ vllm-neuron-parity/
   .codex-plugin/plugin.json            # Codex plugin manifest
   .claude-plugin/plugin.json           # retained source-runtime manifest
   hooks/
-    hooks.json                         # hook registration (removed from the
-                                       #   shipped source by user decision;
-                                       #   installed copies may retain it)
+    hooks.json                         # registers the seven controls for both
+                                       #   harnesses (restored in 1.3.0; Codex
+                                       #   asks you to trust it once)
     pre_tool_use_router.py             # active-run scope adapter for P1-P3
     dispatch_advisory.py               # advisory-only re-entry dispatch check
                                        #   (PreToolUse Agent|Task, lead-gated)
@@ -407,6 +407,7 @@ vllm-neuron-parity/
       venv-opt-guard.sh                # blocks venv cloning / /opt writes
       state-staleness-reminder.sh      # re-presents run position periodically (lead-session-gated)
       stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active (lead-session-gated)
+      write-for-reader.sh              # reminds any actor to write documents for the reader (advisory, throttled)
   agents/*.md                          # preserved original role contracts
   claude/skills/vllm-neuron-parity/    # retained original lead source
   workflow.pave.yaml                   # immutable packaged graph seed (approved v0)
@@ -491,15 +492,18 @@ weakest to strongest: prose < reinjection < reviewed < mechanical
 | Two-tier repair budgets and breakers (measure three/nine; hardware ten + one recovery) | BLOCKING routing preconditions | counts derived from event files; runaway loops are the costliest failure |
 | Lead-alignment hook pair (staleness reminder + stop guard) | reinjection | long-horizon, session-crossing workflow — the pair's target case; the stop guard **blocks at most one stop in three** while a run is active, disclosed in the skill description. Both hooks gate on the lead session id in `<run-state>.lead-session` and stay silent in every other session; without the sidecar they fail open |
 | Re-entry dispatch advisory (`hooks/dispatch_advisory.py`) | reinjection (advisory `additionalContext`, never blocks) | edge-triggered: fires only when a dispatch names an instrumented design node that already completed a traversal this run, and asks whether the graph's cheaper re-entry instrument settles it without a seat; lead-session-gated, throttled per node via its own counter file |
+| Documents are written for the reader (`skills/vllm-neuron-parity/hooks/write-for-reader.sh`) | prose + reinjection (advisory `additionalContext`, never blocks) + REVIEWED | agents drift back to identifier chains and inlined checker output the moment the prose duty leaves context; the hook fires on the first `.md` write under `artifacts/` and every third after it per session, for any actor, marker-gated and terminal-silent, and skips working state (attempts, measurements, increments, index, intake-preflight); the adversarial reviewer treats an illegible reader-facing artifact as a material finding |
 | New kernel-class functionality must be NKI, never torch fallback (kernel-substrate rule) | MECHANICAL (every increment must declare kernel-class or not — no silent omission; a declared-NKI increment with zero NKI usage in its diff is an exact contradiction caught at the changeset scan) + REVIEWED (both gates challenge the classification itself) | "what is kernel-class" is judgment no scan decides, and absence-of-torch scans false-fire on kernels' legitimate torch boundaries — so the mechanical half checks presence against the doer's own declaration, and review owns only the classification |
 
 `SKILL.md` carries 13 run-wide prohibitions and 6 transition guards in
 total; this table shows the strongest rows, and every rule not shown
 sits at a weaker rung with its rationale in the skill and agent
-contracts. `hooks/hooks.json` registers the six controls at plugin scope (the three
-P1-P3 guards, the lead-alignment pair, and the re-entry dispatch advisory);
-the registration file was removed from the shipped source by user decision,
-so a fresh install ships the scripts unregistered until re-registered.
+contracts. `hooks/hooks.json` registers the seven controls at plugin scope (the
+three P1-P3 guards, the lead-alignment pair, the re-entry dispatch advisory, and
+the write-for-the-reader reminder). The file was removed from the shipped source
+on 2026-08-29 by user decision and restored in 1.3.0, so a fresh install on
+either harness registers the same seven; Codex asks you to review and trust it
+once.
 P1-P3 fail open unless `.vllm-neuron-parity-run` points to active nonterminal
 state, so they do not block unrelated Codex work.
 Nothing registers silently.

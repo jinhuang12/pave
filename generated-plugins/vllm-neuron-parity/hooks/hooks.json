@@ -1,0 +1,72 @@
+{
+  "description": "vLLM-Neuron parity effect guards and long-run alignment controls. One file for both harnesses: Codex sets CLAUDE_PLUGIN_ROOT for compatibility and asks you to trust these hooks once before they run.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" protected-branch",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" compile-cache",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" venv-opt",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/dispatch_advisory.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity/hooks/state-staleness-reminder.sh\"",
+            "timeout": 10,
+            "additionalContextLimit": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity/hooks/write-for-reader.sh\"",
+            "timeout": 10,
+            "additionalContextLimit": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity/hooks/stop-guard.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

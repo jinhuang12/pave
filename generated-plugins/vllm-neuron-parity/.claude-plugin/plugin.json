@@ -1,9 +1,9 @@
 {
   "name": "vllm-neuron-parity",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM: scan the upstream delta, cost each target's closing route, rank the backlog, and execute user-gated campaigns through correctness and performance gates against a GPU baseline into evidence-backed fork PRs. Ships the vllm-neuron-parity lead workflow skill plus its six dispatched role agent types.",
   "author": {
     "name": "jinhuang12"
   },
-  "compatibility": "Requires Claude Code skill-frontmatter hooks (PreToolUse, PostToolUse, Stop), the registered vllm-neuron-parity:* agent types, bash, and Python 3. The three blocking prohibition guards (P1 protected branches, P2 Neuron compile cache, P3 venv/opt) and the lead-alignment pair (stop guard, state-staleness reminder) all ride that hook runtime; without it the guards degrade to contract text and the lead's own resume and checkpoint duties, which is a recorded degradation, not a silent one. Graph validation (scripts/validate_pave.py) additionally requires pyyaml and jsonschema and fails closed without them; run-state validation (scripts/validate_run_state.py) is full only with jsonschema and otherwise falls back to a labeled stdlib check of required keys."
+  "compatibility": "Requires Claude Code plugin hooks (PreToolUse, PostToolUse, Stop) registered in hooks/hooks.json, the registered vllm-neuron-parity:* agent types, bash, and Python 3. The three blocking prohibition guards (P1 protected branches, P2 Neuron compile cache, P3 venv/opt), the lead-alignment pair (stop guard, state-staleness reminder), the re-entry dispatch advisory, and the write-for-the-reader reminder all ride that hook runtime; without it the guards degrade to contract text and the lead's own resume, checkpoint, and write-for-the-reader duties, which is a recorded degradation, not a silent one. Graph validation (scripts/validate_pave.py) additionally requires pyyaml and jsonschema and fails closed without them; run-state validation (scripts/validate_run_state.py) is full only with jsonschema and otherwise falls back to a labeled stdlib check that enforces the schema's declared keywords, including field length caps, and fails loudly on any keyword it cannot enforce."
 }

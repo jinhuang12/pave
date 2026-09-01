@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "vllm-neuron-parity-run-state",
   "title": "vllm-neuron-parity run state (run-state.json)",
-  "description": "Single shape authority for a vllm-neuron-parity run's persisted state, realizing the state contract of workflow.pave.yaml (pave.state). The required list mirrors pave.state.required exactly. State points; artifacts prove: fields hold positions, statuses, counters, pins, and artifact paths - never artifact content. The lead is the only writer (P10) and checkpoints after every consequential transition (pave.state.checkpoint). No prose anywhere restates this field list.",
+  "description": "Single shape authority for a vllm-neuron-parity run's persisted state, realizing the state contract of workflow.pave.yaml (pave.state). The required list mirrors pave.state.required exactly. State points; artifacts prove: fields hold positions, statuses, counters, pins, and artifact paths - never artifact content. The lead is the only writer (P10) and checkpoints after every consequential transition (pave.state.checkpoint). No prose anywhere restates this field list. Per-entry free-text fields declare maxLength caps (pave-spec section 8.1); an entry that needs more cites an artifact path instead. Path-typed fields carry no cap: scripts/validate_run_state.py resolves them against the project root and warns on a missing target. `notes` is this file's single deliberately unconstrained escape hatch, counted against a whole-file warn threshold of 131072 bytes - the validator warns past it and names the compaction action, never refusing the write. On this release's observing rung every cap violation is a warning, not an error.",
   "type": "object",
   "required": [
     "workflow_identity",
@@ -35,11 +35,11 @@
       "required": ["run_id"],
       "additionalProperties": false,
       "properties": {
-        "run_id": {"type": "string", "minLength": 1},
-        "started": {"type": "string"},
+        "run_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "started": {"type": "string", "maxLength": 200},
         "active_revision": {"type": ["integer", "null"], "minimum": 1},
-        "bundle_digest": {"type": ["string", "null"]},
-        "plugin_version": {"type": "string"}
+        "bundle_digest": {"type": ["string", "null"], "maxLength": 200},
+        "plugin_version": {"type": "string", "maxLength": 200}
       }
     },
     "pinned_release": {
@@ -47,16 +47,16 @@
       "description": "Frozen at intake - the single pin authority for the run. Values are run inputs; the graph never names them. Null before intake freezes them.",
       "additionalProperties": false,
       "properties": {
-        "base_version": {"type": "string"},
-        "release_branch": {"type": "string"},
-        "sdk_version": {"type": "string"},
-        "compiler_version": {"type": "string"}
+        "base_version": {"type": "string", "maxLength": 200},
+        "release_branch": {"type": "string", "maxLength": 200},
+        "sdk_version": {"type": "string", "maxLength": 200},
+        "compiler_version": {"type": "string", "maxLength": 200}
       }
     },
     "requested_targets": {
       "type": "array",
       "description": "The targets requested at intake, in the form the user stated them.",
-      "items": {"type": "string", "minLength": 1}
+      "items": {"type": "string", "minLength": 1, "maxLength": 500}
     },
     "instance_roster": {
       "type": "array",
@@ -66,9 +66,9 @@
         "required": ["instance"],
         "additionalProperties": false,
         "properties": {
-          "instance": {"type": "string", "minLength": 1},
-          "status": {"type": "string"},
-          "note": {"type": "string"}
+          "instance": {"type": "string", "minLength": 1, "maxLength": 200},
+          "status": {"type": "string", "maxLength": 200},
+          "note": {"type": "string", "maxLength": 300, "description": "One-line roster context. Longer content lives in an artifact, never here."}
         }
       }
     },
@@ -95,11 +95,11 @@
         "required": ["campaign", "target", "route"],
         "additionalProperties": false,
         "properties": {
-          "campaign": {"type": "string", "minLength": 1},
-          "target": {"type": "string", "minLength": 1},
-          "route": {"type": "string", "minLength": 1},
-          "source": {"type": "string"},
-          "type": {"type": "string"},
+          "campaign": {"type": "string", "minLength": 1, "maxLength": 200},
+          "target": {"type": "string", "minLength": 1, "maxLength": 500},
+          "route": {"type": "string", "minLength": 1, "maxLength": 200},
+          "source": {"type": "string", "maxLength": 500},
+          "type": {"type": "string", "maxLength": 200},
           "kickoff_contract": {"type": "string", "description": "Path of this campaign's kickoff-contract record."}
         }
       }
@@ -112,7 +112,7 @@
     "campaign_target_pins": {
       "type": "object",
       "description": "Per-campaign target base, keyed by campaign id - equals the run's frozen pinned_release for backport-route campaigns, the kickoff-declared upgrade base for upgrade-route campaigns. Values are run inputs, never graph text.",
-      "additionalProperties": {"type": "string", "minLength": 1}
+      "additionalProperties": {"type": "string", "minLength": 1, "maxLength": 200}
     },
     "scheduling_holds": {
       "type": "array",
@@ -122,11 +122,11 @@
         "required": ["campaign"],
         "additionalProperties": false,
         "properties": {
-          "campaign": {"type": "string", "minLength": 1},
-          "predicted_surface": {"type": "array", "items": {"type": "string"}},
-          "held_by": {"type": "array", "items": {"type": "string"}, "description": "Campaign ids this campaign waits on."},
+          "campaign": {"type": "string", "minLength": 1, "maxLength": 200},
+          "predicted_surface": {"type": "array", "items": {"type": "string", "maxLength": 300}},
+          "held_by": {"type": "array", "items": {"type": "string", "maxLength": 200}, "description": "Campaign ids this campaign waits on."},
           "exclusive": {"type": "boolean", "description": "True for an upgrade-route campaign that holds all others while it runs."},
-          "derived_at": {"type": "string"}
+          "derived_at": {"type": "string", "maxLength": 200}
         }
       }
     },
@@ -139,7 +139,7 @@
         "additionalProperties": false,
         "properties": {
           "artifact": {"type": "string", "minLength": 1},
-          "committed_at": {"type": "string"}
+          "committed_at": {"type": "string", "maxLength": 200}
         }
       }
     },
@@ -161,12 +161,12 @@
             "required": ["host", "campaign"],
             "additionalProperties": false,
             "properties": {
-              "host": {"type": "string", "minLength": 1},
-              "campaign": {"type": "string", "minLength": 1},
-              "boot_identifier": {"type": "string"},
+              "host": {"type": "string", "minLength": 1, "maxLength": 200},
+              "campaign": {"type": "string", "minLength": 1, "maxLength": 200},
+              "boot_identifier": {"type": "string", "maxLength": 200},
               "markers_verified": {"type": "boolean"},
-              "status": {"type": "string"},
-              "at": {"type": "string"}
+              "status": {"type": "string", "maxLength": 200},
+              "at": {"type": "string", "maxLength": 200}
             }
           }
         }
@@ -181,10 +181,10 @@
         "additionalProperties": false,
         "properties": {
           "gate": {"type": "integer", "minimum": 1, "maximum": 3},
-          "campaign": {"type": ["string", "null"]},
-          "decision": {"type": "string"},
+          "campaign": {"type": ["string", "null"], "maxLength": 200},
+          "decision": {"type": "string", "maxLength": 2000, "description": "The user's decision text. Generous cap: verbatim user text is never squeezed; the artifact holds the full record."},
           "artifact": {"type": "string", "minLength": 1},
-          "at": {"type": "string"}
+          "at": {"type": "string", "maxLength": 200}
         }
       }
     },
@@ -196,11 +196,11 @@
         "required": ["node"],
         "additionalProperties": false,
         "properties": {
-          "node": {"type": "string", "minLength": 1},
-          "campaign": {"type": ["string", "null"]},
-          "seat": {"type": "string", "description": "Named teammate seat handle for this node instance."},
-          "role": {"type": "string"},
-          "started": {"type": "string"},
+          "node": {"type": "string", "minLength": 1, "maxLength": 200},
+          "campaign": {"type": ["string", "null"], "maxLength": 200},
+          "seat": {"type": "string", "maxLength": 200, "description": "Named teammate seat handle for this node instance."},
+          "role": {"type": "string", "maxLength": 200},
+          "started": {"type": "string", "maxLength": 200},
           "attempt": {"type": "integer", "minimum": 1}
         }
       }
@@ -213,12 +213,12 @@
         "required": ["node", "outcome"],
         "additionalProperties": false,
         "properties": {
-          "node": {"type": "string", "minLength": 1},
-          "outcome": {"type": "string", "minLength": 1},
-          "campaign": {"type": ["string", "null"]},
-          "at": {"type": "string"},
-          "evidence": {"type": "array", "items": {"type": "string"}, "description": "Keys of evidence_references entries produced or consumed by this transition."},
-          "note": {"type": "string"}
+          "node": {"type": "string", "minLength": 1, "maxLength": 200},
+          "outcome": {"type": "string", "minLength": 1, "maxLength": 200},
+          "campaign": {"type": ["string", "null"], "maxLength": 200},
+          "at": {"type": "string", "maxLength": 200},
+          "evidence": {"type": "array", "items": {"type": "string", "maxLength": 300}, "description": "Keys of evidence_references entries produced or consumed by this transition."},
+          "note": {"type": "string", "maxLength": 500, "description": "One-line context. Longer content lives in an artifact cited under evidence, never here."}
         }
       }
     },
@@ -240,11 +240,11 @@
         "required": ["question"],
         "additionalProperties": false,
         "properties": {
-          "question": {"type": "string", "minLength": 1},
-          "campaign": {"type": ["string", "null"]},
-          "status": {"type": "string"},
-          "evidence": {"type": "array", "items": {"type": "string"}},
-          "raised_at": {"type": "string"}
+          "question": {"type": "string", "minLength": 1, "maxLength": 500, "description": "The question in one paragraph. Longer content lives in an artifact cited under evidence, never here."},
+          "campaign": {"type": ["string", "null"], "maxLength": 200},
+          "status": {"type": "string", "maxLength": 200, "description": "Short status label. Status prose lives in an artifact cited under evidence, never here."},
+          "evidence": {"type": "array", "items": {"type": "string", "maxLength": 300}},
+          "raised_at": {"type": "string", "maxLength": 200}
         }
       }
     },
@@ -257,31 +257,33 @@
           "type": ["string", "null"],
           "enum": ["accepted", "blocked", "closed_unaccepted", null]
         },
-        "endpoint": {"type": "string", "description": "The control endpoint id the run reached."},
-        "reason": {"type": "string"},
-        "at": {"type": "string"}
+        "endpoint": {"type": "string", "maxLength": 200, "description": "The control endpoint id the run reached."},
+        "reason": {"type": "string", "maxLength": 1000},
+        "at": {"type": "string", "maxLength": 200}
       }
     },
     "scan_entry_id": {
       "type": ["string", "null"],
+      "maxLength": 200,
       "description": "Minted by the lead at each entry into the scan boundary and stamped into grant files and report metadata; settlement refuses to run without it. Re-trace grants are counted under scan-entry ids, never a stored integer."
     },
     "design_entry_id": {
       "type": ["string", "null"],
+      "maxLength": 200,
       "description": "Minted by the lead at each entry into the design boundary and stamped into every design-lap artifact; serves the screen progress detector and the record_incomplete detector. The record assembler refuses to run without it."
     },
     "discrepant_campaigns": {
       "type": ["array", "null"],
-      "items": {"type": "string", "minLength": 1},
+      "items": {"type": "string", "minLength": 1, "maxLength": 200},
       "description": "Derived per run-closure verification round from the current run_closure_verdict - the campaigns whose claimed closure failed first-hand verification; the closure_unverified fan-out reads it. Never stored independently of the verdict record."
     },
     "deficient_targets": {
       "type": ["array", "null"],
-      "items": {"type": "string", "minLength": 1},
+      "items": {"type": "string", "minLength": 1, "maxLength": 500},
       "description": "Derived per assembly round from the run-level delta index - the named targets whose reports fail the costing-sufficiency rubric with re-trace bound unexhausted; the reports_insufficient fan-out reads it. Never stored independently of the index."
     },
     "notes": {
-      "description": "Free-form prose home for anything the fields above do not carry. Intentionally unconstrained."
+      "description": "Free-form prose home for anything the fields above do not carry. Intentionally unconstrained. This file's single escape hatch (pave-spec section 8.1): the whole-file warn threshold of 131072 bytes counts it, and scripts/validate_run_state.py names the compaction action past that size."
     }
   }
 }

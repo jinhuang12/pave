@@ -9,12 +9,13 @@ description: >-
   $vllm-neuron-parity:vllm-neuron-parity.
   This is a long, multi-session, multi-agent orchestration -- it dispatches
   vllm-neuron-parity:* native custom agents and stops for the user at three
-  gates. It registers six disclosed plugin-level hooks: three blocking
+  gates. It registers seven disclosed plugin-level hooks: three blocking
   guards (protected base branches, the shared Neuron compile cache, venv
   cloning and /opt writes) armed only by an active-run marker, a stale
-  run-state reminder, an advisory re-entry dispatch nudge, and a stop-alignment
-  check that BLOCKS AT MOST ONE STOP IN THREE while a run is active. Nothing
-  registers silently.
+  run-state reminder, an advisory re-entry dispatch nudge, a write-for-the-reader
+  reminder on run-workspace document writes, and a stop-alignment check that
+  BLOCKS AT MOST ONE STOP IN THREE while a run is active. Nothing registers
+  silently.
 metadata:
   compatibility: >-
     Requires trusted Codex plugin hooks, the vllm-neuron-parity:* custom agents
@@ -128,6 +129,13 @@ Every spawned seat or sub-agent inherits the dispatching node's
 `forbidden_effects`. State them in the brief you send; a delegate that never read
 this file is exactly the actor a prohibition has to survive.
 
+A brief is a rendered view of the graph and the run state, never a second
+authority. Name artifacts by their evidence key or a path you resolved on disk
+this turn, copy outcome tokens from the node's own outcome list, and point at
+the file that holds a count instead of retyping it. Every seat carries the
+matching rule: when a briefed fact disagrees with the artifact it names, the
+artifact wins, and the seat discloses the disagreement in one line.
+
 **Rederiver seat.** `rederive_approach` runs on `vllm-neuron-parity:rederiver`,
 model gpt-5.6-sol at xhigh effort — the breaker's landing node redirects a campaign's
 remaining spend, so it gets the top model at top effort. This is a deliberate
@@ -230,6 +238,23 @@ without the marker both hooks stay silent and you lose their coverage. At a
 terminal close, set `terminal_classification` and REMOVE the marker. If you walk
 away from a run, set the terminal classification or remove the state: a
 walked-away run must never stay "active" forever.
+
+**Write for the reader.** Every document a person will read — delta reports and
+the backlog, design records and increment plans, verdicts, review and decision
+records, rederivation records, PR packages, closure records — is written in
+concise simple plain english. Lead each entry with one sentence saying what
+happened and why. An identifier is a pointer, not a noun: pair it with its plain
+name at first use ("the rotary increment (`inc-025`)"), and never leave an
+identifier chain where a sentence should stand. Digests, counts, and checker
+output live in run state or the check's own file and are cited in one line,
+never interleaved with the narrative. A reader must learn what happened, what
+changed, and what is still open in one pass. Every number lives in exactly one
+file that everything else cites; superseded prose is deleted in place with one
+revision-log line, never archived. Working state written for the next agent —
+attempt, lease, measurement, increment, index, and intake-preflight records, and run state
+itself — is exempt. The write-for-reader hook re-presents this duty on document
+writes; the adversarial reviewer treats a reader-facing artifact that fails it as
+a material finding. Carry the duty into every brief.
 
 **Checkpoint** after every consequential transition: the declared outcome, the
 declared edge, the evidence references at their declared paths, and the verbatim
@@ -392,12 +417,17 @@ tier's threshold), the scan re-trace bound before a grant is issued, and the
 hardware breaker (tenth budget-counted attempt, tier-1 fingerprint, or venv dead
 end). Counts come from the event files per `references/artifact-layout.md` §4.
 
-The six hooks register in the plugin-level `hooks/hooks.json`. Review and trust
+The seven hooks register in the plugin-level `hooks/hooks.json`. Review and trust
 them through `/hooks` before a run. The P1-P3 PreToolUse adapter fails open
 unless the project marker `.vllm-neuron-parity-run` resolves to an active,
-nonterminal run state; unrelated Codex work stays outside their authority. No
-settings fragment is needed. Decline paths if the hook runtime is unavailable:
-P1-P3 degrade to contract text you must carry into every brief and to review at
-the next gate, the stop guard degrades to the resume duty above, and the
-staleness reminder degrades to the checkpoint duty above. Record the degradation
-in run state; do not proceed as if the guards were still armed.
+nonterminal run state; unrelated Codex work stays outside their authority. The
+write-for-reader reminder (`skills/vllm-neuron-parity/hooks/write-for-reader.sh`,
+PostToolUse Write|Edit) is advisory only: on the first `.md` write under
+`artifacts/` and every third after it per session, it re-presents the
+write-for-the-reader duty; working-state paths and non-marker sessions stay
+silent. No settings fragment is needed. Decline paths if the hook runtime is
+unavailable: P1-P3 degrade to contract text you must carry into every brief and
+to review at the next gate, the stop guard degrades to the resume duty above, the
+staleness reminder degrades to the checkpoint duty above, and the reader reminder
+degrades to the write-for-the-reader duty above. Record the degradation in run
+state; do not proceed as if the guards were still armed.

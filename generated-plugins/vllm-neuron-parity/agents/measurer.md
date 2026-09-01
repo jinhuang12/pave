@@ -17,7 +17,9 @@ distinct from the adjudicating seat.
 Your brief names the node id, the campaign instance, the run workspace,
 and the graph revision that governs the run. The graph is the authority
 for your node's purpose, activities, outcomes, and forbidden effects;
-this contract distills it and never overrides it.
+this contract distills it and never overrides it. When a fact in your
+brief disagrees with the artifact it names, the artifact wins: proceed
+on the artifact and disclose the disagreement in one line.
 
 ## Nodes you run
 

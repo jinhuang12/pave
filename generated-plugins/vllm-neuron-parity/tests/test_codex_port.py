@@ -48,13 +48,15 @@ class PackageStructureTests(unittest.TestCase):
         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        self.assertEqual(manifest["version"], "1.1.0")
+        self.assertEqual(manifest["version"], "1.3.0")
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())
         self.assertEqual(manifest["interface"]["displayName"], "vLLM-Neuron Parity")
 
-    def test_hook_config_registers_exactly_five_controls(self) -> None:
+    def test_hook_config_registers_exactly_seven_controls(self) -> None:
+        # One hooks.json serves both harnesses: Codex sets CLAUDE_PLUGIN_ROOT
+        # for compatibility, so every command resolves under that variable.
         data = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text())
         hooks = data["hooks"]
         self.assertEqual(set(hooks), {"PreToolUse", "PostToolUse", "Stop"})
@@ -64,13 +66,30 @@ class PackageStructureTests(unittest.TestCase):
             for group in groups
             for handler in group["hooks"]
         ]
-        self.assertEqual(len(handlers), 5)
+        self.assertEqual(len(handlers), 7)
         self.assertTrue(all(handler["type"] == "command" for handler in handlers))
-        self.assertTrue(all("${PLUGIN_ROOT}" in handler["command"] for handler in handlers))
+        self.assertTrue(
+            all("${CLAUDE_PLUGIN_ROOT}" in handler["command"] for handler in handlers)
+        )
         pre_commands = "\n".join(
             handler["command"] for handler in hooks["PreToolUse"][0]["hooks"]
         )
         self.assertIn("pre_tool_use_router.py", pre_commands)
+        matchers = {group.get("matcher") for group in hooks["PreToolUse"]}
+        self.assertEqual(matchers, {"Bash", "Agent|Task"})
+        post_commands = "\n".join(
+            handler["command"]
+            for group in hooks["PostToolUse"]
+            for handler in group["hooks"]
+        )
+        self.assertIn("state-staleness-reminder.sh", post_commands)
+        self.assertIn("write-for-reader.sh", post_commands)
+        # Every registered script ships in the package.
+        for handler in handlers:
+            command = handler["command"]
+            start = command.index("${CLAUDE_PLUGIN_ROOT}/") + len("${CLAUDE_PLUGIN_ROOT}/")
+            end = command.index('"', start)
+            self.assertTrue((PLUGIN_ROOT / command[start:end]).is_file(), command)
 
     def test_custom_agents_parse_and_cover_roles(self) -> None:
         paths = sorted(
