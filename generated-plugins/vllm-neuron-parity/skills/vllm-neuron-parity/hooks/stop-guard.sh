@@ -10,8 +10,10 @@
 # stop loop impossible.
 #
 # Silent when stopping is correct: no marker-discovered run state, or the run's
-# terminal_classification is set. Never registered on SubagentStop -- this is
-# lead-only by construction.
+# terminal_classification is set. Lead-only by two gates: the lead-session
+# sidecar AND the payload's agent identity fields -- a lead-spawned subagent
+# carries the LEAD's session id in its Stop payload, so the sidecar alone
+# cannot exclude it (observed 2026-08-31; see binding-revisions.yaml).
 #
 # Decline path (hook runtime unavailable): degrades to the lead's resume duty in
 # SKILL.md "Run state and resume".
@@ -25,6 +27,20 @@ command -v "$PY" >/dev/null 2>&1 || exit 0
 
 FIELDS="$(printf '%s' "$PAYLOAD" | "$PY" -c '
 import json, sys
+def find(node, key):
+    if isinstance(node, dict):
+        if key in node and isinstance(node[key], (str, int)):
+            return str(node[key])
+        for v in node.values():
+            f = find(v, key)
+            if f:
+                return f
+    elif isinstance(node, list):
+        for item in node:
+            f = find(item, key)
+            if f:
+                return f
+    return ""
 try:
     payload = json.loads(sys.stdin.read())
 except Exception:
@@ -34,11 +50,17 @@ if not isinstance(payload, dict):      # we could not read
 print("OK")
 print(str(payload.get("session_id") or "default").replace("\n", " "))
 print("1" if payload.get("stop_hook_active") else "0")
+print(find(payload, "agent_type").replace("\n", " "))
+print(find(payload, "agent_id").replace("\n", " "))
 ' 2>/dev/null || true)"
 [ "$(printf '%s\n' "$FIELDS" | sed -n 1p)" = "OK" ] || exit 0  # fail open
 SESSION_ID="$(printf '%s\n' "$FIELDS" | sed -n 2p)"
 [ -n "$SESSION_ID" ] || SESSION_ID=default
 [ "$(printf '%s\n' "$FIELDS" | sed -n 3p)" = "1" ] && exit 0    # never loop
+# Identity gate half 1: subagents inherit the lead session id, so the sidecar
+# below cannot exclude them -- exclude on the payload's own identity fields.
+case "$(printf '%s\n' "$FIELDS" | sed -n 4p)" in ""|main|lead|root|primary) ;; *) exit 0 ;; esac
+[ -n "$(printf '%s\n' "$FIELDS" | sed -n 5p)" ] && exit 0   # subagent: not the lead
 
 # --- run-state discovery (marker-authoritative) -----------------------------
 # The lead writes .vllm-neuron-parity-run at run start: one line holding the
@@ -57,6 +79,20 @@ for root in "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
   fi
 done
 [ "$FOUND_VIA" = "marker" ] || exit 0
+
+# --- lead-session identity gate ---------------------------------------------
+# This pair is lead-only, but every full session in the project (teammates,
+# scratch sessions) fires the same events. The lead records its session id in
+# the sidecar <run-state>.lead-session (one line); when the sidecar exists and
+# names a different session, stay silent. No sidecar = fail open (pre-gate
+# behavior) so a run without one keeps its coverage.
+LEAD_FILE="${FOUND_STATE}.lead-session"
+if [ -f "$LEAD_FILE" ]; then
+  LEAD_ID="$(head -n 1 "$LEAD_FILE" 2>/dev/null | tr -d '[:space:]')"
+  if [ -n "$LEAD_ID" ] && [ "$SESSION_ID" != "$LEAD_ID" ]; then
+    exit 0
+  fi
+fi
 
 STOP_EVERY="${VLLM_NEURON_PARITY_STOP_EVERY:-3}"
 case "$STOP_EVERY" in *[!0-9]*|''|0|1) STOP_EVERY=3 ;; esac  # breaker needs >=2

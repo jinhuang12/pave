@@ -140,8 +140,10 @@ a role seat.
 
 ## Lead routing
 
-The pinned graph has **31 nodes, 89 edges, 12 checks, 24 evidence definitions,
-and 5 control endpoints**, with **3 user gates**: gate 1 (campaign selection, at
+The pinned graph is the frozen active revision in the evolution root - its
+node, edge, and check counts come from `scripts/validate_pave.py` against that
+file, never from this prose (in-place amendments are ledgered in the evolution
+root's `binding-revisions.yaml`). It carries **3 user gates**: gate 1 (campaign selection, at
 `assemble_kickoff_contracts`), gate 2 (design approval, the
 `design_approved_by_user` check on `review_campaign_design`'s `design_sound`
 edge), and gate 3 (close-out, at `close_campaign`).
@@ -165,8 +167,8 @@ this file:
 | 1 Intake | `verify_run_preconditions` | Freeze the run inputs (base version, release branch, SDK and compiler versions) into `pinned_release`. Load the four cross-run artifacts per `references/artifact-layout.md` §1; an absent fingerprint file is a legitimate empty set. `preflight_record_complete` is yours: one transcript per precondition. |
 | 2 Delta scan and costing | `trace_target_delta` (per requested target), `assemble_delta_report`, `cost_routes_and_rank_backlog`, `review_route_verdicts` | Mint a `scan_entry_id` at every entry into the scan boundary; grants and report metadata carry it, and re-trace grants are counted from grant files under scan-entry ids, never a stored integer. Brief the scan and costing seats with `references/collision-ranking.md` — the runner, platform, and scheduler surfaces where ports collide are what makes a route expensive. |
 | 3 Gate 1 | `assemble_kickoff_contracts` | Yours. Present the reviewed backlog, take the user's campaign selection, record the decision VERBATIM, and refuse to start any campaign whose kickoff contract is incomplete. Derive `scheduling_holds` before instances dispatch (`scheduling_holds_recorded`): overlapping predicted file surfaces serialize, and an upgrade-route campaign holds all others while it runs exclusively. |
-| 4 Campaign design (per approved campaign) | `screen_pin_and_progress`, `draft_increment_plan`, `assemble_regression_matrix` (upgrade route only), `preregister_acceptance`, `assemble_design_record` | Mint a `design_entry_id` at every entry into the design boundary; every design-lap artifact carries it and superseded laps archive out of the read path. Brief the design seats with `references/patch-mechanism-inventory.md` — the route a design picks has to be a mechanism the plugin actually has. `pin_infeasibility_socratic_guard` is evaluated by you and never by the note's author. `comparators_preregistered` is a timestamp comparison against the registration record. |
-| 5 Gate 2 | `review_campaign_design` | Reviewer seat first (fresh per gate round), then you present the reviewed design and record the user decision verbatim. Any change to kickoff-declared criteria needs its own explicit recorded user decision. |
+| 4 Campaign design (per approved campaign) | `screen_pin_and_progress`, `draft_increment_plan`, `assemble_regression_matrix` (upgrade route only), `preregister_acceptance`, `assemble_design_record` | Mint a `design_entry_id` at every entry into the design boundary; every design-lap artifact carries it and superseded lap artifacts are deleted from the read path - history is the record's revision log plus run state. Brief the design seats with `references/patch-mechanism-inventory.md` — the route a design picks has to be a mechanism the plugin actually has. `pin_infeasibility_socratic_guard` is evaluated by you and never by the note's author. `comparators_preregistered` is a timestamp comparison against the registration record. Re-entry instruments: unchanged inputs settle lead-mechanically with NO seat - screen (pin digest + standing note), preregistration (four-slice check on the byte-unchanged registration); the record delta-updates in place and superseded lap banners are deleted. Any registered-value touch keeps the full value-level seat. |
+| 5 Gate 2 | `review_campaign_design` | Reviewer seat first (fresh per gate round), then you present the reviewed design and record the user decision verbatim. Any change to kickoff-declared criteria needs its own explicit recorded user decision. Narrow triage: when every standing finding names only increment-plan text, design-record, or registration surfaces, evaluate `narrow_delta_scoped` yourself and take the matching narrow repair edge - drafter-scoped repair, continued doer thread, re-enter this gate; recurrence of a finding fingerprint or any ambiguity fails closed into the full lap. |
 | 6 Implementation (CPU-first) | `scope_next_increment`, `realize_increment`, `record_changeset`, `review_implementation` | No hardware before this stage closes. `impl_commit_is_reviewed` is a commit-equality test against the findings record. The changeset scan carries P4 (zero NxDI imports over added/modified lines) and P13's substrate-fidelity half. |
 | 7 Hardware bring-up | `acquire_hardware_lease`, `replicate_campaign_venv`, `execute_attempt_loop`, `recover_leased_host` | Lease records are lead-written. P8: no identical hardware retry — the tier-1 gate reads the repo fingerprint file against this run's attempt log. Attempts are counted from attempt-record files; host faults are recorded, never charged. The breaker routes out to `rederive_approach`. |
 | 8 Measurement | `realize_measurement_procedures`, `capture_baseline_reference`, `run_candidate_measurements`, `stabilize_and_package_evidence` | Brief every measurer seat with `references/measurement-pitfalls.md` — the chunk-counting throughput undercount (any harness, stock or custom) and the decode-only connector trap are known and non-obvious, and a number produced through one of them is worse than no number. GPU baseline is READ-ONLY (P5): no autonomous reboot or reset; capture refuses on a kickoff-record contradiction. `procedures_smoke_verified` and `revision_stamped` (P11: a git-issued identifier at measurement time, never a branch name) are yours. |
@@ -212,6 +214,10 @@ campaign closure and never happen on a campaign branch.
 
 **Run marker.** At run start, write the marker file `.vllm-neuron-parity-run` at
 the project root: one line, the absolute path of this run's `run-state.json`.
+Beside the state file also write `<run-state-path>.lead-session` - one line,
+this session's id - so the lead-alignment hooks fire for the lead alone and
+stay silent in every other session in the project (teammates and scratch
+sessions fire the same events; without the sidecar the hooks fail open).
 The stop guard and the staleness reminder act only on a marker hit — a
 newest-by-mtime scan hit may belong to an abandoned run or another session, so
 without the marker both hooks stay silent and you lose their coverage. At a
@@ -230,9 +236,9 @@ user decision at any gate.
 2. Re-read the pinned `workflow.pave.yaml` — the routing table you need is there,
    not in your context.
 3. Check state against the artifacts actually on disk at their declared paths
-   (`references/artifact-layout.md` §1 and §3: `current/` beats `archive/` and
-   `snapshots/`, and the current record carries an explicit current-record
-   marker). Recompute every derived count from the event files.
+   (`references/artifact-layout.md` §1 and §3: `current/` is the only read
+   path - older `archive/` or `snapshots/` dirs are frozen residue - and the
+   current record carries an explicit current-record marker). Recompute every derived count from the event files.
 4. Continue from the last SATISFIED gate. An outcome whose required evidence is
    missing on disk is not satisfied, whatever state says.
 5. Reconcile any disagreement before you route, and record the reconciliation.
@@ -298,13 +304,31 @@ graph is never edited in place.
 6. **Authority envelope.** The skill may freeze a successor autonomously only
    when everything in this envelope is unchanged: root goal and acceptance,
    allowed and forbidden effects, external access, public parent and sibling
-   interfaces, evidence and check strength (never weaker), state authority, and
+   interfaces, evidence and check strength (never weaker; rule 9 bounds what counts as weaker when only the instrument changes), state authority, and
    approved budgets. A change to any of these requires explicit user approval
    before the freeze. Record the envelope check in the successor's
    `revision.yaml`.
 7. **Linked run.** The paused run does not resume on the new revision. Close it
    honestly, then start a successor run pinned to the new revision, linked to its
    predecessor's run identity and evidence.
+8. **Usage ledger.** At each run's terminal close, the lead derives a usage
+   record from the run's event history - per boundary: traversals, seats
+   dispatched, and any seat whose question was already settled by verified
+   evidence at dispatch time - stored at `artifacts/run/usage-ledger.md`. A
+   successor draft reads its predecessors' usage records before replanning,
+   and its semantic diff states what they changed or why they changed nothing.
+   Actuals exceeding the plan's declared expectations - loop bounds, or the
+   approved budgets already in the authority envelope - are a successor
+   trigger surfaced at close: the ledger adds no mid-run gate, and a bound the
+   graph itself enforces still routes mid-run per rule 2.
+9. **Binding revisions.** Runtime-binding changes - seat, model, effort, or
+   re-entry instrument (full seat, cheaper seat, or lead-run mechanical
+   check) - do not change graph meaning and may ship without a graph
+   successor as a user-approved binding revision, appended to
+   `binding-revisions.yaml` beside the manifest (what changed, from what to
+   what, the approval, and the envelope check), provided the envelope holds.
+   Same check, cheaper instrument, mechanical evidence still produced is not
+   a weakening of check strength; dropping a check is.
 
 **How to freeze v1 (rule 1, mechanically).** The freeze tool reads
 `workflow.draft.pave.yaml` from — and writes `history/vN/` plus the rewritten

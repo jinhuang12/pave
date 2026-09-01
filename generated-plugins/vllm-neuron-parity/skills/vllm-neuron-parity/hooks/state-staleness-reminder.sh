@@ -69,6 +69,20 @@ for root in "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
 done
 [ "$FOUND_VIA" = "marker" ] || exit 0
 
+# --- lead-session identity gate ---------------------------------------------
+# This pair is lead-only, but every full session in the project (teammates,
+# scratch sessions) fires the same events. The lead records its session id in
+# the sidecar <run-state>.lead-session (one line); when the sidecar exists and
+# names a different session, stay silent. No sidecar = fail open (pre-gate
+# behavior) so a run without one keeps its coverage.
+LEAD_FILE="${FOUND_STATE}.lead-session"
+if [ -f "$LEAD_FILE" ]; then
+  LEAD_ID="$(head -n 1 "$LEAD_FILE" 2>/dev/null | tr -d '[:space:]')"
+  if [ -n "$LEAD_ID" ] && [ "$SESSION_ID" != "$LEAD_ID" ]; then
+    exit 0
+  fi
+fi
+
 NOW="$(date +%s)"
 STATE_MTIME="$(stat -f %m "$FOUND_STATE" 2>/dev/null || stat -c %Y "$FOUND_STATE" 2>/dev/null || echo "$NOW")"
 [ $(( NOW - STATE_MTIME )) -ge "$STALE_SECONDS" ] || exit 0

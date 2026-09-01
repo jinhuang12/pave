@@ -70,7 +70,7 @@ max_concurrent_threads_per_session = 6
 python3 /path/to/vllm-neuron-parity/codex/install_agents.py --project /path/to/target --check
 ```
 
-6. Open `/hooks`, review the five
+6. Open `/hooks`, review the six
    registered controls, and trust them when their paths match this package.
 
 Requirements are declared in the lead skill's `metadata.compatibility` field: trusted
@@ -383,8 +383,12 @@ vllm-neuron-parity/
   .codex-plugin/plugin.json            # Codex plugin manifest
   .claude-plugin/plugin.json           # retained source-runtime manifest
   hooks/
-    hooks.json                         # Codex plugin-level hook registration
+    hooks.json                         # hook registration (removed from the
+                                       #   shipped source by user decision;
+                                       #   installed copies may retain it)
     pre_tool_use_router.py             # active-run scope adapter for P1-P3
+    dispatch_advisory.py               # advisory-only re-entry dispatch check
+                                       #   (PreToolUse Agent|Task, lead-gated)
   codex/
     install_agents.py                  # explicit safe custom-agent installer
     init_evolution_workspace.py        # durable project-local lineage initializer
@@ -401,8 +405,8 @@ vllm-neuron-parity/
       protected-branch-guard.sh        # blocks pushes to protected branches
       compile-cache-guard.sh           # blocks Neuron compile-cache clears
       venv-opt-guard.sh                # blocks venv cloning / /opt writes
-      state-staleness-reminder.sh      # re-presents run position periodically
-      stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active
+      state-staleness-reminder.sh      # re-presents run position periodically (lead-session-gated)
+      stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active (lead-session-gated)
   agents/*.md                          # preserved original role contracts
   claude/skills/vllm-neuron-parity/    # retained original lead source
   workflow.pave.yaml                   # immutable packaged graph seed (approved v0)
@@ -466,7 +470,7 @@ every spawn; a peer message never grants a permission escalation.
 ## 5. Hooks and enforcement
 
 Source: the native `SKILL.md` (prohibitions P1–P13 and transition guards), the
-active-run adapter under `hooks/`, and the five policy scripts under
+active-run adapter and the re-entry dispatch advisory under `hooks/`, and the five policy scripts under
 `skills/vllm-neuron-parity/hooks/`. Rungs,
 weakest to strongest: prose < reinjection < reviewed < mechanical
 < blocking hook.
@@ -485,13 +489,17 @@ weakest to strongest: prose < reinjection < reviewed < mechanical
 | Lead single-writer for run state, cross-run artifacts, leases | STRUCTURE + schema validation | ownership-by-structure beats detection; budgets are derived from files, never stored |
 | Measured revision = git-issued id, never a branch name | MECHANICAL check | exact string-shape + agreement test |
 | Two-tier repair budgets and breakers (measure three/nine; hardware ten + one recovery) | BLOCKING routing preconditions | counts derived from event files; runaway loops are the costliest failure |
-| Lead-alignment hook pair (staleness reminder + stop guard) | reinjection | long-horizon, session-crossing workflow — the pair's target case; the stop guard **blocks at most one stop in three** while a run is active, disclosed in the skill description |
+| Lead-alignment hook pair (staleness reminder + stop guard) | reinjection | long-horizon, session-crossing workflow — the pair's target case; the stop guard **blocks at most one stop in three** while a run is active, disclosed in the skill description. Both hooks gate on the lead session id in `<run-state>.lead-session` and stay silent in every other session; without the sidecar they fail open |
+| Re-entry dispatch advisory (`hooks/dispatch_advisory.py`) | reinjection (advisory `additionalContext`, never blocks) | edge-triggered: fires only when a dispatch names an instrumented design node that already completed a traversal this run, and asks whether the graph's cheaper re-entry instrument settles it without a seat; lead-session-gated, throttled per node via its own counter file |
 | New kernel-class functionality must be NKI, never torch fallback (kernel-substrate rule) | MECHANICAL (every increment must declare kernel-class or not — no silent omission; a declared-NKI increment with zero NKI usage in its diff is an exact contradiction caught at the changeset scan) + REVIEWED (both gates challenge the classification itself) | "what is kernel-class" is judgment no scan decides, and absence-of-torch scans false-fire on kernels' legitimate torch boundaries — so the mechanical half checks presence against the doer's own declaration, and review owns only the classification |
 
 `SKILL.md` carries 13 run-wide prohibitions and 6 transition guards in
 total; this table shows the strongest rows, and every rule not shown
 sits at a weaker rung with its rationale in the skill and agent
-contracts. `hooks/hooks.json` registers the five controls at plugin scope.
+contracts. `hooks/hooks.json` registers the six controls at plugin scope (the three
+P1-P3 guards, the lead-alignment pair, and the re-entry dispatch advisory);
+the registration file was removed from the shipped source by user decision,
+so a fresh install ships the scripts unregistered until re-registered.
 P1-P3 fail open unless `.vllm-neuron-parity-run` points to active nonterminal
 state, so they do not block unrelated Codex work.
 Nothing registers silently.
@@ -500,15 +508,19 @@ Nothing registers silently.
 
 - `workflow.pave.yaml` — the immutable approved v0 seed (31 nodes, 89 edges,
   12 checks, 24 evidence definitions, 5 endpoints; validates clean
-  with `scripts/validate_pave.py`).
+  with `scripts/validate_pave.py`). A project's ACTIVE revision lives in its
+  evolution root and may carry ledgered in-place amendments
+  (`binding-revisions.yaml`); read live counts from the validator, not from here.
 - `skills/vllm-neuron-parity/SKILL.md` — the Codex lead: routing, gates,
-  state writes, recovery loop, evolution contract.
+  state writes, recovery loop, evolution contract (nine rules, including the
+  usage ledger and the binding-revision lane ledgered in the evolution root's
+  `binding-revisions.yaml`).
 - `codex/agents/vllm_neuron_parity_*.toml` — the six complete native
   custom-agent contracts installed by `codex/install_agents.py`.
 - `schemas/run-state.schema.json` — the run-state shape authority;
   check an instance with `scripts/validate_run_state.py`.
 - `references/artifact-layout.md` — artifact tree, write ownership,
-  precedence, archive rules for a live run.
+  precedence, supersession rules for a live run.
 - `references/measurement-pitfalls.md` — measurement-tool traps the
   measurer must pre-empt.
 - `references/patch-mechanism-inventory.md` — how the vllm-neuron

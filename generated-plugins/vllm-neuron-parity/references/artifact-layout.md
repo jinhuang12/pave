@@ -1,7 +1,7 @@
 # Artifact layout reference — vllm-neuron-parity
 
 Single authority for the artifact tree, write ownership, precedence,
-archive rules, and every shape the graph pins ONCE. The graph
+supersession rules, and every shape the graph pins ONCE. The graph
 (`workflow.pave.yaml`) stays the path authority; this reference adds only
 what the graph cannot carry. Every consumer CITES an entry here and
 restates no shape.
@@ -30,8 +30,10 @@ artifacts/
     kickoff/
     approvals/
     design/
-      current/                    # design-lap artifacts of the LIVE lap
-      archive/<design-entry-id>/  # superseded laps, out of the read path
+      current/                    # design-lap artifacts of the LIVE lap;
+                                  # superseded lap artifacts are deleted at
+                                  # re-entry (no archive dirs - history is
+                                  # the record's revision log + run state)
     increments/
     attempts/                     # attempt, fingerprint, lease,
                                   #   recovery records - one file/event
@@ -56,7 +58,7 @@ artifacts/
 | run/delta/<target>/ | that target's trace_target_delta instance (report landing paths: §4.7) |
 | run/delta/index/ | assemble_delta_report |
 | campaigns/*/kickoff, approvals | assemble_kickoff_contracts (+ gate records by review_campaign_design, close_campaign) |
-| campaigns/*/design/ | the design sibling that produces each artifact; assemble_design_record writes the record and performs archive moves |
+| campaigns/*/design/ | the design sibling that produces each artifact; assemble_design_record writes the record and performs superseded-artifact deletions |
 | campaigns/*/increments/ | scope_next_increment (lap records), realize_increment (evidence records), record_changeset (changeset) |
 | campaigns/*/attempts/ | acquire_hardware_lease + lead (lease records), replicate_campaign_venv, execute_attempt_loop, recover_leased_host — one file per event, append-only |
 | campaigns/*/measurements/procedures | realize_measurement_procedures |
@@ -69,17 +71,17 @@ Run state (`artifacts/run/run-state.json`) is lead-only. No node writes another 
 directory (except a landing path §2 names); a stray write is an effect
 violation before it is a count bug.
 
-## 3. Precedence and archive
+## 3. Precedence and supersession
 
-- Which-file-wins: `current/` beats `archive/` and `snapshots/`
-  everywhere. A reader never consumes an archived revision except for
-  provenance.
+- Which-file-wins: `current/` is the only read path. Archive and
+  snapshot directories left by the earlier convention are frozen
+  residue: never read them except for provenance, never add to them.
 - On re-entry into a node, the declared evidence path keeps only the
-  current revision's output; superseded files move to the sibling
-  `archive/` path (the archive rule). Every archived design lap is keyed
-  by its design-entry id. The current record carries an explicit
-  current-record marker, so "current" is a file fact, not a
-  directory-listing inference.
+  current revision's output; superseded files are DELETED (the deletion
+  rule) - the supersession is recorded as the record's one-line
+  revision-log entry plus the run-state entry, never as an archived
+  copy. The current record carries an explicit current-record marker,
+  so "current" is a file fact, not a directory-listing inference.
 - Non-indexed intermediates (scratch, delegate transcripts not cited by
   any record) go under the owning node's directory in `scratch/` and are
   never cited as evidence.
@@ -297,8 +299,9 @@ increment id -> evidence file(s) -> acceptance command + exit code.
 - Every design-lap artifact is stamped with the design-entry id; the
   record assembler REFUSES TO RUN without one (external runtime
   dependency, carried in briefs).
-- Superseded laps archive to `design/archive/<design-entry-id>/`
-  (§3); the read path holds only the live lap.
+- Superseded lap artifacts are deleted at re-entry (§3); the read
+  path holds only the live lap, and lap history is the record's
+  revision log plus run state.
 - record_incomplete exhaustion predicate: cited from §4.3 (design
   binding) — the same named gap recurs AND no gap-closing artifact for
   that gap since the lap that named it.

@@ -1,4 +1,20 @@
-version: 1.1.0
+version: 1.2.0
+
+## 1.2.0 — 2026-08-31
+
+Re-entry economics (pave-init 2.3.0) applied per verified usage evidence from
+run-20260827-glm-5.3-flash-port (154 traversals; 17 screen laps on an unmoved
+pin, 19 preregistration laps on a never-opened registration, 5 near-verbatim
+record rebuilds). Graph: narrow-findings triage at gate 2 (three drafter-scoped
+repair edges, recurrence fails closed into the bounded full lap) and re-entry
+instruments on screen_pin_and_progress, preregister_acceptance, and
+assemble_design_record — unchanged inputs settle lead-mechanically with no
+seat; every registered-value touch keeps the full value-level seat. Active
+revision is 31 nodes / 92 edges / 13 checks; in-place amendments are ledgered
+in the evolution root's binding-revisions.yaml. SKILL.md pinned-graph counts
+made count-free; investigator, implementer, and adversarial-reviewer contracts
+carry the matching dispatch expectations. Both plugin manifests aligned at
+1.2.0 (previously skewed 1.0.0/1.1.0).
 
 ## 1.1.0 — 2026-08-27
 
