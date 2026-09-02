@@ -99,8 +99,8 @@ The queue closes when every entry is `reviewed`. A node that cannot close after 
 
 ### 4.6 Assemble
 
-1. Merge the node drafts into one flat PAVE root `workflow.draft.pave.yaml` — the editable `v0` subject that delivery later freezes per `references/pave-revisions.md`. Decomposition lineage flattens into one graph; add a child `*.draft.pave.yaml` only for a subgraph whose packaging met a §9.12.1 condition. Strip the `x_planning` extension block; the marks are planning state, not graph meaning.
-2. Run the global simplicity pass: remove every element — including any child profile — whose absence changes no required routing, authority, evidence, recovery, or acceptance.
+1. Merge the node drafts into one flat PAVE root `workflow.draft.pave.yaml` — the editable `v0` subject that delivery later freezes per `references/pave-revisions.md`. Decomposition lineage flattens into one graph; add a child `*.draft.pave.yaml` only for a subgraph whose packaging met a §9.12.1 condition. Strip the `x_planning` extension block; the marks are planning state, not graph meaning — each node's instrument line lands in `traceability.md` and the enforcement record (section 5).
+2. Run the global simplicity pass: remove every element — including any child profile, and any seat on a node whose common path a lead-run check settles (`references/pave-spec.md` §2.1) — whose absence changes no required routing, authority, evidence, recovery, or acceptance.
 3. Mark runtime bindings (section 4.8). Bindings need the whole-subgraph view, which is why planners do not mark them.
 4. Reconcile model and effort assignments across nodes — one value per role; a role that needs two tiers is two roles.
 5. Finalize the run-wide enforcement record in `skill-package-plan.md`: merge the node-local entries planners proposed with your own run-wide entries; deduplicate guards proposed for the same prohibition.
@@ -117,15 +117,16 @@ Check these before review:
 - Competing routes from one outcome are mutually exclusive.
 - Dynamic fan-out has stable instance identity and an explicit join.
 - Closure and acceptance are distinct.
-- Recovery loops preserve attempt history and define exhaustion, and a repair loop's recurrence stop counts by defect class, not site identity (`references/pave-spec.md` §9.8).
-- A plan node that feeds an expensive execute node carries the dispatch-admission duty — cheap half of the acceptance discharged pre-dispatch, unresolved-referent counts recorded (`references/pave-spec.md` §9.2).
+- Recovery loops preserve attempt history and define exhaustion; a repair loop lands at the node that resolves the finding, declares its bound — and, on a design node, its paper-lap bound — and counts recurrence by defect class, repair-introduced among them, not site identity (`references/pave-spec.md` §9.8).
+- A review node's outcomes partition findings by the repair class its graph routes; a bookkeeping defect reaches a lead edit, never the design route (`references/pave-spec.md` §9.8, §9.4).
+- A plan node that feeds an expensive execute node carries the dispatch-admission duty — cheap half of the acceptance discharged pre-dispatch, unresolved-referent counts recorded — and a design node names which inputs are world artifacts on disk and which are premises (`references/pave-spec.md` §9.2).
 - A budget counter with more than one increment route either gets per-route counters or an explicit shared-budget note — otherwise one route silently spends another's attempts.
 - Domain extensions do not change core meaning.
 - Missing runtime capability is declared, not invented.
 - Exactly one outcome per node means success and carries a definition of done settled on world-produced evidence.
-- Every dispatched node has an `x_planning.elaboration` verdict with a falsifiable rationale the evidence supports; every framed child has a prediction with its rationale.
+- Every dispatched node has an `x_planning.elaboration` verdict with a falsifiable rationale the evidence supports and its instrument line (`references/pave-spec.md` §2.1); every framed child has a prediction with its rationale.
 - Every child profile records the §9.12.1 packaging condition it meets, its terminal map is total, and no edge crosses a profile boundary.
-- Every run-wide prohibition and costly-transition guard has a recorded enforcement strength with a reason a stronger rung is unnecessary and — for a rung with standing cost — a cheaper one insufficient.
+- Every run-wide prohibition, costly-transition guard, and dispatched seat has a recorded enforcement strength with a reason a stronger rung is unnecessary and — for a rung with standing cost — a cheaper one insufficient.
 
 ### 4.8 Runtime bindings
 
@@ -144,7 +145,7 @@ A `workflow_script` binding never changes graph meaning: the YAML stays the auth
 
 ## 5. Build the approval bundle
 
-Give every edge a stable `id`. Write `traceability.md` with one row for every role, evidence definition, check, node, edge, control endpoint, and the state and completion contracts. Child-profile objects use qualified identifiers (`parent_node/child_id`), and every composed node gets one `realization` row:
+Give every edge a stable `id`. Write `traceability.md` with one row for every role, evidence definition, check, node, edge, control endpoint, and the state and completion contracts; a node row's planned implementation names the lead stage for a lead-run instrument or the role contract for a seat (`references/pave-spec.md` §2.1). Child-profile objects use qualified identifiers (`parent_node/child_id`), and every composed node gets one `realization` row:
 
 ```markdown
 | Type | ID | Planned implementation | Authority or purpose |
@@ -163,7 +164,7 @@ Write `skill-package-plan.md` with:
 - copied, condensed, generated, and excluded resources;
 - runtime bindings: each script-eligible subgraph with its recommended binding and rationale;
 - the profile dependency tree and the §9.12.1 packaging condition each child profile meets, when packaging is used;
-- the enforcement record: each run-wide prohibition and costly-transition guard with its chosen strength, the reason a stronger rung is unnecessary (and, for a rung with standing cost, a cheaper one insufficient), and — for each planned hook — its event, matcher, script, actor scope with its harness-native placement or identity gate, and decline path; plus the evidence-gameability judgment for every node whose success evidence the doer produces — gameable or not, with the hardening choice (`references/pave-spec.md` §9.14.1);
+- the enforcement record: each run-wide prohibition, costly-transition guard, and dispatched seat (`references/pave-spec.md` §9.14.1) with its chosen strength, the reason a stronger rung is unnecessary (and, for a rung with standing cost, a cheaper one insufficient), and — for each planned hook — its event, matcher, script, actor scope with its harness-native placement or identity gate, and decline path; plus the evidence-gameability judgment for every node whose success evidence the doer produces — gameable or not, with the hardening choice (`references/pave-spec.md` §9.14.1);
 - the evolution tier (`static` or `evolving`) with its reason, per `references/pave-revisions.md`;
 - scripts and tests required by mechanical checks;
 - runtime dependencies and installation boundary;

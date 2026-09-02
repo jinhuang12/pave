@@ -92,9 +92,14 @@ a question belongs to before answering it.
 - Whether a node exists at all? Graph Profile.
 - Where evidence is stored? Runtime Binding.
 - What evidence a decision requires? Graph Profile.
-- Which instrument answers a node on re-entry — full seat, cheaper seat, or a
-  lead-run mechanical check? Runtime Binding: declared at design time, chosen
-  per traversal.
+- Which instrument answers a node at each entry — a lead-run mechanical check,
+  a seat dispatched only when a named trigger fires, or a full seat? Runtime
+  Binding: declared per node at design time, chosen per traversal. A node
+  whose common-path outcome any reader re-derives from persisted inputs takes
+  the lead-run check whatever role its parent carries; a judgment bundled
+  with that path is its own conditional seat, never averaged into one medium
+  seat. Tiers bind to roles; instruments bind to nodes — a child inherits its
+  parent's roles, never a seat.
 - How many workers run one node? Runtime Binding.
 - Whether the work has distinct sub-goals? Graph Profile.
 The last pair matters most. "Too much work for one agent" has two different
@@ -253,14 +258,15 @@ counterweight, they produce a workflow that costs more to operate than the
 work it governs. This principle is that counterweight.
  
 - Start with the shortest valid path from purpose to completion.
-- Add a node, role, edge, loop, state field, reviewer, or control only for an
-  approved requirement or a credible material failure.
+- Add a node, role, seat, edge, loop, state field, reviewer, or control only
+  for an approved requirement or a credible material failure.
 - Prefer one existing gate over a second gate that checks the same claim.
 - Remove any element whose absence does not change required routing,
   authority, evidence, recovery, or acceptance.
 - Compare the cost of the added structure with the risk it removes — priced
   over the traversals its loops and re-entry edges can carry, not the first
-  pass alone.
+  pass alone; a node on a loop states its expected traversal count, and a
+  seat on it costs that count times one dispatch.
 The burden of proof is on adding structure, never on staying simple.
  
 ## 5. Core graph vocabulary
@@ -865,6 +871,13 @@ run-state entry — an observing record on first ship; only after one run's
 counts exist may a successor promote it to a routing check that sends a
 non-zero count back to design. Do not give the plan node the right to build
 or measure — a screen that must compile is not a cheap screen.
+
+**Inputs before design:** a design node's contract names which inputs are
+world artifacts on disk and which are premises. A draft written on a premise
+is provisional: it gets one review round, and its repair loop opens only
+when the artifact lands — polishing a premise is the paper lap §9.8 bounds.
+When acquiring the artifact is real work, it is its own node upstream of
+the design — the sibling §5.1 requires.
  
 ### 9.3 Socratic guard
  
@@ -894,13 +907,23 @@ Give every review a scope contract:
 - A finding cites primary evidence and an exact location.
 - A finding describes a credible failure mode and its effect on the goal.
 - Stylistic preference, speculation, and unstated requirements are not
-  findings. Neither is the bookkeeping: the work product is the review
+  findings. Neither is the paperwork: the work product is the review
   subject, and a repair that adds a standing document, archive, or
   per-event record is itself a defect (§8.4).
-- A finding is one line — location, what is wrong, what right looks like —
-  recorded in run state, never in a per-round report file. Its repair lands
+- A finding is one line — location, what is wrong, what right looks like,
+  its defect class (§9.8) — recorded in run state, never in a per-round
+  report file. Its repair lands
   in the living document with one revision-log line.
 - Only findings that prevent or materially impair the goal block progress.
+- For an intermediate artifact — a plan, a design, a brief — the goal test
+  runs through its consumer: a finding is material when the node that
+  consumes the artifact would act wrongly on it as written, or a frozen
+  value would move. A cite, a count, or a wording the consumer re-derives
+  from persisted inputs is bookkeeping, routed as §9.8's lead edit.
+- A repair round reviews the sections the repair brief named (§8.4) plus
+  one scripted whole-artifact census; a whole-file lap — a deletion, a
+  reconciliation — gets a whole-file review. Re-falsifying the whole
+  artifact every round is how a repair loop stops converging.
 - A clean pass is a successful review. Issue count is not a quality measure.
 Record which findings were rejected and why, so a rejected finding does not
 return unchanged. Prefer a retained challenger across rounds at one gate: a
@@ -957,7 +980,12 @@ Weak design -> Plan
 Implementation defect -> Execute
 Untrusted conclusion -> Review again
 Invalid objective -> Revisit purpose
+Text or bookkeeping defect -> Lead edit (a lead-run instrument, §2.1)
 ```
+
+A review node's outcomes partition its findings by the rows its graph
+routes: an outcome that bundles a bookkeeping defect with a design defect
+sends every finding down the costlier route.
  
 The same rule sizes the landing: land a repair edge at the node that resolves
 the finding, not at the boundary entrance — an entry-point landing
@@ -975,7 +1003,13 @@ counter, or — when the operator chooses unlimited attempts — with the
 persisted investigation record plus a designed stop the operator controls
 (§9.13). An unbounded loop with neither is repeated guessing wearing a
 process costume. Say what happens at the bound: quarantine a bounded scope,
-pause, or change the plan.
+pause, or change the plan. A counter bounds guessing; it cannot tell a paper
+lap from an evidence-driven one. A lap that re-enters a design node with no
+new world-produced evidence about its inputs since the last lap — an
+artifact landed, a measurement taken; a review verdict on the draft is not
+one — is a paper lap, text polished against premises, so a design loop
+also bounds consecutive paper laps (default two) and says what the bound
+does: acquire the evidence the design waits on, or take the declared stop.
  
 Record each repair: the finding, the change, the evidence the change
 invalidated, and the result — and the evidence it did not invalidate: what
@@ -989,7 +1023,10 @@ Count a repair loop's recurrence by defect class, not by site. The reviewer
 labels each finding's class from the first round — a label the loop's
 record can count across laps, ignoring node, surface, and wording, because
 an identity fingerprint (same node, same surface, same claim) is a stop
-that recurrence in new clothes never trips. The second occurrence of a
+that recurrence in new clothes never trips. Repair-introduced — a finding
+on text the previous lap minted — is a class of its own: a loop whose
+repairs are its main defect source has stopped converging, and the class
+count is what shows it. The second occurrence of a
 class at any site widens the repair from the named line to a sweep of the
 whole artifact: the repair publishes the population it swept and the
 command it used, and the next review checks that population, not the one
@@ -1126,7 +1163,9 @@ it with fan-out or many hands under one goal.
  
 Both verdicts are claims, not settled facts. Record one falsifiable line with
 either: what one agent does and how it settles the definition of done, or
-what forces the split. A review challenges the line against the evidence, and
+what forces the split. Sizing decides whether the node exists; the instrument
+(§2.1) decides who answers it, recorded beside the sizing line; a dispatched
+seat's entry is §9.14.1's. A review challenges both lines against the evidence, and
 a deeper planning pass may overturn it. Wrong-sized in either direction is the
 same defect — an unjustified child inflates the graph, and an oversized atomic
 node fails exactly where the work is hardest.
@@ -1210,11 +1249,12 @@ rungs: when debate, an advisory monitor, or a stage audit earns its cost.
  
 #### 9.14.1 The enforcement record
  
-For every run-wide prohibition and every guard on a costly transition,
-record two things: the strength chosen, and the reason the neighboring rungs
-are wrong — the stronger unnecessary, and, where the chosen rung carries
-standing cost (a dispatched agent, a repeated run, an always-on control),
-the cheaper insufficient to catch the defect it names.
+For every run-wide prohibition, every guard on a costly transition, and
+every dispatched seat, record two things: the strength chosen, and the reason
+the neighboring rungs are wrong — the stronger unnecessary, and, where the
+chosen rung carries standing cost (a dispatched agent, a repeated run, an
+always-on control), the cheaper insufficient to catch the defect it names,
+with that defect's expected frequency over the traversals the node can carry.
  
 Wrong-sized enforcement is a design defect in both directions. Prose alone
 for a likely, costly, detectable violation is as much a defect as a

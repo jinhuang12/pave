@@ -27,7 +27,7 @@ Plan-review scope:
 - evidence can support the claims assigned to it;
 - recovery and completion do not fail open;
 - package plan can implement the graph without hidden policy;
-- the enforcement record sizes each prohibition honestly — neither prose for a violation that outlives its prose, nor a blocking hook without misfire-proof detection;
+- the enforcement record sizes each prohibition and each seat honestly — neither prose for a violation that outlives its prose, nor a blocking hook without misfire-proof detection, nor a seat on a node a lead-run check settles;
 - the evolution tier matches the workflow's real lifetime — neither evolution machinery on a one-shot workflow nor a bare `static` on a repeatedly re-run one;
 - artifact conventions hold the document budget (`references/pave-spec.md` §8.4), every living document with a declared cap;
 - the plan approval brief (`reviews/plan-brief.md`) matches the bundle it renders, per the rendered-view rule in `references/approval-briefs.md`: the brief is what the user actually reads at the gate.

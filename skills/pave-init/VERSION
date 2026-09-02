@@ -1,4 +1,4 @@
-version: 2.4.2
+version: 2.4.3
 
 ## How changelog entries are written
 
@@ -17,6 +17,60 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.4.3 (2026-09-02)
+
+Changed — the instrument question is asked at every entry, not only on
+re-entry: each node records, beside its sizing line, what settles it — a
+lead-run mechanical check, a seat dispatched only when a named trigger
+fires, or a full seat (`references/pave-spec.md` §2.1, §9.12). A node whose
+common path any reader re-derives from persisted inputs is a lead-run check
+whatever role its parent carries; tiers bind to roles, instruments bind to
+nodes, and a child inherits roles, never a seat.
+  - Field evidence: a generated workflow dispatched a strong-model seat 51
+    times to pick the next work item from an on-disk gate table. The seat was
+    inherited from the parent's role label and priced on a judgment that
+    fired 0 of 51 laps; no layer asked whether the node needed a seat at all.
+Changed — every dispatched seat joins the enforcement record (§9.14.1): the
+defect it prices and that defect's expected frequency over the traversals
+the node can carry. The simplicity pass (§4.11) prices a seat on a loop at
+its declared traversal count, and removes a seat on a node a lead-run check
+settles.
+Changed — the material reviewer treats a seat on a node whose own sizing
+line calls its outcome a derivation from persisted inputs as
+disproportionate recurring cost at generation time, not only on re-entry;
+the mechanical/judgment split rule now lives in §2.1 and the reviewer and
+planner point at it.
+Changed — generated leads settle any lead-run instrument themselves (the
+role-work carve-out no longer says "re-check" only) and list every such node
+in their own dispatch row; a record minted per traversal is a run-state
+entry, never a file, unless it is world-produced evidence (§8.4).
+Changed — evolving tier: the usage ledger records each seat's outcome
+distribution, a seat whose priced judgment never fired is a
+lead-run-instrument candidate for the successor, and a binding revision
+scopes its nodes from recorded traversals, never from a premise about which
+stage ran (`references/pave-revisions.md` rules 8–9).
+Changed — a repair loop terminates on the world, not on rounds: a lap that
+re-enters a design node with no new world-produced evidence is a paper lap
+and a design loop bounds consecutive paper laps; repair-introduced is a
+defect class counted from round one; a bookkeeping defect routes to a lead
+edit, never the design route (`references/pave-spec.md` §9.8).
+  - Field evidence: a generated workflow ran its plan drafter 49 laps
+    (1,790 minutes). 35 of 49 laps were triggered by review paper, not world
+    evidence; the target's real config first landed at revision 46; about
+    37% of late material findings were on text the previous repair minted;
+    every stop was the user's.
+Changed — materiality for an intermediate artifact runs through its
+consumer (would the consuming node act wrongly on it as written, or a
+frozen value move), a repair round reviews the briefed sections plus one
+scripted census, and a design node names which inputs are world artifacts
+and which are premises (§9.4, §9.2).
+Changed — generated run state stamps every entry from one clock, the
+validator flags an out-of-order append, and a dispatched seat's entry
+carries model, effort, and duration so the usage ledger can price it
+(`references/pave-revisions.md` rule 8 records wall-clock).
+  - pave-init's own run state keeps its unconstrained `at` field: it runs
+    no usage ledger, so the omission is recorded here, not fixed.
 
 ### 2.4.2 (2026-09-02)
 

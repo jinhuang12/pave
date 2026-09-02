@@ -1,6 +1,6 @@
 # PAVE Init
 
-Version: `2.4.2`
+Version: `2.4.3`
 
 Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
 
@@ -320,7 +320,7 @@ goal closes the queue after the root's single entry, with no extra ceremony. Ful
 ## Enforcement and hooks
 
 Prose instructions fade as a long run consumes context. So every run-wide
-prohibition gets a recorded enforcement strength, and a rule that must outlive
+prohibition and every dispatched seat gets a recorded enforcement strength, and a rule that must outlive
 its prose maps to a hook (`references/pave-spec.md` §9.14; mechanics in
 `references/lead-alignment-hooks.md`). Three defaults follow, each keyed to a
 structural property and each omitted only by a recorded omission condition:

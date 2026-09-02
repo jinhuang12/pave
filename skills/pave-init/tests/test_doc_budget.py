@@ -26,25 +26,25 @@ sys.path.insert(0, str(HERE.parent / "scripts"))
 
 import measure_artifact as ma  # noqa: E402
 
-# path (repo-relative) -> (max lines, max bytes). Pinned 2026-09-02 (2.4.2).
+# path (repo-relative) -> (max lines, max bytes). Pinned 2026-09-02 (2.4.3).
 CEILINGS = {
-    "skills/pave-init/SKILL.md": (266, 33459),
-    "skills/pave-init/README.md": (395, 22230),
+    "skills/pave-init/SKILL.md": (266, 34196),
+    "skills/pave-init/README.md": (395, 22256),
     "skills/pave-init/references/approval-briefs.md": (71, 9273),
     "skills/pave-init/references/lead-alignment-hooks.md": (362, 27555),
     "skills/pave-init/references/pave-composition.md": (186, 10814),
     "skills/pave-init/references/pave-init-traceability.md": (145, 17586),
-    "skills/pave-init/references/pave-revisions.md": (88, 10207),
-    "skills/pave-init/references/pave-spec.md": (1641, 71010),
+    "skills/pave-init/references/pave-revisions.md": (88, 10474),
+    "skills/pave-init/references/pave-spec.md": (1681, 73834),
     "skills/pave-init/references/pave-yaml.md": (431, 17816),
     "skills/pave-init/references/planning-layout.md": (52, 4116),
     "skills/pave-init/references/technique-selection.md": (202, 9954),
-    "skills/pave-init/orchestration/explore-and-plan.md": (172, 14121),
+    "skills/pave-init/orchestration/explore-and-plan.md": (173, 15022),
     "skills/pave-init/orchestration/interview-and-fitness.md": (131, 6948),
-    "skills/pave-init/orchestration/review-and-build.md": (134, 14096),
+    "skills/pave-init/orchestration/review-and-build.md": (134, 14157),
     "sources/roles/forward-tester.md.tmpl": (21, 1783),
-    "sources/roles/node-planner.md.tmpl": (72, 12091),
-    "sources/roles/pave-material-reviewer.md.tmpl": (115, 18473),
+    "sources/roles/node-planner.md.tmpl": (72, 12501),
+    "sources/roles/pave-material-reviewer.md.tmpl": (115, 18802),
     "sources/roles/research-delegate.md.tmpl": (63, 2682),
     "sources/roles/skill-builder.md.tmpl": (44, 4624),
     "sources/roles/system-explorer.md.tmpl": (23, 1536),
