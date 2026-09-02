@@ -48,7 +48,7 @@ class PackageStructureTests(unittest.TestCase):
         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        self.assertEqual(manifest["version"], "1.3.0")
+        self.assertEqual(manifest["version"], "1.3.1")
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())
@@ -130,11 +130,6 @@ class PackageStructureTests(unittest.TestCase):
         )
         self.assertNotIn("SendMessage", skill)
         self.assertNotIn("skill-frontmatter hooks", skill)
-        legacy = (
-            PLUGIN_ROOT / "claude" / "skills" / "vllm-neuron-parity" / "SKILL.md"
-        ).read_text(encoding="utf-8")
-        self.assertIn("/vllm-neuron-parity", legacy)
-        self.assertIn("CLAUDE_PLUGIN_ROOT", legacy)
 
 
 class InstallerTests(unittest.TestCase):

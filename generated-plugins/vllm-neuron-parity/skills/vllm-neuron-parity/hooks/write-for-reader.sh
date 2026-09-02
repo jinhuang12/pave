@@ -28,6 +28,15 @@
 # full state path>. The state directory basename is always "run", so the key
 # is the checksum of the full path, never the basename.
 #
+# Cap notice (references/artifact-layout.md section 4.12): when the written
+# document is over its cap (VLLM_NEURON_PARITY_CAP_LINES, default 400;
+# VLLM_NEURON_PARITY_CAP_BYTES, default 61440) the reminder names the size and
+# the deletion-lap duty. That sentence bypasses the throttle once per session
+# and file, so the first over-cap write is never silently swallowed. The cap
+# binds living documents only; the hook cannot tell a write-once record or a
+# transcript from a plan by path, so the sentence says which class to shrink
+# and the writer classifies.
+#
 # Run discovery is marker-only: .vllm-neuron-parity-run at a candidate root
 # (CODEX_PROJECT_DIR, CLAUDE_PROJECT_DIR, payload cwd, PWD). Its first line
 # is the absolute path of run-state.json. No scan fallback. A run whose
@@ -48,6 +57,8 @@ PY="${VLLM_NEURON_PARITY_PYTHON:-python3}"
 PY="${PY/#\~\//$HOME/}"   # expand a leading ~/ (env blocks do not tilde-expand)
 TAG="[vllm-neuron-parity write-for-reader]"
 EVERY="${VLLM_NEURON_PARITY_READER_EVERY:-3}"
+CAP_LINES="${VLLM_NEURON_PARITY_CAP_LINES:-400}"
+CAP_BYTES="${VLLM_NEURON_PARITY_CAP_BYTES:-61440}"
 
 PAYLOAD="$(cat 2>/dev/null || true)"
 
@@ -60,7 +71,8 @@ trap 'rm -f "$PAYLOAD_FILE"' EXIT
 printf '%s' "$PAYLOAD" > "$PAYLOAD_FILE" 2>/dev/null || exit 0
 
 "$PY" - "$TAG" "$PAYLOAD_FILE" "$EVERY" \
-  "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "${PWD:-}" <<'PYEOF' 2>/dev/null || exit 0
+  "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "${PWD:-}" \
+  "$CAP_LINES" "$CAP_BYTES" <<'PYEOF' 2>/dev/null || exit 0
 import json
 import os
 import re
@@ -71,11 +83,16 @@ from pathlib import Path
 
 tag, payload_file, every_raw = sys.argv[1], sys.argv[2], sys.argv[3]
 codex_root, claude_root, pwd_root = sys.argv[4], sys.argv[5], sys.argv[6]
+cap_lines_raw, cap_bytes_raw = sys.argv[7], sys.argv[8]
 
 try:
     every = max(1, int(every_raw))
 except ValueError:
     every = 3
+try:
+    cap_lines, cap_bytes = max(1, int(cap_lines_raw)), max(1, int(cap_bytes_raw))
+except ValueError:
+    cap_lines, cap_bytes = 400, 61440
 
 try:
     with open(payload_file, encoding="utf-8") as handle:
@@ -148,11 +165,21 @@ else:
 if any(part in EXEMPT for part in tested):
     sys.exit(0)
 
+# --- cap (references/artifact-layout.md section 4.12): measure what was written
+try:
+    size = target.stat().st_size
+    with open(target, "rb") as handle:
+        lines = sum(1 for _ in handle)
+except Exception:
+    size, lines = 0, 0  # unreadable target: nothing to measure
+over_cap = lines > cap_lines or size > cap_bytes
+
 # --- throttle ---------------------------------------------------------------
 session = str(payload.get("session_id") or "global") or "global"
 session = re.sub(r"[^A-Za-z0-9._-]", "_", session)
 state_key = zlib.crc32(str(state_resolved).encode("utf-8")) & 0xFFFFFFFF
 counter_dir = Path(tempfile.gettempdir()) / "vllm-neuron-parity-reader"
+first_over_cap = False
 try:
     counter_dir.mkdir(parents=True, exist_ok=True)
     counter = counter_dir / f"{session}-{state_key}"
@@ -162,10 +189,17 @@ try:
         count = 0
     count += 1
     counter.write_text(str(count))
+    if over_cap:
+        # Once per session and file: the first over-cap write is never swallowed
+        # by the throttle; later ones ride the normal window.
+        file_key = zlib.crc32(str(target).encode("utf-8")) & 0xFFFFFFFF
+        marker = counter_dir / f"{session}-{state_key}-{file_key}.overcap"
+        first_over_cap = not marker.exists()
+        marker.write_text(str(lines))
 except Exception:
     count = 1  # counter unavailable: remind rather than stay silent forever
 
-if (count - 1) % every != 0:
+if (count - 1) % every != 0 and not first_over_cap:
     sys.exit(0)
 
 text = (
@@ -179,6 +213,17 @@ text = (
     "must learn what happened, what changed, and what is still open in one "
     "pass (the lead skill's 'Write for the reader' paragraph)."
 )
+if over_cap:
+    text += (
+        f" This document is {lines} lines and {-(-size // 1024)} KB, over its cap of "
+        f"{cap_lines} lines / {cap_bytes // 1024} KB for a living document "
+        "(references/artifact-layout.md section 4.12). If it is a living document "
+        "- edited in place, current state only - run a deletion lap before the "
+        "next review lap: collapse landed increments to ledger rows, move frozen "
+        "values to the registration record, and drop narration. A write-once "
+        "record, an append-only record, or a transcript sits outside the cap: "
+        "leave it."
+    )
 print(json.dumps({
     "hookSpecificOutput": {
         "hookEventName": "PostToolUse",

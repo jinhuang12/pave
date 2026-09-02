@@ -57,7 +57,7 @@ artifacts/
 | run/intake-preflight/ | verify_run_preconditions |
 | run/delta/<target>/ | that target's trace_target_delta instance (report landing paths: §4.7) |
 | run/delta/index/ | assemble_delta_report |
-| campaigns/*/kickoff, approvals | assemble_kickoff_contracts (+ gate records by review_campaign_design, close_campaign) |
+| campaigns/*/kickoff, approvals | assemble_kickoff_contracts (+ gate records by review_campaign_design, close_campaign) — write-once per decision: a later user decision lands as a new dated section or addendum beside the recorded one, never as an edit of it |
 | campaigns/*/design/ | the design sibling that produces each artifact; assemble_design_record writes the record and performs superseded-artifact deletions |
 | campaigns/*/increments/ | scope_next_increment (lap records), realize_increment (evidence records), record_changeset (changeset) |
 | campaigns/*/attempts/ | acquire_hardware_lease + lead (lease records), replicate_campaign_venv, execute_attempt_loop, recover_leased_host — one file per event, append-only |
@@ -347,3 +347,42 @@ The four artifacts live at the §1 `cross-run/` paths, committed to git.
 Lead is the only writer, serialized at campaign closure.
 `failure-fingerprints.yaml` absent reads as a legitimate empty set,
 never an error (first run bootstrap).
+
+### 4.12 Living-document caps
+
+A living document is edited in place and holds current state only: the
+increment plan, the design record, the regression matrix draft (upgrade
+route), the per-target delta report (`run/delta/<target-id>/report.md`),
+the costing and backlog report (`run/backlog/`), and the PR evidence
+package (`pr/`). Each has a cap of 400 lines AND 60 KB; one that needs
+more declares its own cap here, with the reason. Three classes sit
+outside the cap and are never shrunk: the write-once registration record
+(§4.5 — the P9 digest fixes it), append-only records (`kickoff/` and
+`approvals/` per §2, the reviewer stream under `reviews/` that the §4.3
+detector reads across rounds), and
+world-produced evidence (transcripts and probe records at their evidence
+paths). The write-for-reader duty still covers every reader-facing
+`.md`; the cap does not. The cap is kept by shrinking, never by an
+archive:
+
+- A landed increment collapses to one ledger row — id, plain name, tier,
+  commit, evidence pointer. The row carries its full per-increment
+  contract by that pointer (§4.6: acceptance command and exit code at
+  the evidence record) and by the registration record; a planned
+  increment's contract stays inline. Its frozen values stay in the
+  registration record (§4.5), the single write-once file; the P9 digest
+  binds that record only, never a block of the increment plan, which
+  must stay free to shrink.
+- A count table inside a living document is script output: it carries
+  its recompute command and is never hand-edited.
+- A living document carries no defensive prose: no argument history, no
+  ruling quotes, no per-clause justification essays. A finding's
+  disposition is one line that points at the findings record.
+- A re-entry brief names the sections the seat may touch; a whole-file
+  reconciliation is its own briefed lap.
+- `scripts/measure_artifact.py <path>` is the one size instrument. The
+  reviewer records each living document's lines and bytes every round;
+  over cap is a material finding, and the next lap is a deletion lap
+  before any new content. `write-for-reader.sh` names an over-cap
+  document with its size at the write; the writer classifies it, and a
+  record or transcript is left alone.

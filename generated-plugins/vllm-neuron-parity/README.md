@@ -11,9 +11,8 @@ authority. The packaged v0 graph (`workflow.pave.yaml`), the Codex lead skill
 (`skills/vllm-neuron-parity/SKILL.md`), and the native agent contracts stay
 the source of truth; every section below links what it renders.
 
-The original Claude lead source is retained under `claude/`, and the original
-role sources remain in `agents/*.md`. They are provenance records. The Codex
-runtime does not translate them at run time.
+The original role sources remain in `agents/*.md`. They are provenance
+records. The Codex runtime does not translate them at run time.
 
 ## 1. What it does, and for whom
 
@@ -407,9 +406,8 @@ vllm-neuron-parity/
       venv-opt-guard.sh                # blocks venv cloning / /opt writes
       state-staleness-reminder.sh      # re-presents run position periodically (lead-session-gated)
       stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active (lead-session-gated)
-      write-for-reader.sh              # reminds any actor to write documents for the reader (advisory, throttled)
+      write-for-reader.sh              # reminds any actor to write documents for the reader (advisory, throttled); names an over-cap document with its size
   agents/*.md                          # preserved original role contracts
-  claude/skills/vllm-neuron-parity/    # retained original lead source
   workflow.pave.yaml                   # immutable packaged graph seed (approved v0)
   workflow-manifest.yaml               # immutable packaged v0 lineage seed
   history/                             # immutable packaged pre-freeze placeholder
@@ -424,8 +422,13 @@ vllm-neuron-parity/
     validate_run_state.py              # run-state checker
     validate_pave.py                   # graph checker
     freeze_revision.py                 # evolving-tier freeze tool
+    measure_artifact.py                # living-document size vs its cap (references/artifact-layout.md §4.12)
   tests/
+    test_codex_port.py                 # Codex port: version pin, seven hook controls, TOML fields, legacy-token absence
+    test_hooks.sh                      # hook behaviour: marker gating, guards, reader reminder, cap notice
+    test_measure_artifact.py           # size instrument tests
     test_run_state_schema.py           # schema accept/reject tests
+    test_validate_run_state_caps.py    # validate_run_state.py length caps and path checks, stdlib and jsonschema paths
     test_workflow_pave.py              # shipped-graph validity test
   README.md                            # this file — rendered view, never authority
   VERSION                              # package changelog
@@ -492,7 +495,7 @@ weakest to strongest: prose < reinjection < reviewed < mechanical
 | Two-tier repair budgets and breakers (measure three/nine; hardware ten + one recovery) | BLOCKING routing preconditions | counts derived from event files; runaway loops are the costliest failure |
 | Lead-alignment hook pair (staleness reminder + stop guard) | reinjection | long-horizon, session-crossing workflow — the pair's target case; the stop guard **blocks at most one stop in three** while a run is active, disclosed in the skill description. Both hooks gate on the lead session id in `<run-state>.lead-session` and stay silent in every other session; without the sidecar they fail open |
 | Re-entry dispatch advisory (`hooks/dispatch_advisory.py`) | reinjection (advisory `additionalContext`, never blocks) | edge-triggered: fires only when a dispatch names an instrumented design node that already completed a traversal this run, and asks whether the graph's cheaper re-entry instrument settles it without a seat; lead-session-gated, throttled per node via its own counter file |
-| Documents are written for the reader (`skills/vllm-neuron-parity/hooks/write-for-reader.sh`) | prose + reinjection (advisory `additionalContext`, never blocks) + REVIEWED | agents drift back to identifier chains and inlined checker output the moment the prose duty leaves context; the hook fires on the first `.md` write under `artifacts/` and every third after it per session, for any actor, marker-gated and terminal-silent, and skips working state (attempts, measurements, increments, index, intake-preflight); the adversarial reviewer treats an illegible reader-facing artifact as a material finding |
+| Documents are written for the reader (`skills/vllm-neuron-parity/hooks/write-for-reader.sh`) | prose + reinjection (advisory `additionalContext`, never blocks) + REVIEWED | agents drift back to identifier chains and inlined checker output the moment the prose duty leaves context; the hook fires on the first `.md` write under `artifacts/` and every third after it per session, for any actor, marker-gated and terminal-silent, and skips working state (attempts, measurements, increments, index, intake-preflight); the adversarial reviewer treats an illegible reader-facing artifact as a material finding; the hook also names an over-cap document with its size (`references/artifact-layout.md` §4.12) once per session and file, past the throttle, and the reviewer records each living document's lines and bytes every round |
 | New kernel-class functionality must be NKI, never torch fallback (kernel-substrate rule) | MECHANICAL (every increment must declare kernel-class or not — no silent omission; a declared-NKI increment with zero NKI usage in its diff is an exact contradiction caught at the changeset scan) + REVIEWED (both gates challenge the classification itself) | "what is kernel-class" is judgment no scan decides, and absence-of-torch scans false-fire on kernels' legitimate torch boundaries — so the mechanical half checks presence against the doer's own declaration, and review owns only the classification |
 
 `SKILL.md` carries 13 run-wide prohibitions and 6 transition guards in

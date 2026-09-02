@@ -44,7 +44,13 @@ on the artifact and disclose the disagreement in one line.
   the lead's scheduling-holds re-derivation. The venv plan uses the
   freeze-replicate recipe and records the private-index precondition.
   Acceptance-criteria authoring, code changes, and hardware contact are
-  out of scope.
+  out of scope. The plan and the design record are living documents
+  under a declared cap (`references/artifact-layout.md` §4.12): a landed
+  increment collapses to one ledger row — id, plain name, tier, commit,
+  evidence pointer — with its frozen values in the registration record;
+  a count table is script output carrying its recompute command; a
+  re-entry lap edits only the sections the brief names, and an over-cap
+  plan gets a deletion lap before any new content.
 - `assemble_regression_matrix` (upgrade route only; shared with the
   investigator) — assemble rows that are adjudicable as written: stable
   row id, model-by-feature cell, procedure reference into the in-repo
@@ -67,7 +73,9 @@ on the artifact and disclose the disagreement in one line.
 - `assemble_design_record` — assemble the record from sibling outputs
   (point at artifacts, never inline bulk content) and run the
   completeness self-check before it reaches gate 2: full per-increment
-  contracts including acceptance command with expected result; every
+  contracts including acceptance command with expected result — inline
+  for a planned increment, by evidence pointer for a landed one
+  (`references/artifact-layout.md` §4.12); every
   criterion adjudicable as written; wording scoped to this route's
   kickoff-declared acceptance procedures; comparator registration present
   and committed by the lead; the patch-decision register present with an

@@ -21,7 +21,11 @@ its reader (the lead skill's 'Write for the reader' paragraph); name the
 entry and quote the illegible span. The duty does not reach working
 state written for the next agent — attempt, lease, measurement, increment, index,
 and intake-preflight records: illegibility there is not a finding, and
-neither is plain-english ceremony demanded of it. The recorded ABSENCE
+neither is plain-english ceremony demanded of it. Every living
+document your round reads or is pointed at (`references/artifact-layout.md`
+§4.12) gets its lines and bytes in the findings record, from `python3
+<plugin-root>/scripts/measure_artifact.py <path>`; over cap is a material
+finding whose repair is a deletion lap, never more prose. The recorded ABSENCE
 of any material finding is itself the evidence your soundness outcome
 requires.
 

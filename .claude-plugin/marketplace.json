@@ -9,13 +9,13 @@
       "name": "pave-init",
       "source": "./",
       "description": "Create a PAVE-based Claude Code workflow plugin (a lead skill plus registered role agents) from a stated goal, with adversarial review gates.",
-      "version": "2.4.1"
+      "version": "2.4.2"
     },
     {
       "name": "vllm-neuron-parity",
       "source": "./generated-plugins/vllm-neuron-parity",
       "description": "pave-init-generated workflow: bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM through user-gated, evidence-backed campaigns. Requires the Neuron delegate skills from the host workspace for campaign stages (see its README).",
-      "version": "1.3.0"
+      "version": "1.3.1"
     }
   ]
 }

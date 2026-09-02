@@ -1,4 +1,41 @@
-version: 1.3.0
+version: 1.3.1
+
+## 1.3.1 — 2026-09-02
+
+pave-init 2.4.2 alignment: living documents have a declared cap. Field
+evidence from this plugin's own GLM campaign: the increment plan reached 2,455
+lines and 872 KB over 46 design laps because nothing bounded it, and one repair
+lap then cost half an hour of re-reading (reading taken before the plan's later
+collapse; no peak snapshot survives on disk). `references/artifact-layout.md` §4.12
+names the living documents — increment plan, design record, regression matrix
+draft, per-target delta report, costing and backlog report, PR evidence
+package — and caps each at 400 lines and 60 KB,
+both; the write-once registration record, append-only records (kickoff,
+approvals, the reviewer stream), and transcripts sit outside the cap and are
+never shrunk. The rules that keep the cap: a landed increment collapses to one
+ledger row (its full contract carried by the evidence pointer; a planned
+increment's stays inline for the gate-2 completeness check), frozen values stay
+in the registration record, count tables are script output with their recompute
+command, no defensive prose, a re-entry brief names the sections the seat may
+touch, and an over-cap document makes the next lap a deletion lap.
+The P9 registration digest binds the registration record only — never a block
+of the increment plan, which must stay free to shrink.
+`scripts/measure_artifact.py` is the one size instrument (lines, bytes,
+sections, narration markers, `--strict`); the adversarial reviewer reports each
+living document's lines and bytes every round and treats over cap as a material
+finding; the implementer carries the collapse rules for the plan and design
+record, the investigator for the delta and costing reports.
+`write-for-reader.sh` names an over-cap document with its size once per session
+and file, past its throttle (`VLLM_NEURON_PARITY_CAP_LINES`,
+`VLLM_NEURON_PARITY_CAP_BYTES`), and tells the writer to leave a record or
+transcript alone.
+The graph, manifest, and pinned revision are unchanged — no graph meaning
+moved, so this is an in-place patch, not a successor revision. Manifests, the
+marketplace pin, and the package tests align at 1.3.1. A run already in
+progress keeps its installed 1.3.0 until its session restarts on the re-synced
+plugin. The legacy lead copy `claude/skills/vllm-neuron-parity/SKILL.md` is
+deleted: neither harness loaded it (Claude Code scans the root `skills/` only;
+the Codex manifest points at `./skills/`), and it carried superseded prose.
 
 ## 1.3.0 — 2026-09-01
 

@@ -148,6 +148,12 @@ sentence per entry saying what happened and why, every identifier
 paired with its plain name at first use, checker output cited from its
 own file rather than inlined. Records written only for the next agent —
 the delta index, event files, and intake-preflight records — are exempt.
+The delta report and the costing and backlog report are living documents
+under a declared cap (`references/artifact-layout.md` §4.12): a re-trace
+or re-cost rewrites current state in place, a settled target or route
+collapses to one row with its evidence pointer, a count table is script
+output carrying its recompute command, and an over-cap report gets a
+deletion lap before any new content.
 
 ## How you run
 

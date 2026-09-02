@@ -192,6 +192,26 @@ OUT="$(run_hook "$ARTIFACTS/campaigns/index/design/record.md" s10)"; RC=$?
 ok=0; [ "$RC" = "0" ] && reminds "$OUT" && ok=1
 report "reader: campaigns/index/design/ write reminds (campaign name not tested)" "$ok" "rc=$RC out=$OUT"
 
+# 16-18. cap notice (references/artifact-layout.md section 4.12): an over-cap
+# document is named with its size once per session and file, past the throttle
+PLAN="$ARTIFACTS/campaigns/c1/design/current/increment-plan.md"
+mkdir -p "$(dirname "$PLAN")"
+python3 -c 'import sys; open(sys.argv[1], "w").write("line\n" * 450)' "$PLAN"
+OUT="$(run_hook "$DESIGN" s11)"   # 1st write of the session: consumes the window
+OUT="$(run_hook "$PLAN" s11)"; RC=$?
+ok=0; [ "$RC" = "0" ] && reminds "$OUT" && printf '%s' "$OUT" | grep -q "450 lines" \
+  && printf '%s' "$OUT" | grep -q "over its cap" && ok=1
+report "reader: over-cap document is named past the throttle" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(run_hook "$PLAN" s11)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: over-cap notice fires once per session and file" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(payload "$PLAN" s12 | VLLM_NEURON_PARITY_CAP_LINES=1000 bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && reminds "$OUT" && ! printf '%s' "$OUT" | grep -q "over its cap" && ok=1
+report "reader: cap follows VLLM_NEURON_PARITY_CAP_LINES" "$ok" "rc=$RC out=$OUT"
+rm -f "$PLAN"
+
 echo
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" = "0" ] || exit 1
