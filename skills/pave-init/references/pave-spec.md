@@ -726,12 +726,15 @@ by how each one changes:
 - **A living plan**, edited in place, holding current state only: what to
   build, where, how it is tested, what passes. Its history is one line per
   revision inside the same document — what changed and why, in plain words.
-  A fresh reader needs a few hundred lines, so that is the budget: proofs,
-  derivations, and transcripts live at their evidence paths, never inline.
+  A fresh reader needs a few hundred lines, so each living document declares
+  a cap — default 400 lines and 60 KB, both — in the layout reference, or in
+  the lead when there is none; proofs, derivations, and transcripts live at
+  their evidence paths, never inline.
 - **Write-once values**: preregistered thresholds, comparators, and other
   frozen facts, in their own file precisely because it never changes —
-  "untouched" is provable with one digest check. Never merged into the
-  living plan.
+  "untouched" is provable with one digest check that binds this file only,
+  never a block of the living plan, which must stay free to shrink. Never
+  merged into the living plan.
 - **An append-only decision record**: verbatim user decisions and approvals,
   one short section per decision, not writable by the actor that edits the
   plan.
@@ -765,16 +768,22 @@ and is worse than silence.
 Cite, never copy. Every number and every ruling lives in exactly one file,
 and every other document points at it. Evidence for an outcome is a digest
 plus a run-state entry pointing at a standing document, not a new artifact
-file — §5.3.1 governs evidence strength, not file count.
+file — §5.3.1 governs evidence strength, not file count. A count table
+inside a living document is script output under §5.3.1: it carries its
+recompute command and is never hand-edited.
 
-A living document carries no defensive prose: no argument history, no ruling
-quotes, no per-clause justification essays. Preregistration and audit rigor
-bind measurement artifacts and frozen values, where tampering changes
-acceptance — not prose edits to a plan. This budget is a measured failure,
-not a preference: one long adversarial design loop that minted a file per
-event grew a design stage to fifty-plus files and a five-figure line count,
-agents needed scripts to edit the plan, and condensing to the three
-documents above lost nothing operative.
+The cap is kept by shrinking, not by a rule. A landed item collapses to one
+ledger row — id, plain name, tier, commit, evidence pointer — and its frozen
+values stay at the evidence path. A repair brief names the sections the seat
+may touch; a whole-file reconciliation is its own briefed lap. The reviewer
+reports the document's lines and bytes every round; over cap is a material
+finding, and its repair is a deletion lap before the next review lap. A
+living document carries no defensive prose: no argument history, no ruling
+quotes, no per-clause justification essays. This budget is a measured
+failure, not a preference: one design loop minted a file per event and grew
+a stage to fifty-plus files; a later one kept the three documents but let
+the living plan grow uncapped to 2,455 lines over 46 laps, until one repair
+lap cost half an hour of re-reading.
 
 ### 8.5 Written for the reader
 
@@ -1541,13 +1550,12 @@ Make the guards exclusive, or use fan-out.
 Important state exists only in conversation. Persist the minimum facts needed
 for safe continuation.
  
-### A file per event
+### A file per event, or one file without a cap
 
-Every revision, review round, repair, or ruling mints a new file, and
-superseded prose archives instead of dying. The document set grows until
-agents need tooling to edit it and every lap pays to re-read it. Hold the
-§8.4 budget — living plan, write-once values, append-only decisions, run
-state — and delete superseded prose outright.
+Every revision, review round, repair, or ruling mints a new file — or the one
+living plan grows unbounded because landed work is never collapsed. Either
+way agents need tooling to edit the set and every lap pays to re-read it.
+Hold the §8.4 budget and its cap: delete or collapse, never archive.
 
 ### Approval by artifact
  

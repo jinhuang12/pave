@@ -1,4 +1,4 @@
-version: 2.4.1
+version: 2.4.2
 
 ## How changelog entries are written
 
@@ -17,6 +17,31 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.4.2 (2026-09-02)
+
+Changed — every living document declares a cap (default 400 lines and 60 KB,
+both) and the rules that keep it: landed work collapses to one ledger row,
+count tables are script output, repair briefs are section-scoped, the
+reviewer reports lines and bytes every round, and over cap means a deletion
+lap before the next review lap (`references/pave-spec.md` §8.4). Generated
+leads carry the cap and its instrument.
+  - Field evidence: one generated workflow's living plan grew to 2,455 lines
+    and 872 KB over 46 review laps because nothing bounded it; one repair lap
+    then cost half an hour of re-reading. Fixes future generated plugins;
+    an already-generated plugin needs its own patch release.
+New — `scripts/measure_artifact.py`, the one size instrument: lines, bytes,
+sections, narration markers, `--baseline` delta, `--strict` exit. Copied into
+a generated plugin whose layout reference declares a capped living document.
+Improved — `write_for_reader.sh` names an over-cap document with its size once
+per session and file, past its throttle (`PAVE_INIT_CAP_LINES`,
+`PAVE_INIT_CAP_BYTES`).
+Improved — pave-init keeps its own budget: `tests/test_doc_budget.py` pins a
+line and byte ceiling per document (raise a ceiling only in the same commit
+that needs it), CI runs the pave-init test suite, and the §8.4 restatements
+in the lead skill, orchestration, and role contracts — plus the lead skill's
+§8.5 restatement — are now pointers.
+Fixed — the README file tree lists `write_for_reader.sh` and every test.
 
 ### 2.4.1 (2026-09-02)
 

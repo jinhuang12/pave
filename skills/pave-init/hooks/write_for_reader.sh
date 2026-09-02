@@ -12,6 +12,12 @@
 # additionalContext. Throttled: the 1st matching write in a session reminds,
 # then every Nth after (PAVE_INIT_READER_EVERY, default 3).
 #
+# It also carries the document budget's instrument (section 8.4): when the
+# written document is over its cap (PAVE_INIT_CAP_LINES, default 400;
+# PAVE_INIT_CAP_BYTES, default 61440) the reminder names the size and the
+# deletion-lap duty. That sentence bypasses the throttle once per session and
+# file, so the first over-cap write is never silently swallowed.
+#
 # Registered in the plugin's hooks/hooks.json, not the skill's frontmatter: a
 # skill-frontmatter hook fires only for the agent that invoked the skill and
 # never sees a subagent's write (measured on Claude Code 2.1.258).
@@ -34,6 +40,8 @@ PY="${PAVE_INIT_PYTHON:-python3}"
 PY="${PY/#\~\//$HOME/}"   # expand a leading ~/ (env blocks do not tilde-expand)
 TAG="[pave-init write-for-reader]"
 EVERY="${PAVE_INIT_READER_EVERY:-3}"
+CAP_LINES="${PAVE_INIT_CAP_LINES:-400}"
+CAP_BYTES="${PAVE_INIT_CAP_BYTES:-61440}"
 
 PAYLOAD="$(cat 2>/dev/null || true)"
 
@@ -55,19 +63,24 @@ PAYLOAD_FILE="$(mktemp "${TMPDIR:-/tmp}/pave-init-reader.XXXXXX" 2>/dev/null)" |
 trap 'rm -f "$PAYLOAD_FILE"' EXIT
 printf '%s' "$PAYLOAD" > "$PAYLOAD_FILE" 2>/dev/null || exit 0
 
-"$PY" - "$WORKSPACE" "$TAG" "$PAYLOAD_FILE" "$EVERY" "$FOUND_STATE" <<'PYEOF' 2>/dev/null || exit 0
+"$PY" - "$WORKSPACE" "$TAG" "$PAYLOAD_FILE" "$EVERY" "$FOUND_STATE" "$CAP_LINES" "$CAP_BYTES" <<'PYEOF' 2>/dev/null || exit 0
+import hashlib
 import json
 import os
 import sys
 import tempfile
 from pathlib import Path
 
-workspace, tag, payload_file, every_raw, state_path = sys.argv[1:6]
+workspace, tag, payload_file, every_raw, state_path, cap_lines_raw, cap_bytes_raw = sys.argv[1:8]
 
 try:
     every = max(1, int(every_raw))
 except ValueError:
     every = 3
+try:
+    cap_lines, cap_bytes = max(1, int(cap_lines_raw)), max(1, int(cap_bytes_raw))
+except ValueError:
+    cap_lines, cap_bytes = 400, 61440
 
 try:
     with open(payload_file, encoding="utf-8") as handle:
@@ -104,8 +117,18 @@ except Exception:
 if relative.parts and relative.parts[0] in ("planning", "build", "exploration"):
     sys.exit(0)
 
+# The document budget's instrument (section 8.4): measure what was written.
+try:
+    size = target.stat().st_size
+    with open(target, "rb") as handle:
+        lines = sum(1 for _ in handle)
+except Exception:
+    size, lines = 0, 0  # unreadable target: nothing to measure
+over_cap = lines > cap_lines or size > cap_bytes
+
 session = str(payload.get("session_id") or "global") or "global"
 counter_dir = Path(tempfile.gettempdir()) / "pave-init-reader"
+first_over_cap = False
 try:
     counter_dir.mkdir(parents=True, exist_ok=True)
     counter = counter_dir / f"{session}-{root.name}"
@@ -115,10 +138,16 @@ try:
         count = 0
     count += 1
     counter.write_text(str(count))
+    if over_cap:
+        # Once per session and file: the first over-cap write is never swallowed
+        # by the throttle; later ones ride the normal window.
+        marker = counter_dir / f"{session}-{root.name}-{hashlib.sha1(str(target).encode()).hexdigest()[:12]}.overcap"
+        first_over_cap = not marker.exists()
+        marker.write_text(str(lines))
 except Exception:
     count = 1  # counter unavailable: remind rather than stay silent forever
 
-if (count - 1) % every != 0:
+if (count - 1) % every != 0 and not first_over_cap:
     sys.exit(0)
 
 text = (
@@ -132,6 +161,14 @@ text = (
     "reader must learn what happened, what changed, and what is still open "
     "in one pass (references/pave-spec.md section 8.5)."
 )
+if over_cap:
+    text += (
+        f" This document is {lines} lines and {-(-size // 1024)} KB, over its cap of "
+        f"{cap_lines} lines / {cap_bytes // 1024} KB (references/pave-spec.md "
+        "section 8.4): before the next review lap, run a deletion lap - collapse "
+        "landed items to ledger rows, drop narration, and move frozen values to "
+        "their evidence paths."
+    )
 print(json.dumps({
     "hookSpecificOutput": {
         "hookEventName": "PostToolUse",

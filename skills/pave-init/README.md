@@ -1,6 +1,6 @@
 # PAVE Init
 
-Version: `2.4.1`
+Version: `2.4.2`
 
 Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
 
@@ -284,6 +284,7 @@ check in the recorded traversal history. Both are declared in
     │   ├── validate_traceability.py      # traceability-row checker
     │   ├── validate_run_state.py         # run-state instance checker (stdlib fallback; --frontier mode)
     │   ├── freeze_revision.py            # v1+ freeze / verify / rollback derivation
+    │   ├── measure_artifact.py           # living-document size vs its §8.4 cap; shipped with capped generated plugins
     │   ├── transcript_filter.py          # advisory-monitor read side: incremental .jsonl digest (reference impl)
     │   └── test_validate_pave_composition.py  # validator tests
     ├── evaluations/                      # eval scenarios: multi-boundary port, trivial single node, resume
@@ -291,9 +292,13 @@ check in the recorded traversal history. Both are declared in
     │   ├── _find_run_state.sh            # marker-first run-state discovery (a scan hit is not ownership)
     │   ├── stop_alignment_check.sh       # Stop: asks alignment questions; blocks at most 1 stop in 3
     │   ├── state_staleness_reminder.sh   # PostToolUse: throttled observing staleness nudge
-    │   └── planning-layout-warn.sh       # PostToolUse: non-blocking planning-layout warning
+    │   ├── planning-layout-warn.sh       # PostToolUse: non-blocking planning-layout warning
+    │   └── write_for_reader.sh           # PostToolUse: §8.5 reader reminder; sizes an over-cap document past its throttle
     └── tests/
-        └── test_hooks.sh                 # invariant tests for every shipped hook and its registration
+        ├── test_hooks.sh                 # invariant tests for every shipped hook and its registration
+        ├── test_validate_run_state.py    # validator parity and warn-only cap tests
+        ├── test_measure_artifact.py      # size instrument tests
+        └── test_doc_budget.py            # pave-init's own documents against pinned ceilings (a ratchet)
 ```
 
 ## How recursive planning stays manageable

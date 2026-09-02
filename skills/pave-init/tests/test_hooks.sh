@@ -15,7 +15,9 @@
 #   reader:    a run-workspace .md write reminds (lead and subagent alike),
 #              throttles to every Nth write, and stays silent for exempt
 #              working-state directories, non-markdown writes, and terminal
-#              runs
+#              runs; an over-cap document is named with its size once per
+#              session and file even when the throttle holds, and the cap
+#              follows PAVE_INIT_CAP_LINES
 #   registration: the two subagent-facing hooks are in the plugin's
 #              hooks/hooks.json (a skill-frontmatter hook never sees a
 #              subagent's write); the frontmatter keeps only the lead-only pair
@@ -315,6 +317,26 @@ rm -f "$RUN_MARKER"
 OUT="$(reader_payload requirements.md r4 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
 report "reader: scan-discovered state without marker is silent" "$ok" "rc=$RC out=$OUT"
+
+# Document budget (references/pave-spec.md section 8.4): a document over its
+# cap is named with its size, once per session and file, past the throttle.
+write_state "" complete
+OUT="$(reader_payload requirements.md r6 "" | bash "$READER_HOOK" 2>/dev/null)"   # 1st write: consumes the window
+python3 -c 'import sys; open(sys.argv[1], "w").write("line\n" * 450)' "$WORKSPACE/design-plan.md"
+OUT="$(reader_payload design-plan.md r6 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "450 lines" \
+  && printf '%s' "$OUT" | grep -q "over its cap" && ok=1
+report "reader: over-cap document is named past the throttle" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(reader_payload design-plan.md r6 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: over-cap warning fires once per session and file" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(reader_payload design-plan.md r7 "" | PAVE_INIT_CAP_LINES=1000 bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "plain english" \
+  && ! printf '%s' "$OUT" | grep -q "over its cap" && ok=1
+report "reader: cap follows PAVE_INIT_CAP_LINES" "$ok" "rc=$RC out=$OUT"
+rm -f "$WORKSPACE/design-plan.md"
 
 # --- registration ------------------------------------------------------------
 # A skill-frontmatter hook fires only for the agent that invoked the skill

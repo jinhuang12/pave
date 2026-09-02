@@ -23,3 +23,5 @@ jobs:
         run: python3 scripts/stamp_version.py --check
       - name: Test canonical hooks
         run: bash skills/pave-init/tests/test_hooks.sh
+      - name: Test pave-init helpers and document budget
+        run: python3 -m unittest discover -s skills/pave-init/tests
