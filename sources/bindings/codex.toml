@@ -18,8 +18,8 @@ description: >-
 PRODUCT_INTRO = '''Turn a system or engineering process into a validated PAVE Graph Profile and a Codex plugin: a lead workflow skill plus custom role agents. Resolve `PAVE_PLUGIN_ROOT` as the absolute path three directories above this file (`<root>/codex/skills/pave-init/SKILL.md` → `<root>`) and resolve every `orchestration/...`, `references/...`, `schemas/...`, and `scripts/...` path below under `<PAVE_PLUGIN_ROOT>/skills/pave-init/`. The user's stated goal drives the run: clarify it until it is designable, then design. Treat the approved PAVE YAML as the workflow authority.'''
 MULTI_AGENT_CONTRACT = '''Every worker role is a named Codex custom agent installed from this plugin. Its TOML contains the complete role contract. Start every brief with `PAVE_PLUGIN_ROOT: <absolute plugin root>`.
 
-- Dispatch one-shot workers with `spawn_agent` and `agent_type: pave-init:<role>`. Start independent workers together and close each thread after its terminal result.
-- Retain one exact `pave-init:pave-material-reviewer` thread through every repair round at a gate. Continue it with `send_input`; a fresh thread is a new reviewer. Start a fresh reviewer for the final-skill gate.
+- Dispatch one-shot workers with `spawn_agent`, `agent_type: pave-init:<role>`, and `fork_turns: "none"` so the role keeps its own model and effort. Start independent workers together and wait with `wait_agent`. A finished thread needs no close; call `interrupt_agent` only when a thread is still running after its node instance closed.
+- Retain one exact `pave-init:pave-material-reviewer` thread through every repair round at a gate. Continue it with `followup_task`; a fresh thread is a new reviewer. Start a fresh reviewer for the final-skill gate.
 - Use the role's configured Codex model and reasoning effort. The forward tester inherits session defaults. `gpt-5.6-sol` maps Claude `fable` and `opus`; `gpt-5.6-terra` maps Claude `sonnet`. Preserve each approved effort exactly, using the highest supported effort only when the configured level is unavailable.
 - Ask bounded user questions in plain text or with `request_user_input` when it is available. Present approval briefs in full and require an explicit response that names what the user approves.
 
@@ -45,13 +45,13 @@ runtime = '''Install or enable the generated plugin and its custom agents in the
 model = "gpt-5.6-sol"
 reasoning_effort = "xhigh"
 sandbox_mode = "workspace-write"
-runtime = '''When more evidence is needed, use `spawn_agent` with `agent_type: pave-init:research-delegate`, one bounded read-only question per worker. Start independent questions together and close each worker after its result.'''
+runtime = '''When more evidence is needed, use `spawn_agent` with `agent_type: pave-init:research-delegate`, one bounded read-only question per worker. Start independent questions together and collect each result with `wait_agent`; a finished worker needs no close.'''
 
 [roles.pave-material-reviewer]
 model = "gpt-5.6-sol"
 reasoning_effort = "high"
 sandbox_mode = "read-only"
-runtime = '''When the artifact is a generated skill package, load `$skill-creator` for skill-quality context when it is available. Use `spawn_agent` with `agent_type: pave-init:research-delegate` for independent bounded questions and start them together. Return findings on this exact reviewer thread. The lead continues this thread with `send_input` through repair rounds.'''
+runtime = '''When the artifact is a generated skill package, load `$skill-creator` for skill-quality context when it is available. Use `spawn_agent` with `agent_type: pave-init:research-delegate` for independent bounded questions and start them together. Return findings on this exact reviewer thread. The lead continues this thread with `followup_task` through repair rounds.'''
 
 [roles.research-delegate]
 model = "gpt-5.6-terra"
@@ -63,7 +63,7 @@ runtime = '''Return the bounded research result to the parent thread. Do not mod
 model = "gpt-5.6-sol"
 reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-runtime = '''Generate a Codex plugin with `.codex-plugin/plugin.json`, a lead under `skills/<workflow-name>/`, custom-agent TOML plus an explicit installer, and plugin-level `hooks/hooks.json`. Use named custom agents through `spawn_agent`, retain reviewers with `send_input`, ask explicit user gates in plain text or `request_user_input`, and apply model, effort, and sandbox per role. Map top-capability and strong-judgment roles to `gpt-5.6-sol`; map small, fast evidence roles to `gpt-5.6-terra`. Preserve the approved reasoning effort exactly, with a recorded highest-supported fallback only when required. Require Codex V1 with `agents.max_depth = 2` when a generated graph nests dispatch. When the approved plan selects `workflow_script`, generate a deterministic Python or TypeScript `codex_exec_script` that launches `codex exec --json --ephemeral` per node with structured outcomes and keeps lead-driven custom-agent dispatch as fallback.'''
+runtime = '''Generate a Codex plugin with `.codex-plugin/plugin.json`, a lead under `skills/<workflow-name>/`, custom-agent TOML plus an explicit installer, and plugin-level `hooks/hooks.json`. Use named custom agents through `spawn_agent`, retain reviewers with `followup_task`, wait with `wait_agent`, ask explicit user gates in plain text or `request_user_input`, and apply model, effort, and sandbox per role. Map top-capability and strong-judgment roles to `gpt-5.6-sol`; map small, fast evidence roles to `gpt-5.6-terra`. Preserve the approved reasoning effort exactly, with a recorded highest-supported fallback only when required. Require Codex V1 with `agents.max_depth = 2` when a generated graph nests dispatch. When the approved plan selects `workflow_script`, generate a deterministic Python or TypeScript `codex_exec_script` that launches `codex exec --json --ephemeral` per node with structured outcomes and keeps lead-driven custom-agent dispatch as fallback.'''
 
 [roles.system-explorer]
 model = "gpt-5.6-terra"

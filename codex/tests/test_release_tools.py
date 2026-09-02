@@ -14,6 +14,7 @@ import yaml
 
 from codex import preflight
 from scripts import build_packages
+from scripts import stamp_version
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -146,7 +147,13 @@ class ReleaseContractTests(unittest.TestCase):
         )
         self.assertEqual(claude["version"], version)
         self.assertEqual(codex["version"], version)
-        self.assertEqual(marketplace["plugins"][0]["version"], version)
+        entries = [
+            plugin
+            for plugin in marketplace["plugins"]
+            if plugin["name"] == claude["name"]
+        ]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["version"], version)
         self.assertIn(f"Version: `{version}`", readme)
 
     def test_v1_depth_and_generated_model_doctrine_are_explicit(self) -> None:
@@ -199,6 +206,112 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn('project_root="${PROJECT_ROOT:-}"', hooks)
         for skill in (claude, codex):
             self.assertIn("blocks at most one stop in three", " ".join(skill.split()))
+
+
+class StampVersionTests(unittest.TestCase):
+    OTHER_PLUGIN = {
+        "name": "generated-plugin",
+        "source": "./generated-plugins/generated-plugin",
+        "description": "Owns its own version.",
+        "version": "1.3.0",
+    }
+    PAVE_INIT_PLUGIN = {
+        "name": "pave-init",
+        "source": "./",
+        "description": "Stamped from VERSION.",
+        "version": "0.0.1",
+    }
+
+    def write_tree(self, root: Path, plugins: list[dict]) -> Path:
+        (root / ".claude-plugin").mkdir(parents=True)
+        (root / ".codex-plugin").mkdir(parents=True)
+        (root / "skills" / "pave-init").mkdir(parents=True)
+        manifest = {"name": "pave-init", "version": "0.0.1"}
+        (root / ".claude-plugin" / "plugin.json").write_text(
+            json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+        )
+        (root / ".codex-plugin" / "plugin.json").write_text(
+            json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+        )
+        marketplace = root / ".claude-plugin" / "marketplace.json"
+        marketplace.write_text(
+            json.dumps({"name": "market", "plugins": plugins}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        (root / "skills" / "pave-init" / "VERSION").write_text(
+            "version: 9.9.9\n", encoding="utf-8"
+        )
+        (root / "skills" / "pave-init" / "README.md").write_text(
+            "# PAVE Init\n\nVersion: `0.0.1`\n", encoding="utf-8"
+        )
+        return marketplace
+
+    def expected_outputs(self, root: Path) -> dict[Path, str]:
+        with mock.patch.multiple(
+            stamp_version,
+            ROOT=root,
+            VERSION_PATH=root / "skills" / "pave-init" / "VERSION",
+            README_PATH=root / "skills" / "pave-init" / "README.md",
+            PLUGIN_MANIFEST_PATH=root / ".claude-plugin" / "plugin.json",
+            MARKETPLACE_PATH=root / ".claude-plugin" / "marketplace.json",
+            JSON_PATHS=(
+                root / ".claude-plugin" / "plugin.json",
+                root / ".codex-plugin" / "plugin.json",
+                root / ".claude-plugin" / "marketplace.json",
+            ),
+        ):
+            return stamp_version.expected_files(stamp_version.authoritative_version())
+
+    def test_two_plugin_marketplace_stamps_only_pave_init(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            marketplace = self.write_tree(
+                root, [dict(self.PAVE_INIT_PLUGIN), dict(self.OTHER_PLUGIN)]
+            )
+            before = marketplace.read_text(encoding="utf-8")
+            outputs = self.expected_outputs(root)
+            stamped = json.loads(outputs[marketplace])
+            self.assertEqual(stamped["plugins"][0]["version"], "9.9.9")
+            self.assertEqual(stamped["plugins"][1], self.OTHER_PLUGIN)
+            other_block = json.dumps(self.OTHER_PLUGIN, indent=2).replace(
+                "\n", "\n    "
+            )
+            self.assertIn(other_block, before)
+            self.assertIn(other_block, outputs[marketplace])
+            self.assertEqual(
+                json.loads(outputs[root / ".claude-plugin" / "plugin.json"])["version"],
+                "9.9.9",
+            )
+
+    def test_other_entry_first_is_untouched(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            marketplace = self.write_tree(
+                root, [dict(self.OTHER_PLUGIN), dict(self.PAVE_INIT_PLUGIN)]
+            )
+            stamped = json.loads(self.expected_outputs(root)[marketplace])
+            self.assertEqual(stamped["plugins"][0], self.OTHER_PLUGIN)
+            self.assertEqual(stamped["plugins"][1]["version"], "9.9.9")
+
+    def test_missing_pave_init_entry_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_tree(root, [dict(self.OTHER_PLUGIN)])
+            with self.assertRaisesRegex(
+                stamp_version.StampError, "named 'pave-init', found 0"
+            ):
+                self.expected_outputs(root)
+
+    def test_duplicate_pave_init_entry_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_tree(
+                root, [dict(self.PAVE_INIT_PLUGIN), dict(self.PAVE_INIT_PLUGIN)]
+            )
+            with self.assertRaisesRegex(
+                stamp_version.StampError, "named 'pave-init', found 2"
+            ):
+                self.expected_outputs(root)
 
 
 class BuildSafetyTests(unittest.TestCase):

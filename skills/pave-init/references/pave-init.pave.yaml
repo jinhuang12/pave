@@ -118,8 +118,8 @@ pave:
       kind: derivation
       produced_by: plan_root_skeleton
       subject: requested_workflow
-      artifact: planning/root-skeleton.pave.yaml
-      scope: root contract plus every root-level node interface; working state, never approved by existence
+      artifact: planning/root.draft.pave.yaml
+      scope: root contract plus every root-level node interface; working state, never approved by existence (references/planning-layout.md)
     frontier_record:
       kind: observation
       produced_by:
@@ -132,13 +132,15 @@ pave:
       produced_by: elaborate_boundary
       subject: root_skeleton
       artifacts:
-        - planning/boundaries/*
+        - planning/<node>.draft.pave.yaml
+        - planning/<node>.v2.draft.pave.yaml
+      scope: one fragment per dispatched boundary; a redispatch mints a new path, never a reused one (references/planning-layout.md)
     boundary_reviews:
       kind: judgment
       produced_by: review_boundary
       subject: boundary_drafts
-      artifacts:
-        - reviews/boundary-*.md
+      artifact: run-state.json#boundary_review_results
+      scope: the per-boundary verdict is a run-state entry plus the frontier entry's status in planning/frontier.yaml; no per-boundary file (pave-spec §8.4)
     workflow_definition:
       kind: derivation
       produced_by:
@@ -176,7 +178,8 @@ pave:
       produced_by: build_skill_component
       subject: generated_skill
       artifacts:
-        - generated-skill-units/*
+        - build/*
+      scope: per-unit integration records the lead writes while assembling; working state deleted or ignored at close, never part of the approval bundle (pave-spec §8.4)
     generated_skill_package:
       kind: observation
       produced_by: integrate_skill

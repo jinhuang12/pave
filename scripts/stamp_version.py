@@ -11,10 +11,12 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 VERSION_PATH = ROOT / "skills" / "pave-init" / "VERSION"
 README_PATH = ROOT / "skills" / "pave-init" / "README.md"
+PLUGIN_MANIFEST_PATH = ROOT / ".claude-plugin" / "plugin.json"
+MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
 JSON_PATHS = (
-    ROOT / ".claude-plugin" / "plugin.json",
+    PLUGIN_MANIFEST_PATH,
     ROOT / ".codex-plugin" / "plugin.json",
-    ROOT / ".claude-plugin" / "marketplace.json",
+    MARKETPLACE_PATH,
 )
 VERSION_LINE = re.compile(r"^version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$")
 README_LINE = re.compile(r"^Version: `[^`]+`$", re.MULTILINE)
@@ -32,15 +34,40 @@ def authoritative_version() -> str:
     return match.group(1)
 
 
+def plugin_name() -> str:
+    data = json.loads(PLUGIN_MANIFEST_PATH.read_text(encoding="utf-8"))
+    name = data.get("name") if isinstance(data, dict) else None
+    if not isinstance(name, str) or not name:
+        raise StampError(f"missing plugin name: {PLUGIN_MANIFEST_PATH}")
+    return name
+
+
+def stamp_marketplace(data: dict, name: str, version: str, path: Path) -> None:
+    # The marketplace also lists generated plugins that own their own
+    # versions, so stamp only the entry named after this plugin manifest.
+    plugins = data.get("plugins")
+    if not isinstance(plugins, list):
+        raise StampError(f"expected a marketplace plugin list: {path}")
+    matches = [
+        plugin
+        for plugin in plugins
+        if isinstance(plugin, dict) and plugin.get("name") == name
+    ]
+    if len(matches) != 1:
+        raise StampError(
+            f"expected one marketplace entry named {name!r}, "
+            f"found {len(matches)}: {path}"
+        )
+    matches[0]["version"] = version
+
+
 def expected_files(version: str) -> dict[Path, str]:
     outputs: dict[Path, str] = {}
+    name = plugin_name()
     for path in JSON_PATHS:
         data = json.loads(path.read_text(encoding="utf-8"))
-        if path.name == "marketplace.json":
-            plugins = data.get("plugins")
-            if not isinstance(plugins, list) or len(plugins) != 1:
-                raise StampError(f"expected one marketplace plugin: {path}")
-            plugins[0]["version"] = version
+        if path == MARKETPLACE_PATH:
+            stamp_marketplace(data, name, version, path)
         else:
             data["version"] = version
         outputs[path] = json.dumps(data, indent=2, ensure_ascii=False) + "\n"

@@ -12,8 +12,13 @@
 # additionalContext. Throttled: the 1st matching write in a session reminds,
 # then every Nth after (PAVE_INIT_READER_EVERY, default 3).
 #
+# Registered in the plugin's hooks/hooks.json, not the skill's frontmatter: a
+# skill-frontmatter hook fires only for the agent that invoked the skill and
+# never sees a subagent's write (measured on Claude Code 2.1.258).
+#
 # Silent exit 0 when: interpreter missing, payload unparsable, no
-# marker-discovered run state, the write is not markdown, the write is
+# marker-discovered run state, the run records a terminal status (the abandon
+# path sets it and may leave the marker), the write is not markdown, the write is
 # outside the workspace or inside an exempt directory, or the throttle
 # window holds.
 #
@@ -50,14 +55,14 @@ PAYLOAD_FILE="$(mktemp "${TMPDIR:-/tmp}/pave-init-reader.XXXXXX" 2>/dev/null)" |
 trap 'rm -f "$PAYLOAD_FILE"' EXIT
 printf '%s' "$PAYLOAD" > "$PAYLOAD_FILE" 2>/dev/null || exit 0
 
-"$PY" - "$WORKSPACE" "$TAG" "$PAYLOAD_FILE" "$EVERY" <<'PYEOF' 2>/dev/null || exit 0
+"$PY" - "$WORKSPACE" "$TAG" "$PAYLOAD_FILE" "$EVERY" "$FOUND_STATE" <<'PYEOF' 2>/dev/null || exit 0
 import json
 import os
 import sys
 import tempfile
 from pathlib import Path
 
-workspace, tag, payload_file, every_raw = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+workspace, tag, payload_file, every_raw, state_path = sys.argv[1:6]
 
 try:
     every = max(1, int(every_raw))
@@ -69,6 +74,17 @@ try:
         payload = json.load(handle)
 except Exception:
     sys.exit(0)  # fail open: no payload, nothing to judge
+
+# A run that recorded a terminal status is over, marker or not: the abandon
+# path sets the status and may leave the marker in place (SKILL.md, Run
+# workspace). Same gate as the stop check and the staleness reminder.
+try:
+    with open(state_path, encoding="utf-8") as handle:
+        terminal = (json.load(handle) or {}).get("terminal_classification")
+except Exception:
+    terminal = None  # unparsable state is validate_run_state.py business
+if isinstance(terminal, dict) and terminal.get("status"):
+    sys.exit(0)
 
 tool_input = payload.get("tool_input") or {}
 file_path = tool_input.get("file_path") or ""

@@ -1,4 +1,4 @@
-version: 2.4.0
+version: 2.4.1
 
 ## How changelog entries are written
 
@@ -17,6 +17,96 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.4.1 (2026-09-02)
+
+Fixed — the two hooks that watch subagent writes now fire on Claude Code.
+`planning-layout-warn.sh` and `write_for_reader.sh` moved from the skill's
+frontmatter to the plugin's `hooks/hooks.json`. Field evidence: a fresh
+session with a logging hook in each placement (run twice; the second run's
+logs are kept) — the skill-frontmatter hook logged only the lead's write; the
+settings-level hook logged that write plus both subagents', with `agent_id`
+and `agent_type` in the payload; a hook in an agent's own frontmatter logged
+nothing. With this
+fix loaded as a plugin, the reader hook's throttle counter reached 2 for one
+lead write plus one subagent write inside a marked run. The layout warning's
+main target is a node planner's write, so in 2.4.0 it could never fire for
+the actor it names.
+
+- `references/lead-alignment-hooks.md` (Scoping, Placement, Registration)
+  and the Stage 5 hook bindings state the rule: register by the actor the
+  hook watches — skill frontmatter for lead-only hooks, the plugin's
+  `hooks/hooks.json` for hooks that must see subagent tool calls. The stop
+  check and the staleness reminder stay in the frontmatter (lead-only by
+  design). `tests/test_hooks.sh` checks the registration.
+- Plugin-level placement is wider than the invoking session: any session in
+  the repository whose `.pave-init-run` marker points at a live run state is
+  in scope. Both moved hooks therefore also go silent once the run records a
+  terminal status, like the stop check and the staleness reminder, so the
+  marker-retaining abandon path silences all four.
+- A generated plugin that followed the old guidance carries the same blind
+  spot for any hook aimed at a subagent. vllm-neuron-parity is unaffected;
+  its hooks were already plugin-level.
+
+Fixed — the Codex binding names the agent tools Codex actually exposes.
+`followup_task` continues a retained reviewer thread, `wait_agent` waits, and
+`interrupt_agent` stops a thread that still runs after its node closed; the
+nonexistent `send_input` and "close each thread" instructions are gone.
+Dispatch policy is unchanged. Field evidence: the maintainer's Codex rollout
+logs hold 1,090 `followup_task` calls and zero `send_input` calls.
+
+- `sources/bindings/codex.toml`, `codex/README.md`; `scripts/build_packages.py`
+  now also refuses `followup_task`, `wait_agent`, `interrupt_agent`, and
+  `fork_turns` in shared sources.
+- Known limit: `codex/preflight.py` still proves only the nested spawn chain,
+  and its rollout-shape expectations (`agent_id` in the spawn output,
+  `agent_role` in session metadata) match none of the rollouts observed on the
+  maintainer's machine. Reviewer continuation is not proven by the preflight.
+
+Fixed — release stamping works with a multi-plugin marketplace.
+`scripts/stamp_version.py` stamps only the marketplace entry named after the
+pave-init manifest and fails clearly when that entry is missing or listed
+twice. The marketplace pin and the README version, stale at 2.2.9 since a
+generated plugin joined the marketplace, are current again.
+
+Improved — the lead applies three of its own generated-workflow rules to its
+own run. Field evidence: a real run re-dispatched xhigh planners on unchanged
+inputs and saw one defect class recur across four plan-review rounds.
+
+- Dispatch rule on re-entry (`SKILL.md`, after the recovery table): a
+  re-entered node whose inputs did not move is settled by the lead with the
+  check's command and output recorded; a planner, explorer, or reviewer is
+  re-dispatched only when an input to its judgment changed.
+- Default recovery for its own failures: validation, build, forward-test, and
+  preflight failures the graph does not route enter the §9.8 loop; the
+  `build_failure_retry` and `delivery_retry` self-loops are one retry each.
+- Plan review is bounded at four total rounds and counts recurrence by defect
+  class: a class repeating at a new site widens the repair to a sweep; a third
+  occurrence routes `repair_blocked`.
+
+Improved — pave-init's own run-state validator is honest without jsonschema.
+The stdlib path now enforces `minLength`, `const`, `enum`, and nested
+`required` (an empty `run_id` fails in both modes) and derives the list of
+keywords it cannot enforce from the schema instead of a typed string.
+`traversal_history[].outcome`, `terminal_classification.status`, and the
+`fitness_override` record's free text gain `maxLength`.
+
+- Changed — in run-state mode, `maxLength` overflows are warnings with or
+  without jsonschema (observation over blocking, §9.14.2); in 2.4.0 they were
+  errors. A delivered run's state that exited 1 on caps now passes with
+  warnings. Frontier mode keeps per-entry caps as errors (§8.1).
+- `skills/pave-init/tests/test_validate_run_state.py` (new, stdlib only) runs
+  under both interpreters.
+
+Fixed — pave-init's own graph names the evidence paths the run writes:
+`planning/root.draft.pave.yaml`, `planning/<node>.draft.pave.yaml`,
+`run-state.json` `boundary_review_results` (no per-boundary review file), and
+`build/`; the traceability rows match. Found by an independent Codex review.
+
+Changed — two rules moved from `technique-selection.md`, which loads only for
+supervision choices, into `pave-spec.md`, which every design choice loads:
+"an authored mechanism, not a knob flip" (§9.1) and "scripts own derived
+numbers" (§5.3.1). Net +12 spec lines; no restatement existed to cut.
 
 ### 2.4.0 (2026-09-01)
 

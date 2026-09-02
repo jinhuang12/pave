@@ -122,8 +122,10 @@ differences are:
 - `$pave-init:pave-init` replaces `/pave-init`.
 - `.codex-plugin/plugin.json` replaces `.claude-plugin/plugin.json`.
 - Codex custom-agent TOML files replace registered Markdown agent manifests.
-- Codex subagent spawning and thread steering replace `Agent`,
-  `subagent_type`, and `SendMessage`.
+- Codex agent tools replace `Agent`, `subagent_type`, and `SendMessage`:
+  `spawn_agent` starts a named thread, `followup_task` continues a retained
+  thread, `wait_agent` waits for it, and `interrupt_agent` stops a thread that
+  still runs after its node instance closed. A finished thread needs no close.
 - Plain-text bounded questions replace `AskUserQuestion`; explicit approval
   remains mandatory.
 - Role reasoning effort is preserved. Claude `fable` and `opus` map to

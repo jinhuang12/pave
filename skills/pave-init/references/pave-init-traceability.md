@@ -20,16 +20,16 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | evidence | fitness_override_record | orchestration/interview-and-fitness.md | Explicit override after a not-fit verdict |
 | evidence | exploration_reports | SKILL.md<br>agents/system-explorer.md<br>orchestration/explore-and-plan.md | Per-lens evidence reports, persisted to exploration/<lens>.md by its explorer |
 | evidence | system_map | orchestration/explore-and-plan.md | Verified system synthesis |
-| evidence | root_skeleton | orchestration/explore-and-plan.md | Frozen root contract and node interfaces |
+| evidence | root_skeleton | orchestration/explore-and-plan.md<br>references/planning-layout.md | Frozen root contract and node interfaces, drafted at planning/root.draft.pave.yaml (working state) |
 | evidence | frontier_record | orchestration/explore-and-plan.md<br>schemas/run-state.schema.json<br>scripts/validate_run_state.py<br>references/planning-layout.md<br>hooks/planning-layout-warn.sh | Planning frontier state; shape per `$defs.frontier`/`$defs.fragment`, checked by `--frontier`, ownership per the layout reference, drift warned by the hook |
-| evidence | boundary_drafts | agents/node-planner.md<br>orchestration/explore-and-plan.md | Per-boundary child profile drafts |
-| evidence | boundary_reviews | agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Per-boundary review verdicts |
+| evidence | boundary_drafts | agents/node-planner.md<br>orchestration/explore-and-plan.md<br>references/planning-layout.md | Per-boundary fragment drafts at planning/<node>.draft.pave.yaml; a redispatch mints a new path |
+| evidence | boundary_reviews | agents/pave-material-reviewer.md<br>orchestration/review-and-build.md<br>schemas/run-state.schema.json | Per-boundary verdict as a run-state `boundary_review_results` entry plus the frontier entry's status; no per-boundary file |
 | evidence | workflow_definition | references/pave-yaml.md<br>references/pave-composition.md<br>orchestration/explore-and-plan.md | Canonical PAVE graph, root plus justified child profiles |
 | evidence | traceability_record | orchestration/explore-and-plan.md | Graph-to-skill mapping |
 | evidence | package_plan | orchestration/explore-and-plan.md | File ownership and build units |
 | evidence | plan_review | SKILL.md<br>agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Plan-gate verdict, recorded in reviews/plan-review.md |
 | evidence | plan_approval | SKILL.md<br>orchestration/review-and-build.md<br>references/approval-briefs.md | Explicit whole-bundle approval, recorded in reviews/user-plan-approval.md; presented via the reviewer-verified brief at reviews/plan-brief.md |
-| evidence | build_unit_results | agents/skill-builder.md<br>orchestration/review-and-build.md | Per-builder terminal result |
+| evidence | build_unit_results | SKILL.md<br>agents/skill-builder.md<br>orchestration/review-and-build.md | Per-builder terminal result; the lead's integration records under build/ are working state deleted or ignored at close |
 | evidence | generated_skill_package | agents/skill-builder.md<br>orchestration/review-and-build.md | Integrated generated skill |
 | evidence | validation_results | SKILL.md<br>scripts/validate_pave.py<br>scripts/validate_traceability.py | Mechanical validation records, recorded in reviews/validation.md |
 | evidence | final_skill_review | SKILL.md<br>agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Integrated-skill verdict, recorded in reviews/final-skill-review.md |

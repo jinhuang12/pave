@@ -10,27 +10,23 @@ description: >-
   Create a PAVE-based Claude Code workflow plugin from a goal the user states.
   Manual-only: use only when the user explicitly invokes /pave-init. This long
   campaign clarifies the goal, explores the system, designs and reviews a PAVE
-  graph, and builds and tests the plugin. It registers four disclosed
-  skill-lifetime hooks: stop alignment, stale run-state reminder, planning
-  layout warning, and a write-for-the-reader reminder on run-workspace
-  document writes. While a run is active, the stop check blocks at most one
-  stop in three; nothing registers silently.
+  graph, and builds and tests the plugin. It registers four disclosed hooks:
+  stop alignment and a stale run-state reminder live in this skill's
+  frontmatter (lead-only); the planning layout warning and the
+  write-for-the-reader reminder live in the plugin's hooks.json so they also
+  see subagent writes. While a run is active, the stop check blocks at most
+  one stop in three; nothing registers silently.
 compatibility: >-
-  Requires Claude Code skill-frontmatter hooks, registered pave-init agent
-  types, bash, and Python 3. PAVE validation also requires pyyaml and
-  jsonschema and fails closed without them.
+  Requires Claude Code skill-frontmatter hooks and plugin-level hooks
+  (hooks/hooks.json), registered pave-init agent types, bash, and Python 3.
+  PAVE validation also requires pyyaml and jsonschema and fails closed
+  without them.
 hooks:
   PostToolUse:
     - matcher: "Bash|Write|Edit"
       hooks:
         - type: command
           command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/state_staleness_reminder.sh"
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/planning-layout-warn.sh"
-        - type: command
-          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/write_for_reader.sh"
   Stop:
     - hooks:
         - type: command
@@ -48,10 +44,10 @@ If a required `pave-init:*` agent type is unavailable, pause and report an incom
 PACKAGE_IDENTITY = '''The delivered unit is a Claude Code plugin — the same shape as pave-init itself.'''
 MANIFEST_COMPONENT = '''the plugin manifest (`.claude-plugin/plugin.json`: name, description, version); the plugin name is `<workflow-name>` — one string serving as the manifest name, lead-skill directory, and `subagent_type` prefix;'''
 ROLE_COMPONENT = '''role contracts as registered Markdown agents under the plugin root's `agents/`, when authority or context differs;'''
-HOOK_COMPONENT = '''hook scripts under `skills/<workflow-name>/hooks/`, registered in generated skill frontmatter per the approved enforcement record, plus one consent-gated settings fragment only for rules frontmatter cannot carry;'''
+HOOK_COMPONENT = '''hook scripts under `skills/<workflow-name>/hooks/`, registered per the approved enforcement record — in generated skill frontmatter when only the lead's tool calls or lead-only events matter, in the plugin's `hooks/hooks.json` when the hook must see subagent tool calls (a skill-frontmatter hook fires only for the agent that invoked the skill) — plus one consent-gated settings fragment only for rules neither placement can carry;'''
 ROLE_RUNTIME_BINDING = '''Roles map to registered plugin agents (`agents/<role>.md`) only when they need distinct authority or context. The lead dispatches `subagent_type: <workflow-name>:<role>` and pauses when it is unavailable; it never substitutes an ordinary worker.'''
 MODEL_RUNTIME_BINDING = '''Map the approved capability tier to Claude model slugs explicitly: top-capability planning roles use `fable`, strong judgment roles use `opus`, and small, fast evidence roles use `sonnet`. Preserve the approved effort in agent frontmatter and each scripted agent call.'''
-HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement record. Register it at the recorded skill or agent frontmatter scope, with a settings fragment only behind the generated skill's run-start consent gate.'''
+HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement record. Register it by the actor it watches: skill frontmatter for a hook that only the lead's tool calls or lead-only events (Stop, UserPromptSubmit, SessionStart) must reach; the plugin's `hooks/hooks.json` for a hook that must see a subagent's tool calls — a skill-frontmatter hook fires only for the agent that invoked the skill (measured on Claude Code 2.1.258). A settings fragment ships only behind the generated skill's run-start consent gate, for rules neither placement can carry.'''
 SCRIPT_RUNTIME_BINDING = '''A subgraph with an approved `workflow_script` binding maps to one Claude Agent SDK `@beta` workflow script per the native `skill-builder` contract, with lead-driven Agent calls as fallback when the script runtime is unavailable.'''
 DELIVERY_INSTALL_BULLET = '''- the one-line install: `claude --plugin-dir <package-root>` loads it for a session; a marketplace install makes it permanent;'''
 SKILL_VALIDATION_BINDING = '''the `skill-creator:skill-creator` quick validator'''
@@ -84,7 +80,7 @@ runtime = '''Return the bounded research result to the parent agent. Do not modi
 sandbox_mode = "workspace-write"
 model = "opus"
 effort = "medium"
-runtime = '''Generate a Claude Code plugin with `.claude-plugin/plugin.json`, a lead under `skills/<workflow-name>/`, and role contracts under `agents/`. Use Agent calls with `subagent_type: <workflow-name>:<role>`, `AskUserQuestion` gates, named reviewers continued with `SendMessage`, agent-frontmatter model and effort pins, skill-frontmatter hooks, and Claude Agent SDK `@beta` workflow scripts when the approved plan selects `workflow_script`. A script uses one `agent()` call per node, `pipeline()` or `parallel()` for fan-out, structured outcomes, and lead-driven Agent calls as fallback.'''
+runtime = '''Generate a Claude Code plugin with `.claude-plugin/plugin.json`, a lead under `skills/<workflow-name>/`, and role contracts under `agents/`. Use Agent calls with `subagent_type: <workflow-name>:<role>`, `AskUserQuestion` gates, named reviewers continued with `SendMessage`, agent-frontmatter model and effort pins, skill-frontmatter hooks for lead-only rules and the plugin's `hooks/hooks.json` for hooks that must see subagent tool calls, and Claude Agent SDK `@beta` workflow scripts when the approved plan selects `workflow_script`. A script uses one `agent()` call per node, `pipeline()` or `parallel()` for fan-out, structured outcomes, and lead-driven Agent calls as fallback.'''
 
 [roles.system-explorer]
 sandbox_mode = "workspace-write"

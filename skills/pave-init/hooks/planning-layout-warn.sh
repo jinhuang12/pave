@@ -13,9 +13,15 @@
 # content checks beyond the c<N> heuristic belong to
 # validate_run_state.py --frontier.
 #
+# Registered in the plugin's hooks/hooks.json, not the skill's frontmatter: a
+# skill-frontmatter hook fires only for the agent that invoked the skill and
+# never sees a subagent's write (measured on Claude Code 2.1.258) -- and a
+# node planner's write is exactly what this hook watches.
+#
 # Silent exit 0 when: interpreter missing, payload unparsable, no marker-
-# discovered run state, write outside that run's planning/ directory, or the
-# write conforms.
+# discovered run state, the run records a terminal status (the abandon path
+# sets it and may leave the marker), write outside that run's planning/
+# directory, or the write conforms.
 #
 # Decline path (hook runtime unavailable): degrades to the layout duties in
 # references/planning-layout.md.
@@ -49,19 +55,30 @@ PAYLOAD_FILE="$(mktemp "${TMPDIR:-/tmp}/pave-init-layout-warn.XXXXXX" 2>/dev/nul
 trap 'rm -f "$PAYLOAD_FILE"' EXIT
 printf '%s' "$PAYLOAD" > "$PAYLOAD_FILE" 2>/dev/null || exit 0
 
-"$PY" - "$PLANNING_DIR" "$TAG" "$PAYLOAD_FILE" <<'PYEOF' 2>/dev/null || exit 0
+"$PY" - "$PLANNING_DIR" "$TAG" "$PAYLOAD_FILE" "$FOUND_STATE" <<'PYEOF' 2>/dev/null || exit 0
 import json
 import re
 import sys
 from pathlib import Path
 
-planning_dir, tag, payload_file = sys.argv[1], sys.argv[2], sys.argv[3]
+planning_dir, tag, payload_file, state_path = sys.argv[1:5]
 
 try:
     with open(payload_file, encoding="utf-8") as handle:
         payload = json.load(handle)
 except Exception:
     sys.exit(0)  # fail open: no payload, nothing to judge
+
+# A run that recorded a terminal status is over, marker or not: the abandon
+# path sets the status and may leave the marker in place (SKILL.md, Run
+# workspace). Same gate as the stop check and the staleness reminder.
+try:
+    with open(state_path, encoding="utf-8") as handle:
+        terminal = (json.load(handle) or {}).get("terminal_classification")
+except Exception:
+    terminal = None  # unparsable state is validate_run_state.py business
+if isinstance(terminal, dict) and terminal.get("status"):
+    sys.exit(0)
 
 
 def find(node, key):

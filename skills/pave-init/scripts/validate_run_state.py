@@ -6,16 +6,20 @@ Usage:
   validate_run_state.py --frontier <path/to/planning/frontier.yaml>
 
 Run-state mode: full validation uses the jsonschema package when importable.
-Without it, falls back to a stdlib check of required keys, traversal-entry
-shape, and every maxLength cap the schema declares, so run state stays
-checkable on a bare python3 (this mode must never fail closed for a missing
-dependency; the graph validators own that behavior). The basic mode names the
-keywords it does not enforce - an unenforced keyword is announced, never a
-silent pass (references/pave-spec.md section 8.1).
+Without it, falls back to a stdlib walk of the schema tree in step with the
+instance that enforces required, minLength, enum, and const wherever they
+occur (nested objects and array items included), so an empty run_id or a bad
+enum fails on a bare python3 exactly as it does with jsonschema. This mode
+must never fail closed for a missing dependency; the graph validators own that
+behavior. The basic mode derives the keywords it does not enforce from the
+schema itself and names them in its mode string - an unenforced keyword is
+announced, never a silent pass (references/pave-spec.md section 8.1).
 
-Both modes also emit non-fatal WARN lines: a whole-file size past the declared
-escape-hatch threshold (compaction advice, never a refused write), and a
-recorded path-typed field that resolves to nothing on disk (state points,
+Run-state mode, with or without jsonschema, also emits non-fatal WARN lines: a
+maxLength cap overflow (names the fix: move the content to an artifact and
+cite its path), a whole-file size past
+the declared escape-hatch threshold (compaction advice, never a refused write),
+and a recorded path-typed field that resolves to nothing on disk (state points,
 artifacts prove - a pointer to nothing is a defect to fix or an artifact still
 to land).
 
@@ -30,7 +34,9 @@ the hand rules a shape schema cannot express (references/planning-layout.md):
      in the lead-owned conflict namespace (c<N>) - those ids are lead-assigned
      in the frontier register; node-local labels (e1, n2, ...) are fine.
 This mode is Stage 3 planning tooling and fails closed (exit 2) without
-pyyaml + jsonschema, like validate_pave.py.
+pyyaml + jsonschema, like validate_pave.py. Per-entry maxLength caps stay
+errors here (references/pave-spec.md section 8.1): content over a cap moves
+to an artifact cited by path.
 
 Exit codes: 0 valid, 1 invalid, 2 usage or dependency or schema error.
 """
@@ -53,9 +59,22 @@ RETURNED_STATUSES = {"planned", "reviewed", "stale"}
 # names the compaction action, never refuses the write.
 WHOLE_FILE_WARN_BYTES = 131072
 
-# Keywords the stdlib fallback does not enforce. Announced in the mode string
-# so an unenforced keyword is loud, never a silent pass.
-BASIC_MODE_UNENFORCED = "type/enum/additionalProperties/pattern/minimum"
+# Schema keywords that assert nothing on their own: annotations, and the
+# applicators the stdlib walk descends through to reach nested assertions.
+NON_ASSERTION_KEYWORDS = {
+    "$schema",
+    "$id",
+    "$comment",
+    "$defs",
+    "title",
+    "description",
+    "default",
+    "examples",
+    "properties",
+    "items",
+}
+# Assertions the stdlib fallback enforces itself. maxLength warns; the rest fail.
+BASIC_MODE_ENFORCED = {"required", "minLength", "enum", "const", "maxLength"}
 
 
 def load_schema():
@@ -66,34 +85,80 @@ def load_schema():
         return None
 
 
-def enforce_caps(schema_node, instance, path, problems):
-    """Stdlib enforcement of the schema's maxLength caps (pave-spec section 8.1).
+def schema_keywords(schema_node, found=None):
+    """Collect every keyword in the schema tree the run-state walk can reach.
 
-    Walks properties/items in step with the instance so every declared cap is
-    checked without jsonschema. A capped field that overflows names the fix:
-    move the content to an artifact and cite its path.
+    Descends properties, items, and a schema-valued additionalProperties.
+    Skips $defs: those shapes serve --frontier, which fails closed without
+    jsonschema and so never runs on the stdlib path.
+    """
+    if found is None:
+        found = set()
+    if not isinstance(schema_node, dict):
+        return found
+    found.update(schema_node)
+    props = schema_node.get("properties")
+    if isinstance(props, dict):
+        for sub in props.values():
+            schema_keywords(sub, found)
+    for key in ("items", "additionalProperties"):
+        if isinstance(schema_node.get(key), dict):
+            schema_keywords(schema_node[key], found)
+    return found
+
+
+def unenforced_keywords(schema):
+    """Keywords the schema uses that the stdlib fallback leaves to jsonschema."""
+    return sorted(schema_keywords(schema) - NON_ASSERTION_KEYWORDS - BASIC_MODE_ENFORCED)
+
+
+def cap_warning(where, length, cap):
+    return (
+        f"{where}: {length} chars exceeds maxLength {cap}"
+        " - move the content to an artifact and cite its path"
+    )
+
+
+def stdlib_validate(schema_node, instance, path, problems, warnings):
+    """Stdlib enforcement of the schema's cheap assertions (pave-spec section 8.1).
+
+    Walks properties/items in step with the instance so every occurrence is
+    checked without jsonschema: required, minLength, enum, and const fail;
+    maxLength warns and names the fix. Anything outside BASIC_MODE_ENFORCED is
+    left to jsonschema and announced by the caller.
     """
     if not isinstance(schema_node, dict):
         return
+    where = path or "<root>"
+    if "const" in schema_node and instance != schema_node["const"]:
+        problems.append(f"{where}: {instance!r} is not the constant {schema_node['const']!r}")
+    if "enum" in schema_node and instance not in schema_node["enum"]:
+        problems.append(f"{where}: {instance!r} is not one of {schema_node['enum']}")
     if isinstance(instance, str):
+        floor = schema_node.get("minLength")
+        if isinstance(floor, int) and len(instance) < floor:
+            problems.append(f"{where}: {len(instance)} chars is under minLength {floor}")
         cap = schema_node.get("maxLength")
         if isinstance(cap, int) and len(instance) > cap:
-            problems.append(
-                f"{path or '<root>'}: {len(instance)} chars exceeds maxLength {cap}"
-                " - move the content to an artifact and cite its path"
-            )
-        return
-    if isinstance(instance, dict):
+            warnings.append(cap_warning(where, len(instance), cap))
+    elif isinstance(instance, dict):
+        prefix = f"{path}: " if path else ""
+        problems.extend(
+            f"{prefix}missing required field: {key}"
+            for key in schema_node.get("required", [])
+            if key not in instance
+        )
         props = schema_node.get("properties")
         if isinstance(props, dict):
             for key, sub in props.items():
                 if key in instance:
-                    enforce_caps(sub, instance[key], f"{path}.{key}" if path else key, problems)
+                    child = f"{path}.{key}" if path else key
+                    stdlib_validate(sub, instance[key], child, problems, warnings)
     elif isinstance(instance, list):
         items = schema_node.get("items")
         if isinstance(items, dict):
             for i, item in enumerate(instance):
-                enforce_caps(items, item, f"{path}[{i}]", problems)
+                stdlib_validate(items, item, f"{path}[{i}]", problems, warnings)
 
 
 def iter_path_fields(state):
@@ -172,45 +237,42 @@ def validate_run_state(state_path: Path) -> int:
     if schema is None:
         return 2
 
-    problems = []
     if not isinstance(state, dict):
         print("FAIL: top level is not an object")
         return 1
 
-    problems.extend(
-        f"missing required field: {key}"
-        for key in schema.get("required", [])
-        if key not in state
-    )
-
+    problems = []
+    warnings = []
     try:
         import jsonschema
 
         validator = jsonschema.Draft7Validator(schema)
-        problems.extend(
-            f"{'/'.join(str(p) for p in error.absolute_path) or '<root>'}: {error.message}"
-            for error in validator.iter_errors(state)
-        )
-        mode = "full (jsonschema)"
-    except ImportError:
-        history = state.get("traversal_history")
-        if history is not None:
-            if not isinstance(history, list):
-                problems.append("traversal_history: not a list")
+        for error in validator.iter_errors(state):
+            where = "/".join(str(p) for p in error.absolute_path) or "<root>"
+            if error.validator == "maxLength" and isinstance(error.instance, str):
+                warnings.append(cap_warning(where, len(error.instance), error.validator_value))
             else:
-                problems.extend(
-                    f"traversal_history[{i}]: missing node/outcome"
-                    for i, entry in enumerate(history)
-                    if not (isinstance(entry, dict) and entry.get("node") and entry.get("outcome"))
-                )
-        enforce_caps(schema, state, "", problems)
+                problems.append(f"{where}: {error.message}")
+        mode = "full (jsonschema; maxLength caps warn)"
+    except ImportError:
+        # Traversal-entry shape: the schema walk below checks required and
+        # minLength on each entry; only the not-an-object cases need a hand check.
+        history = state.get("traversal_history")
+        if history is not None and not isinstance(history, list):
+            problems.append("traversal_history: not a list")
+        elif isinstance(history, list):
+            problems.extend(
+                f"traversal_history[{i}]: not an object"
+                for i, entry in enumerate(history)
+                if not isinstance(entry, dict)
+            )
+        stdlib_validate(schema, state, "", problems, warnings)
+        unenforced = "/".join(unenforced_keywords(schema)) or "none"
         mode = (
-            "basic (stdlib: required keys, traversal shape, maxLength caps"
-            f" enforced; NOT enforced: {BASIC_MODE_UNENFORCED} -"
-            " install jsonschema for full validation)"
+            "basic (stdlib: required/minLength/enum/const enforced, maxLength caps warn;"
+            f" NOT enforced: {unenforced} - install jsonschema for full validation)"
         )
 
-    warnings = []
     check_file_size(state_path, warnings)
     check_recorded_paths(state, state_path, warnings)
     return report(problems, mode, state_path, warnings)

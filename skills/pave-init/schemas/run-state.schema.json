@@ -54,7 +54,14 @@
     },
     "fitness_override": {
       "type": ["object", "null"],
-      "description": "Free-form record of a not_fit override: original verdict, missing characteristics, user rationale, accepted risks. Intentionally loose."
+      "description": "Compact record of the not_fit override the user approved, shaped per orchestration/interview-and-fitness.md section 5; the full rationale lives in requirements.md#fitness-override (the fitness_override_record artifact). Its free-text keys are capped rather than left loose because pave-spec.md section 8.1 allows one unconstrained escape hatch per file and `notes` holds it. Keys beyond the five declared stay allowed so the recipe can grow.",
+      "properties": {
+        "original_verdict": {"type": "string", "maxLength": 200},
+        "missing_characteristics": {"type": "array", "items": {"type": "string", "maxLength": 200}},
+        "user_rationale": {"type": "string", "maxLength": 1000},
+        "accepted_risks": {"type": "array", "items": {"type": "string", "maxLength": 300}},
+        "approved_at": {"type": "string"}
+      }
     },
     "exploration_lenses": {"type": "array", "items": {"type": "string"}},
     "explorer_results": {
@@ -114,7 +121,7 @@
       "type": ["object", "null"],
       "additionalProperties": false,
       "properties": {
-        "status": {"type": ["string", "null"]},
+        "status": {"type": ["string", "null"], "maxLength": 200},
         "reason": {"type": "string", "maxLength": 1000}
       }
     },
@@ -126,7 +133,7 @@
         "additionalProperties": false,
         "properties": {
           "node": {"type": "string", "minLength": 1},
-          "outcome": {"type": "string", "minLength": 1},
+          "outcome": {"type": "string", "minLength": 1, "maxLength": 200},
           "at": {"type": "string"},
           "evidence": {"type": "array", "items": {"type": "string"}},
           "note": {"type": "string", "maxLength": 500, "description": "One-line context. Longer content lives in an artifact cited under evidence, never here."}

@@ -10,11 +10,15 @@
 #              once, throttles within the window, skips subagent payloads,
 #              stays silent on terminal runs
 #   layout:    every allowlisted planning/ path is silent for the lead, an
-#              undeclared path warns, and a lead-owned path warns when a
-#              subagent writes it
+#              undeclared path warns, a lead-owned path warns when a
+#              subagent writes it, and a terminal run is silent
 #   reader:    a run-workspace .md write reminds (lead and subagent alike),
 #              throttles to every Nth write, and stays silent for exempt
-#              working-state directories and non-markdown writes
+#              working-state directories, non-markdown writes, and terminal
+#              runs
+#   registration: the two subagent-facing hooks are in the plugin's
+#              hooks/hooks.json (a skill-frontmatter hook never sees a
+#              subagent's write); the frontmatter keeps only the lead-only pair
 # Also: validate_run_state.py passes a well-formed instance and fails a
 # broken one.
 #
@@ -243,6 +247,11 @@ OUT="$(layout_payload root-contract.md node-planner | bash "$LAYOUT_HOOK" 2>/dev
 ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "a subagent wrote planning/root-contract.md" && ok=1
 report "layout: a subagent writing root-contract.md warns" "$ok" "rc=$RC out=$OUT"
 
+write_state abandoned complete
+OUT="$(layout_payload assembly-checklist.md "" | bash "$LAYOUT_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "layout: terminal run is silent" "$ok" "rc=$RC out=$OUT"
+
 # --- write_for_reader --------------------------------------------------------
 # The write-for-the-reader duty (references/pave-spec.md section 8.5): remind
 # on reader-facing run-workspace document writes by any actor, throttled to
@@ -296,10 +305,43 @@ OUT="$(reader_payload notes.txt r3 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
 report "reader: non-markdown write is silent" "$ok" "rc=$RC out=$OUT"
 
+write_state abandoned complete
+OUT="$(reader_payload requirements.md r5 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: terminal run is silent" "$ok" "rc=$RC out=$OUT"
+write_state "" complete
+
 rm -f "$RUN_MARKER"
 OUT="$(reader_payload requirements.md r4 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
 report "reader: scan-discovered state without marker is silent" "$ok" "rc=$RC out=$OUT"
+
+# --- registration ------------------------------------------------------------
+# A skill-frontmatter hook fires only for the agent that invoked the skill
+# (measured on Claude Code 2.1.258), so the two hooks that watch subagent
+# writes must be registered in the plugin's hooks/hooks.json, and the
+# frontmatter must keep only the lead-only pair.
+PLUGIN_ROOT="$(cd "$SKILL/../.." && pwd)"
+REG="$(python3 - "$PLUGIN_ROOT" <<'PY' 2>/dev/null
+import json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+try:
+    data = json.load(open(root / "hooks" / "hooks.json"))
+    cmds = [h["command"] for groups in data["hooks"].values() for g in groups for h in g["hooks"]]
+except Exception:
+    cmds = []
+plugin_ok = any("planning-layout-warn.sh" in c for c in cmds) and any("write_for_reader.sh" in c for c in cmds)
+fm = (root / "skills" / "pave-init" / "SKILL.md").read_text(encoding="utf-8").split("\n---", 1)[0]
+fm_ok = ("planning-layout-warn.sh" not in fm and "write_for_reader.sh" not in fm
+         and "stop_alignment_check.sh" in fm and "state_staleness_reminder.sh" in fm)
+print(int(plugin_ok), int(fm_ok))
+PY
+)"
+ok=0; [ "${REG%% *}" = "1" ] && ok=1
+report "registration: subagent-facing hooks are in plugin hooks.json" "$ok" "reg=$REG"
+ok=0; [ "${REG##* }" = "1" ] && ok=1
+report "registration: frontmatter keeps only the lead-only pair" "$ok" "reg=$REG"
 
 echo
 echo "$PASS passed, $FAIL failed"

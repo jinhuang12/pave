@@ -1,6 +1,6 @@
 # PAVE Init
 
-Version: `2.2.9`
+Version: `2.4.1`
 
 Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
 
@@ -293,7 +293,7 @@ check in the recorded traversal history. Both are declared in
     │   ├── state_staleness_reminder.sh   # PostToolUse: throttled observing staleness nudge
     │   └── planning-layout-warn.sh       # PostToolUse: non-blocking planning-layout warning
     └── tests/
-        └── test_hooks.sh                 # 17 assertions covering every hook-pair invariant
+        └── test_hooks.sh                 # invariant tests for every shipped hook and its registration
 ```
 
 ## How recursive planning stays manageable
@@ -322,9 +322,10 @@ structural property and each omitted only by a recorded omission condition:
 the lead-alignment hook pair when a lead routes a long-horizon run, one
 machine-checkable schema when state must survive a session boundary, and a
 layout reference when more than one role writes artifacts.
-`pave-init` applies all of this to itself: it registers the hook pair in its
-own frontmatter and persists its own run state (`run-state.json`, validated by
-`schemas/run-state.schema.json`).
+`pave-init` applies all of this to itself: it registers the lead-only hook
+pair in its own frontmatter, its two subagent-facing hooks (planning layout,
+write-for-the-reader) in the plugin's `hooks/hooks.json`, and persists its own
+run state (`run-state.json`, validated by `schemas/run-state.schema.json`).
 
 ## Workflow revisions
 

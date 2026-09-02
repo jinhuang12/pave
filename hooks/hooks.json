@@ -1,0 +1,22 @@
+{
+  "description": "pave-init hooks that must see subagent tool calls. A skill-frontmatter hook fires only for the agent that invoked the skill, so the planning-layout warning (node planners write planning/) and the write-for-the-reader reminder register here. Both are armed by the .pave-init-run marker and stay silent outside an active run. The stop check and the staleness reminder are lead-only and stay in the skill's frontmatter.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/pave-init/hooks/planning-layout-warn.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/pave-init/hooks/write_for_reader.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

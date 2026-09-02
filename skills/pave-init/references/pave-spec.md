@@ -448,6 +448,12 @@ second artifact the doer does not write, so the claim traces to the run that
 produced it. An artifact whose provenance rests only on the doer's own text
 is a self-report regardless of its format.
  
+Scripts own derived numbers. A number computed from evidence — a speedup, a
+pass rate, a diff count — comes from a deterministic script, and the artifact
+that carries it records the recompute command. A number an actor derives by
+hand can err or drift toward the answer it wants, and nobody can re-check it
+cheaply.
+
 Two guards keep the ladder from backfiring. A metric that does not measure the
 acceptance property is as much a defect as missing evidence, so do not invent
 numbers to reach rung 1. And the ladder binds acceptance-bearing evidence only.
@@ -817,6 +823,12 @@ Use this pattern when changing assumptions would invalidate later evidence.
 accepted incumbent and compare an exact candidate against it. Record the
 revisions, environment, workload, and policy that both were measured under,
 because a comparison is only as good as the conditions it holds fixed.
+
+**An authored mechanism, not a knob flip.** When the purpose names a
+mechanism, the work is that mechanism — authored change a reviewer can point
+at. Under iteration pressure an actor can pass check after check by tuning
+parameters, flags, and configs while the named work never happens; route
+config-only output back as not the work.
  
 ### 9.2 Evidence before commitment
  
