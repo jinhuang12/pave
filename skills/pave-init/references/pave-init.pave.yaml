@@ -114,27 +114,29 @@ pave:
       produced_by: synthesize_exploration
       subject: target_system
       artifact: system-map.md
-    root_skeleton:
+    root_contract:
       kind: derivation
       produced_by: plan_root_skeleton
       subject: requested_workflow
-      artifact: planning/root.draft.pave.yaml
-      scope: root contract plus every root-level node interface; working state, never approved by existence (references/planning-layout.md)
+      artifact: planning/root-contract.md
+      scope: the root's frozen five-part contract plus shared-state ownership and global budgets, lead-written before the queue opens; changes only by returning to Stage 1 approval; the root's own draft (planning/root.draft.pave.yaml) is a boundary_drafts instance like any other (references/planning-layout.md)
     frontier_record:
       kind: observation
       produced_by:
         - plan_root_skeleton
+        - review_boundary
         - resynchronize_skeleton
       subject: planning_frontier
       artifact: planning/frontier.yaml
+      scope: opened with the root as its only pending entry; grows at every reviewed return with that unit's framed children — atomic predictions included — read from the draft's x_planning.elaboration on disk; closes when every entry is reviewed or its exhaustion is recorded; depth is unbounded (orchestration/explore-and-plan.md §4.2–4.5)
     boundary_drafts:
       kind: derivation
       produced_by: elaborate_boundary
-      subject: root_skeleton
+      subject: root_contract
       artifacts:
         - planning/<node>.draft.pave.yaml
         - planning/<node>.v2.draft.pave.yaml
-      scope: one fragment per dispatched boundary; a redispatch mints a new path, never a reused one (references/planning-layout.md)
+      scope: one fragment per dispatched boundary, the root's draft first; a redispatch mints a new path, never a reused one (references/planning-layout.md)
     boundary_reviews:
       kind: judgment
       produced_by: review_boundary
@@ -236,7 +238,7 @@ pave:
       on_failure_route: wait_for_exploration_join
     skeleton_complete:
       style: socratic
-      question: Does every root node have an interface and routed outcomes, with acceptance distinct from closure, recovery routes present, and the run-wide enforcement record drafted?
+      question: Is the root's five-part contract frozen with shared-state ownership and global budgets, are the run-wide enforcement record, evolution tier, and state contract drafted, and is the queue open with the root as its only pending entry?
       evaluated_by: lead
       on_failure_route: plan_root_skeleton
     boundary_review_passed:
@@ -364,43 +366,55 @@ pave:
 
     plan_root_skeleton:
       intent: plan
-      purpose: Freeze the root contract and produce the root skeleton with every child marked atomic or needs_elaboration.
-      roles: [node_planner, lead]
+      purpose: Freeze the root node's five-part contract, draft the run-wide records (enforcement, evolution tier, state contract), and open the planning queue with the root as its only pending entry — the root's own plan is the queue's first dispatch, not this node's work.
+      roles: [lead]
       consumes: [requirements_record, system_map]
-      produces: [root_skeleton, frontier_record]
+      produces: [root_contract, frontier_record]
       outcomes:
         skeleton_ready: {}
         more_evidence_needed: {}
         fitness_changed: {}
+      activities:
+        - freeze the root's five-part contract with shared-state ownership and global budgets (orchestration/explore-and-plan.md §4.1)
+        - draft the run-wide enforcement record, evolution tier, and state contract
+        - open planning/frontier.yaml with the root as its only pending entry (§4.2); id kept for traceability — the "skeleton" is this contract plus the queue that grows from it
 
     elaborate_boundary:
       intent: plan
       purpose: Plan one frontier boundary — one frozen parent contract and its immediate children — without changing ancestor or sibling interfaces.
       roles: [node_planner]
-      consumes: [root_skeleton, frontier_record]
+      consumes: [root_contract, frontier_record]
       produces: [boundary_drafts]
       instance_per: frontier_entries
       outcomes:
         boundary_planned: {}
         interface_conflict: {}
         more_evidence_needed: {}
+      activities:
+        - the same job at any depth — the root is the first entry
+        - judge the one-agent test for the dispatched node and, on decompose, frame its immediate children with predictions; a child's prediction is settled by that child's own dispatch, never by the parent's
+        - write exactly the one draft path the brief names
 
     review_boundary:
       intent: review
-      purpose: Judge one closed boundary unit against the frozen root contract and previously reviewed siblings.
-      roles: [material_reviewer]
-      consumes: [boundary_drafts, root_skeleton]
-      produces: [boundary_reviews]
+      purpose: Judge one closed boundary unit against the frozen root contract and previously reviewed siblings; on a pass the lead marks the entry reviewed and appends the unit's framed children to the queue as pending.
+      roles: [material_reviewer, lead]
+      consumes: [boundary_drafts, root_contract, frontier_record]
+      produces: [boundary_reviews, frontier_record]
       instance_per: frontier_entries
       outcomes:
         boundary_passed: {}
         boundary_revision_required: {}
+      activities:
+        - the reviewer judges the unit; the lead records the verdict in run state
+        - on a pass, the lead marks the entry reviewed and appends the framed children — atomic predictions included — read from the draft's x_planning.elaboration on disk, never from the reply
+        - on a revision, the lead redispatches that node's planner with the findings on a freshly minted draft path
 
     resynchronize_skeleton:
       intent: plan
-      purpose: Resolve a reported interface conflict at the skeleton level and mark dependent reviewed boundaries stale.
+      purpose: Resolve a reported interface conflict at the parent level and mark dependent reviewed boundaries stale.
       roles: [lead]
-      consumes: [root_skeleton, frontier_record, boundary_drafts]
+      consumes: [root_contract, frontier_record, boundary_drafts]
       produces: [frontier_record]
       outcomes:
         resynchronized: {}
@@ -408,14 +422,14 @@ pave:
         frontier_exhausted: {}
       activities:
         - receive interface conflicts, later-stage semantic gaps, and requested revisions
-        - resolve at the skeleton level and mark dependent reviewed boundaries stale
+        - resolve at the parent level and mark dependent reviewed boundaries stale
         - redispatch only the narrowest affected boundaries
 
     assemble_graph_plan:
       intent: plan
-      purpose: Merge reviewed boundaries with the skeleton, run the global simplicity pass, mark runtime bindings, merge the enforcement record, and produce the complete approval bundle.
+      purpose: Merge the reviewed drafts into one flat graph, run the global simplicity pass, mark runtime bindings, merge the enforcement record, and produce the complete approval bundle.
       roles: [lead]
-      consumes: [root_skeleton, boundary_drafts, boundary_reviews, frontier_record]
+      consumes: [root_contract, boundary_drafts, boundary_reviews, frontier_record]
       produces: [workflow_definition, traceability_record, package_plan]
       outcomes:
         bundle_ready: {}
@@ -618,7 +632,7 @@ pave:
         fan_out: elaborate_boundary
         for_each: frontier_entries
       checks: [skeleton_complete]
-      notes: An empty frontier routes directly to assemble_graph_plan through the join.
+      notes: The fan-out is over the live frontier, never empty here — the root is its first entry. review_boundary appends each reviewed unit's framed children, so the set widens during the fan-out and the join re-evaluates on every frontier write; a root its first dispatch confirms atomic closes the queue after one entry.
     - id: skeleton_evidence_gap_to_explore
       from: plan_root_skeleton.more_evidence_needed
       to: explore_system
@@ -640,6 +654,7 @@ pave:
       from: review_boundary.boundary_passed
       to: wait_for_frontier_join
       checks: [boundary_review_passed]
+      notes: The unit's framed children are already pending entries when this edge is taken (review_boundary); the join waits for them too.
     - id: boundary_revision_to_elaborate
       from: review_boundary.boundary_revision_required
       to: elaborate_boundary
@@ -775,7 +790,7 @@ pave:
       resume_at: synthesize_exploration
     wait_for_frontier_join:
       kind: join
-      meaning: Wait until every frontier entry is reviewed or its exhaustion is recorded; an empty frontier passes immediately.
+      meaning: Wait until every frontier entry is reviewed or its exhaustion is recorded; the frontier grows while it waits — each reviewed unit's framed children are pending entries — so the join re-evaluates on every frontier write.
       resume_at: assemble_graph_plan
     wait_for_build_join:
       kind: join
@@ -864,7 +879,7 @@ pave:
       condition: every selected exploration instance returned findings_ready or bounded_gap
     wait_for_frontier_join:
       resume_at: assemble_graph_plan
-      condition: every frontier entry reached reviewed, or exhaustion recorded and routed; empty frontier passes immediately
+      condition: every frontier entry reached reviewed, or exhaustion recorded and routed — entries appended by review_boundary included; the frontier is never empty because the root is its first entry
     wait_for_build_join:
       resume_at: integrate_skill
       condition: every approved build unit returned unit_ready

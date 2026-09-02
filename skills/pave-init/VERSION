@@ -103,6 +103,25 @@ Fixed — pave-init's own graph names the evidence paths the run writes:
 `run-state.json` `boundary_review_results` (no per-boundary review file), and
 `build/`; the traceability rows match. Found by an independent Codex review.
 
+Fixed — pave-init's own graph now routes Stage 3 the way the procedure runs
+it, so a resume that consults the graph sees the queue-growth step. The lead
+freezes the root contract and opens the queue with the root as its first
+entry; every entry — the root included — is dispatched, reviewed, and on a
+pass widens the queue with its framed children, at any depth. Before, the
+graph planned the root in its own node with no boundary review, sent every
+passed boundary straight to the join, and named no node that grew the queue.
+No mechanism consumed the old routes (resume reads `frontier.yaml`), so this
+is a fidelity fix, not a behavior change. Found by the same Codex review.
+
+- `references/pave-init.pave.yaml`: `plan_root_skeleton` is lead-only and
+  produces `root_contract` (`planning/root-contract.md`; formerly
+  `root_skeleton` at the planner's draft path) plus the opened frontier;
+  `review_boundary` gains the lead half and `frontier_record` as a product;
+  `frontier_record`, the fan-out edge, and the frontier join describe a
+  growing, never-empty queue. Node, outcome, and edge ids are unchanged;
+  `pave-init-traceability.md` rows and the README wording follow. `SKILL.md`
+  Stage 4 drops the dead "empty frontier" clause.
+
 Changed — two rules moved from `technique-selection.md`, which loads only for
 supervision choices, into `pave-spec.md`, which every design choice loads:
 "an authored mechanism, not a knob flip" (§9.1) and "scripts own derived

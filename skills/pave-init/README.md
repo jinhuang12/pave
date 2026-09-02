@@ -309,7 +309,7 @@ decomposition itself has no depth limit — it stops when the one-agent test
 passes (`references/pave-spec.md` §9.12): a node is atomic when one agent can
 achieve and verify its goal in one bounded context; otherwise decompose it and
 re-test the children. A simple
-goal yields an empty frontier and no extra ceremony. Full procedure:
+goal closes the queue after the root's single entry, with no extra ceremony. Full procedure:
 `orchestration/explore-and-plan.md` §4.
 
 ## Enforcement and hooks

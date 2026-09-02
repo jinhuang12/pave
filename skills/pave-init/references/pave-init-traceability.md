@@ -20,9 +20,9 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | evidence | fitness_override_record | orchestration/interview-and-fitness.md | Explicit override after a not-fit verdict |
 | evidence | exploration_reports | SKILL.md<br>agents/system-explorer.md<br>orchestration/explore-and-plan.md | Per-lens evidence reports, persisted to exploration/<lens>.md by its explorer |
 | evidence | system_map | orchestration/explore-and-plan.md | Verified system synthesis |
-| evidence | root_skeleton | orchestration/explore-and-plan.md<br>references/planning-layout.md | Frozen root contract and node interfaces, drafted at planning/root.draft.pave.yaml (working state) |
-| evidence | frontier_record | orchestration/explore-and-plan.md<br>schemas/run-state.schema.json<br>scripts/validate_run_state.py<br>references/planning-layout.md<br>hooks/planning-layout-warn.sh | Planning frontier state; shape per `$defs.frontier`/`$defs.fragment`, checked by `--frontier`, ownership per the layout reference, drift warned by the hook |
-| evidence | boundary_drafts | agents/node-planner.md<br>orchestration/explore-and-plan.md<br>references/planning-layout.md | Per-boundary fragment drafts at planning/<node>.draft.pave.yaml; a redispatch mints a new path |
+| evidence | root_contract | orchestration/explore-and-plan.md<br>references/planning-layout.md | The root's frozen five-part contract at planning/root-contract.md, lead-written before the queue opens (working state); the root's own draft is a boundary_drafts instance |
+| evidence | frontier_record | orchestration/explore-and-plan.md<br>schemas/run-state.schema.json<br>scripts/validate_run_state.py<br>references/planning-layout.md<br>hooks/planning-layout-warn.sh | Planning queue, opened with the root and grown at every reviewed return; shape per `$defs.frontier`/`$defs.fragment`, checked by `--frontier`, ownership per the layout reference, drift warned by the hook |
+| evidence | boundary_drafts | agents/node-planner.md<br>orchestration/explore-and-plan.md<br>references/planning-layout.md | Per-boundary fragment drafts at planning/<node>.draft.pave.yaml, the root's first; a redispatch mints a new path |
 | evidence | boundary_reviews | agents/pave-material-reviewer.md<br>orchestration/review-and-build.md<br>schemas/run-state.schema.json | Per-boundary verdict as a run-state `boundary_review_results` entry plus the frontier entry's status; no per-boundary file |
 | evidence | workflow_definition | references/pave-yaml.md<br>references/pave-composition.md<br>orchestration/explore-and-plan.md | Canonical PAVE graph, root plus justified child profiles |
 | evidence | traceability_record | orchestration/explore-and-plan.md | Graph-to-skill mapping |
@@ -40,7 +40,7 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | check | requirements_and_fit_approved | orchestration/interview-and-fitness.md<br>references/approval-briefs.md | Approval for fit or fit-with-gaps, presented via reviews/requirements-brief.md |
 | check | fitness_override_approved | orchestration/interview-and-fitness.md | Explicit authority to continue after not-fit |
 | check | exploration_coverage_complete | orchestration/explore-and-plan.md | All selected lenses accounted for |
-| check | skeleton_complete | orchestration/explore-and-plan.md | Root skeleton interfaces and enforcement record present |
+| check | skeleton_complete | orchestration/explore-and-plan.md | Root contract frozen, run-wide records drafted, queue open with the root as its only entry |
 | check | boundary_review_passed | agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Per-boundary review gate |
 | check | frontier_closed | orchestration/explore-and-plan.md | All frontier entries reviewed or exhausted |
 | check | pave_definition_valid | scripts/validate_pave.py | Schema, graph structure, references, and composition boundaries |
@@ -58,9 +58,9 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | node | approve_fitness_override | orchestration/interview-and-fitness.md | Explicitly override not-fit |
 | node | explore_system | agents/system-explorer.md<br>orchestration/explore-and-plan.md | Independent evidence fan-out |
 | node | synthesize_exploration | orchestration/explore-and-plan.md | Verify and combine findings |
-| node | plan_root_skeleton | agents/node-planner.md<br>orchestration/explore-and-plan.md<br>references/pave-spec.md | Freeze root contract, produce skeleton and frontier |
-| node | elaborate_boundary | agents/node-planner.md<br>orchestration/explore-and-plan.md | Plan one frontier boundary |
-| node | review_boundary | agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Judge one boundary unit |
+| node | plan_root_skeleton | orchestration/explore-and-plan.md<br>references/pave-spec.md | Freeze the root contract and open the queue with the root as its first entry |
+| node | elaborate_boundary | agents/node-planner.md<br>orchestration/explore-and-plan.md | Plan one frontier boundary, the root included, at any depth |
+| node | review_boundary | agents/pave-material-reviewer.md<br>orchestration/review-and-build.md<br>orchestration/explore-and-plan.md | Judge one boundary unit; on a pass the lead enqueues its framed children |
 | node | resynchronize_skeleton | orchestration/explore-and-plan.md | Resolve interface conflicts, mark stale boundaries |
 | node | assemble_graph_plan | orchestration/explore-and-plan.md | Merge, simplify, bind, produce approval bundle |
 | node | review_graph_plan | agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Plan adversarial review |
@@ -92,13 +92,13 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | edge | exploration_gap_to_join | orchestration/explore-and-plan.md | Join a bounded evidence gap |
 | edge | exploration_critical_gap_to_pause | SKILL.md<br>references/pave-init.pave.yaml | Pause on a critical gap |
 | edge | synthesis_ready_to_skeleton | orchestration/explore-and-plan.md | Plan skeleton from complete exploration |
-| edge | skeleton_ready_to_frontier | orchestration/explore-and-plan.md | Fan out frontier boundaries |
+| edge | skeleton_ready_to_frontier | orchestration/explore-and-plan.md | Fan out over the live frontier, root first |
 | edge | skeleton_evidence_gap_to_explore | orchestration/explore-and-plan.md | Gather missing skeleton evidence |
 | edge | skeleton_fitness_changed_to_assess | SKILL.md<br>references/pave-init.pave.yaml | Reassess changed fitness |
 | edge | boundary_planned_to_review | orchestration/review-and-build.md | Review a closed boundary |
 | edge | boundary_conflict_to_resync | orchestration/explore-and-plan.md | Resolve an interface conflict |
 | edge | boundary_evidence_gap_to_explore | orchestration/explore-and-plan.md | Gather missing boundary evidence |
-| edge | boundary_passed_to_join | orchestration/explore-and-plan.md | Join a reviewed boundary |
+| edge | boundary_passed_to_join | orchestration/explore-and-plan.md | Join a reviewed boundary once its children are enqueued |
 | edge | boundary_revision_to_elaborate | SKILL.md<br>references/pave-init.pave.yaml | Replan a rejected boundary |
 | edge | resync_done_to_elaborate | orchestration/explore-and-plan.md | Redispatch stale boundaries |
 | edge | resync_root_change_to_pause | orchestration/explore-and-plan.md | Route root-contract changes to the user |
@@ -136,7 +136,7 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | edge | delivery_retry | SKILL.md | Retry failed reporting |
 | endpoint | resume_from_checkpoint | SKILL.md<br>references/pave-init.pave.yaml | Return through persisted traversal history |
 | endpoint | wait_for_exploration_join | orchestration/explore-and-plan.md | Exploration terminal barrier |
-| endpoint | wait_for_frontier_join | orchestration/explore-and-plan.md | Frontier terminal barrier |
+| endpoint | wait_for_frontier_join | orchestration/explore-and-plan.md | Frontier terminal barrier; re-evaluates as the queue grows |
 | endpoint | wait_for_build_join | orchestration/review-and-build.md | Build terminal barrier |
 | endpoint | pause_for_user_authority | SKILL.md | Resumable missing-authority state |
 | endpoint | closed_unaccepted | SKILL.md | User stop or plan rejection |
