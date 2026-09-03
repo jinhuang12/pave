@@ -1,6 +1,6 @@
 {
   "name": "pave-init",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "Native Codex package for PAVE Init: graph design, evidence-backed review, generated workflow plugins, and long-run alignment hooks.",
   "skills": "./codex/skills/",
   "hooks": "./codex/hooks/hooks.json"

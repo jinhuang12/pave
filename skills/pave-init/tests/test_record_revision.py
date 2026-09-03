@@ -321,6 +321,30 @@ class RecordRevision(unittest.TestCase):
         rc, out = run("verify", self.root)
         self.assertEqual(rc, 0, out)
 
+    def test_land_applies_the_patch_to_a_root_below_a_git_top_level(self):
+        """A delivered package or a project's evolution root usually sits inside a
+        git work tree below its top level. There `git apply` reads patch paths from
+        the top level and silently skips files outside the current directory, so
+        without re-anchoring, a landing appended an entry whose digest_after equalled
+        digest_before and the graph never changed (vllm-neuron-parity 1.4.0)."""
+        proc = subprocess.run(["git", "init", "-q", str(self.tmp)], capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.root = self.tmp / "generated" / "package"
+        self.root.mkdir(parents=True)
+        (self.root / "workflow.pave.yaml").write_text(GRAPH)
+        self.init_root()
+        before = self.ledger()[0]["digest_after"]
+        self.land_graph_change(1, {"status: draft": "status: active"})
+        self.assertIn("status: active", (self.root / "workflow.pave.yaml").read_text())
+        entry = self.ledger()[1]
+        self.assertNotEqual(entry["digest_after"], before)
+        rc, out = run("verify", self.root)
+        self.assertEqual(rc, 0, out)
+        rc, out = run("rollback", self.root, "--to", 0, "--approval", "user: revert it",
+                      "--semantic-diff", "Restore revision 0.")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("status: draft", (self.root / "workflow.pave.yaml").read_text())
+
     def test_symlinked_graph_file_fails(self):
         self.init_root()
         path = self.root / "workflow.pave.yaml"

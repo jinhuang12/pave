@@ -161,6 +161,13 @@ def git(arguments: list, cwd: Path, ok=(0,)) -> subprocess.CompletedProcess:
 
 def apply_diff(diff: str, cwd: Path, reverse: bool = False):
     flags = ["-R"] if reverse else []
+    # Inside a git work tree, `git apply` reads patch paths relative to the top
+    # level and silently skips files outside the current directory, so a root
+    # below the top level would "land" nothing. Re-anchor the paths at the root.
+    prefix = subprocess.run(["git", "rev-parse", "--show-prefix"], cwd=str(cwd),
+                            capture_output=True, text=True)
+    if prefix.returncode == 0 and prefix.stdout.strip():
+        flags.append(f"--directory={prefix.stdout.strip().rstrip('/')}")
     handle = tempfile.NamedTemporaryFile("w", suffix=".patch", delete=False)
     try:
         handle.write(diff if diff.endswith("\n") else diff + "\n")
@@ -318,8 +325,11 @@ def land(args) -> int:
     try:
         apply_diff(diff, root)
         validate_graph(root)
+        digest_after = live_digest(root)
+        if digest_after == digest_before:
+            raise ValueError("the patch changed no graph file; nothing to land")
         fields = dict(preamble, revision=args.revision, digest_before=digest_before,
-                      digest_after=live_digest(root), patch=patch)
+                      digest_after=digest_after, patch=patch)
         fields["approval"] = args.approval or preamble.get("approval")
         fields["review"] = args.review or preamble.get("review")
         entry = make_entry(**fields)

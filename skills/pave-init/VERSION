@@ -1,4 +1,4 @@
-version: 2.5.0
+version: 2.5.1
 
 ## How changelog entries are written
 
@@ -17,6 +17,20 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.5.1 (2026-09-03)
+
+Fixed — `scripts/record_revision.py land` and `rollback` now apply the patch
+when the root sits inside a git work tree below its top level: a delivered
+package inside its repository, or a project's evolution root. There `git apply`
+reads patch paths from the top level and silently skipped the graph, so a
+landing appended an entry whose `digest_after` equalled `digest_before` while
+the graph never changed, and `verify` still passed. `land` now also refuses a
+patch that changes no graph file. Regression test in
+`tests/test_record_revision.py`.
+  - Field evidence: vllm-neuron-parity 1.4.0 landing its revisions 1 and 2 on
+    the package root inside the pave repository. The scratch proofs had passed
+    because they sat in `/tmp`, outside any repository.
 
 ### 2.5.0 (2026-09-03)
 
