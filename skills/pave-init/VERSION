@@ -1,4 +1,4 @@
-version: 2.4.3
+version: 2.4.4
 
 ## How changelog entries are written
 
@@ -17,6 +17,29 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.4.4 (2026-09-03)
+
+Changed — a review of work a loop lands sits inside the loop, on a batch
+cadence the planner declares and the lead sizes per batch by complexity,
+recorded in run state; the whole-composition review at promotion is in
+addition, not instead (`references/pave-spec.md` §9.4, §9.7). "One existing
+gate" now means the same claim before the same harm — a gate after a loop is
+not the gate for the laps inside it (§4.11); new smell "Review parked behind
+a loop" (§13).
+  - Field evidence: a generated workflow placed its only implementation
+    review after its whole increment loop, citing §4.11's existing-gate rule
+    at three sites in its planning record and defining harm as the hardware
+    spend the review preceded; 55 increments (57 commits) landed with zero
+    implementation review, each building on the last.
+Changed — evolving tier: a run paused on a graph defect continues on the
+reviewed, frozen successor from its last satisfied gate; a gate the
+successor adds becomes a backfill duty for landed work; only a successor
+that changes what a recorded outcome meant closes the run and starts a
+linked one (`references/pave-revisions.md` rules 3, 7; tier item 1).
+  - Field evidence: the same run needed one review node added mid-run; the
+    contract's only path was close the run and start a successor, so the
+    operator ordered the frozen graph edited in place instead.
 
 ### 2.4.3 (2026-09-02)
 

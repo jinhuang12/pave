@@ -119,6 +119,7 @@ Check these before review:
 - Closure and acceptance are distinct.
 - Recovery loops preserve attempt history and define exhaustion; a repair loop lands at the node that resolves the finding, declares its bound — and, on a design node, its paper-lap bound — and counts recurrence by defect class, repair-introduced among them, not site identity (`references/pave-spec.md` §9.8).
 - A review node's outcomes partition findings by the repair class its graph routes; a bookkeeping defect reaches a lead edit, never the design route (`references/pave-spec.md` §9.8, §9.4).
+- A loop that lands work later laps build on carries its review inside the loop, on a declared batch cadence; a review after the loop is not the gate for the laps inside it (`references/pave-spec.md` §9.4).
 - A plan node that feeds an expensive execute node carries the dispatch-admission duty — cheap half of the acceptance discharged pre-dispatch, unresolved-referent counts recorded — and a design node names which inputs are world artifacts on disk and which are premises (`references/pave-spec.md` §9.2).
 - A budget counter with more than one increment route either gets per-route counters or an explicit shared-budget note — otherwise one route silently spends another's attempts.
 - Domain extensions do not change core meaning.

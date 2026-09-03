@@ -260,7 +260,10 @@ work it governs. This principle is that counterweight.
 - Start with the shortest valid path from purpose to completion.
 - Add a node, role, seat, edge, loop, state field, reviewer, or control only
   for an approved requirement or a credible material failure.
-- Prefer one existing gate over a second gate that checks the same claim.
+- Prefer one existing gate over a second gate that checks the same claim —
+  the same claim before the same harm: a gate after a loop whose laps build
+  on each other fires after every lap has built on the failure, so it is
+  not the existing gate for the laps inside (§9.4).
 - Remove any element whose absence does not change required routing,
   authority, evidence, recovery, or acceptance.
 - Compare the cost of the added structure with the risk it removes — priced
@@ -896,6 +899,17 @@ Give a consequential claim to another perspective. This can be a fresh agent,
 reviewer, or human.
  
 Use this pattern when self-confirmation is a meaningful risk.
+
+Place the review where the work it has not yet seen stays small. On a loop
+that lands work later laps build on — commits, plan blocks, measurements a
+verdict will cite — the review sits inside the loop as a seat dispatched
+when a batch closes (§2.1). The planner declares the cadence: batch size
+follows the complexity of what landed — one item for a new mechanism, a few
+for wiring, config, or tests — and the lead makes the call per batch and
+records it, with the reason, in run state. A review after the loop reviews
+nothing until the loop ends, and every lap in between builds on unreviewed
+work; the whole-composition review at promotion (§9.7) is in addition, not
+instead.
  
 An independent challenger is also a failure mode, and the design should bound
 it. Two failures cost real money. Missing a true defect is the obvious one.
@@ -968,7 +982,9 @@ terminal outcome.
 ### 9.7 Exact-composition review
  
 Review the exact combination that will be accepted or promoted. Individual
-success does not establish that several changes work together.
+success does not establish that several changes work together. This is the
+last gate on the composition, not the only review of its parts: each change a
+loop landed met its in-loop review first (§9.4).
  
 ### 9.8 Repair loop
  
@@ -1642,6 +1658,13 @@ completion decision and a terminal status.
 Every ending reports "done". Operators cannot tell acceptance from honest
 failure. Declare the terminal statuses.
  
+### Review parked behind a loop
+
+The loop lands work lap after lap and the only review waits at the exit.
+Every lap builds on unreviewed work, and the first finding forces rework
+across all of them. Put the review inside the loop on a batch cadence (§9.4)
+and keep the exit review for the composition (§9.7).
+
 ### Enforcement without a failure model
  
 The workflow adds hooks, schemas, or approvals without stating the failure they

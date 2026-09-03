@@ -51,7 +51,7 @@ The lead reads every cited location and applies the same goal test the reviewer 
 - `DEFER`: verified but orthogonal to the goal or outside the approved package.
 - `FALSE_POSITIVE`: unsupported, preference-only, speculative, or based on an unapproved requirement.
 
-Before choosing `FIX`, confirm that the failure is plausible, affects an approved requirement, and is not already caught by a later required gate before harm. Do not add a new subsystem for theoretical hardening.
+Before choosing `FIX`, confirm that the failure is plausible, affects an approved requirement, and is not already caught by a later required gate before harm — the laps that build on a failure are harm (`references/pave-spec.md` §4.11). Do not add a new subsystem for theoretical hardening.
 
 Only verified `BLOCKING` or `HIGH` findings stop the gate. Record review rounds under `reviews/`.
 

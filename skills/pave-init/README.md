@@ -1,6 +1,6 @@
 # PAVE Init
 
-Version: `2.4.3`
+Version: `2.4.4`
 
 Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
 
