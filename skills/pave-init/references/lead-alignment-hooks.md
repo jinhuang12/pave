@@ -46,7 +46,7 @@ The recorded failure cause of long-horizon leads is context decay, not disobedie
 1. **The decision to stop.** A Stop with an active, non-terminal run is the highest-risk decay moment: the campaign silently stalls at its resume point, and no user event fires to re-inject anything.
 2. **Long autonomous stretches.** Many tool calls with no user prompt and no compaction means zero reinjection; outcomes happen and never reach run state.
 
-The pair covers exactly these two windows, socratically. It asks, never commands, because valid stops and mid-node quiet stretches are common.
+The pair covers exactly these two windows, socratically. It asks, never commands, because valid stops and mid-node quiet stretches are common. The stop check also carries the lead duties no other moment re-asks — is the next step the practical one toward the goal, was anything since the last check ceremony — because a check whose only alignment question is the next declared action reinforces a wasteful graph: every wasted lap in the field was a declared edge.
 
 This pair is one pre-derived answer to one universal failure mode. No two workflows share a failure surface: derive any further enforcement from the workflow's own evidence the same way, and size it on the same spectrum (`references/pave-spec.md` §9.14). A cwd-drift warning or a budget-burn alert may be justified by one workflow's field evidence — and neither belongs in a workflow whose evidence does not name the failure.
 
@@ -54,7 +54,7 @@ This pair is one pre-derived answer to one universal failure mode. No two workfl
 
 | hook | event | rung | shape |
 |---|---|---|---|
-| stop-alignment check | Stop | socratic reinjection | Blocks a stop ONCE with the questions (why did you stop; is that the aligned action; if not, which DECLARED action advances the run; are finished subagents retired?), then a cooldown counter lets the next N−1 stops pass silently (default N=3: at most one nudge per 3 stops). |
+| stop-alignment check | Stop | socratic reinjection | Blocks a stop ONCE with the six-question socratic check (template below), answered only where the lead finds an issue, else `lgtm`; then a cooldown counter lets the next N−1 stops pass silently (default N=3: at most one nudge per 3 stops). |
 | state-staleness reminder | PostToolUse (`Bash\|Write\|Edit`) | observing / socratic | When the run-state file's mtime exceeds a threshold while tools keep running, injects one throttled `additionalContext` question: which node are you actually in, and has an outcome occurred that is not recorded? |
 
 ## Invariants any adaptation must preserve
@@ -137,7 +137,8 @@ fi
 # Stop-alignment socratic check. Blocks a stop ONCE (Stop hooks have no
 # non-blocking channel), then a cooldown counter lets the next STOP_EVERY-1
 # stops pass (default 3: at most one nudge per 3 stops). Silent when no
-# active run or the run is terminal.
+# active run or the run is terminal. The lead answers only on a hit, else
+# "lgtm": a retrospective at every firing is itself ceremony.
 set -uo pipefail
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 SKILL_DIR="$(cd "$HOOK_DIR/.." && pwd)"
@@ -198,21 +199,30 @@ RESTART="$(printf '%s\n' "$SUMMARY" | sed -n 3p)"
 LAST="$(printf '%s\n' "$SUMMARY" | sed -n 4p)"
 AGE_MIN="$(printf '%s\n' "$SUMMARY" | sed -n 5p)"
 printf '%s\n' "$((STOP_EVERY - 1))" > "$MARKER" 2>/dev/null || true
+# ADAPT: question 2's route -- evolving tier as written; static tier: "pause and report that the workflow needs a pave-init update run".
 cat >&2 <<EOF
 $TAG Active run $RUN_ID ($FOUND_STATE_LABEL): restart_from=$RESTART, last traversal $LAST, run state last written ${AGE_MIN} min ago.
 
-You decided to stop. Socratic check -- answer to yourself, then act:
-  a. Why did you stop, and is stopping the most aligned action in the current state?
-  b. If not, which DECLARED next action advances the run from $RESTART?
-     Re-read the routing section; emit only declared outcomes over declared edges.
-  c. Are any subagents or teammates done or no longer needed? Retire them
-     now -- an idle agent costs tokens, and a late message from one can
-     derail the run.
-
-Valid reasons to stop exist: a pending user decision, waiting on a background
-subagent, a recorded pause, a closed terminal. If stop is the right call, stop
-again -- the next $((STOP_EVERY - 1)) stops pass through before this check
-fires again.
+You decided to stop. Socratic check -- answer only the questions where you
+find an issue; otherwise reply "lgtm" and stop again. A pending user decision,
+a background subagent, a recorded pause: all lgtm. The next
+$((STOP_EVERY - 1)) stops pass before this fires again.
+  1. Next practical step toward the approved goal, and why -- a declared edge
+     from $RESTART (re-read the routing section) or a graph change you will
+     propose; never an invented edge.
+  2. Since the last check, any ceremony -- a seat a lead-run check settles, a
+     lap with no new world evidence, an agent for something knowable from
+     disk? Cut it. One that recurs is a graph defect: pause the run, load
+     the pave-init skill if not already loaded, and draft the successor
+     yourself (Evolution contract: successor draft, authority envelope);
+     material review passes it, and the run continues on it (continue on
+     the successor); never edit the frozen graph in place.
+  3. Landed work the next lap builds on that no review has seen?
+  4. About to ask the user something a recorded approval already covers, or
+     to decide something that is theirs?
+  5. Anything routing depends on that lives only in your context, not in run
+     state?
+  6. Idle subagents or teammates? Retire them now.
 EOF
 exit 2
 ```

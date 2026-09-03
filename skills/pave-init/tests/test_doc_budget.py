@@ -26,12 +26,12 @@ sys.path.insert(0, str(HERE.parent / "scripts"))
 
 import measure_artifact as ma  # noqa: E402
 
-# path (repo-relative) -> (max lines, max bytes). Pinned 2026-09-03 (2.4.4).
+# path (repo-relative) -> (max lines, max bytes). Pinned 2026-09-03 (2.4.5).
 CEILINGS = {
     "skills/pave-init/SKILL.md": (266, 34349),
     "skills/pave-init/README.md": (395, 22256),
     "skills/pave-init/references/approval-briefs.md": (71, 9273),
-    "skills/pave-init/references/lead-alignment-hooks.md": (362, 27555),
+    "skills/pave-init/references/lead-alignment-hooks.md": (372, 28646),
     "skills/pave-init/references/pave-composition.md": (186, 10814),
     "skills/pave-init/references/pave-init-traceability.md": (145, 17586),
     "skills/pave-init/references/pave-revisions.md": (88, 11234),

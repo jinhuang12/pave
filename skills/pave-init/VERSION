@@ -1,4 +1,4 @@
-version: 2.4.4
+version: 2.4.5
 
 ## How changelog entries are written
 
@@ -17,6 +17,24 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.4.5 (2026-09-03)
+
+Improved — the Stop-event alignment check now re-asks every lead duty no
+other moment re-asks: the next practical step toward the goal (a declared
+edge, or a graph change to propose), ceremony since the last check, landed
+work no review has seen, re-gating or usurping the user, routing state that
+lives only in context, idle agents. The lead answers only where it finds an
+issue and otherwise replies `lgtm` (`hooks/stop_alignment_check.sh`; the
+generated-skill template in `references/lead-alignment-hooks.md`).
+  - Field evidence: the three generated-workflow investigations (a scoper
+    run 51 laps with zero judgment, a drafter run 35 paper laps, 57 commits
+    landed with no review) ran under a stop check whose only alignment
+    question was which DECLARED action comes next — every wasted lap was one.
+  - A ceremony that recurs is a graph defect. The generated lead pauses,
+    proposes the fix, and continues on the materially reviewed successor
+    (`references/pave-revisions.md` rule 7); the pave-init lead records the
+    proposal for a release. Neither edits a frozen graph in place.
 
 ### 2.4.4 (2026-09-03)
 

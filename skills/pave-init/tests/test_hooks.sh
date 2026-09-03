@@ -116,7 +116,7 @@ post_payload() { # $1 session, $2 agent_type ("" for lead)
 write_state "" complete
 
 ERR="$(stop_payload s1 0 | bash "$STOP_HOOK" 2>&1 >/dev/null)"; RC=$?
-ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "Why did you stop" && ok=1
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "Socratic check" && ok=1
 report "stop: first stop blocks with socratic questions" "$ok" "rc=$RC"
 
 ERR="$(stop_payload s1 0 | bash "$STOP_HOOK" 2>&1 >/dev/null)"; RC=$?
@@ -128,7 +128,7 @@ ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
 report "stop: 3rd stop within cooldown passes silently" "$ok" "rc=$RC err=$ERR"
 
 ERR="$(stop_payload s1 0 | bash "$STOP_HOOK" 2>&1 >/dev/null)"; RC=$?
-ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "Why did you stop" && ok=1
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "Socratic check" && ok=1
 report "stop: cooldown spent, 4th stop blocks again" "$ok" "rc=$RC"
 rm -f "$TMPDIR/pave-init-stop-nudged-s1"   # reset for later tests
 

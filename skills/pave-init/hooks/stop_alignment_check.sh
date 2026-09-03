@@ -5,10 +5,12 @@
 # in the field is context decay, not disobedience. A Stop while an active,
 # non-terminal run exists is the highest-risk decay moment: the run silently
 # stalls at its resume point and no user event fires to re-inject anything.
-# This hook asks the socratic questions ("why did you stop, and is that the
-# aligned action?") instead of commanding continuation -- valid stops are
-# common (a pending user decision, waiting on a background reviewer, a
-# recorded pause_for_user_authority).
+# This hook asks socratic questions instead of commanding continuation --
+# valid stops are common (a pending user decision, waiting on a background
+# reviewer, a recorded pause_for_user_authority). The questions (heredoc
+# below) carry every lead duty no other moment re-asks; the lead answers
+# only on a hit, else "lgtm" -- a retrospective at every firing is itself
+# ceremony.
 #
 # Stop hooks have NO non-blocking channel: additionalContext is dropped, so
 # the questions can only be delivered by blocking once (exit 2). A cooldown
@@ -126,19 +128,24 @@ printf '%s\n' "$((STOP_EVERY - 1))" > "$MARKER" 2>/dev/null || true
 cat >&2 <<EOF
 $TAG Active pave-init run $RUN_ID ($FOUND_STATE_LABEL): last traversal $LAST, run state last written ${AGE_MIN} min ago.
 
-You decided to stop. Socratic check -- answer to yourself, then act:
-  a. Why did you stop, and is stopping the most aligned action in the current
+You decided to stop. Socratic check -- answer only the questions where you
+find an issue; otherwise reply "lgtm" and stop again. A pending user decision
+or approval gate, a background reviewer still working, a recorded pause: all
+lgtm. The next $((STOP_EVERY - 1)) stops pass before this fires again.
+  1. Next practical step toward the approved goal, and why -- a declared edge
+     after $LAST (references/pave-init.pave.yaml) or a graph change you will
+     propose; never an invented edge.
+  2. Since the last check, any ceremony -- a seat a lead-run check settles, a
+     lap with no new world evidence, an agent for something knowable from
+     disk? Cut it. One that recurs is a graph defect: record the proposal as
+     a run-state entry plus one section in the standing review record (never
+     a new file) and surface it to the user -- a pave-init release carries
+     it; never edit the installed skill.
+  3. Landed work the next lap builds on that no review has seen?
+  4. About to ask the user something a recorded approval already covers, or
+     to decide something that is theirs?
+  5. Anything routing depends on that lives only in your context, not in run
      state?
-  b. If not, which DECLARED next action advances the run after $LAST?
-     Re-read the edges in references/pave-init.pave.yaml; emit only declared
-     outcomes and traverse only declared edges.
-  c. Are any subagents or teammates done or no longer needed? Retire them
-     now -- an idle agent costs tokens, and a late message from one can
-     derail the run.
-
-Valid reasons to stop exist: a pending user decision or approval gate, a
-background reviewer still working, a recorded pause, a closed terminal. If
-stop is the right call, stop again -- the next $((STOP_EVERY - 1)) stops
-pass through before this check fires again.
+  6. Idle subagents or teammates? Retire them now.
 EOF
 exit 2
