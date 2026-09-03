@@ -5,49 +5,95 @@
   "required": [
     "version",
     "harness",
-    "skill_output",
     "agent_output_kind",
-    "slots",
+    "skills",
     "roles"
   ],
   "additionalProperties": false,
   "properties": {
     "version": {"const": 1},
     "harness": {"enum": ["claude", "codex"]},
-    "skill_output": {"type": "string"},
     "agent_output_kind": {"enum": ["markdown", "toml"]},
-    "slots": {
+    "skills": {
       "type": "object",
       "required": [
-        "FRONTMATTER",
-        "PRODUCT_INTRO",
-        "MULTI_AGENT_CONTRACT",
-        "PACKAGE_IDENTITY",
-        "MANIFEST_COMPONENT",
-        "ROLE_COMPONENT",
-        "HOOK_COMPONENT",
-        "ROLE_RUNTIME_BINDING",
-        "MODEL_RUNTIME_BINDING",
-        "HOOK_RUNTIME_BINDING",
-        "SCRIPT_RUNTIME_BINDING",
-        "DELIVERY_INSTALL_BULLET",
-        "SKILL_VALIDATION_BINDING"
+        "pave-init",
+        "pave-evolve"
       ],
       "additionalProperties": false,
       "properties": {
-        "FRONTMATTER": {"type": "string"},
-        "PRODUCT_INTRO": {"type": "string"},
-        "MULTI_AGENT_CONTRACT": {"type": "string"},
-        "PACKAGE_IDENTITY": {"type": "string"},
-        "MANIFEST_COMPONENT": {"type": "string"},
-        "ROLE_COMPONENT": {"type": "string"},
-        "HOOK_COMPONENT": {"type": "string"},
-        "ROLE_RUNTIME_BINDING": {"type": "string"},
-        "MODEL_RUNTIME_BINDING": {"type": "string"},
-        "HOOK_RUNTIME_BINDING": {"type": "string"},
-        "SCRIPT_RUNTIME_BINDING": {"type": "string"},
-        "DELIVERY_INSTALL_BULLET": {"type": "string"},
-        "SKILL_VALIDATION_BINDING": {"type": "string"}
+        "pave-init": {
+          "type": "object",
+          "required": [
+            "template",
+            "output",
+            "slots"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "template": {"type": "string"},
+            "output": {"type": "string"},
+            "slots": {
+              "type": "object",
+              "required": [
+                "FRONTMATTER",
+                "PRODUCT_INTRO",
+                "MULTI_AGENT_CONTRACT",
+                "PACKAGE_IDENTITY",
+                "MANIFEST_COMPONENT",
+                "ROLE_COMPONENT",
+                "HOOK_COMPONENT",
+                "ROLE_RUNTIME_BINDING",
+                "MODEL_RUNTIME_BINDING",
+                "HOOK_RUNTIME_BINDING",
+                "SCRIPT_RUNTIME_BINDING",
+                "DELIVERY_INSTALL_BULLET",
+                "SKILL_VALIDATION_BINDING"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "FRONTMATTER": {"type": "string"},
+                "PRODUCT_INTRO": {"type": "string"},
+                "MULTI_AGENT_CONTRACT": {"type": "string"},
+                "PACKAGE_IDENTITY": {"type": "string"},
+                "MANIFEST_COMPONENT": {"type": "string"},
+                "ROLE_COMPONENT": {"type": "string"},
+                "HOOK_COMPONENT": {"type": "string"},
+                "ROLE_RUNTIME_BINDING": {"type": "string"},
+                "MODEL_RUNTIME_BINDING": {"type": "string"},
+                "HOOK_RUNTIME_BINDING": {"type": "string"},
+                "SCRIPT_RUNTIME_BINDING": {"type": "string"},
+                "DELIVERY_INSTALL_BULLET": {"type": "string"},
+                "SKILL_VALIDATION_BINDING": {"type": "string"}
+              }
+            }
+          }
+        },
+        "pave-evolve": {
+          "type": "object",
+          "required": [
+            "template",
+            "output",
+            "slots"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "template": {"type": "string"},
+            "output": {"type": "string"},
+            "slots": {
+              "type": "object",
+              "required": [
+                "FRONTMATTER",
+                "DISPATCH_CONTRACT"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "FRONTMATTER": {"type": "string"},
+                "DISPATCH_CONTRACT": {"type": "string"}
+              }
+            }
+          }
+        }
       }
     },
     "roles": {

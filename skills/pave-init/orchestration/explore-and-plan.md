@@ -69,7 +69,7 @@ The lead runs this procedure itself; node planners own one node each. Every plan
 
 ### 4.1 Freeze the root node contract
 
-From approved `requirements.md` and verified `system-map.md`, write the root node's five-part contract (`references/pave-spec.md` §5.1): purpose with its out-of-scope line, inputs, effects and authority limits, outcomes with the definition of done, roles — plus shared-state ownership and global budgets. It changes only by returning to Stage 1 approval. Run-wide artifacts are the lead's, not a planner's: draft the enforcement record, the evolution tier, and the state contract yourself, starting here and finalized at assembly.
+From approved `requirements.md` and verified `system-map.md`, write the root node's five-part contract (`references/pave-spec.md` §5.1): purpose with its out-of-scope line, inputs, effects and authority limits, outcomes with the definition of done, roles — plus shared-state ownership and global budgets. It changes only by returning to Stage 1 approval. Run-wide artifacts are the lead's, not a planner's: draft the enforcement record, the revision record (`landing`, `usage_ledger`), and the state contract yourself, starting here and finalized at assembly.
 
 When the goal ports or re-designs an existing system, the source binds behavior — acceptance, invariants, failure modes — never graph shape. Freeze the contract in behavior terms and let planners re-derive structure from the goal; a source's module or sub-workflow boundaries carry no design authority of their own.
 
@@ -99,7 +99,7 @@ The queue closes when every entry is `reviewed`. A node that cannot close after 
 
 ### 4.6 Assemble
 
-1. Merge the node drafts into one flat PAVE root `workflow.draft.pave.yaml` — the editable `v0` subject that delivery later freezes per `references/pave-revisions.md`. Decomposition lineage flattens into one graph; add a child `*.draft.pave.yaml` only for a subgraph whose packaging met a §9.12.1 condition. Strip the `x_planning` extension block; the marks are planning state, not graph meaning — each node's instrument line lands in `traceability.md` and the enforcement record (section 5).
+1. Merge the node drafts into one flat PAVE root `workflow.draft.pave.yaml` — the editable planning subject that delivery later lands as revision 0 per `references/pave-revisions.md`. Decomposition lineage flattens into one graph; add a child `*.draft.pave.yaml` only for a subgraph whose packaging met a §9.12.1 condition. Strip the `x_planning` extension block; the marks are planning state, not graph meaning — each node's instrument line lands in `traceability.md` and the enforcement record (section 5).
 2. Run the global simplicity pass: remove every element — including any child profile, and any seat on a node whose common path a lead-run check settles (`references/pave-spec.md` §2.1) — whose absence changes no required routing, authority, evidence, recovery, or acceptance.
 3. Mark runtime bindings (section 4.8). Bindings need the whole-subgraph view, which is why planners do not mark them.
 4. Reconcile model and effort assignments across nodes — one value per role; a role that needs two tiers is two roles.
@@ -166,7 +166,7 @@ Write `skill-package-plan.md` with:
 - runtime bindings: each script-eligible subgraph with its recommended binding and rationale;
 - the profile dependency tree and the §9.12.1 packaging condition each child profile meets, when packaging is used;
 - the enforcement record: each run-wide prohibition, costly-transition guard, and dispatched seat (`references/pave-spec.md` §9.14.1) with its chosen strength, the reason a stronger rung is unnecessary (and, for a rung with standing cost, a cheaper one insufficient), and — for each planned hook — its event, matcher, script, actor scope with its harness-native placement or identity gate, and decline path; plus the evidence-gameability judgment for every node whose success evidence the doer produces — gameable or not, with the hardening choice (`references/pave-spec.md` §9.14.1);
-- the evolution tier (`static` or `evolving`) with its reason, per `references/pave-revisions.md`;
+- the revision record: `landing` and `usage_ledger` with their reasons, or the one-session omission, per `references/pave-revisions.md`;
 - scripts and tests required by mechanical checks;
 - runtime dependencies and installation boundary;
 - clean-room forward-test prompt — when the graph declares repair loops, prefer a prompt that forces at least one bounded repair edge, because a happy-path-only pass never prices the loop traffic; for a manual-only generated skill the prompt names it explicitly (`/<workflow-name>:<workflow-name> <request>`), because a bare prompt may not load a manual-only skill in a headless session.

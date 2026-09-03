@@ -5,8 +5,11 @@ pave:
   purpose: >-
     Assess whether a system fits PAVE, design an approved concrete Graph Profile,
     and build a validated native workflow plugin (lead skill plus role agents)
-    for the active harness while preserving the approved graph.
-  entrypoints: [initialize_run]
+    for the active harness while preserving the approved graph; then, on request,
+    revise a delivered workflow from its recorded defect and usage evidence
+    through the same review and approval discipline, landing each successor
+    in the workflow's append-only revision ledger.
+  entrypoints: [initialize_run, draft_successor]
 
   scope:
     in:
@@ -14,6 +17,7 @@ pave:
       - independent evidence collection from a system or process
       - formal PAVE YAML planning and whole-bundle user approval
       - native harness plugin construction, validation, adversarial review, and forward test
+      - revision of a delivered workflow from recorded defect and usage evidence
     out:
       - implicit invocation
       - execution of the generated domain workflow during skill construction
@@ -30,14 +34,16 @@ pave:
     - require evidence and material impact for every blocking review finding
     - distinguish package validation from domain correctness
     - auto-complete only after final review and clean-room forward testing
+    - refactor before adding, and generalize every successor beyond the run that triggered it
 
   roles:
     lead:
-      purpose: Maintain run state, verify evidence, route outcomes, integrate outputs, and deliver the final skill.
+      purpose: Maintain run state, verify evidence, route outcomes, integrate outputs, deliver the final skill, and land reviewed successors in the revision ledger.
       authority: authoritative_for_run_state
       avoids:
         - approving the graph for the user
         - changing approved graph meaning during construction
+        - landing a successor that lacks its review or a required approval
     requirements_interviewer:
       purpose: Establish the goal and classify the requirements it implies through short adaptive interview rounds.
       authority: advisory
@@ -78,8 +84,28 @@ pave:
       authority: evidentiary
       independence:
         - must not receive the intended answer or suspected defect
+    workflow_updater:
+      purpose: Draft one successor proposal — a declared preamble plus a unified diff against the live graph — from the recorded defect and usage evidence, generalized beyond the run that triggered it.
+      authority: authorship
+      avoids:
+        - landing a revision
+        - writing run state
+        - presenting a gate
+        - editing an installed skill
+        - blending a graph change and a binding change in one proposal
+    update_reviewer:
+      purpose: Find only evidence-backed material defects in a successor proposal and confirm its declared kind by the layer test.
+      authority: advisory_gate
+      independence:
+        - must not author the proposal under review
+        - must not be the lead that lands it
+      avoids:
+        - style preferences
+        - speculative risks
+        - invented requirements
+        - unsupported findings
     user_authority:
-      purpose: Approve requirements, fitness overrides, and the complete graph plan.
+      purpose: Approve requirements, fitness overrides, the complete graph plan, and a successor whose landing requires explicit approval.
       authority: final_for_scope_and_plan
 
   evidence:
@@ -150,7 +176,7 @@ pave:
         - repair_graph_plan
       subject: requested_workflow
       artifact: workflow.draft.pave.yaml
-      scope: root draft Graph Profile plus any child draft profiles justified through the realization ladder; approved as v0, frozen at delivery
+      scope: root draft Graph Profile plus any child draft profiles justified through the realization ladder; approved as revision 0, landed at delivery
     traceability_record:
       kind: derivation
       produced_by:
@@ -202,12 +228,26 @@ pave:
       produced_by: forward_test_skill
       subject: generated_skill_package
       artifact: reviews/forward-test.md
-    delivery_manifest:
+    revision_ledger:
       kind: observation
-      produced_by: finalize_delivery
+      produced_by:
+        - finalize_delivery
+        - land_revision
       subject: workflow_definition
-      artifact: workflow-manifest.yaml
-      scope: v0 draft record with no active revision; v1 freezes before first real execution per references/pave-revisions.md
+      artifact: revisions.yaml
+      scope: the append-only ledger beside the live canonical graph — entry 0 at delivery, one appended entry per landing or pin; the delivered package root is a valid evolution root with zero patches (references/pave-revisions.md)
+    successor_proposal:
+      kind: derivation
+      produced_by: draft_successor
+      subject: workflow_definition
+      artifact: history/v<N>.patch
+      scope: a YAML preamble declaring kind, semantic diff, envelope check, plan and usage evidence, and changelog entry, then the unified diff against the live graph at the newest graph or binding revision; one declared kind per proposal
+    update_review:
+      kind: judgment
+      produced_by: review_successor
+      subject: successor_proposal
+      artifact: revisions.yaml#review
+      scope: verdict and round count, held in run state until land_revision writes them into the landed entry's review field; no standing review file (pave-spec §8.4)
 
   checks:
     manually_invoked:
@@ -238,7 +278,7 @@ pave:
       on_failure_route: wait_for_exploration_join
     skeleton_complete:
       style: socratic
-      question: Is the root's five-part contract frozen with shared-state ownership and global budgets, are the run-wide enforcement record, evolution tier, and state contract drafted, and is the queue open with the root as its only pending entry?
+      question: Is the root's five-part contract frozen with shared-state ownership and global budgets, are the run-wide enforcement record, revision record (landing and usage_ledger fields), and state contract drafted, and is the queue open with the root as its only pending entry?
       evaluated_by: lead
       on_failure_route: plan_root_skeleton
     boundary_review_passed:
@@ -252,7 +292,7 @@ pave:
       on_failure_route: wait_for_frontier_join
     pave_definition_valid:
       style: mechanical
-      question: Does the graph definition (workflow.draft.pave.yaml at plan time; the frozen copy an update run starts from) pass the PAVE schema and graph-reference validator, including every referenced child profile and composition boundary?
+      question: Does the graph definition (workflow.draft.pave.yaml at plan time; the live graph a successor starts from) pass the PAVE schema and graph-reference validator, including every referenced child profile and composition boundary?
       on_failure_route: assemble_graph_plan
     plan_material_review_passed:
       style: reviewed
@@ -282,11 +322,31 @@ pave:
       question: Did the clean-room test complete without a transferable BLOCKING or HIGH skill defect?
       evaluated_by: lead
       on_failure_route: repair_integrated_skill
-    delivery_manifest_valid:
-      style: reviewed
-      question: Does the manifest record the approved v0 draft with no active revision and an empty history, and does the generated skill state its v1 freeze boundary?
-      evaluated_by: lead
+    revision_ledger_valid:
+      style: mechanical
+      question: Does `scripts/record_revision.py verify` pass on the delivered package root, and does the ledger hold entry 0 only — or, for a one-session workflow whose plan omits the ledger, does the package ship none and the delivery report say so?
       on_failure_route: finalize_delivery
+    update_review_material:
+      style: reviewed
+      question: Did the update reviewer find no verified BLOCKING or HIGH defect in the proposal, and did the declared kind survive the layer test?
+      evaluated_by: update_reviewer
+      on_failure_route: draft_successor
+    update_review_rounds_remain:
+      style: mechanical
+      question: Has review_successor closed fewer than three rounds for this proposal, read from the lead's plan_review_rounds counter in run state?
+      on_failure_route: pause_for_user_authority
+    successor_approved:
+      style: reviewed
+      question: >-
+        Is explicit approval recorded verbatim when the envelope check is changed_with_approval
+        or the plan's landing field is user — or, when the envelope check is unchanged and the
+        landing field is envelope, is that recorded envelope check itself the satisfying record?
+      evaluated_by: user_authority
+      on_failure_route: approve_successor
+    landing_verified:
+      style: mechanical
+      question: Does `scripts/record_revision.py verify` pass after the landing, and does the new head digest equal the proposal's validated digest?
+      on_failure_route: pause_for_user_authority
 
   nodes:
     initialize_run:
@@ -366,7 +426,7 @@ pave:
 
     plan_root_skeleton:
       intent: plan
-      purpose: Freeze the root node's five-part contract, draft the run-wide records (enforcement, evolution tier, state contract), and open the planning queue with the root as its only pending entry — the root's own plan is the queue's first dispatch, not this node's work.
+      purpose: Freeze the root node's five-part contract, draft the run-wide records (enforcement, revision record with its landing and usage_ledger fields, state contract), and open the planning queue with the root as its only pending entry — the root's own plan is the queue's first dispatch, not this node's work.
       roles: [lead]
       consumes: [requirements_record, system_map]
       produces: [root_contract, frontier_record]
@@ -376,7 +436,7 @@ pave:
         fitness_changed: {}
       activities:
         - freeze the root's five-part contract with shared-state ownership and global budgets (orchestration/explore-and-plan.md §4.1)
-        - draft the run-wide enforcement record, evolution tier, and state contract
+        - draft the run-wide enforcement record, the revision record (its landing field set to envelope or user, its usage_ledger field set to kept or omitted), and the state contract
         - open planning/frontier.yaml with the root as its only pending entry (§4.2); id kept for traceability — the "skeleton" is this contract plus the queue that grows from it
 
     elaborate_boundary:
@@ -533,17 +593,74 @@ pave:
 
     finalize_delivery:
       intent: execute
-      purpose: Record the approved v0 draft in the manifest, publish the validated skill, and report evidence, reviews, tests, and known gaps.
+      purpose: Write ledger entry 0 for the approved graph into the delivered package, publish the validated skill, and report evidence, reviews, tests, and known gaps.
       roles: [lead]
       consumes: [generated_skill_package, validation_results, final_skill_review, forward_test_result, workflow_definition]
-      produces: [delivery_manifest]
+      produces: [revision_ledger]
       activities:
-        - write workflow-manifest.yaml recording the v0 draft with no active revision
-        - state the v1 freeze boundary; clean-room testing creates no revision and claims no real-use evidence
-        - never freeze v1 at delivery; the executor freezes immediately before the first real execution
+        - write revisions.yaml entry 0 into the delivered package root with `scripts/record_revision.py init`, so the package root is itself a valid evolution root with zero patches; a one-session workflow whose plan omits the ledger ships none, and the delivery report says so
+        - state the first-run duty — the first real run installs the package root into the project's evolution root and pins revision 0 and its digest in its own run state before any work
+        - never land a successor at delivery; clean-room testing creates no entry and claims no real-use evidence
       outcomes:
         delivered: {}
         reporting_failed: {}
+
+    draft_successor:
+      intent: plan
+      purpose: Draft one successor proposal for a delivered workflow — the preamble declaring kind, semantic diff, envelope check, plan and usage evidence, and changelog entry, then the unified diff against the live graph at the newest graph or binding revision. Entered directly by a requester — a generated workflow's lead paused on a graph defect mid-run, or a user invoking the pave-evolve skill — who supplies the evolution root and its recorded defect and usage evidence by path.
+      roles: [workflow_updater]
+      consumes: [revision_ledger]
+      produces: [successor_proposal]
+      outcomes:
+        draft_ready: {}
+        envelope_exceeded:
+          meaning: The change leaves the authority envelope; the user decides.
+        no_change_warranted:
+          meaning: The recorded evidence does not justify a change; an honest close.
+      activities:
+        - read the ledger and the recorded defect and usage evidence before drafting; a diff silent on recorded usage evidence is a review finding
+        - refactor before adding, and state why the change holds for runs in general, not for the run that triggered it
+        - declare one kind per proposal, graph or binding, never both; a binding change may move the live digest because instruments live in the YAML
+        - pin the diff to the newest graph or binding entry's digest_after so the landing can validate it
+
+    review_successor:
+      intent: review
+      purpose: Find only evidence-backed material defects in the proposal and confirm its declared kind by the layer test; the lead records the verdict and the round count.
+      roles: [update_reviewer, lead]
+      consumes: [successor_proposal, revision_ledger]
+      produces: [update_review]
+      outcomes:
+        passed: {}
+        revision_required: {}
+      activities:
+        - the reviewer judges the proposal against the live graph, the ledger, and the recorded evidence; the lead records the verdict and round in run state
+        - layer test — a graph proposal changes nodes, outcomes, edges, evidence, or guards; a binding proposal changes only seat, model, effort, or instrument, whatever it does to the digest
+        - the same reviewer continues across one proposal's rounds; the lead's plan_review_rounds counter bounds them at three (edge successor_revision_to_draft)
+
+    approve_successor:
+      intent: review
+      purpose: Obtain explicit user approval for a reviewed successor whose envelope check is changed_with_approval or whose plan's landing field is user; the approval is recorded verbatim and lands in the ledger entry's approval field.
+      roles: [user_authority]
+      consumes: [successor_proposal, update_review]
+      outcomes:
+        approved: {}
+        revision_requested: {}
+        rejected: {}
+
+    land_revision:
+      intent: execute
+      purpose: Land the reviewed and, when required, approved proposal as the next ledger entry, and re-pin the calling run when there is one.
+      roles: [lead]
+      consumes: [successor_proposal, update_review]
+      produces: [revision_ledger]
+      activities:
+        - take the landing lock (the .landing marker in the evolution root)
+        - apply the patch to the live graph, validate the result, and append the entry with the review verdict, rounds, and any approval verbatim
+        - re-pin the calling run to the new revision and digest when there is one (Evolution contract rule 7, references/pave-revisions.md)
+        - release the lock; a landing that cannot complete leaves the marker for verify to report as interrupted
+      outcomes:
+        landed: {}
+        landing_failed: {}
 
   edges:
     - id: initialize_ready_to_interview
@@ -774,10 +891,50 @@ pave:
     - id: delivery_complete
       from: finalize_delivery.delivered
       to: complete
-      checks: [delivery_manifest_valid]
+      checks: [revision_ledger_valid]
     - id: delivery_retry
       from: finalize_delivery.reporting_failed
       to: finalize_delivery
+
+    - id: draft_ready_to_review
+      from: draft_successor.draft_ready
+      to: review_successor
+    - id: draft_envelope_exceeded_to_pause
+      from: draft_successor.envelope_exceeded
+      to: pause_for_user_authority
+    - id: draft_no_change_to_close
+      from: draft_successor.no_change_warranted
+      to: closed_no_change
+
+    - id: successor_review_pass_to_landing
+      from: review_successor.passed
+      to: land_revision
+      checks: [update_review_material, successor_approved]
+      notes: One edge, one route. successor_approved passes outright when the envelope check is unchanged and the plan's landing field is envelope; otherwise it fails until approve_successor records the approval verbatim, so its on_failure_route is that gate and no second edge shares this source.
+    - id: successor_revision_to_draft
+      from: review_successor.revision_required
+      to: draft_successor
+      checks: [update_review_rounds_remain]
+      notes: Bounded like the plan gate, by the lead's counter — plan_review_rounds, the update path's only review loop. The check fails on the third revision_required and routes to pause_for_user_authority with the open findings; the loop never runs a fourth draft on its own.
+
+    - id: successor_approved_to_landing
+      from: approve_successor.approved
+      to: land_revision
+      checks: [successor_approved]
+    - id: successor_approval_revision_to_draft
+      from: approve_successor.revision_requested
+      to: draft_successor
+    - id: successor_rejected_to_close
+      from: approve_successor.rejected
+      to: closed_no_change
+
+    - id: landing_complete
+      from: land_revision.landed
+      to: revision_landed
+      checks: [landing_verified]
+    - id: landing_failed_to_pause
+      from: land_revision.landing_failed
+      to: pause_for_user_authority
 
   control_endpoints:
     resume_from_checkpoint:
@@ -808,6 +965,14 @@ pave:
       kind: terminal
       meaning: The generated skill passed validation, material review, and clean-room forward testing.
       terminal_status: accepted
+    revision_landed:
+      kind: terminal
+      meaning: A reviewed, approved successor landed in the ledger, the landing verifies, and the requester re-pinned.
+      terminal_status: accepted
+    closed_no_change:
+      kind: terminal
+      meaning: The evidence warranted no revision, or the user rejected the proposal; nothing landed.
+      terminal_status: closed_unaccepted
 
   state:
     required:
@@ -830,7 +995,7 @@ pave:
       - validation_results
       - final_review_rounds
       - forward_test_result
-      - delivery_manifest_state
+      - revision_ledger_state
       - terminal_classification
       - traversal_history
     checkpoint:
@@ -851,10 +1016,19 @@ pave:
       - skill, PAVE, traceability, and helper validation pass
       - final material review has no verified BLOCKING or HIGH finding
       - clean-room forward test has no transferable BLOCKING or HIGH defect
-      - the manifest records the approved v0 draft, its freeze boundary is stated, and history is untouched
+      - the ledger's entry 0 records the approved graph and verifies
+    revision_landed_when:
+      - the proposal declares one kind and the update reviewer's layer test confirmed it
+      - update review has no verified BLOCKING or HIGH finding within three rounds
+      - explicit approval is recorded verbatim when the envelope check is changed_with_approval or the plan's landing field is user
+      - the landing verifies and the new head digest equals the proposal's validated digest
+      - the calling run, when there is one, re-pinned to the new revision and digest
     closed_unaccepted_when:
       - user stops after a not-fit verdict
       - user rejects the graph plan
+    closed_no_change_when:
+      - the recorded evidence warranted no revision
+      - user rejects the successor proposal
 
   x_concurrency:
     exploration:
@@ -888,17 +1062,17 @@ pave:
     runtime: generated_native_harness
     dispatch:
       one_shot_workers: native role dispatch with a complete prompt and terminal cleanup
-      gate_reviewers: retained pave-material-reviewer identity continued within one gate
+      gate_reviewers: retained reviewer identity (pave-material-reviewer, or update-reviewer on the update path) continued within one gate
       builder_isolation: worktree when the output directory is inside a git repository
     user_authority: bounded native questions for decisions and approvals, free text for open discovery
     invocation: manual-only explicit pave-init selection, implicit triggering forbidden in the skill description
     validators:
       pave: scripts/validate_pave.py
       traceability: scripts/validate_traceability.py
-      revision: scripts/freeze_revision.py
+      revision: scripts/record_revision.py
       dependencies: [python3, jsonschema, pyyaml]
 
   x_review_policy:
-    materiality_warning: carried by the pave-material-reviewer agent definition (plugin agents/pave-material-reviewer.md), pinned as its system prompt
+    materiality_warning: carried by both reviewer agent definitions (plugin agents/pave-material-reviewer.md and agents/update-reviewer.md), pinned as their system prompts
     blocking_severities: [BLOCKING, HIGH]
     unsupported_finding_disposition: FALSE_POSITIVE

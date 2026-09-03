@@ -1,9 +1,12 @@
 version = 1
 harness = "claude"
-skill_output = "skills/pave-init/SKILL.md"
 agent_output_kind = "markdown"
 
-[slots]
+[skills.pave-init]
+template = "sources/pave-init/SKILL.md.tmpl"
+output = "skills/pave-init/SKILL.md"
+
+[skills.pave-init.slots]
 FRONTMATTER = '''---
 name: pave-init
 description: >-
@@ -46,11 +49,40 @@ MANIFEST_COMPONENT = '''the plugin manifest (`.claude-plugin/plugin.json`: name,
 ROLE_COMPONENT = '''role contracts as registered Markdown agents under the plugin root's `agents/`, when authority or context differs;'''
 HOOK_COMPONENT = '''hook scripts under `skills/<workflow-name>/hooks/`, registered per the approved enforcement record — in generated skill frontmatter when only the lead's tool calls or lead-only events matter, in the plugin's `hooks/hooks.json` when the hook must see subagent tool calls (a skill-frontmatter hook fires only for the agent that invoked the skill) — plus one consent-gated settings fragment only for rules neither placement can carry;'''
 ROLE_RUNTIME_BINDING = '''Roles map to registered plugin agents (`agents/<role>.md`) only when they need distinct authority or context. The lead dispatches `subagent_type: <workflow-name>:<role>` and pauses when it is unavailable; it never substitutes an ordinary worker.'''
-MODEL_RUNTIME_BINDING = '''Map the approved capability tier to Claude model slugs explicitly: top-capability planning roles use `fable`, strong judgment roles use `opus`, and small, fast evidence roles use `sonnet`. Preserve the approved effort in agent frontmatter and each scripted agent call.'''
+MODEL_RUNTIME_BINDING = '''Map the approved capability tier to Claude model slugs explicitly: top-capability planning roles use `fable`, strong judgment roles use `opus`, and small, fast evidence roles use `sonnet`. A reviewer or adjudicator seat binds at or above the producer whose artifact it judges — a judge below its producer misses the findings that need the producer's whole reasoning to see. Preserve the approved effort in agent frontmatter and each scripted agent call.'''
 HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement record. Register it by the actor it watches: skill frontmatter for a hook that only the lead's tool calls or lead-only events (Stop, UserPromptSubmit, SessionStart) must reach; the plugin's `hooks/hooks.json` for a hook that must see a subagent's tool calls — a skill-frontmatter hook fires only for the agent that invoked the skill (measured on Claude Code 2.1.258). A settings fragment ships only behind the generated skill's run-start consent gate, for rules neither placement can carry.'''
 SCRIPT_RUNTIME_BINDING = '''A subgraph with an approved `workflow_script` binding maps to one Claude Agent SDK `@beta` workflow script per the native `skill-builder` contract, with lead-driven Agent calls as fallback when the script runtime is unavailable.'''
 DELIVERY_INSTALL_BULLET = '''- the one-line install: `claude --plugin-dir <package-root>` loads it for a session; a marketplace install makes it permanent;'''
 SKILL_VALIDATION_BINDING = '''the `skill-creator:skill-creator` quick validator'''
+
+[skills.pave-evolve]
+template = "sources/pave-evolve/SKILL.md.tmpl"
+output = "skills/pave-evolve/SKILL.md"
+
+[skills.pave-evolve.slots]
+FRONTMATTER = '''---
+name: pave-evolve
+description: >-
+  Revise a delivered PAVE workflow — pave-init included — from recorded defect
+  and usage evidence: a workflow-updater drafts a successor patch, an
+  update-reviewer judges it, the user approves where the authority envelope
+  moved, and the lead lands it in the append-only revision ledger. Manual-only:
+  use only when the user explicitly invokes /pave-evolve, or when a PAVE lead
+  routes here from a run paused on a defect in its own graph. Registers no
+  hooks.
+compatibility: >-
+  Requires the pave-init plugin's registered agent types (workflow-updater,
+  update-reviewer), bash, git, and Python 3 with pyyaml and jsonschema —
+  record_revision.py and validate_pave.py fail closed without them.
+---'''
+DISPATCH_CONTRACT = '''Both seats are registered agent types from this plugin. A role contract is the harness-loaded system prompt, so a brief carries task context, not a role file to read. Resolve this plugin's absolute installation path before dispatch and include the pave-init skill directory (`<plugin-root>/skills/pave-init/`) in every brief so seats can resolve `references/...` and `scripts/...`.
+
+- Start the updater with the Agent tool, `subagent_type: pave-init:workflow-updater`, a unique `name`, and `run_in_background: true`; continue that same updater through review rounds with `SendMessage` — a fresh updater re-derives the proposal and loses the rounds' record.
+- Start the reviewer with `subagent_type: pave-init:update-reviewer`, a unique `name`, and `run_in_background: true`; continue that same reviewer through repair rounds with `SendMessage`.
+- Use the model and effort in agent frontmatter.
+- Use `AskUserQuestion` for the approval gate; the approval option names the revision number and digest. If the tool is unavailable, ask the same bounded question in plain text.
+
+If `pave-init:workflow-updater` or `pave-init:update-reviewer` is unavailable, pause and report an incomplete pave-init installation. Do not substitute an ordinary worker and claim equivalent review.'''
 
 [roles.forward-tester]
 sandbox_mode = "workspace-write"
@@ -66,7 +98,7 @@ runtime = '''When more evidence is needed, dispatch read-only workers with the A
 
 [roles.pave-material-reviewer]
 sandbox_mode = "read-only"
-model = "opus"
+model = "fable"
 effort = "high"
 runtime = '''When the artifact is a generated skill package, load `skill-creator:skill-creator` for skill-quality context when it is available. Dispatch `pave-init:research-delegate` workers with the Agent tool and `run_in_background: true`, starting independent questions together. Return findings through `SendMessage` and remain the same named background reviewer through repairs at this gate.'''
 
@@ -87,3 +119,15 @@ sandbox_mode = "workspace-write"
 model = "sonnet"
 effort = "high"
 runtime = '''Return the bounded exploration result through the normal Claude agent result channel and write only the assigned report.'''
+
+[roles.update-reviewer]
+sandbox_mode = "read-only"
+model = "fable"
+effort = "high"
+runtime = '''When the proposal touches a lead skill, load `skill-creator:skill-creator` for skill-quality context when it is available. Dispatch `pave-init:research-delegate` workers with the Agent tool and `run_in_background: true`, starting independent questions together. Return findings through `SendMessage` and remain the same named background reviewer through repair rounds on this proposal.'''
+
+[roles.workflow-updater]
+sandbox_mode = "workspace-write"
+model = "fable"
+effort = "xhigh"
+runtime = '''Load `skill-creator:skill-creator` for skill-quality context and read the pave-init skill (`skills/pave-init/SKILL.md` under the plugin root) for the design language before drafting. When your judgment needs more evidence, dispatch read-only workers with the Agent tool: `subagent_type: Explore` for pure search and `general-purpose` only when a command must run. Return the proposal report through `SendMessage` and remain the same named background updater through review rounds.'''

@@ -1,4 +1,4 @@
-version: 2.4.5
+version: 2.5.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,61 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.5.0 (2026-09-03)
+
+New — `pave-evolve`, a second skill in this plugin, revises a delivered
+workflow from recorded evidence through two dedicated seats:
+`workflow-updater` drafts the successor as a reviewable patch with its
+semantic diff and never lands; `update-reviewer` gives it a material-only
+review and is neither the updater nor the lead. A generated lead paused on a
+defect in its own graph hands the evidence to these seats and lands the
+result — it never redesigns its own graph from a run-filled context — and
+pave-init's own successors take the same path (`skills/pave-evolve/SKILL.md`;
+the update path in `references/pave-init.pave.yaml`: `draft_successor`,
+`review_successor`, `approve_successor`, `land_revision`).
+  - Field evidence: a generated lead amended its pinned graph in place after
+    55 unreviewed increments. The actor with write authority and the full run
+    in context was the wrong one for the job.
+
+Changed — one live graph and one append-only ledger replace the
+draft / manifest / `history/vN/` copy scheme. Delivery lands the approved
+graph as `revisions.yaml` entry 0; the first real run installs the package
+into a project evolution root and pins it; every later change lands from a
+reviewed patch (`history/vN.patch`) as an entry that records `kind` (`graph`,
+`binding`, or `pin`), the digests before and after, the verbatim approval, and
+the envelope check. `scripts/record_revision.py` (init, install, propose,
+land, pin, verify, rollback) replaces `freeze_revision.py` and ships with a
+focused test; `verify` tells an unrecorded edit from an interrupted landing
+and routes a run whose pin is stale by the kind of what landed
+(`references/pave-revisions.md`).
+  - Why: a copy-and-digest convention has no defence against the actor
+    holding the pen — the same actor re-digested the copy it had edited.
+
+Changed — the `static` / `evolving` evolution tiers are gone. Every workflow
+that runs more than once ships the ledger; the plan records two fields
+instead — `landing: envelope | user` and `usage_ledger: kept | omitted` — and
+a one-session workflow ships nothing. The evolution contract lives once, in
+`references/pave-revisions.md`; generated leads carry one-clause rules with
+pointers.
+
+New — `hooks/graph_edit_guard.sh`, a PreToolUse template that generated
+multi-run workflows register: it denies a direct edit or write of a live
+graph, or of the ledger beside it, inside an evolution root unless a landing is
+in progress. pave-init does not register it for itself; its own graph lands by
+release.
+
+Changed — a reviewer or adjudicator seat binds at or above the producer it
+judges (the model mapping in both harness bindings). `pave-material-reviewer`
+moves `opus` → `fable` on Claude; `update-reviewer` is `fable` at high effort;
+`workflow-updater` is `fable` at xhigh. Codex maps all three to `gpt-5.6-sol`.
+  - Why: a judge below its producer misses the findings that need the
+    producer's whole reasoning to see.
+
+Improved — both reviewer roles share one failure-hierarchy, materiality, and
+proportionality fragment (`sources/fragments/reviewer-core.md`) through a
+build-time include, so a fragment edit re-stamps both agents. The build
+renders any number of skills from a `[skills.<name>]` binding table.
 
 ### 2.4.5 (2026-09-03)
 

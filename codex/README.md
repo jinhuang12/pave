@@ -109,7 +109,7 @@ python3 codex/install_agents.py --project /path/to/repo --check
 python3 codex/install_agents.py --project /path/to/repo --uninstall
 ```
 
-The installer owns only the six safe file names `pave_init_*.toml` listed in
+The installer owns only the eight safe file names `pave_init_*.toml` listed in
 its manifest. Each file declares its namespaced `pave-init:<role>` runtime
 name. The installer refuses to overwrite or remove an unowned modified file
 unless you pass `--force`.

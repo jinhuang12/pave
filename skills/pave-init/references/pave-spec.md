@@ -243,9 +243,10 @@ design that nobody has run yet. Give the two states different names and
 different authority:
  
 - A **draft** is editable. It carries design authority only.
-- A **frozen revision** is immutable. It records the graph and the evidence
-  that stood behind it at the moment it froze.
-Freeze immediately before first real execution, not at approval. Later
+- A **landed revision** is immutable. It records the graph and the evidence
+  that stood behind it at the moment it landed.
+Delivery lands the approved draft as revision 0; the first real execution
+pins it, so the record tells a delivered graph from one that has run. Later
 revisions succeed earlier ones and record what changed and why. Version
 numbers record succession, not quality.
  

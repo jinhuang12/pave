@@ -18,6 +18,12 @@
 #              runs; an over-cap document is named with its size once per
 #              session and file even when the throttle holds, and the cap
 #              follows PAVE_INIT_CAP_LINES
+#   guard:     an Edit or Write on a live .pave.yaml or the ledger inside an evolution root
+#              (revisions.yaml beside it, no .landing) is denied with exit 2
+#              and a reason on stderr, for a subagent payload as much as for
+#              the lead; a landing in progress, a .pave.yaml with no ledger
+#              beside it, a non-graph path in the root, a payload with no
+#              file_path, and an unparsable payload all pass silently
 #   registration: the two subagent-facing hooks are in the plugin's
 #              hooks/hooks.json (a skill-frontmatter hook never sees a
 #              subagent's write); the frontmatter keeps only the lead-only pair
@@ -35,6 +41,7 @@ STOP_HOOK="$SKILL/hooks/stop_alignment_check.sh"
 STALE_HOOK="$SKILL/hooks/state_staleness_reminder.sh"
 LAYOUT_HOOK="$SKILL/hooks/planning-layout-warn.sh"
 READER_HOOK="$SKILL/hooks/write_for_reader.sh"
+GUARD_HOOK="$SKILL/hooks/graph_edit_guard.sh"
 VALIDATOR="$SKILL/scripts/validate_run_state.py"
 
 PASS=0
@@ -83,7 +90,7 @@ state = {
     "validation_results": None,
     "final_review_rounds": 0,
     "forward_test_result": None,
-    "delivery_manifest_state": None,
+    "revision_ledger_state": None,
     "terminal_classification": {"status": status} if status else None,
     "traversal_history": [{"node": "interview_system", "outcome": "requirements_ready"}],
 }
@@ -209,7 +216,7 @@ report "validator: well-formed instance passes" "$ok" "rc=$RC out=$OUT"
 
 write_state "" minimal
 OUT="$(python3 "$VALIDATOR" "$STATE" 2>&1)"; RC=$?
-ok=0; [ "$RC" = "1" ] && printf '%s' "$OUT" | grep -q "missing required field" && ok=1
+ok=0; [ "$RC" = "1" ] && printf '%s' "$OUT" | grep -q -E "missing required field|is a required property" && ok=1
 report "validator: missing required fields fail" "$ok" "rc=$RC out=$OUT"
 
 # --- planning-layout-warn ---------------------------------------------------
@@ -337,6 +344,88 @@ ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "plain english" \
   && ! printf '%s' "$OUT" | grep -q "over its cap" && ok=1
 report "reader: cap follows PAVE_INIT_CAP_LINES" "$ok" "rc=$RC out=$OUT"
 rm -f "$WORKSPACE/design-plan.md"
+
+# --- graph_edit_guard --------------------------------------------------------
+# The live canonical graph is landed by record_revision.py from a reviewed
+# patch, never edited directly. The guard is path-only: a revisions.yaml beside
+# the target is what marks the directory an evolution root, and a .landing
+# marker means the landing tool owns the graph right now. No identity
+# exemption -- the actor a prohibition has to survive is the one that never
+# read the lead skill.
+
+EVO="$CLAUDE_PROJECT_DIR/evo root"   # regression: roots with spaces
+mkdir -p "$EVO" "$WORK/no-ledger"
+: > "$EVO/revisions.yaml"
+: > "$EVO/workflow.pave.yaml"
+: > "$EVO/child.pave.yaml"
+: > "$EVO/README.md"
+: > "$WORK/no-ledger/workflow.pave.yaml"
+
+guard_payload() { # $1 = file_path, $2 = tool_name, $3 = agent_id ("" for lead)
+  python3 - "$1" "$2" "${3:-}" <<'PY'
+import json, sys
+path, tool, agent = sys.argv[1], sys.argv[2], sys.argv[3]
+edit = {"file_path": path}
+if tool == "Write":
+    edit["content"] = "x"
+else:
+    edit["old_string"], edit["new_string"] = "a", "b"
+payload = {"session_id": "g1", "tool_name": tool, "tool_input": edit}
+if agent:
+    payload["agent_id"] = agent
+    payload["agent_type"] = "worker"
+print(json.dumps(payload))
+PY
+}
+
+ERR="$(guard_payload "$EVO/workflow.pave.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] \
+  && printf '%s' "$ERR" | grep -q "record_revision.py land" && ok=1
+report "guard: editing the live graph in an evolution root is denied" "$ok" "rc=$RC err=$ERR"
+
+: > "$EVO/.landing"
+ERR="$(guard_payload "$EVO/workflow.pave.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: a landing in progress passes" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO/.landing"
+
+ERR="$(guard_payload "$EVO/child.pave.yaml" Write "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
+report "guard: a child graph beside the ledger is guarded too" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(guard_payload "$WORK/no-ledger/workflow.pave.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: a .pave.yaml with no ledger beside it passes" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(guard_payload "$EVO/README.md" Write "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: a non-graph path in the root passes" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(guard_payload "$EVO/revisions.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
+report "guard: editing the ledger itself is denied" "$ok" "rc=$RC err=$ERR"
+
+: > "$EVO/.landing"
+ERR="$(guard_payload "$EVO/revisions.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: the ledger under a landing in progress passes" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO/.landing"
+
+ERR="$(guard_payload "$WORK/no-ledger/revisions.yaml" Write "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: creating a ledger where none exists passes" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(printf '{"tool_name":"Edit","tool_input":{}}' | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: a payload without file_path passes" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(guard_payload "$EVO/workflow.pave.yaml" Edit sub-1 | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
+report "guard: a subagent editing the live graph is denied too" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(printf 'not json' | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: unparsable payload fails open" "$ok" "rc=$RC err=$ERR"
 
 # --- registration ------------------------------------------------------------
 # A skill-frontmatter hook fires only for the agent that invoked the skill

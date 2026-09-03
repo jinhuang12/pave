@@ -24,7 +24,7 @@
     "validation_results",
     "final_review_rounds",
     "forward_test_result",
-    "delivery_manifest_state",
+    "revision_ledger_state",
     "terminal_classification",
     "traversal_history"
   ],
@@ -116,7 +116,10 @@
       "type": ["string", "null"],
       "description": "Path of reviews/forward-test.md; null before the forward test."
     },
-    "delivery_manifest_state": {"type": ["string", "null"]},
+    "revision_ledger_state": {
+      "type": ["string", "null"],
+      "description": "One line at delivery: the shipped revisions.yaml entry 0 digest and location, or the recorded omission for a one-session workflow (references/pave-revisions.md). Null before delivery."
+    },
     "terminal_classification": {
       "type": ["object", "null"],
       "additionalProperties": false,

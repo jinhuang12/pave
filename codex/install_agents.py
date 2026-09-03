@@ -3,8 +3,8 @@
 
 Codex custom-agent files live in ``.codex/agents`` or ``~/.codex/agents``;
 they are not part of the documented plugin manifest.  This explicit installer
-copies only the six PAVE files, records their hashes, refuses unsafe overwrite,
-and can remove only files it still owns.
+copies only the eight PAVE files, records their hashes, refuses unsafe
+overwrite, and can remove only files it still owns.
 """
 
 from __future__ import annotations
@@ -33,6 +33,8 @@ EXPECTED_AGENTS = {
     "pave_init_research_delegate.toml": "pave-init:research-delegate",
     "pave_init_skill_builder.toml": "pave-init:skill-builder",
     "pave_init_system_explorer.toml": "pave-init:system-explorer",
+    "pave_init_update_reviewer.toml": "pave-init:update-reviewer",
+    "pave_init_workflow_updater.toml": "pave-init:workflow-updater",
 }
 
 

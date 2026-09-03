@@ -27,9 +27,9 @@ Where the plan approves a `workflow_script` binding, generate one script file un
 
 The generated `SKILL.md` states both bindings for the subgraph: run the script when its active harness runtime is available, otherwise the lead runs the same subgraph through concurrent role dispatch. The graph, not the script, stays the authority.
 
-## Evolution tier
+## Revision record
 
-Implement the plan's evolution tier verbatim per `references/pave-revisions.md`: for `static`, one frozen canonical YAML and the pause-and-report contract in the generated lead — no manifest, no history, no freeze script; for `evolving`, the revision workspace, the copied freeze script, and the complete evolution contract including the authority envelope, word-for-word in obligation. Do not add revision machinery the plan does not name, and do not omit the envelope's user-approval boundary.
+Implement the plan's revision record verbatim per `references/pave-revisions.md`: for a one-session workflow, the canonical YAML alone and no ledger; otherwise `revisions.yaml` with entry 0 written by `scripts/record_revision.py init`, the copied script, the graph edit guard at the recorded placement, and the evolution contract's one-clause rules with pointers in the generated lead — `landing` and `usage_ledger` exactly as the plan states them. Do not add revision machinery the plan does not name, and do not omit evolution contract rule 6's user-approval boundary.
 
 ## Hooks
 

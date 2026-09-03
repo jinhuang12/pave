@@ -1,9 +1,12 @@
 version = 1
 harness = "codex"
-skill_output = "codex/skills/pave-init/SKILL.md"
 agent_output_kind = "toml"
 
-[slots]
+[skills.pave-init]
+template = "sources/pave-init/SKILL.md.tmpl"
+output = "codex/skills/pave-init/SKILL.md"
+
+[skills.pave-init.slots]
 FRONTMATTER = '''---
 name: pave-init
 description: >-
@@ -29,11 +32,36 @@ MANIFEST_COMPONENT = '''the plugin manifest (`.codex-plugin/plugin.json`: name, 
 ROLE_COMPONENT = '''custom-agent TOML sources plus an explicit consented installer under the plugin root, when authority or context differs;'''
 HOOK_COMPONENT = '''hook scripts plus plugin-level `hooks/hooks.json` registration per the approved enforcement record;'''
 ROLE_RUNTIME_BINDING = '''Roles map to named custom-agent TOML contracts only when they need distinct authority or context. The lead dispatches the mapped custom-agent name and pauses when it is unavailable; it never substitutes a generic worker. Installation is explicit and must not hide inside a hook.'''
-MODEL_RUNTIME_BINDING = '''Map the approved capability tier to Codex models explicitly: top-capability and strong-judgment roles use `gpt-5.6-sol`, while small, fast evidence roles use `gpt-5.6-terra`. Preserve the approved reasoning effort in custom-agent TOML and each scripted invocation.'''
+MODEL_RUNTIME_BINDING = '''Map the approved capability tier to Codex models explicitly: top-capability and strong-judgment roles use `gpt-5.6-sol`, while small, fast evidence roles use `gpt-5.6-terra`. A reviewer or adjudicator seat binds at or above the producer whose artifact it judges — a judge below its producer misses the findings that need the producer's whole reasoning to see. Preserve the approved reasoning effort in custom-agent TOML and each scripted invocation.'''
 HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement record. Register it in plugin-level `hooks/hooks.json`; a payload adapter may change wire format but not policy, actor scope, or enforcement strength.'''
 SCRIPT_RUNTIME_BINDING = '''A subgraph with an approved `workflow_script` binding maps to one deterministic Python or TypeScript `codex_exec_script` per the native `skill-builder` contract, with lead-driven custom-agent dispatch as fallback when the script runtime is unavailable. In generated custom-agent TOML, map top-capability and strong-judgment roles to `gpt-5.6-sol` and small, fast evidence roles to `gpt-5.6-terra`. Preserve the approved reasoning effort exactly; use the highest supported effort only when the approved level is unavailable and record that fallback.'''
 DELIVERY_INSTALL_BULLET = '''- install or enable the Codex plugin, run its explicit custom-agent installer, review hooks through `/hooks`, then invoke `$<workflow-name>:<workflow-name>`; marketplace installation alone is incomplete while agents remain outside the manifest;'''
 SKILL_VALIDATION_BINDING = '''the `$skill-creator` quick validator'''
+
+[skills.pave-evolve]
+template = "sources/pave-evolve/SKILL.md.tmpl"
+output = "codex/skills/pave-evolve/SKILL.md"
+
+[skills.pave-evolve.slots]
+FRONTMATTER = '''---
+name: pave-evolve
+description: >-
+  Revise a delivered PAVE workflow — pave-init included — from recorded defect
+  and usage evidence: a workflow-updater drafts a successor patch, an
+  update-reviewer judges it, the user approves where the authority envelope
+  moved, and the lead lands it in the append-only revision ledger.
+  Manual-only: use only after explicit $pave-init:pave-evolve invocation or
+  selection through /skills, or when a PAVE lead routes here from a run paused
+  on a defect in its own graph. Registers no hooks.
+---'''
+DISPATCH_CONTRACT = '''Resolve `PAVE_PLUGIN_ROOT` as the absolute path three directories above this file (`<root>/codex/skills/pave-evolve/SKILL.md` → `<root>`) and resolve every `references/...` and `scripts/...` path in this file under `<PAVE_PLUGIN_ROOT>/skills/pave-init/`. Both seats are named Codex custom agents installed from this plugin; each TOML contains the complete role contract. Start every brief with `PAVE_PLUGIN_ROOT: <absolute plugin root>`.
+
+- Start the updater with `spawn_agent`, `agent_type: pave-init:workflow-updater`, a unique `task_name`, and `fork_turns: "none"` so the role keeps its own model and effort; continue that same thread through review rounds with `followup_task` — a fresh thread re-derives the proposal and loses the rounds' record.
+- Start the reviewer with `spawn_agent`, `agent_type: pave-init:update-reviewer`, and `fork_turns: "none"`; continue that exact thread through repair rounds with `followup_task`. Wait with `wait_agent`; a finished thread needs no close.
+- Use each role's configured Codex model and reasoning effort.
+- Ask the approval question in plain text or with `request_user_input` when it is available; the approval option names the revision number and digest.
+
+Before the first dispatch, run `python3 <PAVE_PLUGIN_ROOT>/codex/preflight.py --project <project-root> --evidence-dir <fresh-evidence-dir>` unless this session already passed it; it proves the installed `pave-init:*` roles through a live nested dispatch. If a role is unavailable, pause and report the setup commands from `codex/README.md`. Do not use a generic worker and claim equivalent review.'''
 
 [roles.forward-tester]
 model = "inherit"
@@ -70,3 +98,15 @@ model = "gpt-5.6-terra"
 reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 runtime = '''Return the bounded exploration result to the parent thread and write only the assigned report.'''
+
+[roles.update-reviewer]
+model = "gpt-5.6-sol"
+reasoning_effort = "high"
+sandbox_mode = "read-only"
+runtime = '''When the proposal touches a lead skill, load `$skill-creator` for skill-quality context when it is available. Use `spawn_agent` with `agent_type: pave-init:research-delegate` for independent bounded questions and start them together. Return findings on this exact reviewer thread. The lead continues this thread with `followup_task` through repair rounds.'''
+
+[roles.workflow-updater]
+model = "gpt-5.6-sol"
+reasoning_effort = "xhigh"
+sandbox_mode = "workspace-write"
+runtime = '''Load `$skill-creator` for skill-quality context and read the pave-init skill (`<PAVE_PLUGIN_ROOT>/codex/skills/pave-init/SKILL.md`) for the design language before drafting. When more evidence is needed, use `spawn_agent` with `agent_type: pave-init:research-delegate`, one bounded read-only question per worker, and collect each result with `wait_agent`. Return the proposal report on this exact thread; the lead continues it with `followup_task` through review rounds.'''

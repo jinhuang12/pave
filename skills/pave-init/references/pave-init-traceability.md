@@ -2,18 +2,20 @@
 
 Each row maps one canonical graph object to its owning skill file. Several graph objects can share one implementation file.
 
-Native role outputs are generated from the shared role sources under `sources/roles/`. Every other path resolves inside the shared skill directory.
+Native role outputs are generated from the shared role sources under `sources/roles/`. Every other path resolves inside the shared skill directory; the update path's lead procedure lives in the sibling pave-evolve skill, which the validator cannot reach from here, so its rows anchor to the revision reference and the ledger script inside this directory.
 
 | Type | ID | Implementation | Authority or purpose |
 |---|---|---|---|
-| role | lead | SKILL.md | Run state, routing, integration, and delivery |
+| role | lead | SKILL.md<br>references/pave-revisions.md | Run state, routing, integration, delivery, and landing reviewed successors |
 | role | requirements_interviewer | orchestration/interview-and-fitness.md | Adaptive requirements gathering |
 | role | system_explorer | agents/system-explorer.md | Bounded primary-evidence investigation |
 | role | node_planner | agents/node-planner.md | One-boundary planning authorship |
 | role | material_reviewer | agents/pave-material-reviewer.md | Evidence-backed material review |
 | role | skill_builder | agents/skill-builder.md | Scoped package construction |
 | role | forward_tester | agents/forward-tester.md | Clean-room skill use |
-| role | user_authority | orchestration/interview-and-fitness.md<br>orchestration/review-and-build.md | Requirements, override, and plan approval |
+| role | workflow_updater | agents/workflow-updater.md | Successor proposal authorship; never lands, never writes run state |
+| role | update_reviewer | agents/update-reviewer.md | Material-only review of a successor proposal; independent of updater and landing lead |
+| role | user_authority | orchestration/interview-and-fitness.md<br>orchestration/review-and-build.md<br>references/pave-revisions.md | Requirements, override, plan approval, and successor approval when the landing requires it |
 | evidence | run_contract | SKILL.md | Run identity and output boundary |
 | evidence | requirements_record | orchestration/interview-and-fitness.md | Approved requirements record |
 | evidence | fitness_decision | orchestration/interview-and-fitness.md | PAVE fitness judgment |
@@ -34,7 +36,9 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | evidence | validation_results | SKILL.md<br>scripts/validate_pave.py<br>scripts/validate_traceability.py | Mechanical validation records, recorded in reviews/validation.md |
 | evidence | final_skill_review | SKILL.md<br>agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Integrated-skill verdict, recorded in reviews/final-skill-review.md |
 | evidence | forward_test_result | SKILL.md<br>agents/forward-tester.md<br>orchestration/review-and-build.md | Clean-room behavior evidence, recorded in reviews/forward-test.md |
-| evidence | delivery_manifest | references/pave-revisions.md<br>scripts/freeze_revision.py | v0 manifest record; v1 freezes before first real execution |
+| evidence | revision_ledger | references/pave-revisions.md<br>scripts/record_revision.py | Append-only revisions.yaml beside the live graph; entry 0 at delivery, one entry per landing or pin |
+| evidence | successor_proposal | agents/workflow-updater.md<br>references/pave-revisions.md<br>scripts/record_revision.py | history/v<N>.patch: declared preamble then the unified diff against the live graph |
+| evidence | update_review | agents/update-reviewer.md<br>references/pave-revisions.md | Verdict and round count, written into the landed entry's review field; no standing file |
 | check | manually_invoked | SKILL.md | Explicit invocation gate |
 | check | requirements_complete | orchestration/interview-and-fitness.md | Adaptive interview completion |
 | check | requirements_and_fit_approved | orchestration/interview-and-fitness.md<br>references/approval-briefs.md | Approval for fit or fit-with-gaps, presented via reviews/requirements-brief.md |
@@ -50,7 +54,11 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | check | integrated_validation_passed | orchestration/review-and-build.md | Package validation gate |
 | check | final_material_review_passed | agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Material-only final gate |
 | check | forward_test_acceptable | agents/forward-tester.md<br>orchestration/review-and-build.md | Transferable-defect gate |
-| check | delivery_manifest_valid | SKILL.md | v0 manifest and freeze-boundary gate; lead-reviewed against the Final delivery spec (no script can verify a v0 manifest — freeze_revision.py verify requires a frozen revision) |
+| check | revision_ledger_valid | SKILL.md<br>scripts/record_revision.py | Delivery gate: `record_revision.py verify` passes on the package root and the ledger holds entry 0 only |
+| check | update_review_material | agents/update-reviewer.md<br>references/pave-revisions.md | Material-only successor gate; declared kind survives the layer test |
+| check | update_review_rounds_remain | references/pave-revisions.md<br>references/pave-init.pave.yaml | Three-round bound on the successor review loop, read from the lead's plan_review_rounds counter |
+| check | successor_approved | references/pave-revisions.md<br>references/pave-init.pave.yaml | Verbatim approval when the envelope changed or the plan's landing field is user; the recorded envelope check otherwise |
+| check | landing_verified | scripts/record_revision.py<br>references/pave-revisions.md | Post-landing verify and head-digest match |
 | node | initialize_run | SKILL.md | Establish run workspace and boundaries |
 | node | interview_system | SKILL.md<br>orchestration/interview-and-fitness.md | Gather requirements |
 | node | assess_pave_fitness | orchestration/interview-and-fitness.md | Judge suitability without scoring |
@@ -72,7 +80,11 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | node | review_integrated_skill | agents/pave-material-reviewer.md<br>orchestration/review-and-build.md | Final material review |
 | node | repair_integrated_skill | agents/skill-builder.md<br>orchestration/review-and-build.md | Repair verified package defects |
 | node | forward_test_skill | agents/forward-tester.md<br>orchestration/review-and-build.md | Clean-room forward test |
-| node | finalize_delivery | SKILL.md<br>references/pave-revisions.md | Record v0 manifest, then automatic final delivery |
+| node | finalize_delivery | SKILL.md<br>references/pave-revisions.md<br>scripts/record_revision.py | Write ledger entry 0 with `record_revision.py init`, then automatic final delivery |
+| node | draft_successor | agents/workflow-updater.md<br>references/pave-revisions.md | Draft one successor proposal from recorded evidence; the update path's entrypoint |
+| node | review_successor | agents/update-reviewer.md<br>references/pave-revisions.md | Material review of the proposal and its declared kind; the lead records verdict and round |
+| node | approve_successor | references/pave-revisions.md | Explicit user approval when the landing requires it |
+| node | land_revision | scripts/record_revision.py<br>references/pave-revisions.md | Lock, apply, validate, append, re-pin the calling run, release |
 | edge | initialize_ready_to_interview | SKILL.md | Start a new interview |
 | edge | initialize_resume_to_checkpoint | SKILL.md | Resume after the last satisfied check |
 | edge | initialize_conflict_to_pause | SKILL.md | Protect an occupied output path |
@@ -134,6 +146,16 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | edge | forward_external_gap_to_delivery | orchestration/review-and-build.md | Record an external-only gap |
 | edge | delivery_complete | SKILL.md | Enter accepted completion |
 | edge | delivery_retry | SKILL.md | Retry failed reporting |
+| edge | draft_ready_to_review | references/pave-revisions.md<br>references/pave-init.pave.yaml | Submit a drafted proposal for material review |
+| edge | draft_envelope_exceeded_to_pause | references/pave-revisions.md<br>references/pave-init.pave.yaml | Route an envelope-leaving change to the user |
+| edge | draft_no_change_to_close | references/pave-revisions.md<br>references/pave-init.pave.yaml | Close honestly when the evidence warrants no change |
+| edge | successor_review_pass_to_landing | references/pave-revisions.md<br>references/pave-init.pave.yaml | Land a passed proposal; successor_approved routes to the user gate when approval is required |
+| edge | successor_revision_to_draft | references/pave-revisions.md<br>references/pave-init.pave.yaml | Redraft a rejected proposal within the three-round bound |
+| edge | successor_approved_to_landing | references/pave-revisions.md<br>references/pave-init.pave.yaml | Land after explicit verbatim approval |
+| edge | successor_approval_revision_to_draft | references/pave-revisions.md<br>references/pave-init.pave.yaml | Apply a user-requested revision to the proposal |
+| edge | successor_rejected_to_close | references/pave-revisions.md<br>references/pave-init.pave.yaml | Close a rejected proposal; nothing landed |
+| edge | landing_complete | scripts/record_revision.py<br>references/pave-init.pave.yaml | Enter revision_landed after verify and digest match |
+| edge | landing_failed_to_pause | references/pave-revisions.md<br>references/pave-init.pave.yaml | Pause an interrupted or failed landing for the user |
 | endpoint | resume_from_checkpoint | SKILL.md<br>references/pave-init.pave.yaml | Return through persisted traversal history |
 | endpoint | wait_for_exploration_join | orchestration/explore-and-plan.md | Exploration terminal barrier |
 | endpoint | wait_for_frontier_join | orchestration/explore-and-plan.md | Frontier terminal barrier; re-evaluates as the queue grows |
@@ -141,5 +163,7 @@ Native role outputs are generated from the shared role sources under `sources/ro
 | endpoint | pause_for_user_authority | SKILL.md | Resumable missing-authority state |
 | endpoint | closed_unaccepted | SKILL.md | User stop or plan rejection |
 | endpoint | complete | SKILL.md | Validated and tested skill delivery |
+| endpoint | revision_landed | references/pave-revisions.md<br>references/pave-init.pave.yaml | Reviewed, approved successor landed and the requester re-pinned |
+| endpoint | closed_no_change | references/pave-revisions.md<br>references/pave-init.pave.yaml | No revision warranted, or proposal rejected; nothing landed |
 | contract | state | SKILL.md<br>schemas/run-state.schema.json<br>scripts/validate_run_state.py | Persistent state and checkpoint ownership; run-state.json realized per the Run workspace protocol |
 | contract | completion | SKILL.md<br>references/pave-init.pave.yaml | Accepted and closed terminal conditions |

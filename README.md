@@ -138,7 +138,7 @@ flowchart LR
     APPROVAL --> BUILD["Build + validate<br/>Skill Builders + Lead"]
     BUILD --> FINALREVIEW["Final review<br/>Fresh reviewer"]
     FINALREVIEW --> TEST["Clean-room test<br/>Forward Tester"]
-    TEST --> DONE["Delivered plugin (v0)"]
+    TEST --> DONE["Delivered plugin (revision 0)"]
 ```
 
 ## Generated plugins

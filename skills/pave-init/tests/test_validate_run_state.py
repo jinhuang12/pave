@@ -66,7 +66,7 @@ def valid_state():
         "validation_results": None,
         "final_review_rounds": 0,
         "forward_test_result": None,
-        "delivery_manifest_state": None,
+        "revision_ledger_state": None,
         "terminal_classification": None,
         "traversal_history": [{"node": "interview_system", "outcome": "requirements_ready"}],
     }

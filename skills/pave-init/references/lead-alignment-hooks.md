@@ -199,7 +199,7 @@ RESTART="$(printf '%s\n' "$SUMMARY" | sed -n 3p)"
 LAST="$(printf '%s\n' "$SUMMARY" | sed -n 4p)"
 AGE_MIN="$(printf '%s\n' "$SUMMARY" | sed -n 5p)"
 printf '%s\n' "$((STOP_EVERY - 1))" > "$MARKER" 2>/dev/null || true
-# ADAPT: question 2's route -- evolving tier as written; static tier: "pause and report that the workflow needs a pave-init update run".
+# ADAPT: question 2's route -- name this workflow's evolution root; when the plan says landing: user, add "the user approves before it lands".
 cat >&2 <<EOF
 $TAG Active run $RUN_ID ($FOUND_STATE_LABEL): restart_from=$RESTART, last traversal $LAST, run state last written ${AGE_MIN} min ago.
 
@@ -212,11 +212,11 @@ $((STOP_EVERY - 1)) stops pass before this fires again.
      propose; never an invented edge.
   2. Since the last check, any ceremony -- a seat a lead-run check settles, a
      lap with no new world evidence, an agent for something knowable from
-     disk? Cut it. One that recurs is a graph defect: pause the run, load
-     the pave-init skill if not already loaded, and draft the successor
-     yourself (Evolution contract: successor draft, authority envelope);
-     material review passes it, and the run continues on it (continue on
-     the successor); never edit the frozen graph in place.
+     disk? Cut it. One that recurs is a graph defect: pause the run, record
+     the evidence in run state, and hand it to the pave-evolve seats — the
+     workflow-updater drafts the successor, the update-reviewer passes it,
+     you land it and continue on it (Evolution contract rule 7); never
+     draft it yourself, never edit the live graph outside a landing.
   3. Landed work the next lap builds on that no review has seen?
   4. About to ask the user something a recorded approval already covers, or
      to decide something that is theirs?

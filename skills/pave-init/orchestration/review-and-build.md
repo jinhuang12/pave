@@ -28,7 +28,7 @@ Plan-review scope:
 - recovery and completion do not fail open;
 - package plan can implement the graph without hidden policy;
 - the enforcement record sizes each prohibition and each seat honestly — neither prose for a violation that outlives its prose, nor a blocking hook without misfire-proof detection, nor a seat on a node a lead-run check settles;
-- the evolution tier matches the workflow's real lifetime — neither evolution machinery on a one-shot workflow nor a bare `static` on a repeatedly re-run one;
+- the revision record matches the workflow's real lifetime — neither a ledger on a one-session workflow nor a multi-run workflow without one, and `landing: envelope` only where the plan states the envelope it will check;
 - artifact conventions hold the document budget (`references/pave-spec.md` §8.4), every living document with a declared cap;
 - the plan approval brief (`reviews/plan-brief.md`) matches the bundle it renders, per the rendered-view rule in `references/approval-briefs.md`: the brief is what the user actually reads at the gate.
 
@@ -104,7 +104,7 @@ Run:
 5. Generated script and schema tests.
 6. For each generated Workflow script: confirm the `meta` block is a pure literal, every compiled node's outcome enum matches the graph's declared outcome codes, and every non-compiled destination (user gate, `return` endpoint) is handed back to the lead rather than handled inside the script.
 7. For each shipped hook: run its script against a passing and a failing input, confirm its registration (skill frontmatter, plugin-level, or fragment) matches the recorded placement and actor scope — a hook that must see a subagent's writes cannot live in skill frontmatter — and — when a settings fragment ships — confirm it references only scripts that exist and the generated `SKILL.md` carries the consent gate and decline path.
-8. Evolution tier: for `static`, confirm no revision machinery shipped and the generated lead carries the pause-and-report contract; for `evolving`, run the shipped freeze script's `freeze` and `verify` against a scratch draft, confirm tampering fails verification, and confirm the generated lead states the authority envelope and its user-approval boundary.
+8. Revision record: for a one-session workflow, confirm no ledger shipped; otherwise run the shipped `record_revision.py verify` on the package, confirm an edit of the live graph in a scratch copy fails `verify`, run the guard hook against a live-graph edit and a `.landing` edit when it is registered, and confirm the generated lead states the evolution contract's one-clause rules and rule 6's user-approval boundary as the plan's `landing` field requires.
 9. Search for TODO placeholders, broken relative references, and unapproved auxiliary files.
 10. Confirm the delivered docs exist and are current: `README.md` rendered from the approved bundle and updated to what was actually built, `VERSION` seeded at `1.0.0` (or appended on an update run). Content accuracy is the final reviewer's scope; this step checks presence and section completeness per `references/approval-briefs.md`.
 

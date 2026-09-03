@@ -15,6 +15,7 @@ from unittest import mock
 
 from codex import install_agents
 from codex.hooks import post_tool_use_router
+from codex.tests.test_release_tools import stage_pending_sources
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +26,8 @@ AGENT_NAMES = {
     "pave-init:research-delegate",
     "pave-init:skill-builder",
     "pave-init:system-explorer",
+    "pave-init:update-reviewer",
+    "pave-init:workflow-updater",
 }
 
 
@@ -76,7 +79,7 @@ class PackageStructureTests(unittest.TestCase):
 
     def test_custom_agents_parse_and_cover_every_role(self) -> None:
         files = sorted((REPO_ROOT / "codex" / "agents").glob("*.toml"))
-        self.assertEqual(len(files), 6)
+        self.assertEqual(len(files), 8)
         names: set[str] = set()
         for path in files:
             with path.open("rb") as handle:
@@ -139,7 +142,11 @@ class PackageStructureTests(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(schema["properties"]["version"]["const"], 1)
         role_sources = sorted((REPO_ROOT / "sources" / "roles").glob("*.md.tmpl"))
-        self.assertEqual(len(role_sources), 6)
+        self.assertEqual(len(role_sources), 8)
+        self.assertEqual(
+            set(schema["properties"]["skills"]["required"]),
+            {"pave-init", "pave-evolve"},
+        )
         self.assertEqual(
             {path.name for path in (REPO_ROOT / "sources" / "bindings").glob("*.toml")},
             {"claude.toml", "codex.toml"},
@@ -153,6 +160,7 @@ class PackageStructureTests(unittest.TestCase):
                 clone,
                 ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"),
             )
+            stage_pending_sources(clone)
             codex_binding = clone / "sources" / "bindings" / "codex.toml"
             original_binding = codex_binding.read_text(encoding="utf-8")
             codex_binding.unlink()
@@ -291,7 +299,7 @@ class InstallerTests(unittest.TestCase):
 
             target = project / ".codex" / "agents"
             files = sorted(target.glob("pave_init_*.toml"))
-            self.assertEqual(len(files), 6)
+            self.assertEqual(len(files), 8)
             modified = files[0]
             original = modified.read_text(encoding="utf-8")
             modified.write_text(original + "\n# local change\n", encoding="utf-8")

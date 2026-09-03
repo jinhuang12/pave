@@ -137,10 +137,11 @@ lgtm. The next $((STOP_EVERY - 1)) stops pass before this fires again.
      propose; never an invented edge.
   2. Since the last check, any ceremony -- a seat a lead-run check settles, a
      lap with no new world evidence, an agent for something knowable from
-     disk? Cut it. One that recurs is a graph defect: record the proposal as
+     disk? Cut it. One that recurs is a graph defect: record the evidence as
      a run-state entry plus one section in the standing review record (never
-     a new file) and surface it to the user -- a pave-init release carries
-     it; never edit the installed skill.
+     a new file) and route it to the pave-evolve seats (skills/pave-evolve/
+     SKILL.md); a pave-init release lands the successor; never edit the
+     installed skill or its live graph in place.
   3. Landed work the next lap builds on that no review has seen?
   4. About to ask the user something a recorded approval already covers, or
      to decide something that is theirs?

@@ -18,6 +18,82 @@ from scripts import stamp_version
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+PENDING_ROLES = ("update-reviewer", "workflow-updater")
+PAVE_EVOLVE_TEMPLATE = "{{FRONTMATTER}}\n\n{{DISPATCH_CONTRACT}}\n"
+EVOLVE_SKILL_ENTRY = """
+[skills.pave-evolve]
+template = "sources/pave-evolve/SKILL.md.tmpl"
+output = "{output}"
+
+[skills.pave-evolve.slots]
+FRONTMATTER = '''---
+name: pave-evolve
+description: Fixture stub for the successor-proposal lead procedure.
+---'''
+DISPATCH_CONTRACT = '''Fixture dispatch contract.'''
+"""
+ROLE_TEMPLATE = """---
+name: {role}
+description: Fixture stub contract used until the real role source lands.
+---
+
+Work only on the assigned proposal and return the result to the parent.
+"""
+CLAUDE_ROLE_ENTRY = """
+[roles.{role}]
+sandbox_mode = "read-only"
+model = "inherit"
+effort = "inherit"
+runtime = '''Fixture runtime text for {role}.'''
+"""
+CODEX_ROLE_ENTRY = """
+[roles.{role}]
+sandbox_mode = "read-only"
+model = "inherit"
+reasoning_effort = "inherit"
+runtime = '''Fixture runtime text for {role}.'''
+"""
+EVOLVE_OUTPUTS = {
+    "claude": "skills/pave-evolve/SKILL.md",
+    "codex": "codex/skills/pave-evolve/SKILL.md",
+}
+
+
+def stage_pending_sources(root: Path) -> None:
+    """Complete a copied tree with any 2.5.0 source that is not landed yet.
+
+    Each stub is written only when the real file or binding table is absent, so a
+    fixture exercises the generator both before and after the sources land.
+    """
+    template = root / "sources" / "pave-evolve" / "SKILL.md.tmpl"
+    if not template.is_file():
+        template.parent.mkdir(parents=True, exist_ok=True)
+        template.write_text(PAVE_EVOLVE_TEMPLATE, encoding="utf-8")
+    for role in PENDING_ROLES:
+        source = root / "sources" / "roles" / f"{role}.md.tmpl"
+        if not source.is_file():
+            source.write_text(ROLE_TEMPLATE.format(role=role), encoding="utf-8")
+    for harness, output in EVOLVE_OUTPUTS.items():
+        path = root / "sources" / "bindings" / f"{harness}.toml"
+        text = path.read_text(encoding="utf-8")
+        additions = ""
+        if "[skills.pave-evolve]" not in text:
+            additions += EVOLVE_SKILL_ENTRY.format(output=output)
+        role_entry = CLAUDE_ROLE_ENTRY if harness == "claude" else CODEX_ROLE_ENTRY
+        for role in PENDING_ROLES:
+            if f"[roles.{role}]" not in text:
+                additions += role_entry.format(role=role)
+        if additions:
+            path.write_text(text.rstrip("\n") + "\n" + additions, encoding="utf-8")
+
+
+def generated_digest(path: Path) -> str:
+    """Return the source-sha256 a generated file was stamped with."""
+    text = path.read_text(encoding="utf-8")
+    marker = build_packages.GENERATED_MARKER
+    if marker not in text:
+        raise AssertionError(f"{path} carries no generated marker")
+    return text.split(marker, 1)[1].split()[0]
 
 
 def markdown_frontmatter(path: Path) -> dict:
@@ -109,6 +185,8 @@ class ReleaseContractTests(unittest.TestCase):
             "pave-init:research-delegate": ("gpt-5.6-terra", "high"),
             "pave-init:skill-builder": ("gpt-5.6-sol", "medium"),
             "pave-init:system-explorer": ("gpt-5.6-terra", "high"),
+            "pave-init:workflow-updater": ("gpt-5.6-sol", "xhigh"),
+            "pave-init:update-reviewer": ("gpt-5.6-sol", "high"),
         }
         for path in sorted((REPO_ROOT / "codex" / "agents").glob("*.toml")):
             with path.open("rb") as handle:
@@ -322,6 +400,7 @@ class BuildSafetyTests(unittest.TestCase):
             dirs_exist_ok=True,
             ignore=shutil.ignore_patterns(".git", ".pytest_cache", "__pycache__", "*.pyc"),
         )
+        stage_pending_sources(target)
 
     def run_build(self, root: Path, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
@@ -331,6 +410,12 @@ class BuildSafetyTests(unittest.TestCase):
             capture_output=True,
             check=False,
         )
+
+    def materialize(self, root: Path) -> subprocess.CompletedProcess[str]:
+        """Write every generated output so a later --check can demand exit 0."""
+        result = self.run_build(root, "--force")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result
 
     def test_role_template_placeholder_fails_build_and_check(self) -> None:
         for placeholder in (
@@ -422,10 +507,127 @@ class BuildSafetyTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("schema validation failed", result.stderr)
 
+    def test_every_skill_renders_for_every_harness(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            self.copy_repo(root)
+            built = self.materialize(root)
+            for relative in build_packages.GENERATED_SKILL_OUTPUTS:
+                with self.subTest(output=relative):
+                    self.assertIn(relative, built.stdout)
+                    text = (root / relative).read_text(encoding="utf-8")
+                    self.assertIn("DO NOT EDIT", text)
+                    self.assertIn(build_packages.GENERATED_MARKER, text)
+            claude = root / "skills" / "pave-evolve" / "SKILL.md"
+            codex = root / "codex" / "skills" / "pave-evolve" / "SKILL.md"
+            for path in (claude, codex):
+                self.assertIn("name: pave-evolve", path.read_text(encoding="utf-8"))
+            # One template, one binding per harness: same slots, different stamp.
+            self.assertNotEqual(
+                generated_digest(claude),
+                generated_digest(codex),
+            )
+            self.assertEqual(self.run_build(root, "--check").returncode, 0)
+
+    def test_binding_without_the_evolve_skill_fails_build(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            self.copy_repo(root)
+            binding = root / "sources" / "bindings" / "claude.toml"
+            binding.write_text(
+                binding.read_text(encoding="utf-8").replace(
+                    "[skills.pave-evolve", "[skills.pave-retired"
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_build(root, "--check")
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("missing ['pave-evolve']", result.stderr)
+
+    def test_binding_skill_template_outside_the_table_fails_build(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            self.copy_repo(root)
+            binding = root / "sources" / "bindings" / "claude.toml"
+            binding.write_text(
+                binding.read_text(encoding="utf-8").replace(
+                    '"sources/pave-evolve/SKILL.md.tmpl"',
+                    '"sources/roles/node-planner.md.tmpl"',
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_build(root, "--check")
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("pave-evolve template must be", result.stderr)
+
+    def test_role_include_expands_and_restamps_every_agent(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            self.copy_repo(root)
+            fragment = root / "sources" / "fragments" / "shared-note.md"
+            fragment.parent.mkdir(parents=True, exist_ok=True)
+            fragment.write_text("Return only the assigned report.\n", encoding="utf-8")
+            role = root / "sources" / "roles" / "node-planner.md.tmpl"
+            role.write_text(
+                role.read_text(encoding="utf-8")
+                + "\n<!-- include: fragments/shared-note.md -->\n",
+                encoding="utf-8",
+            )
+            claude_agent = root / "agents" / "node-planner.md"
+            codex_agent = root / "codex" / "agents" / "pave_init_node_planner.toml"
+
+            self.materialize(root)
+            for path in (claude_agent, codex_agent):
+                self.assertIn(
+                    "Return only the assigned report.",
+                    path.read_text(encoding="utf-8"),
+                )
+            stamps = {path: generated_digest(path) for path in (claude_agent, codex_agent)}
+
+            fragment.write_text(
+                "Return only the assigned report, then stop.\n", encoding="utf-8"
+            )
+            self.materialize(root)
+            for path, stamp in stamps.items():
+                self.assertIn("then stop.", path.read_text(encoding="utf-8"))
+                self.assertNotEqual(generated_digest(path), stamp, path)
+
+    def test_unusable_fragment_include_fails_build(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "repo"
+            self.copy_repo(root)
+            fragments = root / "sources" / "fragments"
+            fragments.mkdir(parents=True, exist_ok=True)
+            (fragments / "nesting.md").write_text(
+                "<!-- include: fragments/plain.md -->\n", encoding="utf-8"
+            )
+            (fragments / "plain.md").write_text("Plain shared sentence.\n", encoding="utf-8")
+            (fragments / "braced.md").write_text("Use {{SLOT}} here.\n", encoding="utf-8")
+            role = root / "sources" / "roles" / "node-planner.md.tmpl"
+            original = role.read_text(encoding="utf-8")
+            cases = {
+                "fragments/absent.md": "not a readable file",
+                "fragments/nesting.md": "nesting is not supported",
+                "fragments/braced.md": "must not contain brace tokens",
+                "fragments/../pave-init/SKILL.md.tmpl": "not a readable file",
+                "roles/node-planner.md.tmpl": "must start with 'fragments/'",
+            }
+            for reference, message in cases.items():
+                with self.subTest(reference=reference):
+                    role.write_text(
+                        f"{original}\n<!-- include: {reference} -->\n", encoding="utf-8"
+                    )
+                    result = self.run_build(root, "--check")
+                    self.assertEqual(result.returncode, 2, result.stdout)
+                    self.assertIn("sources/roles/node-planner.md.tmpl", result.stderr)
+                    self.assertIn(message, result.stderr)
+                    self.assertNotIn("Traceback", result.stderr)
+
     def test_reference_marker_does_not_create_orphan(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "repo"
             self.copy_repo(root)
+            self.materialize(root)
             reference = (
                 root
                 / "skills"

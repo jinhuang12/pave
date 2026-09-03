@@ -26,28 +26,34 @@ sys.path.insert(0, str(HERE.parent / "scripts"))
 
 import measure_artifact as ma  # noqa: E402
 
-# path (repo-relative) -> (max lines, max bytes). Pinned 2026-09-03 (2.4.5).
+# path (repo-relative) -> (max lines, max bytes). Pinned 2026-09-03 (2.5.0):
+# deliberate growth for the update path (four nodes, ten edges, two seats) and
+# the ledger contract; pave-material-reviewer shrank through the shared fragment.
 CEILINGS = {
-    "skills/pave-init/SKILL.md": (266, 34349),
-    "skills/pave-init/README.md": (395, 22256),
+    "skills/pave-init/SKILL.md": (264, 35148),
+    "skills/pave-init/README.md": (446, 25911),
+    "skills/pave-evolve/SKILL.md": (69, 7897),
     "skills/pave-init/references/approval-briefs.md": (71, 9273),
-    "skills/pave-init/references/lead-alignment-hooks.md": (372, 28646),
+    "skills/pave-init/references/lead-alignment-hooks.md": (372, 28669),
     "skills/pave-init/references/pave-composition.md": (186, 10814),
-    "skills/pave-init/references/pave-init-traceability.md": (145, 17586),
-    "skills/pave-init/references/pave-revisions.md": (88, 11234),
-    "skills/pave-init/references/pave-spec.md": (1704, 75181),
+    "skills/pave-init/references/pave-init-traceability.md": (169, 21886),
+    "skills/pave-init/references/pave-revisions.md": (80, 14083),
+    "skills/pave-init/references/pave-spec.md": (1705, 75261),
     "skills/pave-init/references/pave-yaml.md": (431, 17816),
     "skills/pave-init/references/planning-layout.md": (52, 4116),
     "skills/pave-init/references/technique-selection.md": (202, 9954),
-    "skills/pave-init/orchestration/explore-and-plan.md": (174, 15230),
+    "skills/pave-init/orchestration/explore-and-plan.md": (174, 15313),
     "skills/pave-init/orchestration/interview-and-fitness.md": (131, 6948),
-    "skills/pave-init/orchestration/review-and-build.md": (134, 14238),
+    "skills/pave-init/orchestration/review-and-build.md": (134, 14400),
+    "sources/fragments/reviewer-core.md": (21, 3264),
     "sources/roles/forward-tester.md.tmpl": (21, 1783),
-    "sources/roles/node-planner.md.tmpl": (72, 12598),
-    "sources/roles/pave-material-reviewer.md.tmpl": (115, 18902),
+    "sources/roles/node-planner.md.tmpl": (72, 12599),
+    "sources/roles/pave-material-reviewer.md.tmpl": (95, 15689),
     "sources/roles/research-delegate.md.tmpl": (63, 2682),
-    "sources/roles/skill-builder.md.tmpl": (44, 4624),
+    "sources/roles/skill-builder.md.tmpl": (44, 4700),
     "sources/roles/system-explorer.md.tmpl": (23, 1536),
+    "sources/roles/update-reviewer.md.tmpl": (71, 7450),
+    "sources/roles/workflow-updater.md.tmpl": (53, 7325),
 }
 
 SLACK = 0.10

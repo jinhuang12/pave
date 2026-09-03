@@ -11,7 +11,7 @@ This skill is manual-only. Do not start it from an implicit match.
 Resolve conflicts in this order:
 
 1. Explicit user decisions and approvals from the current run.
-2. The approved graph: `workflow.draft.pave.yaml` once approved as `v0`, or the frozen active `history/vN/workflow.pave.yaml` an update run starts from (`references/pave-revisions.md`).
+2. The approved graph: `workflow.draft.pave.yaml` once approved, or the live graph at the ledger head that a revision starts from (`references/pave-revisions.md`).
 3. `references/pave-yaml.md` and `references/pave.schema.json`.
 4. The approved `skill-package-plan.md` and `traceability.md`.
 5. This file, active orchestration file, and role contracts.
@@ -34,7 +34,7 @@ Read only the resource needed for the active stage:
 | User approval gates, delivered README/VERSION | `references/approval-briefs.md` |
 | PAVE concepts | `references/pave-yaml.md` for fields and validity; load `references/pave-spec.md` — the design language: node, outcome, evidence, guard, edge, control endpoint, node sizing, patterns, smells — for any design choice; load `references/pave-composition.md` only when a plan composes nodes into child profiles |
 | Technique selection | `references/technique-selection.md` — when a plan weighs debate, an advisory monitor, a stage audit, or other supervision: what each costs and when it hurts |
-| Revisions and evolution | `references/pave-revisions.md` — at delivery (v0 manifest), on an update run (lineage), and whenever the plan records an `evolving` tier |
+| Revisions and evolution | `references/pave-revisions.md` — at delivery (ledger entry 0), when the plan records the revision-record fields, and when an existing package routes this run to the `pave-evolve` skill |
 
 `references/pave-init.pave.yaml` is this skill's own canonical graph, and `references/pave-init-traceability.md` maps each of its objects to the file that realizes it. Read them only when routing is ambiguous — an unexpected outcome, a recovery choice, or a resume. A linear happy-path run does not need them. The graph alone carries the recovery routing; when one of these outcomes occurs, route it as declared:
 
@@ -76,8 +76,6 @@ exploration/
 workflow.draft.pave.yaml
 traceability.md
 skill-package-plan.md
-workflow-manifest.yaml
-history/
 reviews/
 assembly-checklist.md
 build/
@@ -98,7 +96,7 @@ Stage 5. Both are free-form — record the paths a run actually uses in
 - Remove the marker at terminal close. When the user abandons a run or pauses it indefinitely, set `terminal_classification.status` (for example `abandoned`) so the pair goes silent; clear the status again on a real resume.
 - When the run writes to an output directory instead of the repository (read-only target), the marker cannot be written. Record in `run-state.json` and `run-contract.md` that the lead-alignment pair is degraded to the prose duties in this file — that is the recorded omission, never a silent one.
 
-`workflow.draft.pave.yaml` (with any child `*.draft.pave.yaml`) is the editable planning subject — reviewed and approved as `v0`, it carries no execution authority of its own (`references/pave-revisions.md`; the v0 delivery and v1 freeze rules are in Final delivery below). Never write run artifacts into the installed `pave-init` skill.
+`workflow.draft.pave.yaml` (with any child `*.draft.pave.yaml`) is the editable planning subject — reviewed and approved, it carries no execution authority of its own; delivery lands its content as revision 0 (`references/pave-revisions.md`; Final delivery below). Never write run artifacts into the installed `pave-init` skill.
 
 ## Multi-agent contract
 
@@ -122,7 +120,7 @@ Product: a validated draft graph and the complete approval bundle. Plan across b
 
 Require the simplest graph that achieves the approved goal, per `references/pave-spec.md` §4.11. Require the enforcement record: every run-wide prohibition, costly-transition guard, and dispatched seat in `skill-package-plan.md` names its strength and why the neighboring rungs are wrong — stronger unnecessary; for a rung with standing cost, cheaper insufficient (`references/pave-spec.md` §9.14.1).
 
-The enforcement record carries one lead-alignment entry by default: the standard hook pair from `references/lead-alignment-hooks.md`, which covers the two windows user-event reinjection cannot see. It carries a second default entry: the write-for-the-reader reminder (`references/pave-spec.md` §8.5) — a PostToolUse Write|Edit advisory adapted from pave-init's own `hooks/write_for_reader.sh`, firing throttled on any actor's document writes in the run workspace, because agents drift back to identifier chains the moment the prose duty leaves context. Omitting either default is a planning decision like any other: record which omission condition applies (for the reminder: a workflow whose every persisted artifact is machine-read), never leave it out silently.
+The enforcement record carries one lead-alignment entry by default: the standard hook pair from `references/lead-alignment-hooks.md`, which covers the two windows user-event reinjection cannot see. It carries a second default entry: the write-for-the-reader reminder (`references/pave-spec.md` §8.5) — a PostToolUse Write|Edit advisory adapted from pave-init's own `hooks/write_for_reader.sh`, firing throttled on any actor's document writes in the run workspace, because agents drift back to identifier chains the moment the prose duty leaves context. A workflow that runs more than once carries a third: the graph edit guard (`hooks/graph_edit_guard.sh`, blocking, pre-write on the live graph and its ledger) — the violation has occurred in the field, it is costly, and it is precisely path-detectable, which is what the blocking rung requires; a harness without a pre-write hook records the observing fallback (`verify` at start and resume). Omitting any default is a planning decision like any other: record which omission condition applies (for the reminder: a workflow whose every persisted artifact is machine-read; for the guard: a one-session workflow ships no ledger to guard), never leave it out silently.
 
 Size every node with the one-agent test from `references/pave-spec.md` §9.12, applied recursively: a feasibility judgment — can one agent achieve this goal and settle its definition of done in one bounded context — recorded as one falsifiable line for either verdict, with the node's instrument line beside it (§2.1). The warning signs there hint; none gates, and no contract checklist answers the question. A split adds child nodes to the same graph (§9.12.1); a child profile is packaging, justified only by a §9.12.1 condition and the contract in `references/pave-composition.md`. When the goal ports an existing system, the source binds behavior, never graph shape (§9.12.2). Every definition of done follows the evidence ladder in §5.3.1. `skill-package-plan.md` records the profile dependency tree when packaging is used.
 
@@ -167,13 +165,13 @@ After plan approval, derive independent build units from `skill-package-plan.md`
 - state or artifact schemas;
 - mechanical helpers and focused tests;
 - {{HOOK_COMPONENT}}
-- for an approved `evolving` tier only: the revision workspace (draft, manifest, `history/`), a copy of `scripts/freeze_revision.py`, and the evolution contract from `references/pave-revisions.md` written into the generated lead;
+- for a workflow that runs more than once: the revision record — `revisions.yaml` with entry 0 beside the canonical YAML, a copy of `scripts/record_revision.py`, the graph edit guard `hooks/graph_edit_guard.sh` where the harness runs a pre-write hook, and the evolution contract's one-clause rules with pointers to `references/pave-revisions.md` written into the generated lead;
 - a copy of `scripts/measure_artifact.py` when any living document is capped, so seats and the reviewer report its size from one instrument;
 - `README.md` and `VERSION`, rendered by the lead at integration per `references/approval-briefs.md` — both rendered views of the shipped package, never a second authority.
 
 Create only files required by the approved graph plus the two delivered docs above. Do not create an installation guide or duplicated policy — a README section that restates a contract instead of linking it is duplicated policy. Do not add redundant enforcement: use one existing gate when it already provides enough confidence before the harm — a gate after a loop whose laps build on each other is not that gate for the laps inside it (`references/pave-spec.md` §4.11, §9.4).
 
-A long-horizon workflow's working memory is the file system, not the context window. Anything routing depends on must live in persisted run state: the current position, the event history (every traversal, decision, and measured dead end, so a later round can tell "untried" from "closed"), and an index of evidence — every entry stamped from one clock in one format, the validator flagging an out-of-order append, and a dispatched seat's entry carrying its model, effort, and duration, because the usage ledger (`references/pave-revisions.md` rule 8) prices seats from these entries and a seat that cannot be priced cannot be cut. State stays compact and points; artifacts prove — bulky evidence lives at its declared path, never inline. The artifact set keeps the document budget of `references/pave-spec.md` §8.4 — each living document's declared cap and the shrink duties that hold it — and the write-for-the-reader duty of §8.5; write both into every generated lead. Resume is reconciliation: reread state, check it against the artifacts on disk, and continue from the last satisfied gate. Write that resume duty into every generated lead too. None of this applies to a workflow that lives and dies inside one session — there a state file is ceremony the simplicity pass should delete.
+A long-horizon workflow's working memory is the file system, not the context window. Anything routing depends on must live in persisted run state: the current position, the event history (every traversal, decision, and measured dead end, so a later round can tell "untried" from "closed"), and an index of evidence — every entry stamped from one clock in one format, the validator flagging an out-of-order append, and a dispatched seat's entry carrying its model, effort, and duration, because the usage ledger (`references/pave-revisions.md`, evolution contract rule 8) prices seats from these entries and a seat that cannot be priced cannot be cut. State stays compact and points; artifacts prove — bulky evidence lives at its declared path, never inline. The artifact set keeps the document budget of `references/pave-spec.md` §8.4 — each living document's declared cap and the shrink duties that hold it — and the write-for-the-reader duty of §8.5; write both into every generated lead. Resume is reconciliation: reread state, check it against the artifacts on disk, and continue from the last satisfied gate. Write that resume duty into every generated lead too. None of this applies to a workflow that lives and dies inside one session — there a state file is ceremony the simplicity pass should delete.
 
 Map graph elements as follows:
 
@@ -193,15 +191,15 @@ Map graph elements as follows:
 - When more than one role writes artifacts, render the graph's declared evidence paths into one layout reference: the tree, write ownership per role, which-file-wins precedence, and where non-indexed intermediates go. It lists every living document with its cap, and on re-entry the declared evidence path holds the current revision only; a record minted per traversal — a lap, a selection, a round — is a run-state entry, never a file, unless it is world-produced evidence (`references/pave-spec.md` §8.4). The graph stays the path authority — the reference adds only what the graph cannot carry (ownership, precedence, scratch). A single-writer workflow with a handful of artifacts skips it.
 - {{SCRIPT_RUNTIME_BINDING}}
 - A composed node maps to lead orchestration of its child profile: the lead opens the child run, holds the parent pending, and applies the terminal map (`references/pave-composition.md` §12). A script covers one profile only; scripts never nest across profile boundaries.
-- The approved evolution tier maps per `references/pave-revisions.md`: `static` ships the approved canonical YAML and the pause-and-report contract; `evolving` additionally ships the revision workspace, freeze script, and the full evolution contract with its authority envelope — its generated lead freezes `v1` before the first real execution. Never ship evolution machinery the record does not name.
+- The plan's revision-record fields map per `references/pave-revisions.md`: a multi-run workflow ships the ledger and its lead carries the evolution contract's one-clause rules; `landing` decides whether that lead may land an envelope-unchanged successor without a user gate; `usage_ledger` decides whether it writes the evolution contract rule 8 record at close. A one-session workflow ships neither. Never ship revision machinery the record does not name.
 
-If an output folder exists, inspect it and propose an update. When the target's run workspace carries a `workflow-manifest.yaml`, this is an update run: verify the active revision with `scripts/freeze_revision.py verify` (or start from the recorded `v0` draft when nothing has frozen yet), start `workflow.draft.pave.yaml` from that bundle, and replan only the narrowest affected boundary through the normal Stage 3–4 gates. Record what changed and why in the new draft's manifest entry for the eventual freeze's `--semantic-diff`. Never overwrite unapproved existing content, and never edit `history/`.
+If an output folder exists, inspect it. When it holds a delivered package — `revisions.yaml` beside `workflow.pave.yaml` — this is a revision, not a new run: route to the `pave-evolve` skill (`skills/pave-evolve/SKILL.md` under the plugin root) with the evolution root and the recorded defect evidence; its seats draft and review the successor and this lead lands it (`draft_successor` in `references/pave-init.pave.yaml`). Never overwrite unapproved existing content, and never edit a live graph outside a landing.
 
 ## Stage 6: Validate, review, and forward-test
 
 Procedures for every step: `orchestration/review-and-build.md` §§4–6.
 
-1. Run the integration validation battery (`orchestration/review-and-build.md` §4): the plugin structure check, {{SKILL_VALIDATION_BINDING}}, `scripts/validate_pave.py`, `scripts/validate_traceability.py`, generated helper tests, script and hook and evolution-tier checks, and the delivered-docs presence check. When the lead-alignment hook pair ships, its tests must exercise the invariants in `references/lead-alignment-hooks.md` §Invariants any adaptation must preserve. Record the outputs in `reviews/validation.md`.
+1. Run the integration validation battery (`orchestration/review-and-build.md` §4): the plugin structure check, {{SKILL_VALIDATION_BINDING}}, `scripts/validate_pave.py`, `scripts/validate_traceability.py`, generated helper tests, script, hook, and revision-record checks, and the delivered-docs presence check. When the lead-alignment hook pair ships, its tests must exercise the invariants in `references/lead-alignment-hooks.md` §Invariants any adaptation must preserve. Record the outputs in `reviews/validation.md`.
 2. Start a fresh retained material reviewer for the integrated skill with the same evidence standard as plan review. Fix verified `BLOCKING` and `HIGH` findings and continue that reviewer until it passes. Record each round in `reviews/final-skill-review.md` (`final_review_rounds` in run state keeps the loop bounded).
 3. Run the clean-room forward test (`orchestration/review-and-build.md` §6) and record the result in `reviews/forward-test.md`. Repair and repeat affected gates when the test exposes a transferable defect.
 
@@ -209,13 +207,13 @@ Auto-complete after these gates pass. Do not ask for another approval.
 
 ## Final delivery
 
-Delivery ships `v0`, never `v1`: write `workflow-manifest.yaml` recording the approved draft with no active revision, and copy the approved canonical YAML into the generated skill. Clean-room testing exercised the draft; it creates no revision and claims no real-use evidence. `v1` freezes immediately before the first real execution — by the generated lead (evolving tier) or a pave-init update run (static tier) — via `scripts/freeze_revision.py freeze`. Never edit a frozen `history/` bundle, and never move `active_revision` backward: rollback is a new successor derived from the older revision (`--from-revision`), recorded as its own decision.
+Delivery lands revision 0: copy the approved canonical YAML into the generated package and run `scripts/record_revision.py init` there, so `revisions.yaml` records the approved graph, its digest, `plan_evidence`, and `usage_evidence: none`. Clean-room testing exercised the draft; it creates no entry and claims no real-use evidence. The first real run installs the package root into the project's evolution root and appends a `pin` entry (`references/pave-revisions.md`, evolution contract rule 1). Never edit a live graph outside a landing, and never lose a ledger entry: rollback is a new entry derived from the older revision (`rollback --to N`), recorded as its own decision.
 
 The generated `README.md` and `VERSION` carry the deep-dive; the delivery report in conversation stays short and points at them:
 
 - generated plugin path, with `README.md` as the entry point for what was built;
 {{DELIVERY_INSTALL_BULLET}}
-- canonical PAVE YAML path, `v0` manifest state, and the v1 freeze boundary (who freezes, and when);
+- canonical PAVE YAML path, the ledger's entry 0, and the first-run duty (who installs and pins, and when);
 - PAVE, skill, and traceability validation results;
 - adversarial-review rounds and disposition of findings;
 - clean-room forward-test result;

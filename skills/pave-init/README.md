@@ -1,8 +1,8 @@
 # PAVE Init
 
-Version: `2.4.5`
+Version: `2.5.0`
 
-Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
+Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. A second skill, `pave-evolve`, revises a delivered workflow from recorded evidence through two dedicated seats. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
 
 You provide the outcome and target system. `pave-init` investigates the system,
 designs the workflow, reviews it, builds the skill, tests it, and reports any
@@ -46,12 +46,11 @@ safe defaults for approval.
 |---|---|
 | `requirements.md` | The approved goal, scope, evidence, authority, and acceptance rules. |
 | `system-map.md` | Verified system structure, current workflow, gaps, and constraints. |
-| `workflow.draft.pave.yaml` | The complete, untried v0 workflow graph. |
+| `workflow.draft.pave.yaml` | The complete, untried workflow graph — landed as revision 0 at delivery. |
 | `*.draft.pave.yaml` | Child graphs used only when a node needs material decomposition. |
-| `workflow-manifest.yaml` | Workflow revision state: the v0 draft, no active revision at delivery. |
 | `traceability.md` | Links graph objects to their skill implementation. |
-| `skill-package-plan.md` | The approved file tree, build ownership, enforcement record, and evolution tier. |
-| Generated plugin | The validated plugin package (manifest, registered role agents, lead skill) that implements the approved graph. |
+| `skill-package-plan.md` | The approved file tree, build ownership, enforcement record, and revision record (`landing`, `usage_ledger`). |
+| Generated plugin | The validated plugin package (manifest, registered role agents, lead skill, and — for a workflow that runs more than once — `revisions.yaml` with entry 0) that implements the approved graph. |
 | Generated `README.md` + `VERSION` | A deep-dive rendered from the approved bundle (intro, at-a-glance plus faithful Mermaid visual, file tree, agents, hooks, appendix) plus a package changelog seeded at `1.0.0`. |
 
 For a repository target, planning files live under:
@@ -92,14 +91,14 @@ flowchart LR
     APPROVAL --> BUILD["Build + validate<br/>Skill Builders + Lead"]
     BUILD --> FINALREVIEW["Final review<br/>Fresh reviewer"]
     FINALREVIEW --> TEST["Clean-room test<br/>Forward Tester"]
-    TEST --> DONE["Delivered skill (v0)"]
+    TEST --> DONE["Delivered skill (revision 0)"]
 ```
 
 ## The canonical graph, rendered
 
 Rendered from [`references/pave-init.pave.yaml`](references/pave-init.pave.yaml):
-22 nodes, 7 control endpoints, 61 edges. One diagram that size is unreadable,
-so it is split into three stage diagrams (split rule:
+26 nodes, 9 control endpoints, 71 edges. One diagram that size is unreadable,
+so it is split into four stage diagrams (split rule:
 [`references/approval-briefs.md`](references/approval-briefs.md)). Every
 declared edge appears in exactly one diagram. A node drawn in two diagrams is
 the same node, repeated where a later stage routes back into it.
@@ -232,6 +231,39 @@ flowchart TD
   wait_for_build_join -.->|resume_at| integrate_skill
 ```
 
+### Stage D — revision (pave-evolve): draft, review, approve, land
+
+`draft_successor` is the graph's second entrypoint, entered by the
+`pave-evolve` lead for a delivered workflow or for pave-init itself.
+`approve_successor` has no inbound edge: the `successor_approved` check on
+`review_successor --passed--> land_revision` passes outright when the envelope
+is unchanged and the plan says `landing: envelope`, and otherwise routes to that
+gate (`on_failure_route`) until the approval is recorded verbatim. The
+`revision_required` loop is bounded by the `update_review_rounds_remain` check
+(three rounds, then `pause_for_user_authority`).
+
+```mermaid
+flowchart TD
+  draft_successor[draft_successor]
+  review_successor[review_successor]
+  approve_successor{{approve_successor}}
+  land_revision[land_revision]
+  pause_for_user_authority[[pause_for_user_authority]]
+  revision_landed([revision_landed])
+  closed_no_change([closed_no_change])
+
+  draft_successor -->|draft_ready| review_successor
+  draft_successor -->|envelope_exceeded| pause_for_user_authority
+  draft_successor -->|no_change_warranted| closed_no_change
+  review_successor -->|passed| land_revision
+  review_successor -->|revision_required| draft_successor
+  approve_successor -->|approved| land_revision
+  approve_successor -->|revision_requested| draft_successor
+  approve_successor -->|rejected| closed_no_change
+  land_revision -->|landed| revision_landed
+  land_revision -->|landing_failed| pause_for_user_authority
+```
+
 Two control endpoints resume dynamically and therefore have no drawable
 target: `pause_for_user_authority` resumes the node that paused, and
 `resume_from_checkpoint` reopens the node or edge after the last satisfied
@@ -250,10 +282,14 @@ check in the recorded traversal history. Both are declared in
 │   ├── pave-material-reviewer.md         # adversarial method + materiality and severity contract, both gates
 │   ├── research-delegate.md              # the reviewer's evidence-gathering sub-agent
 │   ├── skill-builder.md                  # scoped package construction + workflow-script compile mapping
-│   └── forward-tester.md                 # clean-room skill use
+│   ├── forward-tester.md                 # clean-room skill use
+│   ├── workflow-updater.md               # drafts a successor revision as a reviewable patch; never lands
+│   └── update-reviewer.md                # material-only review of a proposed revision; not the updater, not the lead
 ├── codex/agents/                          # generated Codex custom-agent contracts
 ├── codex/skills/pave-init/SKILL.md        # generated native Codex lead
-├── sources/                               # shared workflow and role sources + harness bindings
+├── codex/skills/pave-evolve/SKILL.md      # generated native Codex revision lead
+├── sources/                               # shared skill and role sources, the shared reviewer fragment, harness bindings
+├── skills/pave-evolve/SKILL.md            # revision lead: verify the base, run the two seats, approval gate, land
 └── skills/pave-init/
     ├── SKILL.md                          # lead contract: stages, gates, state duties, hook registration
     ├── README.md                         # this rendered view of the package
@@ -271,7 +307,7 @@ check in the recorded traversal history. Both are declared in
     │   ├── technique-selection.md        # when debate / monitor / audit / ledger earn their cost — and when they hurt
     │   ├── pave-composition.md           # child-profile contract and depth-2 cap
     │   ├── pave-composition.schema.json  # composition schema
-    │   ├── pave-revisions.md             # v0/v1+ revisions and evolution tiers
+    │   ├── pave-revisions.md             # revision ledger, evolution root, evolution contract
     │   ├── lead-alignment-hooks.md       # hook doctrine + default pair: invariants, omission conditions, templates
     │   ├── planning-layout.md            # planning/ write ownership, precedence, prohibited patterns
     │   ├── approval-briefs.md            # approval-gate briefs and delivered README/VERSION
@@ -283,7 +319,7 @@ check in the recorded traversal history. Both are declared in
     │   ├── validate_pave.py              # graph validator (follows composition references)
     │   ├── validate_traceability.py      # traceability-row checker
     │   ├── validate_run_state.py         # run-state instance checker (stdlib fallback; --frontier mode)
-    │   ├── freeze_revision.py            # v1+ freeze / verify / rollback derivation
+    │   ├── record_revision.py            # revision ledger: init / install / propose / land / pin / verify / rollback
     │   ├── measure_artifact.py           # living-document size vs its §8.4 cap; shipped with capped generated plugins
     │   ├── transcript_filter.py          # advisory-monitor read side: incremental .jsonl digest (reference impl)
     │   └── test_validate_pave_composition.py  # validator tests
@@ -293,9 +329,11 @@ check in the recorded traversal history. Both are declared in
     │   ├── stop_alignment_check.sh       # Stop: asks alignment questions; blocks at most 1 stop in 3
     │   ├── state_staleness_reminder.sh   # PostToolUse: throttled observing staleness nudge
     │   ├── planning-layout-warn.sh       # PostToolUse: non-blocking planning-layout warning
-    │   └── write_for_reader.sh           # PostToolUse: §8.5 reader reminder; sizes an over-cap document past its throttle
+    │   ├── write_for_reader.sh           # PostToolUse: §8.5 reader reminder; sizes an over-cap document past its throttle
+    │   └── graph_edit_guard.sh           # PreToolUse template for generated multi-run workflows: denies a direct edit of a live graph or its ledger outside a landing (not registered for pave-init itself)
     └── tests/
         ├── test_hooks.sh                 # invariant tests for every shipped hook and its registration
+        ├── test_record_revision.py       # ledger tool: init, land, verify routing, pin, rollback, tamper detection
         ├── test_validate_run_state.py    # validator parity and warn-only cap tests
         ├── test_measure_artifact.py      # size instrument tests
         └── test_doc_budget.py            # pave-init's own documents against pinned ceilings (a ratchet)
@@ -331,18 +369,27 @@ layout reference when more than one role writes artifacts.
 pair in its own frontmatter, its two subagent-facing hooks (planning layout,
 write-for-the-reader) in the plugin's `hooks/hooks.json`, and persists its own
 run state (`run-state.json`, validated by `schemas/run-state.schema.json`).
+Generated workflows that run more than once also ship a pre-write guard on
+their live graph and its ledger (`hooks/graph_edit_guard.sh`): the graph is
+landed from a reviewed patch, never edited directly, and the ledger is written
+only by the landing tool.
 
 ## Workflow revisions
 
-| Version | Meaning |
-|---|---|
-| `v0` | The reviewed, approved draft. Delivered by `pave-init`. Untried. |
-| `v1` | First immutable revision, frozen immediately before the first real execution — never by delivery, never by clean-room testing. |
-| `v2+` | Immutable successors from usage evidence or approved changes. |
+Every generated workflow that runs more than once ships one live graph and one
+append-only ledger (`revisions.yaml`). Delivery lands the approved graph as
+entry 0; the first real run installs the package into a project evolution root
+and pins it; every later change lands from a reviewed patch
+(`history/vN.patch`) as a new entry that records what changed, why, who
+approved it, and the digest before and after. Nothing edits a live graph in
+place — the guard hook denies it, and `record_revision.py verify` proves the
+graph still matches the ledger head.
 
-History is append-only, and each generated skill records one reviewed
-evolution tier — `static` (default) or `evolving`. The rules are in
-`references/pave-revisions.md`.
+Successors come from one instrument, `pave-evolve`: a Workflow Updater drafts
+the patch, an Update Reviewer judges it, the user approves when the authority
+envelope moved, and the lead lands it. The rules are in
+`references/pave-revisions.md`; the procedure is
+[`../pave-evolve/SKILL.md`](../pave-evolve/SKILL.md).
 
 ## Who does what
 
@@ -354,8 +401,10 @@ evolution tier — `static` (default) or `evolving`. The rules are in
 | Node Planner | One parent boundary and one level of children; the root skeleton on root dispatch. | Change ancestor or sibling interfaces or write approval artifacts. |
 | Material Reviewer (plan gate) | Root skeleton, each boundary, and the whole bundle — one persistent named reviewer. | Author the artifact under review or block on style preferences. |
 | Material Reviewer (final gate) | The integrated skill — a fresh identity, never the plan reviewer. | Inherit the plan reviewer's conclusions. |
-| Skill Builder | One approved, non-overlapping file set. | Change graph meaning, add unrecorded hooks, or ship unrecorded evolution machinery. |
+| Skill Builder | One approved, non-overlapping file set. | Change graph meaning, add unrecorded hooks, or ship unrecorded revision machinery. |
 | Forward Tester | A clean-room use of the generated skill at session defaults. | Receive the expected answer or mutate the live system. |
+| Workflow Updater | One successor proposal: a patch plus its semantic diff, drafted from the ledger head and the recorded evidence. | Land a revision, write run state, present a gate, or edit an installed skill. |
+| Update Reviewer | Material-only review of that proposal — one retained reviewer per revision. | Author the proposal, or be the lead that lands it. |
 | User | Requirements, fitness override, and complete-plan approval. | No implementation work is required. |
 
 ## When the workflow finds a problem
@@ -376,8 +425,8 @@ findings, style preferences, and speculative risks do not change the workflow.
 ## Version meanings
 
 The package version in [`VERSION`](VERSION) tracks releases of `pave-init`
-itself. The workflow revision labels above (`v0`, `v1+`) belong to each
-generated workflow and are separate from the package version.
+itself. Revision numbers in a generated workflow's `revisions.yaml` belong to
+that workflow and are separate from the package version.
 
 ## Source of truth
 
@@ -392,4 +441,6 @@ generated workflow and are separate from the package version.
 - [`references/pave-composition.md`](references/pave-composition.md) defines
   the composition contract and the depth-2 cap.
 - [`references/pave-revisions.md`](references/pave-revisions.md) defines
-  workflow revisions and the evolution tiers.
+  the revision ledger and the evolution contract.
+- [`../pave-evolve/SKILL.md`](../pave-evolve/SKILL.md) is the revision
+  procedure: the two seats, the approval gate, the landing.
