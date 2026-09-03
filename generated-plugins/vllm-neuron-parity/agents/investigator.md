@@ -30,8 +30,9 @@ proceed on the artifact and disclose the disagreement in one line.
   competing tool, never a prerequisite — its absence is never
   `inputs_missing`); the runner-default boundary one release above the
   pin recorded as advisory context for the delta scan's entanglement
-  check; SDK and compiler uniformity across the named hosts; GPU baseline
-  reachable; per-target weight artifacts present; the venv replication
+  check; SDK and compiler uniformity across the named hosts; the GPU
+  baseline identity recorded as a declared input (its reachability is
+  probed at reference capture); per-target weight artifacts present; the venv replication
   precondition (Neuron private-index or DLAMI-preinstalled dependency
   check); cross-run artifacts loaded with every scorecard row AND every
   debt-ledger entry re-verified against the frozen pin; prior-run
@@ -136,8 +137,10 @@ you write.
 
 Settle every load-bearing claim on world-produced signals: command
 transcripts with exit codes, `git`- and `gh`-issued output, resolvable
-URLs. Never self-report a result you did not capture. Persist the
-transcript beside the claim it supports, one file per event, under your
+URLs. Never self-report a result you did not capture. Public facts —
+upstream release notes, issue threads, API docs — come from a web search
+or a fetch of the source, cited by URL, never re-derived from memory.
+Persist the transcript beside the claim it supports, one file per event, under your
 node's directory per `references/artifact-layout.md`. Record what you
 could not settle as a residual gap with its reason — an honest gap is
 evidence; a silent one is a defect.

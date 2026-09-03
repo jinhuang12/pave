@@ -18,6 +18,8 @@ artifacts/
   run/                            # this run only
     run-state.json                # lead-only; shape authority is
                                   #   schemas/run-state.schema.json
+    usage-ledger.md               # lead-only; one section per run close
+                                  #   (evolution contract rule 8)
     intake-preflight/
     delta/
       <target-id>/report.md       # + per-target event files (grants,
@@ -28,7 +30,8 @@ artifacts/
     closure/
   campaigns/<campaign>/
     kickoff/
-    approvals/
+    approvals/DECISIONS.md          # one file per campaign; each user
+                                    #   decision is one dated section (§2)
     design/
       current/                    # design-lap artifacts of the LIVE lap;
                                   # superseded lap artifacts are deleted at
@@ -58,8 +61,8 @@ artifacts/
 | run/delta/<target>/ | that target's trace_target_delta instance (report landing paths: §4.7) |
 | run/delta/index/ | assemble_delta_report |
 | campaigns/*/kickoff, approvals | assemble_kickoff_contracts (+ gate records by review_campaign_design, close_campaign) — write-once per decision: a later user decision lands as a new dated section or addendum beside the recorded one, never as an edit of it |
-| campaigns/*/design/ | the design sibling that produces each artifact; assemble_design_record writes the record and performs superseded-artifact deletions |
-| campaigns/*/increments/ | scope_next_increment (lap records), realize_increment (evidence records), record_changeset (changeset) |
+| campaigns/*/design/ | the design sibling that produces each artifact; assemble_design_record writes the record and performs superseded-artifact deletions; the lead writes the bookkeeping edits recorded at review_campaign_design (one revision-log line in the document; the edit summary and the new digest ride the gate traversal's `completed_outcomes[].note` in run state, 500 characters — longer content stays in the document's revision log), the landed-block collapse at scope_next_increment (digest in the lap record), and the record delta on a verified block diff (digest in the record's revision log and the traversal note) |
+| campaigns/*/increments/ | scope_next_increment (lap records — the lead's on lead-settled laps), realize_increment (evidence records), record_changeset (changeset) |
 | campaigns/*/attempts/ | acquire_hardware_lease + lead (lease records), replicate_campaign_venv, execute_attempt_loop, recover_leased_host — one file per event, append-only |
 | campaigns/*/measurements/procedures | realize_measurement_procedures |
 | campaigns/*/measurements/baseline | capture_baseline_reference |
@@ -93,9 +96,17 @@ violation before it is a count bug.
 Every adversarial-review finding record carries exactly:
 1. stable per-finding label
 2. cited location
-3. defect class
+3. defect class, prefixed `material` or `bookkeeping` (a bookkeeping
+   finding names the surface it edits and never selects an outcome); a
+   material finding also carries `repair-introduced` when the graph's
+   `design_loop_within_bound` class applies
 4. required change
 5. measurement content hash(es) — review_measurement_verdict only
+
+One findings record per campaign per review node lives under
+`reviews/<campaign>/`: each round appends one dated section, each finding
+is one line carrying these fields plus a pointer to its evidence, and a
+recorded absence of findings is one line. A round never opens a new file.
 
 All fingerprint-pair producers and consumers cite this entry; each
 consumer declares the key its detector uses — a subset of these fields,

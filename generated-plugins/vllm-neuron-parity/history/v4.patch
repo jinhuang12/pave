@@ -1,0 +1,161 @@
+kind: binding
+semantic_diff: >-
+  Instruments on five existing nodes, declared per node; no node, outcome, edge,
+  check, or evidence definition changes and the counts stay 32 / 95 / 15. (0)
+  Seat continuity for the stage-6 loop, declared once per node in activities
+  (where revision 2 put its instruments): one retained doer thread per campaign
+  answers scope_next_increment (when a seat is dispatched), realize_increment,
+  and record_changeset for every item, replaced only when its context degrades
+  the work; review_increment_batch stays a fresh seat per batch. (1)
+  scope_next_increment: every lap the lead settles mechanically from the
+  persisted inputs (landed set, gate table and milestone order, ascending id,
+  open batch and size call, detector inputs, worktree preconditions) with a lap
+  record that carries the commands it derived from; the implementer seat runs
+  only for a judgment the rule does not settle - a contradiction candidate no
+  realizer record holds, or a findings-history versus lap-record disagreement;
+  ambiguity runs the seat. (2) review_campaign_design re-entry: whole read on
+  the first review of a design entry and on full-lap re-entries; after a
+  block-scoped repair the seat reads the touched blocks, their cascade, and one
+  scripted census while the lead byte-checks untouched blocks against the
+  must-hold digests; at the bound re-entry (design_loop_within_bound failed) no
+  reviewer seat is dispatched - the lead and the user answer it; the challenger
+  is retained across the rounds of one design entry (spec 9.4). (3) assemble_design_record: when the only changed input is a
+  verified block diff whose touched blocks keep their contracts complete, the
+  lead performs the delta and the self-check with no seat; any other changed
+  input, a gap, or ambiguity runs the assembler. (4) realize_increment: one
+  retained seat realizes a set in order by default; a concurrent-eligible set
+  may run one seat per item when each has its own checkout and the lead lands
+  them at the join, a join conflict returning the set to serial. Price per run:
+  the scoper seat goes from one per lap to one per judgment lap; a bookkeeping
+  reviewer round and an assembler seat per block-scoped re-entry go to zero;
+  no new seat is priced. Envelope (rule 6) - changed_with_approval: the lap
+  record becomes the lead's by default and the lead performs the record delta -
+  state-authority moves under rule 6. Same checks, cheaper instruments,
+  mechanical evidence still produced in every lap record (rule 9's bound); a
+  check the graph forbids the lead to judge keeps its seat. Why it
+  holds in general: an outcome any reader re-derives from persisted inputs is
+  not a judgment, so a seat that re-derives it buys no evidence, and a fresh
+  challenger each round forces a living document to carry its whole argument
+  history in self-defense.
+envelope_check: changed_with_approval
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 4 (binding): one retained doer thread per campaign across the
+  stage-6 loop nodes, lead-mechanical scoping with a conditional implementer
+  seat, delta-scoped gate-2 re-review with a retained challenger, a
+  lead-performed record delta on a verified block diff, and the hands-per-set
+  rule for realization. Field evidence from the first run: across 51 scoping
+  laps the priced no_new_route outcome never fired and 49 laps were a
+  re-derivable selection; the scoper seat was cut to lead-mechanical from lap 52
+  and the lap record shrank to about fifteen lines; the record assembler re-ran
+  as a seat on every narrow re-entry; a fresh implementer seat was opened per
+  increment, so each re-read the design record from zero.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index 8310f19..89e6020 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -545,7 +545,18 @@ pave:
+         and the loop bound (design_loop_within_bound) stay mechanical. When the
+         loop bound trips, this node re-enters for the user's disposition - the
+         lead presents the standing findings with a close-anyway recommendation
+-        and records the user's verbatim decision.
++        and records the user's verbatim decision. Re-entry
++        instrument - the reviewer seat reads the whole design on the first review
++        of a design entry and on every full-lap re-entry; at the bound re-entry
++        no reviewer seat is dispatched. After a block-scoped
++        repair it reads the touched blocks the block diff names, their cascade
++        (blocks that cite or depend on them), and one scripted whole-plan census;
++        the lead byte-checks every untouched block against the must-hold digests
++        before briefing the seat and records that check in run state. A diff that
++        touches blocks the brief did not name, or a whole-plan lap, gets the whole
++        read. The challenger is retained across the rounds of one design entry
++        - a fresh seat opens with each new design entry, never per round (spec
++        section 9.4).
+       roles:
+       - adversarial_reviewer
+       - lead
+@@ -1320,7 +1331,13 @@ pave:
+         rule).
+         An artifact no lap re-produced is not superseded - it stays in the read
+         path stamped forward. A record that grows monotonically with lap count
+-        is a defect of this node.
++        is a defect of this node. When the only input changed since the current
++        design_entry_id is a block diff whose must-hold digests verify and whose
++        touched blocks keep their per-increment contracts complete, the lead performs
++        the delta - pointer and digest lines updated, the completeness self-check
++        re-run from the declared checklist - and records it in run state with no
++        seat; any other changed input (registration, matrix, note, kickoff contract),
++        a self-check gap, or ambiguity runs the assembler seat.
+         Out of scope - authoring or altering any design content owned by a sibling;
+         code changes; hardware contact.
+       roles:
+@@ -1423,7 +1440,19 @@ pave:
+         (4) plan_satisfied when nothing is pending; (5) increment_selected otherwise.
+         A landed item''s plan block collapses to its ledger row at the lap that
+         first reads its passing record (the layout reference''s cap rule), and
+-        the lap record carries the plan digest after the collapse. Out of scope
++        the lap record carries the plan digest after the collapse. Instrument
++        - every lap the lead settles mechanically from the persisted inputs with
++        no seat: the landed set from the passing records, the gate table and milestone
++        order from the plan, the ascending increment id within the released items,
++        the open batch with its size call, the two detector inputs, and the worktree
++        precondition checks; the lap record is the lead''s and carries the commands
++        and outputs it derived from, never a bare conclusion. The implementer seat
++        runs only when the lap needs a judgment the rule does not settle - a contradiction
++        candidate the worktree precondition check surfaces that no realizer record
++        has yet recorded (plan_unrealizable_as_designed needs a recorded contradiction,
++        and the realizer''s evidence_contradicts_design stays the usual door),
++        or a disagreement between the findings history and the lap records about
++        whether a triple was answered. Ambiguity runs the seat. Out of scope
+         - any code change, any test run.
+ 
+         '
+@@ -1436,6 +1465,11 @@ pave:
+       - increment_lap_record
+       produces:
+       - increment_lap_record
++      activities:
++      - When a seat is dispatched, it is the one retained doer thread per campaign
++        that answers this node and its stage-6 loop siblings (realize_increment,
++        record_changeset) for every item; replaced only when its context degrades
++        the work.
+       allowed_effects:
+       - Reads of the campaign worktree, design record, findings history, and increment
+         evidence records.
+@@ -1517,7 +1551,13 @@ pave:
+         record, the passed items'' records standing and landing; then increment_passed);
+         whether a concurrent-eligible set is realized by one hand in order or by
+         one hand per item at once is runtime binding, declared per node (spec section
+-        2.1). Dispatch delegate skills only
++        2.1). Instrument for a set - by default the one retained doer thread
++        realizes the set in the recorded order, item by item, each item to its
++        own commit and evidence record; a set marked concurrent-eligible may instead
++        run one seat per item at once when the lead gives each item its own checkout
++        and lands the items onto the campaign branch at the join in the recorded
++        order, a conflict at the join being a scheduling defect recorded in the
++        lap record that returns the set to the serial default. Dispatch delegate skills only
+         through the run''s guardrails. Out of scope - hardware attempts, any write
+         outside the campaign worktree and branch, and any change to kickoff- or
+         design-declared acceptance criteria.
+@@ -1540,6 +1580,9 @@ pave:
+         investigation record (checked, ruled out, found) as it grows.
+       - Commit to the campaign branch and write the one-file increment evidence
+         record.
++      - One retained doer thread per campaign answers this node and its stage-6
++        loop siblings (scope_next_increment when a seat is dispatched, record_changeset)
++        for every item; replaced only when its context degrades the work.
+       allowed_effects:
+       - Writes inside this campaign's worktree - or, for a concurrent-eligible set,
+         one checkout per item on the campaign branch - and branch on the fork.
+@@ -1608,6 +1651,10 @@ pave:
+       - campaign_design_record
+       produces:
+       - implementation_changeset
++      activities:
++      - One retained doer thread per campaign answers this node and its stage-6
++        loop siblings (scope_next_increment when a seat is dispatched, realize_increment)
++        for every item; replaced only when its context degrades the work.
+       allowed_effects:
+       - Read-only git diff of the campaign branch against its recorded target
+         base.

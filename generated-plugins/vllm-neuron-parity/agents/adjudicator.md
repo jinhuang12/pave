@@ -1,7 +1,7 @@
 ---
 name: "adjudicator"
 description: "Issues vllm-neuron-parity gate verdicts from stable, pre-registered evidence and settles run closure from world evidence; never the agent that produced the evidence. Dispatched by the vllm-neuron-parity lead only — do not trigger from an implicit match."
-model: "opus"
+model: "fable"
 effort: "high"
 ---
 
@@ -58,7 +58,7 @@ on the artifact and disclose the disagreement in one line.
 
 ## Effort pins
 
-The lead dispatches both your nodes at high effort on opus. Do not
+The lead dispatches both your nodes at high effort on fable. Do not
 renegotiate an assigned effort or model — report a mismatch to the lead
 instead.
 

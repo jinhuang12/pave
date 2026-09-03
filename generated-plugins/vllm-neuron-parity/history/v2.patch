@@ -1,0 +1,83 @@
+kind: binding
+semantic_diff: >-
+  Re-entry instruments on screen_pin_and_progress and preregister_acceptance,
+  declared per node: the investigator seat runs on the first entry into the
+  screen and the implementer seat on the first preregistration; every re-entry
+  whose registered inputs are byte-unchanged the lead settles mechanically with no
+  seat (pin digest plus standing note; the four-slice check on the byte-unchanged
+  registration), and any registered-value touch keeps the full value-level seat.
+  Which instrument answers the node at each entry is runtime binding
+  (pave-spec section 2.1), so this lands as kind binding; no node is added or
+  removed, no outcome, edge, check, or evidence definition changes, and the counts
+  stay 32 / 95 / 14. Same
+  check, cheaper instrument, mechanical evidence still produced - rule 9's bound -
+  so check strength is unchanged. Why it holds for runs in general: a priced seat
+  re-run over byte-unchanged inputs buys no evidence, in any run.
+envelope_check: unchanged
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 2 (binding): lead-mechanical re-entry instruments on the design screen
+  and the acceptance preregistration where registered inputs are unchanged. The
+  head digest now equals the field root's live graph. Field evidence: across the
+  first run's 154 design-boundary traversals, seats were re-dispatched for
+  re-checks whose answer was already on disk (the 2026-08-31 ceremony-cuts
+  amendment).
+diff --git c/workflow.pave.yaml b/workflow.pave.yaml
+index ff811aa..bb47b98 100644
+--- c/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -973,8 +973,19 @@ pave:
+         at the pin, needing re-scope or an upstream-issue path); (2) progress
+         - does the adversarial findings history from prior design laps leave a
+         viable untried design lever (an empty history on the first lap passes
+-        by definition). Out of scope - any design authoring, code change, or hardware
+-        contact.
++        by definition). Re-entry instrument (user-directed amendment 2026-08-31,
++        authority order 1) - the investigator seat runs on the FIRST entry into
++        this campaign's design boundary and on any re-entry whose trigger carries
++        feasibility-questioning evidence (a finding or defect naming the pin,
++        a missing surface, or a capability doubt) or new findings-history entries
++        since the last screen. Every other re-entry the lead settles mechanically
++        with no seat - pin digest compared byte-identical against pinned_release,
++        the standing pin_feasibility_note cited, and the named viable lever confirmed
++        current - recorded in run state without re-authoring the note. An unchanged,
++        already-verified fact settles mechanically; a changed input to a judgment
++        gets fresh eyes. Ambiguity about the mode runs the seat, and a record_incomplete
++        re-entry naming the screen as owning sibling always runs the seat. Out
++        of scope - any design authoring, code change, or hardware contact.
+       roles:
+       - investigator
+       consumes:
+@@ -988,6 +999,9 @@ pave:
+       - The note records the detector basis - the compared findings entry references
+         and the design-evidence-movement comparison - even though the frozen outcome
+         declares no required_evidence.
++      - On a lead-settled re-entry the run-state entry records the pin digest
++        compared, the prior note cited, and the progress-facts basis; no fresh
++        note artifact is authored.
+       forbidden_effects:
+       - Code changes to the target repo.
+       - Hardware contact of any kind.
+@@ -1145,8 +1159,19 @@ pave:
+         route), and first-lap instances arrive without adversarial_review_findings
+         (the findings history is empty before the first gate-2 review); neither
+         absence is a gap. The registration artifact goes to the lead for commitment
+-        into run state before any measurement starts. Out of scope - any measurement,
+-        code change, or hardware contact.
++        into run state before any measurement starts. Re-entry instrument (user-directed
++        amendment 2026-08-31, authority order 1) - the implementer seat runs on
++        the FIRST preregistration and on any re-entry whose repair touched a registered-value
++        surface - comparator identity, configuration, or version, a criterion,
++        threshold, tolerance, stability count, or re-read spacing - and a registered-value
++        touch always gets the value-level comparison, never hash-only verification
++        (P9 stands unwaived - the frozen acceptance registration is never opened,
++        and a repair that would move a registered value STOPs for the user). Every other re-entry - registration
++        byte-unchanged by digest and mtime, no standing finding naming a registered
++        value - the lead settles mechanically with the four-slice verification
++        against the frozen registration, recorded in run state, no seat and no
++        fresh verification artifact. Ambiguity runs the seat. Out of scope - any
++        measurement, code change, or hardware contact.
+       roles:
+       - implementer
+       consumes:

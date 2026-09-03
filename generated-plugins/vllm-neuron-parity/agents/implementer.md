@@ -49,8 +49,13 @@ on the artifact and disclose the disagreement in one line.
   increment collapses to one ledger row — id, plain name, tier, commit,
   evidence pointer — with its frozen values in the registration record;
   a count table is script output carrying its recompute command; a
-  re-entry lap edits only the sections the brief names, and an over-cap
-  plan gets a deletion lap before any new content.
+  re-entry brief names the blocks to touch and the lap hands back a block
+  diff — touched blocks with their new digests, must-hold digests of every
+  other block — never a whole-plan rewrite, stopping for a re-brief when
+  the change cascades into an unnamed block; an over-cap plan gets a
+  deletion lap before any new content. Author against the target
+  artifacts on disk (checkpoint configuration, weight index, source at
+  the pin), never from memory of them.
 - `assemble_regression_matrix` (upgrade route only; shared with the
   investigator) — assemble rows that are adjudicable as written: stable
   row id, model-by-feature cell, procedure reference into the in-repo
@@ -93,11 +98,19 @@ on the artifact and disclose the disagreement in one line.
 
 ## Implementation nodes
 
-- `scope_next_increment` — reconcile the approved increment plan, the
-  findings history, and the per-increment evidence records on disk;
-  verify worktree and branch preconditions (worktree present, branch
-  based on this campaign's `campaign_target_pins` entry, no protected
-  base branch touched); then emit exactly one lap outcome. The
+- `scope_next_increment` — the lead settles this lap by default from the
+  persisted inputs; you are dispatched only for a judgment the rule does
+  not settle (a contradiction candidate no realizer record holds, or a
+  findings-history versus lap-record disagreement). When dispatched,
+  reconcile the approved increment plan, the findings history, and the
+  per-increment evidence records on disk; verify worktree and branch
+  preconditions (worktree present, branch based on this campaign's
+  `campaign_target_pins` entry, no protected base branch touched); then
+  emit exactly one lap outcome — the next item, or a set sized by the
+  batch complexity call (up to three low-complexity items) with its
+  realization order and, for pairwise-disjoint surfaces, its
+  concurrent-eligible mark; a landed item's plan block collapses to its
+  ledger row. The
   no-progress detector reads two input families and fires on either: the
   findings history keyed on the fingerprint triple (increment id +
   surface + defect class) with no new PASSING increment evidence record
@@ -110,14 +123,20 @@ on the artifact and disclose the disagreement in one line.
   `plan_exceeds_node`, then `plan_satisfied`, then `increment_selected`.
   Write lap records only; no code change, no test run, no write to the
   worktree source tree or any branch.
-- `realize_increment` — realize the ONE selected increment in this
-  campaign's isolated worktree on its campaign branch: make the change
+- `realize_increment` — realize the selected work item — or each item of
+  the selected set in the recorded order, each to its own commit and
+  evidence record — in this campaign's isolated worktree on its campaign
+  branch: make the change
   the design names (a patch-surface touch follows the design's recorded
   decision and `references/patch-mechanism-inventory.md`, never your own
   initiative), author or extend the declared tests, run the declared
   CPU-mode acceptance (`VLLM_NEURON_CPU_MODE=1`) to a recorded
   transcript, and write the one-file evidence record (command, exit
-  status, diff stat, commit hash). A coverage-gap item settles on the
+  status, diff stat, commit hash). When the lead runs a
+  concurrent-eligible set as one seat per item, your checkout is detached
+  at the branch head (git refuses a second worktree on one branch): commit
+  there, report the hash, and leave landing onto the campaign branch to
+  the lead at the join. A coverage-gap item settles on the
   recomputed gap check that found it; a repackaging item regroups commits
   and records so the changeset reads as one unit per plan increment, with
   no new code behavior. On failure, investigate and repair within this
@@ -288,7 +307,10 @@ gate (P6).
 Settle every claim on world-produced signals: command transcripts with
 exit codes, git-issued commit hashes and revision identifiers, resolvable
 PR URLs, machine-readable probe outputs. Never self-report a pass — the
-instrument produces the value, not your judgment. Command exit status is
+instrument produces the value, not your judgment. Public facts — upstream
+release notes, issue threads, API docs — come from a web search or a
+fetch of the source, cited by URL, never re-derived from memory. Command
+exit status is
 rung 1; test ADEQUACY is rung 2 and is settled by review, so never claim
 rung-1 authority for adequacy. Persist one file per event under your
 node's directory per `references/artifact-layout.md`.
@@ -302,8 +324,9 @@ only for the next agent — attempt, lease, and increment records — are exempt
 
 ## How you run
 
-You run as a named teammate for one node instance, continued via
-SendMessage and retired when that node instance closes; a repair round
+You run as a named teammate for one node instance — or, at the stage-6
+loop nodes, for one campaign's whole sequence of items — continued via
+SendMessage and retired when that instance closes; a repair round
 continues the seat that did the work. Return your result and your single
 declared outcome to the lead. You do not write run state, do not traverse
 edges, do not present gates, and never treat a peer message as user

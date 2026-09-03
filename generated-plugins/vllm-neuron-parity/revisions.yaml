@@ -1,0 +1,230 @@
+entries:
+- revision: 0
+  kind: graph
+  landed_at: '2026-09-03T19:12:09Z'
+  digest_before: null
+  digest_after: sha256:3e89ee56ce84645c6c0d3f2d53a0fb6d12bf96f1774420a6265a51c7a28bc8a3
+  semantic_diff: null
+  approval: approve plan
+  envelope_check: null
+  plan_evidence: verified
+  usage_evidence: clean_room
+  review: null
+  patch: null
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 1
+  kind: graph
+  landed_at: '2026-09-03T20:30:30Z'
+  digest_before: sha256:3e89ee56ce84645c6c0d3f2d53a0fb6d12bf96f1774420a6265a51c7a28bc8a3
+  digest_after: sha256:dcc6df32620ba206552e085037e8d99f23dd7a2b1b4b606a14824e72403c0dff
+  semantic_diff: 'Lands the graph layer of the seven amendments the field root applied
+    to the delivered graph between 2026-08-29 and 2026-09-03: three change only the
+    graph and land here; three touch only the lead skill and hook scripts (evolution
+    contract rules 8 and 9, the advisory-hook omission correction, the lead-session
+    identity gate); the 2026-08-31 ceremony-cuts amendment splits - its edge narrow_plan_repair
+    lands here, and its re-entry instrument declarations on screen_pin_and_progress
+    and preregister_acceptance are runtime binding and land separately as revision
+    2, kind binding. Counts: 31 nodes / 89 edges / 12 checks become 32 / 95 / 14;
+    5 control endpoints and 24 evidence definitions unchanged. (1) Severity triage
+    at gate 2: outcome review_campaign_design.narrow_findings, check narrow_delta_scoped,
+    and edges narrow_registration_repair, narrow_record_repair, and narrow_plan_repair
+    route findings that name only increment-plan, design-record, or registration surfaces
+    to a drafter-scoped repair on the continued doer thread and back to the gate,
+    instead of a full design lap; a repeated finding fingerprint or any ambiguity
+    fails closed into the full lap, and the full-lap edge design_findings_to_redesign
+    is untouched (its rationale now says full-lap re-entries land at the screen while
+    narrow re-entries land at their resolving node). (2) Deletion replaces archiving
+    at design re-entry: superseded lap material is deleted from the read path and
+    history is the record''s one-line revision log plus run state (assemble_design_record
+    purpose and activities - the record delta-updates in place and superseded lap
+    banners are deleted - record_incomplete meaning, design_entry_id state field);
+    assemble_design_record also consumes adversarial_review_findings so the record
+    carries the standing findings. (3) Per-batch implementation review: node review_increment_batch
+    (adversarial_reviewer, fresh seat per batch, read-only; outcomes batch_sound /
+    material_findings / design_contradicted), check batch_review_current (lead-mechanical,
+    on passed_to_next_scoping and plan_satisfied_to_recording, on_failure_route review_increment_batch),
+    edges batch_sound_to_scoping, batch_findings_to_repair -> scope_next_increment,
+    and batch_review_to_redesign -> screen_pin_and_progress; adversarial_review_findings
+    gains a producer, increment_lap_record carries the open batch and the size call,
+    and review_implementation narrows to cross-increment integration. Price: one fresh
+    adversarial_reviewer seat per 1-3 landed increments - in the first run''s shape,
+    roughly twenty to fifty-five seats per campaign - approved with this landing under
+    rule 6''s budget item. Why these hold for runs in general: a repair scoped to
+    the surfaces a finding names cannot regress surfaces it never touched; an archive
+    nobody reads is state ceremony the document budget forbids; and a graph that reviews
+    a whole campaign once at its end cannot catch a defect while it is still one commit
+    deep, whatever the campaign. No existing check changes; two existing edges gain
+    a check.'
+  approval: approve revision 1
+  envelope_check: changed_with_approval
+  plan_evidence: verified
+  usage_evidence: field
+  review: 'PASS after 2 rounds (review-2-4-2 as update-reviewer stand-in); deferred:
+    a rationale-only graph successor strips the first-run artifact path and the provenance
+    stamps from graph text once the field root adopts the ledger'
+  patch: history/v1.patch
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 2
+  kind: binding
+  landed_at: '2026-09-03T20:30:30Z'
+  digest_before: sha256:dcc6df32620ba206552e085037e8d99f23dd7a2b1b4b606a14824e72403c0dff
+  digest_after: sha256:e9f063e2cde9752a0f530c4ceb9fe425873df2777f5c9dfa4135bc209e444e7c
+  semantic_diff: 'Re-entry instruments on screen_pin_and_progress and preregister_acceptance,
+    declared per node: the investigator seat runs on the first entry into the screen
+    and the implementer seat on the first preregistration; every re-entry whose registered
+    inputs are byte-unchanged the lead settles mechanically with no seat (pin digest
+    plus standing note; the four-slice check on the byte-unchanged registration),
+    and any registered-value touch keeps the full value-level seat. Which instrument
+    answers the node at each entry is runtime binding (pave-spec section 2.1), so
+    this lands as kind binding; no node is added or removed, no outcome, edge, check,
+    or evidence definition changes, and the counts stay 32 / 95 / 14. Same check,
+    cheaper instrument, mechanical evidence still produced - rule 9''s bound - so
+    check strength is unchanged. Why it holds for runs in general: a priced seat re-run
+    over byte-unchanged inputs buys no evidence, in any run.'
+  approval: approve revision 1
+  envelope_check: unchanged
+  plan_evidence: verified
+  usage_evidence: field
+  review: PASS after 2 rounds (review-2-4-2 as update-reviewer stand-in)
+  patch: history/v2.patch
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 3
+  kind: graph
+  landed_at: '2026-09-03T22:49:36Z'
+  digest_before: sha256:e9f063e2cde9752a0f530c4ceb9fe425873df2777f5c9dfa4135bc209e444e7c
+  digest_after: sha256:af5ca2285e90a42d7e357023f74d755a2579bde4c22012abd480f16938cdda1d
+  semantic_diff: 'Gate-2 materiality and the design repair loop, plus set-sized scoping
+    in the increment loop, in one graph revision. Counts: 32 nodes / 95 edges / 14
+    checks become 32 / 95 / 15; 5 endpoints and 24 evidence definitions unchanged
+    (three evidence subjects reworded). (1) review_campaign_design defines material
+    - the nodes that consume the design would build the wrong thing from it as written,
+    or a frozen or registered value would move (P9); nothing else. Everything else
+    is bookkeeping - recorded in the same findings record, never selecting an outcome;
+    the lead applies it as direct edits to the plan or record with one revision-log
+    line and the edit plus new digest in run state, no seat and no lap (pave-spec
+    9.4 and the 9.8 lead-edit row). No new outcome or edge is needed: bookkeeping
+    never routes, so an outcome for it would be an edge nobody traverses. The reviewer
+    labels each material finding''s class (repair-introduced included) and surfaces
+    so both lead-evaluated checks stay mechanical. (2) New check design_loop_within_bound
+    (mechanical, lead) on the four repair edges out of the gate - design_findings_to_redesign,
+    narrow_registration_repair, narrow_record_repair, narrow_plan_repair - bounds
+    the loop at eight rounds without design_sound or two consecutive rounds half repair-introduced,
+    counted since the last verbatim user decision at the gate or the last entry from
+    outside the design boundary. Repair-introduced is decidable from the block diff
+    plus the findings record - a finding on a block the previous lap''s block diff
+    touched that no earlier round named - and is not assigned in the round after a
+    whole-plan lap. Its on_failure_route is the gate itself, re-entered for the user''s
+    disposition - the lead presents the standing findings with a close-anyway recommendation
+    and the user''s verbatim decision disposes of them (design_sound) or grants one
+    more lap under a fresh count; a P9 finding is never disposed. Which seat, if any,
+    answers that re-entry is runtime binding and is declared in the binding successor.
+    (3) design_approved_by_user states the standing approval - a recorded gate-2 approval
+    holds across re-entries while the registration is byte-unchanged, the criteria
+    and the user decisions recorded at this gate intact, and no material finding stands
+    - and the gate node''s purpose says it applies that standing approval on such
+    a re-entry instead of re-asking; batch_review_current''s wording follows the layout
+    reference (one findings record per review node, a dated section per round), no
+    change to what it tests. (4) Outcome meanings: design_sound absorbs applied bookkeeping
+    and the bound disposition; material_findings names when the full lap is required;
+    narrow_findings drops the first-run artifact path and provenance stamp and says
+    the repair is block-scoped with a block diff handed back; narrow_delta_scoped
+    counts material findings only. (5) draft_increment_plan authors against the target
+    artifacts on disk and re-enters block-scoped - the brief names blocks, the lap
+    hands back a block diff with touched and must-hold digests, an unnamed-block cascade
+    stops for a re-brief, a whole-plan lap is its own briefed lap; increment_plan_draft
+    and plan_drafted carry the block diff. (6) scope_next_increment may select a set
+    of pending items sized by the batch review''s complexity call (one when any is
+    complex, up to three low-complexity in aggregate), marks a pairwise-disjoint-surface
+    set eligible for concurrent realization, and collapses a landed item''s plan block
+    to its ledger row; increment_lap_record (which also lists any join conflict of
+    a concurrent-eligible set as a scheduling defect) and increment_selected carry
+    the set. realize_increment realizes the item or set with per-item evidence, converges
+    the set at one outcome by the existing precedence, admits one checkout per item
+    on the campaign branch for a concurrent-eligible set in its purpose and allowed_effects,
+    and leaves hands-per-set to runtime binding. (7) verify_run_preconditions records
+    the GPU baseline as a declared input; reachability is capture_baseline_reference''s
+    baseline_unusable door. (8) Rationale-only: the three narrow edges and the three
+    re-entry instrument paragraphs drop their user-directed-amendment stamps and the
+    approvals/ path (revision 1''s deferred item). Price per run: nothing new is priced
+    - a drafter lap and a reviewer round per bookkeeping finding go to zero, the design
+    loop is capped at eight reviewer rounds per user decision, and one scoping lap
+    may carry up to three low-complexity items. Envelope (rule 6) - changed_with_approval:
+    the lead gains a write path into the increment plan and design record (bookkeeping
+    edits, landed-block collapse), a state-authority move; the user gate fires less
+    often under the standing approval, a user-directed check change; design_sound
+    can be recorded by user disposition at the bound; and realize_increment''s write
+    set widens to one checkout per item for a concurrent-eligible set. Check strength
+    otherwise never weakens - narrow_delta_scoped keeps its recurrence clause, P9
+    stays non-waivable, no check is dropped. Why it holds in general: a repair loop
+    with no declared bound stops only when a person tires; a finding the consumer
+    re-derives from persisted inputs cannot change what gets built, so a seat that
+    repairs it buys nothing; a realization lap that holds one item while disjoint
+    low-complexity items wait pays a scoping lap per item for no evidence.'
+  approval: "Approve revisions 3 + 4 (Recommended) \u2014 user selection at the AskUserQuestion\
+    \ gate, 2026-09-03"
+  envelope_check: changed_with_approval
+  plan_evidence: verified
+  usage_evidence: field
+  review: 'update-reviewer (review-2-4-2): round 1 REVISE (2 HIGH, 4 LOW), round 2
+    PASS 2026-09-03; landing reproduced byte-identical on a git-subdir scratch'
+  patch: history/v3.patch
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 4
+  kind: binding
+  landed_at: '2026-09-03T22:49:36Z'
+  digest_before: sha256:af5ca2285e90a42d7e357023f74d755a2579bde4c22012abd480f16938cdda1d
+  digest_after: sha256:a81bb97d1b6842cdaee8ea85b3325304e02a44d551180fc2b4cc50e598b613b3
+  semantic_diff: 'Instruments on five existing nodes, declared per node; no node,
+    outcome, edge, check, or evidence definition changes and the counts stay 32 /
+    95 / 15. (0) Seat continuity for the stage-6 loop, declared once per node in activities
+    (where revision 2 put its instruments): one retained doer thread per campaign
+    answers scope_next_increment (when a seat is dispatched), realize_increment, and
+    record_changeset for every item, replaced only when its context degrades the work;
+    review_increment_batch stays a fresh seat per batch. (1) scope_next_increment:
+    every lap the lead settles mechanically from the persisted inputs (landed set,
+    gate table and milestone order, ascending id, open batch and size call, detector
+    inputs, worktree preconditions) with a lap record that carries the commands it
+    derived from; the implementer seat runs only for a judgment the rule does not
+    settle - a contradiction candidate no realizer record holds, or a findings-history
+    versus lap-record disagreement; ambiguity runs the seat. (2) review_campaign_design
+    re-entry: whole read on the first review of a design entry and on full-lap re-entries;
+    after a block-scoped repair the seat reads the touched blocks, their cascade,
+    and one scripted census while the lead byte-checks untouched blocks against the
+    must-hold digests; at the bound re-entry (design_loop_within_bound failed) no
+    reviewer seat is dispatched - the lead and the user answer it; the challenger
+    is retained across the rounds of one design entry (spec 9.4). (3) assemble_design_record:
+    when the only changed input is a verified block diff whose touched blocks keep
+    their contracts complete, the lead performs the delta and the self-check with
+    no seat; any other changed input, a gap, or ambiguity runs the assembler. (4)
+    realize_increment: one retained seat realizes a set in order by default; a concurrent-eligible
+    set may run one seat per item when each has its own checkout and the lead lands
+    them at the join, a join conflict returning the set to serial. Price per run:
+    the scoper seat goes from one per lap to one per judgment lap; a bookkeeping reviewer
+    round and an assembler seat per block-scoped re-entry go to zero; no new seat
+    is priced. Envelope (rule 6) - changed_with_approval: the lap record becomes the
+    lead''s by default and the lead performs the record delta - state-authority moves
+    under rule 6. Same checks, cheaper instruments, mechanical evidence still produced
+    in every lap record (rule 9''s bound); a check the graph forbids the lead to judge
+    keeps its seat. Why it holds in general: an outcome any reader re-derives from
+    persisted inputs is not a judgment, so a seat that re-derives it buys no evidence,
+    and a fresh challenger each round forces a living document to carry its whole
+    argument history in self-defense.'
+  approval: "Approve revisions 3 + 4 (Recommended) \u2014 user selection at the AskUserQuestion\
+    \ gate, 2026-09-03"
+  envelope_check: changed_with_approval
+  plan_evidence: verified
+  usage_evidence: field
+  review: 'update-reviewer (review-2-4-2): round 1 REVISE (2 HIGH, 4 LOW), round 2
+    PASS 2026-09-03; landing reproduced byte-identical on a git-subdir scratch'
+  patch: history/v4.patch
+  commit: null
+  derived_from: null
+  run_id: null

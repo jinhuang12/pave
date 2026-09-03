@@ -1,4 +1,140 @@
-version: 1.3.1
+version: 1.4.0
+
+## 1.4.0 — 2026-09-03
+
+pave-init 2.4.4, 2.4.5, and 2.5.0 alignment. Lead-behavior and revision-record
+changes; the packaged graph's meaning does not move.
+
+Evolution contract rule 7 is inverted. A run paused on a defect in its own
+graph now continues on the reviewed, landed successor from its last satisfied
+gate: the lead re-pins run state to the new revision and bundle digest, records
+the authorizing approval verbatim, and landed work stays landed. A gate the
+successor adds becomes a backfill duty per landed item, discharged before those
+items are promoted and never marked passed for them. Closing the run and
+starting a linked successor run is now the narrow exception: only a successor
+that changes what a recorded outcome meant. Rule 1, resume step 1, and the
+run-state schema's `workflow_identity` description now say a landing mid-run
+does not move a running instance by itself, and the run-time bar reads
+"never change the pinned graph's meaning in place" instead of a blanket "never
+at run time". The binding-revision lane is stated as never changing graph
+meaning, so never moving node, edge, or check counts, in the lead skill and the
+README appendix.
+  - Field evidence, this plugin's own run: it needed one review node added
+    mid-run and the contract's only path was close-the-run-and-start-a-
+    successor, so the v1 revision was amended in place instead.
+
+Changed — the revision record moves from `workflow-manifest.yaml` plus full
+`history/vN/` copies to one live `workflow.pave.yaml`, one append-only
+`revisions.yaml`, and one `history/v<N>.patch` per landing, managed only by
+`scripts/record_revision.py` (`init`, `install`, `propose`, `land`, `pin`,
+`verify`, `rollback`). The package ships `revisions.yaml` (entries 0-4, patches
+under `history/`) and is itself a valid root; `install` seeds a project's
+evolution root from it.
+`scripts/freeze_revision.py`, `codex/init_evolution_workspace.py`, and the
+packaged `workflow-manifest.yaml` are removed. An existing root created by the
+1.3.x manifest scheme migrates once per README "Migrating an existing
+evolution root". "Freeze" is now "land".
+
+New — `skills/vllm-neuron-parity/hooks/graph_edit_guard.sh`, registered in
+`hooks/hooks.json` (PreToolUse Edit|Write|MultiEdit): denies a direct edit of a live
+`*.pave.yaml` or `revisions.yaml` when `revisions.yaml` sits beside it and no
+`.landing` marker exists. Eight controls register, disclosed in the skill
+description.
+
+Changed — successors are drafted and reviewed by pave-init's pave-evolve seats
+(`pave-init:workflow-updater`, `pave-init:update-reviewer`), a run-time
+dependency on pave-init 2.5.0 or later, disclosed in the skill's compatibility
+field and the README. The lead never drafts its own successor. The Evolution
+contract section shrinks from nine restated rules to one-clause applications
+of rules 1, 2, 3, 6, 7, 8, and 9 with pointers to pave-init's
+`references/pave-revisions.md`, records the plan fields `landing: user` and
+`usage_ledger: kept`, and replaces the v1 freeze how-to with install, verify,
+and pin. Run start and every resume run `record_revision.py verify
+--pinned-revision --pinned-digest`: exit 3 routes per rule 7, exit 4 per
+rule 9.
+
+Changed — the run-state schema's `active_revision` minimum moves from 1 to 0,
+so a ledger seeded at entry 0 pins cleanly; a fresh install pins the ledger
+head.
+
+Changed — the Claude agents `agents/adversarial-reviewer.md` and
+`agents/adjudicator.md` move from opus to fable under the reviewer-tier rule (a
+reviewer or adjudicator seat binds at or above the producer whose artifact it
+judges). A runtime-binding change recorded by this release, user-approved
+2026-09-03; the ledger holds no `kind: binding` entry because model bindings
+live in `agents/*.md`, outside the YAML that `record_revision.py` lands. The
+Codex binding stays gpt-5.6-sol.
+
+Changed — lead dispatch, from the first run's corrections. The lead skill
+gains a "Harness" paragraph: the package runs on Claude Code as well as Codex,
+and the Codex tool names map to `Agent`, `SendMessage`, `TaskStop`, and
+`ListAgents`, with pins from `agents/*.md` frontmatter; the README installs on
+either harness. The stage-6 loop nodes (`scope_next_increment`,
+`realize_increment`, `record_changeset`) run on one retained doer thread per
+campaign instead of one thread per item (revision 4 binds it); a seat is retired in the same turn as
+the state write that closes it, then the live-agent list is checked; a change
+to an open seat's inputs is relayed before its result is read; internal fan-out
+tiers per task (top tier for judgment, middle for medium work, low for
+mechanical evidence) instead of one tier for all; a recorded gate-2 approval
+stands across re-entries under the conditions the graph's
+`design_approved_by_user` check states from revision 3, and the lead skill
+points at that check instead of restating it. The investigator
+and implementer contracts take public facts from web search or a fetch, cited
+by URL. `references/artifact-layout.md` pins one `approvals/DECISIONS.md` per
+campaign and one findings record per review node (a dated section per round,
+one line per finding); the reviewer contract points at it.
+`tests/test_workflow_pave.py` now fails when a README or newest-VERSION count
+phrase disagrees with the validator, and `tests/test_codex_port.py` requires
+the Claude Code tool names beside the Codex ones.
+  - Field evidence, this plugin's own run: the lead spawned a seat per
+    one-line increment, retired none of twenty finished seats, ran every
+    fan-out on the top tier, and re-presented gate 2 after bookkeeping
+    re-entries.
+
+The stop guard asks six questions instead of four, answered only where the lead
+finds an issue, else "lgtm": the next practical step toward the approved goal
+(a declared outcome and edge, or a graph change to propose), ceremony since the
+last check, landed work no review has seen, re-gating a recorded approval or
+usurping a user decision, routing state that lives only in context, idle seats.
+A recurring ceremony is a graph defect: the lead pauses, records the evidence
+in run state and the standing review record, and routes it to the pave-evolve
+seats; the updater drafts, the reviewer passes, the lead lands it under
+`landing: user` and continues on it. Never a draft by the lead, never an edit
+of the live graph outside a landing.
+  - Field evidence: 55 increments (57 commits) landed with zero implementation
+    review, each building on the last, under a check whose only alignment
+    question was which DECLARED action comes next -- every wasted lap was a
+    declared edge.
+
+Hook mechanics are byte-unchanged: the cooldown breaker (at most one stop in
+three), marker-authoritative discovery, the two-half lead-session identity
+gate, fail-open, and the stop_hook_active short-circuit. "Socratic check"
+remains the anchor phrase.
+
+The packaged graph is the ledger head, revision 4 (32 nodes, 95 edges, 15
+checks). Revision 1 (`kind: graph`) lands the field root's gate-2 narrow
+triage, deletion instead of archiving at design re-entry, and the per-batch
+implementation review node with its check; revision 2 (`kind: binding`) lands
+its lead-mechanical re-entry instruments. Both landed under the user's verbatim
+"approve revision 1" (2026-09-03) after a rule-5 review. Revision 3
+(`kind: graph`) lands the gate-2 material definition with bookkeeping findings
+as lead edits, the standing-approval conditions on `design_approved_by_user`,
+the `design_loop_within_bound` check on the four repair edges (eight rounds
+without `design_sound`, or two consecutive rounds at least half
+repair-introduced, route back to `review_campaign_design` for the user's
+disposition), block-scoped design re-entry, set scoping of up to three
+low-complexity items, and one checkout per item for a concurrent-eligible set.
+Revision 4 (`kind: binding`) lands the instruments: one reviewer seat retained
+across a design entry's rounds with a delta-scoped read after a block repair
+and no seat at the bound re-entry, the lead settling `scope_next_increment`
+and the record delta on a verified block diff, and serial-by-default
+realization of a set with opt-in one seat per item. Both landed under the
+user's "Approve revisions 3 + 4" (2026-09-03) after a rule-5 review (round 1
+REVISE, round 2 PASS). A fresh install seeds the head, and a 1.3.x root
+migrates per README.
+Manifests, the marketplace pin, and the package tests align at 1.4.0. A run in
+progress keeps its installed 1.3.1 until its session restarts on the re-synced
+plugin.
 
 ## 1.3.1 — 2026-09-02
 

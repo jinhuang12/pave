@@ -1,0 +1,336 @@
+kind: graph
+semantic_diff: >-
+  Lands the graph layer of the seven amendments the field root applied to the
+  delivered graph between 2026-08-29 and 2026-09-03: three change only the graph
+  and land here; three touch only the lead skill and hook scripts (evolution
+  contract rules 8 and 9, the advisory-hook omission correction, the lead-session
+  identity gate); the 2026-08-31 ceremony-cuts amendment splits - its edge
+  narrow_plan_repair lands here, and its re-entry instrument declarations on
+  screen_pin_and_progress and preregister_acceptance are runtime binding and land
+  separately as revision 2, kind binding. Counts: 31 nodes / 89 edges / 12 checks
+  become 32 / 95 / 14; 5 control endpoints and 24 evidence definitions unchanged.
+  (1) Severity triage at gate 2: outcome review_campaign_design.narrow_findings,
+  check narrow_delta_scoped, and edges narrow_registration_repair,
+  narrow_record_repair, and narrow_plan_repair route findings that name only
+  increment-plan, design-record, or registration surfaces to a drafter-scoped
+  repair on the continued doer thread and back to the gate, instead of a full
+  design lap; a repeated finding fingerprint or any ambiguity fails closed into
+  the full lap, and the full-lap edge design_findings_to_redesign is untouched
+  (its rationale now says full-lap re-entries land at the screen while narrow
+  re-entries land at their resolving node). (2) Deletion replaces archiving at
+  design re-entry: superseded lap material is deleted from the read path and
+  history is the record's one-line revision log plus run state
+  (assemble_design_record purpose and activities - the record delta-updates in
+  place and superseded lap banners are deleted - record_incomplete meaning,
+  design_entry_id state field); assemble_design_record also consumes
+  adversarial_review_findings so the record carries the standing findings. (3)
+  Per-batch implementation review: node review_increment_batch
+  (adversarial_reviewer, fresh seat per batch, read-only; outcomes batch_sound /
+  material_findings / design_contradicted), check batch_review_current
+  (lead-mechanical, on passed_to_next_scoping and plan_satisfied_to_recording,
+  on_failure_route review_increment_batch), edges batch_sound_to_scoping,
+  batch_findings_to_repair -> scope_next_increment, and batch_review_to_redesign
+  -> screen_pin_and_progress; adversarial_review_findings gains a producer,
+  increment_lap_record carries the open batch and the size call, and
+  review_implementation narrows to cross-increment integration. Price: one fresh
+  adversarial_reviewer seat per 1-3 landed increments - in the first run's shape,
+  roughly twenty to fifty-five seats per campaign - approved with this landing
+  under rule 6's budget item. Why these hold for runs in general: a repair scoped
+  to the surfaces a finding names cannot regress surfaces it never touched; an
+  archive nobody reads is state ceremony the document budget forbids; and a graph
+  that reviews a whole campaign once at its end cannot catch a defect while it is
+  still one commit deep, whatever the campaign. No existing check changes; two
+  existing edges gain a check.
+envelope_check: changed_with_approval
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Ships the lean graph's graph layer as revision 1 (32 nodes, 95 edges, 14
+  checks): gate 2 narrow triage with drafter-scoped repair, deletion instead of
+  archiving at design re-entry, and a per-batch implementation review node with
+  its check. Field evidence from the first parity run: 55 increments (57 commits)
+  landed with zero implementation review because the graph reviewed the changeset
+  once at plan_satisfied, and an external review of the same code then produced
+  five repair increments. A run pinned to revision 0 gets exit 3 from verify at its
+  next resume and continues on the ledger head per evolution contract rule 7, with
+  a backfill duty per landed increment the new gate never saw.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index 4fa4177..bb47b98 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -162,6 +162,7 @@ pave:
+       - review_route_verdicts
+       - review_campaign_design
+       - review_implementation
++      - review_increment_batch
+       - review_measurement_verdict
+       - review_pr_evidence
+       subject: material findings, or the recorded absence of any
+@@ -212,7 +213,8 @@ pave:
+       kind: observation
+       produced_by: scope_next_increment
+       subject: per-lap reconciliation - selected increment, declared CPU-mode
+-        acceptance, findings answered, stuck and gap identities
++        acceptance, findings answered, stuck and gap identities, and the open review
++        batch with the lead's size call
+       artifact: artifacts/campaigns/<campaign>/increments/
+     increment_evidence_records:
+       kind: observation
+@@ -266,6 +268,21 @@ pave:
+         decision?
+       evaluated_by: user
+       on_failure_route: screen_pin_and_progress
++    narrow_delta_scoped:
++      style: mechanical
++      question: Does every standing finding in this review round name only increment-plan
++        text, design-record, or registration surfaces, with the kickoff-declared
++        criteria digest unchanged and the screen inputs (pin, feasibility, and
++        progress facts) untouched since the current design_entry_id was minted -
++        and does no standing finding repeat a prior narrow lap's finding fingerprint
++        (same node, surface, and claim) without a gap-closing artifact produced
++        since that lap? Recurrence fails this check - the full lap owns it, where
++        the screen's progress_exhausted door bounds repetition. Among the three
++        narrow edges the lead selects exactly one by the surface the findings
++        name - a registered-value touch beats record, record beats plan text.
++        Ambiguity fails this check (fail closed into the full design lap).
++      evaluated_by: lead
++      on_failure_route: screen_pin_and_progress
+     comparators_preregistered:
+       style: mechanical
+       question: Is the comparator set for this campaign recorded and frozen in
+@@ -291,6 +308,18 @@ pave:
+         stamped in the adversarial review findings record that granted ready_for_hardware?
+       evaluated_by: lead
+       on_failure_route: review_implementation
++    batch_review_current:
++      style: mechanical
++      question: >-
++        Does every landed increment outside the currently open review batch carry a
++        batch-review findings record under artifacts/reviews/<campaign>/, and is the
++        open batch still below the size the lead declared for it in the lap record
++        (1 for a complex commit - a new kernel, runner, scheduler, or weight-loading
++        change - up to 3 when the batch is low complexity in aggregate)? On the
++        plan_satisfied edge the open batch closes regardless of size, so any
++        unreviewed landed increment fails the check.
++      evaluated_by: lead
++      on_failure_route: review_increment_batch
+     closure_evidence_settled:
+       style: mechanical
+       question: Does the closure record carry the verbatim gate-3 approval and
+@@ -473,7 +502,18 @@ pave:
+           - adversarial_review_findings
+           - gate_approval_record
+         material_findings:
+-          meaning: Named material defects require redesign.
++          meaning: Named material defects require redesign through the full design
++            lap. Also the default when narrow classification is ambiguous (fail
++            closed).
++        narrow_findings:
++          meaning: Material findings stand, but every one of them names only increment-plan
++            text, design-record, or registration surfaces - screen facts and kickoff-declared
++            criteria untouched (recorded user decision, approvals/user-decision-narrow-findings-skip.md
++            rule 2 - plan-narrow or record-only). The lead (never the reviewer
++            or the drafter) classifies via narrow_delta_scoped; repair is drafter-scoped
++            with the continued doer thread, and the repaired record re-enters
++            this same gate. Added by user-directed amendment 2026-08-29 (authority
++            order 1).
+     review_implementation:
+       intent: review
+       instance_per: approved_campaigns
+@@ -488,7 +528,10 @@ pave:
+         item is a material finding (the run's kernel-substrate rule). The classification
+         is challenged, not just the match - changeset work that is kernel-class
+         in substance but rode a non-kernel-class declaration is a material finding
+-        too.
++        too. Every increment already carries a batch-review record from
++        review_increment_batch; this pass reads the changeset as ONE unit for
++        cross-increment integration and the mechanical scans, and does not re-review
++        per-increment substance a batch record already settled.
+       roles:
+       - adversarial_reviewer
+       consumes:
+@@ -503,6 +546,60 @@ pave:
+           - adversarial_review_findings
+         material_findings:
+           meaning: Named material defects require implementation repair.
++    review_increment_batch:
++      intent: review
++      instance_per: approved_campaigns
++      purpose: >-
++        Adversarial, material-findings-only review of one batch of 1-3 landed increment
++        commits before the next scope lap, so a defect is caught while its dependents
++        are still unbuilt. The lead composes the batch and records its size call in the
++        lap record - 1 for a complex commit (a new kernel, runner, scheduler, or
++        weight-loading change), up to 3 when the commits are low complexity in
++        aggregate (config, tests, wiring, citation repairs). A fresh reviewer per batch,
++        independent of the realizer, reads the batch diff, its evidence records, and the
++        plan blocks or ledger rows it claims to realize. Material means - the code does
++        not do what its block declares; the acceptance is hollow (it would pass on wrong
++        code); a frozen or registered value moved (P9); a kernel-class item rides a torch
++        substitute, or a non-kernel declaration hides kernel-class substance (the
++        kernel-substrate rule); an NxDI import on added lines (P4); or an integration
++        defect against already-landed work. Every material finding carries the
++        fingerprint triple (increment id + surface + defect class) the no-progress
++        detector keys on; the artifact-layout impl/review pair entry is the shape
++        authority. Narrow findings (cite hygiene, wording, evidence formatting) are
++        recorded in the same file and route nowhere. Read-only on the worktree and
++        branch; no host execution. Out of scope - any code change, any edit to the
++        plan or the design record.
++      roles:
++      - adversarial_reviewer
++      consumes:
++      - increment_evidence_records
++      - increment_lap_record
++      - campaign_design_record
++      produces:
++      - adversarial_review_findings
++      forbidden_effects:
++      - Any write to the campaign worktree source tree or any branch.
++      - Any write to the increment plan, the design record, or run state.
++      - Host execution of any kind.
++      outcomes:
++        batch_sound:
++          meaning: No material finding stands over the batch; the findings record
++            names the commits reviewed and records the absence. Routes back to scoping.
++          required_evidence:
++          - adversarial_review_findings
++        material_findings:
++          meaning: Named material defects in the batch, each with its fingerprint
++            triple; routes to scoping, which mints the repair items that answer them.
++            Repair commits are reviewed in a later batch.
++          required_evidence:
++          - adversarial_review_findings
++        design_contradicted:
++          meaning: The batch realizes its block faithfully and the block itself is
++            wrong against the reference or the repo - a plan defect, not a build
++            defect, recorded with the observing evidence. Realizes the parent outcome
++            design_defect_found.
++          required_evidence:
++          - adversarial_review_findings
+     rederive_approach:
+       intent: plan
+       instance_per: approved_campaigns
+@@ -1106,6 +1228,19 @@ pave:
+         draft path close-out needs. The assembler refuses to run without the current
+         lead-minted design-entry id - a missing or ambiguous id is a blocked precondition,
+         never an outcome emission - and every artifact it emits carries that id.
++        Re-entry instrument (user-directed amendment 2026-08-31, authority order
++        1) - on re-entry the assembler updates in place only the sections whose
++        inputs changed since the current design_entry_id was minted, then re-runs
++        the completeness self-check on the updated record - never a full re-copy
++        of unchanged text. Per-lap banners, finding histories, and repair narratives
++        never belong to the current record - the current record carries the
++        current revision's design content only, and superseded lap material is
++        deleted at each re-entry, the supersession recorded as one revision-log
++        line in the record plus the run-state entry (layout reference deletion
++        rule).
++        An artifact no lap re-produced is not superseded - it stays in the read
++        path stamped forward. A record that grows monotonically with lap count
++        is a defect of this node.
+         Out of scope - authoring or altering any design content owned by a sibling;
+         code changes; hardware contact.
+       roles:
+@@ -1116,6 +1251,7 @@ pave:
+       - increment_plan_draft
+       - acceptance_preregistration
+       - regression_matrix_draft
++      - adversarial_review_findings
+       produces:
+       - campaign_design_record
+       activities:
+@@ -1142,7 +1278,7 @@ pave:
+             evidence-bearing outcomes - a record with a named gap loops to its
+             owning sibling before it reaches gate 2 or close-out. The stall detector
+             behind this loop reads only lap entries carrying the current design-entry
+-            id; superseded design entries' artifacts are archived out of the read
++            id; superseded design entries' artifacts are deleted from the read
+             path.
+         infeasibility_recorded:
+           meaning: The record documents pin infeasibility with evidence, re-scope
+@@ -2006,8 +2142,42 @@ pave:
+   - id: design_findings_to_redesign
+     from: review_campaign_design.material_findings
+     to: screen_pin_and_progress
+-    rationale: All four re-entry edges into the design boundary land at the screen
+-      (item 25); the lead mints a design_entry_id at each entry (item 31(a)).
++    rationale: Full-lap re-entry edges into the design boundary land at the screen
++      (item 25); narrow re-entries land at their resolving node. The lead mints
++      a design_entry_id at each entry into the design boundary by any edge (item
++      31(a)).
++  - id: narrow_registration_repair
++    from: review_campaign_design.narrow_findings
++    to: preregister_acceptance
++    checks:
++    - narrow_delta_scoped
++    rationale: User-directed amendment 2026-08-29 (authority order 1) - severity
++      triage for the design lap. Narrow findings that touch registered values re-enter
++      at the registration node so the fresh value-level adversarial read is preserved;
++      hash-only verification does not satisfy it. Mutually exclusive with narrow_record_repair
++      by registered-value touch.
++  - id: narrow_record_repair
++    from: review_campaign_design.narrow_findings
++    to: assemble_design_record
++    checks:
++    - narrow_delta_scoped
++    rationale: User-directed amendment 2026-08-29 (authority order 1). Record-only
++      narrow findings repair at the resolving node and ride design_to_design_review
++      back to the same gate. Findings naming any registered-value surface take
++      narrow_registration_repair instead; design-breaking findings keep design_findings_to_redesign
++      unchanged.
++  - id: narrow_plan_repair
++    from: review_campaign_design.narrow_findings
++    to: draft_increment_plan
++    checks:
++    - narrow_delta_scoped
++    rationale: User-directed amendment 2026-08-31 (authority order 1) - realizes
++      the recorded user decision's plan-narrow branch (approvals/user-decision-narrow-findings-skip.md
++      rule 2). Plan-text-only narrow findings repair at the drafter and ride the
++      existing forward edges (preregistration and record assembly, both delta-cheap
++      on unchanged inputs) back to the same gate. Findings naming any registered-value
++      surface take narrow_registration_repair; record-only findings take narrow_record_repair;
++      design-breaking findings keep design_findings_to_redesign unchanged.
+   - id: increments_to_impl_review
+     from: record_changeset.changeset_recorded
+     to: review_implementation
+@@ -2220,6 +2390,21 @@ pave:
+   - id: passed_to_next_scoping
+     from: realize_increment.increment_passed
+     to: scope_next_increment
++    checks:
++    - batch_review_current
++  - id: batch_sound_to_scoping
++    from: review_increment_batch.batch_sound
++    to: scope_next_increment
++  - id: batch_findings_to_repair
++    from: review_increment_batch.material_findings
++    to: scope_next_increment
++    rationale: Same door as impl_findings_to_repair - scoping mints repair items keyed
++      on the finding triples, so the no-progress detector sees them.
++  - id: batch_review_to_redesign
++    from: review_increment_batch.design_contradicted
++    to: screen_pin_and_progress
++    rationale: Realizes the parent design_defect_found door at the design boundary
++      entry, like contradiction_to_redesign.
+   - id: stuck_to_rescoping
+     from: realize_increment.increment_stuck
+     to: scope_next_increment
+@@ -2233,6 +2418,8 @@ pave:
+   - id: plan_satisfied_to_recording
+     from: scope_next_increment.plan_satisfied
+     to: record_changeset
++    checks:
++    - batch_review_current
+   - id: coverage_gap_to_rescoping
+     from: record_changeset.coverage_gap_found
+     to: scope_next_increment
+@@ -2399,8 +2586,8 @@ pave:
+           grants are counted under scan-entry ids, never a stored integer.
+       design_entry_id:
+         meaning: Minted by the lead at each entry into the design boundary and
+-          stamped into every design-lap artifact; superseded laps archive out
+-          of the read path per the layout reference; serves the screen progress
++          stamped into every design-lap artifact; superseded lap artifacts are
++          deleted from the read path per the layout reference; serves the screen progress
+           detector and the record_incomplete detector (item 31(a)). The record
+           assembler refuses to run without it.
+       deficient_targets:

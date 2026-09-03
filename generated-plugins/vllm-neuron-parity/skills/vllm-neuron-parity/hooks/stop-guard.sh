@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # LEAD-ALIGNMENT PAIR (1 of 2) -- stop-alignment socratic check.
 # Supports P12 (emit only declared outcomes; traverse only declared edges) by
-# re-presenting the run position at the highest-risk context-decay moment.
+# re-presenting the run position at the highest-risk context-decay moment. The
+# questions (heredoc below) carry every lead duty no other moment re-asks; the
+# lead answers only on a hit, else "lgtm" -- a retrospective at every firing is
+# itself ceremony.
 #
 # Stop hooks have no non-blocking channel (additionalContext is dropped), so the
 # questions can only be delivered by blocking ONCE (exit 2). A session-keyed
@@ -13,7 +16,8 @@
 # terminal_classification is set. Lead-only by two gates: the lead-session
 # sidecar AND the payload's agent identity fields -- a lead-spawned subagent
 # carries the LEAD's session id in its Stop payload, so the sidecar alone
-# cannot exclude it (observed 2026-08-31; see binding-revisions.yaml).
+# cannot exclude it (observed 2026-08-31; ledgered in the evolution root's
+# revision record).
 #
 # Decline path (hook runtime unavailable): degrades to the lead's resume duty in
 # SKILL.md "Run state and resume".
@@ -170,21 +174,28 @@ cat >&2 <<EOF
 $TAG Active run $RUN_ID (state $FOUND_STATE): active_node_runs=$ACTIVE_NODES,
 last recorded outcome $LAST, run state last written ${AGE_MIN} min ago.
 
-You decided to stop. Socratic check -- answer to yourself, then act:
-  a. Why did you stop, and is stopping the most aligned action in this state?
-  b. If not, which DECLARED outcome and edge advance the run from
-     $ACTIVE_NODES? Re-read "Lead routing" and workflow.pave.yaml. Emit only
-     declared outcomes; traverse only declared edges (P12).
-  c. Is every consequential transition since $LAST written to run state, with
-     its evidence indexed at the declared artifact path? You are the single
-     writer (P10) -- nobody else records it.
-  d. Are any custom-agent threads or sub-agents finished or no longer needed? Retire the
-     node instance's seat now -- an idle seat costs tokens, and a late message
-     from one can derail the run.
-
-Valid reasons to stop exist: a pending user decision at gate 1, 2, or 3; a
-recorded pause (run_paused); waiting on a retained custom-agent thread; a settled
-terminal. If stop is the right call, stop again -- the next $((STOP_EVERY - 1))
-stops pass through before this check fires again.
+You decided to stop. Socratic check -- answer only where you find an issue;
+otherwise reply "lgtm" and stop again. A pending user decision at gate 1, 2,
+or 3, a retained custom-agent thread, a recorded pause (run_paused): all lgtm.
+The next $((STOP_EVERY - 1)) stops pass before this fires again.
+  1. Next practical step toward the approved goal, and why -- a DECLARED
+     outcome and edge from $ACTIVE_NODES ("Lead routing", workflow.pave.yaml)
+     or a graph change you will propose; never an invented edge (P12).
+  2. Since the last check, any ceremony -- a seat a lead-run check settles, a
+     lap with no new world evidence, an agent for what disk already answers?
+     Cut it. One that recurs is a graph defect: pause the run, record the
+     evidence in run state plus one section of the standing review record
+     (never a new file), and route it to the pave-evolve seats (the pave-init
+     plugin's skills/pave-evolve/SKILL.md; agent types
+     pave-init:workflow-updater and pave-init:update-reviewer) -- the updater
+     drafts, the reviewer passes, you land it after the user approves
+     (landing: user) and continue on it (Evolution contract rule 7). Never draft it yourself;
+     never edit the live graph outside a landing.
+  3. Landed work the next lap builds on that no review has seen?
+  4. About to ask the user something a recorded approval already covers, or to
+     decide something that is theirs?
+  5. Anything routing depends on that lives only in your context, not in run
+     state? You are the single writer (P10) -- write it now.
+  6. Idle custom-agent threads or sub-agents? Retire the seat now.
 EOF
 exit 2

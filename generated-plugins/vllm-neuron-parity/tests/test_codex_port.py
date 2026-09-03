@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -48,13 +49,13 @@ class PackageStructureTests(unittest.TestCase):
         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        self.assertEqual(manifest["version"], "1.3.1")
+        self.assertEqual(manifest["version"], "1.4.0")
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())
         self.assertEqual(manifest["interface"]["displayName"], "vLLM-Neuron Parity")
 
-    def test_hook_config_registers_exactly_seven_controls(self) -> None:
+    def test_hook_config_registers_exactly_eight_controls(self) -> None:
         # One hooks.json serves both harnesses: Codex sets CLAUDE_PLUGIN_ROOT
         # for compatibility, so every command resolves under that variable.
         data = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text())
@@ -66,7 +67,7 @@ class PackageStructureTests(unittest.TestCase):
             for group in groups
             for handler in group["hooks"]
         ]
-        self.assertEqual(len(handlers), 7)
+        self.assertEqual(len(handlers), 8)
         self.assertTrue(all(handler["type"] == "command" for handler in handlers))
         self.assertTrue(
             all("${CLAUDE_PLUGIN_ROOT}" in handler["command"] for handler in handlers)
@@ -76,7 +77,11 @@ class PackageStructureTests(unittest.TestCase):
         )
         self.assertIn("pre_tool_use_router.py", pre_commands)
         matchers = {group.get("matcher") for group in hooks["PreToolUse"]}
-        self.assertEqual(matchers, {"Bash", "Agent|Task"})
+        self.assertEqual(matchers, {"Bash", "Agent|Task", "Edit|Write|MultiEdit"})
+        self.assertIn(
+            "graph_edit_guard.sh",
+            "\n".join(handler["command"] for handler in handlers),
+        )
         post_commands = "\n".join(
             handler["command"]
             for group in hooks["PostToolUse"]
@@ -128,7 +133,9 @@ class PackageStructureTests(unittest.TestCase):
             "VLLM_NEURON_PARITY_EVOLUTION_ROOT: <absolute project-local evolution",
             skill,
         )
-        self.assertNotIn("SendMessage", skill)
+        # The Claude Code tool map sits beside the Codex names ("Harness").
+        for claude_tool in ("SendMessage", "TaskStop", "ListAgents"):
+            self.assertIn(claude_tool, skill)
         self.assertNotIn("skill-frontmatter hooks", skill)
 
 
@@ -308,46 +315,72 @@ class HookSmokeTests(unittest.TestCase):
                 self.assertEqual(result.stdout, "")
 
 
-class EvolutionWorkspaceTests(unittest.TestCase):
-    def _run(self, project: Path, *extra: str) -> subprocess.CompletedProcess[str]:
+class RevisionLedgerTests(unittest.TestCase):
+    """The package root is itself an evolution root: one live graph, one ledger.
+
+    scripts/record_revision.py replaces the old workspace initializer -- a
+    project root is seeded with `install <root> --from <plugin-root>` and
+    checked with `verify <root>`. The tool needs pyyaml, so it runs under the
+    interpreter running these tests, not a bare python3.
+    """
+
+    def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [
-                "python3",
-                str(PLUGIN_ROOT / "codex" / "init_evolution_workspace.py"),
-                "--project",
-                str(project),
-                *extra,
-            ],
+            [sys.executable, str(PLUGIN_ROOT / "scripts" / "record_revision.py"), *args],
             text=True,
             capture_output=True,
             check=False,
         )
 
-    def test_initializer_seeds_and_checks_durable_state(self) -> None:
+    def test_packaged_root_verifies(self) -> None:
+        result = self._run("verify", str(PLUGIN_ROOT))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("revision 4", result.stdout)
+
+    def test_install_seeds_a_project_root_that_verifies(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            project = Path(temp) / "project"
-            project.mkdir()
-            initialized = self._run(project)
-            self.assertEqual(initialized.returncode, 0, initialized.stderr)
-            evolution = project / ".vllm-neuron-parity" / "evolution"
+            project = Path(temp) / "evo"
+            installed = self._run("install", str(project), "--from", str(PLUGIN_ROOT))
+            self.assertEqual(installed.returncode, 0, installed.stderr)
             self.assertEqual(
-                (evolution / "workflow.draft.pave.yaml").read_bytes(),
+                (project / "workflow.pave.yaml").read_bytes(),
                 (PLUGIN_ROOT / "workflow.pave.yaml").read_bytes(),
             )
-            checked = self._run(project, "--check")
+            checked = self._run("verify", str(project))
             self.assertEqual(checked.returncode, 0, checked.stderr)
-            repeated = self._run(project)
-            self.assertEqual(repeated.returncode, 0, repeated.stderr)
 
-    def test_initializer_refuses_unowned_workspace(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            project = Path(temp) / "project"
-            evolution = project / ".vllm-neuron-parity" / "evolution"
-            evolution.mkdir(parents=True)
-            (evolution / "user-file").write_text("owned by user\n", encoding="utf-8")
-            result = self._run(project)
-            self.assertEqual(result.returncode, 2)
-            self.assertTrue((evolution / "user-file").is_file())
+    def test_packaged_ledger_holds_the_delivered_graph_and_the_lean_successors(self) -> None:
+        import yaml
+
+        entries = yaml.safe_load((PLUGIN_ROOT / "revisions.yaml").read_text())["entries"]
+        self.assertEqual([entry["revision"] for entry in entries], [0, 1, 2, 3, 4])
+        self.assertEqual(
+            [entry["kind"] for entry in entries],
+            ["graph", "graph", "binding", "graph", "binding"],
+        )
+        self.assertIsNone(entries[0]["digest_before"])
+        self.assertTrue(entries[0]["digest_after"].startswith("sha256:"))
+        # Each landing chains from the previous head.
+        for later in range(1, 5):
+            self.assertEqual(entries[later]["digest_before"], entries[later - 1]["digest_after"])
+        # Revision 2 is the field root's live graph (the 1.3.x root the README migrates).
+        self.assertEqual(
+            entries[2]["digest_after"],
+            "sha256:e9f063e2cde9752a0f530c4ceb9fe425873df2777f5c9dfa4135bc209e444e7c",
+        )
+        # Revision 4 is the packaged head: the gate-2 loop bound and its instruments.
+        self.assertEqual(
+            entries[4]["digest_after"],
+            "sha256:a81bb97d1b6842cdaee8ea85b3325304e02a44d551180fc2b4cc50e598b613b3",
+        )
+        for revision in (1, 2, 3, 4):
+            self.assertTrue((PLUGIN_ROOT / "history" / f"v{revision}.patch").is_file())
+        # The manifest and the freeze script the ledger replaced are gone.
+        self.assertFalse((PLUGIN_ROOT / "workflow-manifest.yaml").exists())
+        self.assertFalse((PLUGIN_ROOT / "scripts" / "freeze_revision.py").exists())
+        self.assertFalse(
+            (PLUGIN_ROOT / "codex" / "init_evolution_workspace.py").exists()
+        )
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Invariant tests for the vllm-neuron-parity write-for-reader hook
-# (skills/vllm-neuron-parity/hooks/write-for-reader.sh).
+# Invariant tests for two vllm-neuron-parity hooks:
+#   - skills/vllm-neuron-parity/hooks/write-for-reader.sh
+#   - skills/vllm-neuron-parity/hooks/graph_edit_guard.sh
 #
-# What is tested (behavior, not wording):
+# What is tested for write-for-reader (behavior, not wording):
 #   - a markdown write under the run workspace (parent of the run-state
 #     directory) reminds; the workspace is artifacts/, not artifacts/run/
 #   - throttle: 1st write reminds, 2nd and 3rd stay silent, 4th reminds;
@@ -16,15 +17,22 @@
 #   - garbage stdin exits 0 with empty stdout
 #   - Edit payloads (file_path + old_string/new_string) count like Write
 #
+# What is tested for graph_edit_guard: it denies (exit 2) a direct Edit or
+# Write of a live *.pave.yaml or of revisions.yaml only when a revisions.yaml
+# sits beside the target and no .landing marker does; it fails open on every
+# input it cannot read; it has no subagent exemption; and hooks/hooks.json
+# registers it, so subagent edits are seen too.
+#
 # Self-contained: everything runs inside a mktemp sandbox with its own
 # TMPDIR, so throttle counters start clean on every run. No real run state,
-# marker, or counter is touched. Exits 1 on any failure.
+# marker, counter, or evolution root is touched. Exits 1 on any failure.
 
 set -u
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PLUGIN="$(cd "$HERE/.." && pwd)"
 READER_HOOK="$PLUGIN/skills/vllm-neuron-parity/hooks/write-for-reader.sh"
+GUARD_HOOK="$PLUGIN/skills/vllm-neuron-parity/hooks/graph_edit_guard.sh"
 
 PASS=0
 FAIL=0
@@ -211,6 +219,104 @@ OUT="$(payload "$PLAN" s12 | VLLM_NEURON_PARITY_CAP_LINES=1000 bash "$READER_HOO
 ok=0; [ "$RC" = "0" ] && reminds "$OUT" && ! printf '%s' "$OUT" | grep -q "over its cap" && ok=1
 report "reader: cap follows VLLM_NEURON_PARITY_CAP_LINES" "$ok" "rc=$RC out=$OUT"
 rm -f "$PLAN"
+
+# --- graph_edit_guard --------------------------------------------------------
+# The live canonical graph is landed by record_revision.py from a reviewed
+# patch, never edited directly. The guard is path-only: a revisions.yaml beside
+# the target marks the directory an evolution root, and a .landing marker means
+# the landing tool owns the graph right now. No identity exemption -- the actor
+# a prohibition has to survive is the one that never read the lead skill.
+
+EVO="$ROOT/evo root"   # regression: roots with spaces
+mkdir -p "$EVO" "$WORK/no-ledger"
+: > "$EVO/revisions.yaml"
+: > "$EVO/workflow.pave.yaml"
+: > "$EVO/child.pave.yaml"
+: > "$EVO/README.md"
+: > "$WORK/no-ledger/workflow.pave.yaml"
+
+guard_payload() { # $1 = file_path, $2 = tool (Write|Edit), $3 = agent_id ("" for lead)
+  python3 - "$1" "$2" "${3:-}" <<'PY'
+import json, sys
+path, tool, agent = sys.argv[1], sys.argv[2], sys.argv[3]
+edit = {"file_path": path}
+if tool == "Write":
+    edit["content"] = "x"
+else:
+    edit["old_string"], edit["new_string"] = "a", "b"
+payload = {"session_id": "g1", "tool_name": tool, "tool_input": edit}
+if agent:
+    payload["agent_id"] = agent
+    payload["agent_type"] = "vllm-neuron-parity-campaign-implementer"
+print(json.dumps(payload))
+PY
+}
+
+run_guard() { # $1 = file_path, $2 = tool, $3 = agent_id; prints stderr, returns the hook's rc
+  guard_payload "$1" "$2" "${3:-}" | bash "$GUARD_HOOK" 2>&1 >/dev/null
+}
+
+ERR="$(run_guard "$EVO/workflow.pave.yaml" Edit)"; RC=$?
+ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] \
+  && printf '%s' "$ERR" | grep -q "record_revision.py land" && ok=1
+report "guard: editing the live graph in an evolution root is denied" "$ok" "rc=$RC err=$ERR"
+
+: > "$EVO/.landing"
+ERR="$(run_guard "$EVO/workflow.pave.yaml" Edit)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: a landing in progress passes" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO/.landing"
+
+ERR="$(run_guard "$EVO/child.pave.yaml" Write)"; RC=$?
+ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
+report "guard: a child graph beside the ledger is guarded too" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(run_guard "$WORK/no-ledger/workflow.pave.yaml" Edit)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: a .pave.yaml with no ledger beside it passes" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(run_guard "$EVO/README.md" Write)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: a non-graph path in the root passes" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(run_guard "$EVO/revisions.yaml" Edit)"; RC=$?
+ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
+report "guard: editing the ledger itself is denied" "$ok" "rc=$RC err=$ERR"
+
+: > "$EVO/.landing"
+ERR="$(run_guard "$EVO/revisions.yaml" Edit)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: the ledger under a landing in progress passes" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO/.landing"
+
+ERR="$(run_guard "$WORK/no-ledger/revisions.yaml" Write)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: creating a ledger where none exists passes" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(printf '{"tool_name":"Edit","tool_input":{}}' | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: a payload without file_path passes" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(run_guard "$EVO/workflow.pave.yaml" Edit sub-1)"; RC=$?
+ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
+report "guard: a subagent editing the live graph is denied too" "$ok" "rc=$RC err=$ERR"
+
+ERR="$(printf 'not json' | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "guard: unparsable payload fails open" "$ok" "rc=$RC err=$ERR"
+
+# The guard must sit in hooks/hooks.json, not skill frontmatter: a
+# frontmatter hook fires only for the agent that invoked the skill.
+python3 - "$PLUGIN" <<'PY' 2>/dev/null
+import json, sys
+from pathlib import Path
+hooks = json.loads((Path(sys.argv[1]) / "hooks" / "hooks.json").read_text())
+entries = [e for e in hooks["hooks"]["PreToolUse"] if e.get("matcher") == "Edit|Write|MultiEdit"]
+commands = [h["command"] for e in entries for h in e["hooks"]]
+assert any("graph_edit_guard.sh" in c for c in commands), commands
+PY
+ok=0; [ "$?" = "0" ] && ok=1
+report "guard: registered in hooks/hooks.json under PreToolUse Edit|Write|MultiEdit" "$ok" "see hooks/hooks.json"
 
 echo
 echo "$PASS passed, $FAIL failed"

@@ -39,9 +39,9 @@ def main() -> None:
             return
     completed = state.get("completed_outcomes") or []
 
-    # Ceremony nodes carrying a declared re-entry instrument in the amended v1
-    # graph, plus the design-lap gate. Edge trigger = the dispatch names a node
-    # that already completed at least one traversal this run.
+    # Nodes carrying a declared re-entry instrument in the landed graph
+    # (binding revisions 2 and 4), plus the design-lap gate. Edge trigger = the
+    # dispatch names a node that already completed at least one traversal this run.
     instrumented = {
         "screen_pin_and_progress": "lead-mechanical pin-digest compare + standing "
         "pin_feasibility_note citation (seat only on first entry or "
@@ -49,8 +49,18 @@ def main() -> None:
         "preregister_acceptance": "lead-mechanical four-slice check on the "
         "byte-unchanged registration (seat only on first registration or a "
         "registered-value touch, which keeps the full value-level read)",
-        "assemble_design_record": "in-place delta update of only the sections "
-        "whose inputs changed; superseded lap banners deleted (never a full re-copy)",
+        "assemble_design_record": "lead-performed delta when the only changed "
+        "input is a verified block diff whose blocks keep their contracts "
+        "complete (seat on any other changed input, a gap, or ambiguity); "
+        "superseded lap banners deleted (never a full re-copy)",
+        "scope_next_increment": "lead-settled from the persisted inputs, lap "
+        "record carrying its commands and outputs (implementer seat only for a "
+        "contradiction candidate or a findings-history versus lap-record "
+        "disagreement)",
+        "review_campaign_design": "one challenger retained across this design "
+        "entry's rounds - continue the same seat, delta-scoped read after a "
+        "block-scoped repair; no reviewer seat at a design_loop_within_bound "
+        "re-entry (the lead presents it to the user)",
     }
     hits = []
     for node, instrument in instrumented.items():

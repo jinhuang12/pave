@@ -31,14 +31,15 @@
   "properties": {
     "workflow_identity": {
       "type": "object",
-      "description": "Run identity plus the frozen revision this instance is pinned to. Recorded and verified at run start; a mid-run manifest change does not move a running instance.",
+      "description": "Run identity plus the revision this instance is pinned to. Recorded at run start and verified at start and every resume with 'record_revision.py verify <root> --pinned-revision <active_revision> --pinned-digest <bundle_digest>': exit 0 is current, exit 3 routes to rule 7 (graph landed since pin), exit 4 routes to rule 9 (binding landed since pin). A landing mid-run does not move a running instance by itself.",
       "required": ["run_id"],
       "additionalProperties": false,
       "properties": {
         "run_id": {"type": "string", "minLength": 1, "maxLength": 200},
         "started": {"type": "string", "maxLength": 200},
-        "active_revision": {"type": ["integer", "null"], "minimum": 1},
-        "bundle_digest": {"type": ["string", "null"], "maxLength": 200},
+        "active_revision": {"type": ["integer", "null"], "minimum": 0, "description": "The ledger revision number this run is pinned to; a fresh install pins the head of the installed ledger (entry 0 is the delivered graph)."},
+        "bundle_digest": {"type": ["string", "null"], "maxLength": 200, "description": "The pinned entry's digest_after from revisions.yaml - the bundle digest over the live graph files at the ledger head when the run pinned."},
+        "move_declined": {"type": ["string", "null"], "maxLength": 500, "description": "Rule 7: the user's verbatim decline of a move to a newer landed revision, with its date. While it stands the run stays pinned, 'verify' keeps printing the route, and the lead does not re-ask at each resume. Null or absent when no decline stands."},
         "plugin_version": {"type": "string", "maxLength": 200}
       }
     },
