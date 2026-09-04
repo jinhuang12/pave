@@ -1,4 +1,4 @@
-version: 2.5.1
+version: 2.5.2
 
 ## How changelog entries are written
 
@@ -17,6 +17,22 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.5.2 (2026-09-04)
+
+Updated — the Codex binding now requires the stable V2 multi-agent runtime with
+16 child slots and 17 total slots. The release preflight proves canonical V2
+task paths, a nested delegate, and two turns on one retained reviewer thread.
+It reads the generated skill hash only from the injected skill record and uses
+separate output nonces for the root, reviewer, and delegate.
+
+Improved — preflight now compares the persisted reviewer and delegate role
+instructions, model, effort, and effective sandbox with the generated TOML. A
+project that contains any PAVE agent file must contain the complete current
+eight-file set, so a stale project role cannot shadow a current user role.
+  - Codex 0.153.2 preserves the parent permission state when it applies a role.
+    The read-only proof checks the effective sandbox but cannot prove that the
+    role TOML caused it; the declared role sandboxes remain unchanged.
 
 ### 2.5.1 (2026-09-03)
 

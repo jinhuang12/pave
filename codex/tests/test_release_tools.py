@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 from pathlib import Path
@@ -115,44 +117,98 @@ def write_rollout(path: Path, records: list[dict]) -> None:
     )
 
 
-def assistant_message(text: str) -> dict:
+def persisted_message(role: str, text: str, content_kind: str) -> dict:
     return {
         "type": "response_item",
         "payload": {
             "type": "message",
-            "role": "assistant",
-            "content": [{"type": "output_text", "text": text}],
+            "role": role,
+            "content": [{"type": "input_text", "text": text}],
+            "internal_chat_message_metadata_passthrough": {
+                "content_item_kinds": [content_kind]
+            },
         },
     }
 
 
-def spawn_records(
+def session_meta_record(
     thread_id: str,
     parent_thread_id: str | None,
-    depth: int,
-    agent_role: str,
-    call_id: str,
-    agent_type: str,
-    message: str,
-    child_id: str,
-) -> list[dict]:
-    return [
-        {
-            "type": "session_meta",
-            "payload": {
-                "id": thread_id,
-                "parent_thread_id": parent_thread_id,
+    root_session_id: str,
+    agent_path: str | None = None,
+    agent_role: str | None = None,
+    depth: int | None = None,
+) -> dict:
+    payload: dict[str, object] = {
+        "id": thread_id,
+        "session_id": root_session_id,
+        "parent_thread_id": parent_thread_id,
+        "multi_agent_version": "v2",
+        "source": "exec",
+    }
+    if agent_path is not None and agent_role is not None and depth is not None:
+        payload.update(
+            {
+                "agent_path": agent_path,
+                "agent_role": agent_role,
                 "source": {
                     "subagent": {
                         "thread_spawn": {
                             "parent_thread_id": parent_thread_id,
                             "depth": depth,
+                            "agent_path": agent_path,
                             "agent_role": agent_role,
                         }
                     }
                 },
-            },
+            }
+        )
+    return {"type": "session_meta", "payload": payload}
+
+
+def turn_context_record(turn_id: str, role: str | None = None) -> dict:
+    if role is None:
+        model = "gpt-5.6-sol"
+        effort = "high"
+        sandbox_mode = "read-only"
+    else:
+        config = preflight.load_role_config(role)
+        model = config["model"]
+        effort = config["model_reasoning_effort"]
+        sandbox_mode = config["sandbox_mode"]
+    return {
+        "type": "turn_context",
+        "payload": {
+            "turn_id": turn_id,
+            "model": model,
+            "effort": effort,
+            "sandbox_policy": {"type": sandbox_mode},
+            "multi_agent_version": "v2",
         },
+    }
+
+
+def task_complete_record(turn_id: str, message: str, error: object = None) -> dict:
+    return {
+        "type": "event_msg",
+        "payload": {
+            "type": "task_complete",
+            "turn_id": turn_id,
+            "last_agent_message": message,
+            "error": error,
+        },
+    }
+
+
+def spawn_records(
+    call_id: str,
+    agent_type: str,
+    task_name: str,
+    task_path: str,
+    *,
+    fork_turns: str = "none",
+) -> list[dict]:
+    return [
         {
             "type": "response_item",
             "payload": {
@@ -160,7 +216,12 @@ def spawn_records(
                 "name": "spawn_agent",
                 "call_id": call_id,
                 "arguments": json.dumps(
-                    {"agent_type": agent_type, "message": message}
+                    {
+                        "agent_type": agent_type,
+                        "task_name": task_name,
+                        "fork_turns": fork_turns,
+                        "message": "opaque fixture brief",
+                    }
                 ),
             },
         },
@@ -169,10 +230,33 @@ def spawn_records(
             "payload": {
                 "type": "function_call_output",
                 "call_id": call_id,
-                "output": json.dumps({"agent_id": child_id}),
+                "output": json.dumps({"task_name": task_path}),
             },
         },
-        {"type": "event_msg", "payload": {"type": "task_complete"}},
+    ]
+
+
+def followup_records(call_id: str, task_path: str) -> list[dict]:
+    return [
+        {
+            "type": "response_item",
+            "payload": {
+                "type": "function_call",
+                "name": "followup_task",
+                "call_id": call_id,
+                "arguments": json.dumps(
+                    {"target": task_path, "message": "opaque fixture follow-up"}
+                ),
+            },
+        },
+        {
+            "type": "response_item",
+            "payload": {
+                "type": "function_call_output",
+                "call_id": call_id,
+                "output": "",
+            },
+        },
     ]
 
 
@@ -234,12 +318,15 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertEqual(entries[0]["version"], version)
         self.assertIn(f"Version: `{version}`", readme)
 
-    def test_v1_depth_and_generated_model_doctrine_are_explicit(self) -> None:
+    def test_v2_concurrency_and_generated_model_doctrine_are_explicit(self) -> None:
         binding = (REPO_ROOT / "sources" / "bindings" / "codex.toml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("agents.max_depth = 2", binding)
-        self.assertIn("features.multi_agent_v2 = false", binding)
+        self.assertIn("features.multi_agent_v2", binding)
+        self.assertIn("max_concurrent_threads_per_session = 16", binding)
+        self.assertIn("17 total V2 slots", binding)
+        self.assertIn("Remove `agents.max_depth`", binding)
+        self.assertNotIn("features.multi_agent_v2 = false", binding)
         self.assertIn("top-capability and strong-judgment roles", binding)
         self.assertIn("`gpt-5.6-sol`", binding)
         self.assertIn("small, fast evidence roles", binding)
@@ -780,151 +867,426 @@ class BuildSafetyTests(unittest.TestCase):
 
 
 class PreflightProofTests(unittest.TestCase):
-    def make_chain(self, home: Path, source_hash: str, nonce: str) -> str:
-        root_id = "root-thread"
-        parent_id = "parent-thread"
-        delegate_id = "delegate-thread"
-        sessions = home / "sessions" / "2026" / "08" / "21"
-        root_records = spawn_records(
-            root_id,
-            None,
-            0,
-            "root",
-            "root-call",
-            "pave-init:pave-material-reviewer",
-            f"source-sha256: {source_hash}; nonce: {nonce}",
-            parent_id,
-        )
-        root_records.insert(
-            -1,
-            assistant_message(nonce),
-        )
-        parent_records = spawn_records(
-            parent_id,
-            root_id,
-            1,
-            "pave-init:pave-material-reviewer",
-            "parent-call",
-            "pave-init:research-delegate",
-            f"return nonce {nonce}",
-            delegate_id,
-        )
-        delegate_records = [
-            {
-                "type": "session_meta",
-                "payload": {
-                    "id": delegate_id,
-                    "parent_thread_id": parent_id,
-                    "source": {
-                        "subagent": {
-                            "thread_spawn": {
-                                "parent_thread_id": parent_id,
-                                "depth": 2,
-                                "agent_role": "pave-init:research-delegate",
-                            }
-                        }
-                    },
-                },
-            },
-            assistant_message(nonce),
-            {"type": "event_msg", "payload": {"type": "task_complete"}},
+    SOURCE_HASH = "a" * 64
+    ROOT_NONCE = "root-nonce"
+    REVIEWER_NONCE = "reviewer-nonce"
+    DELEGATE_NONCE = "delegate-nonce"
+    REVIEWER_TASK = "pave_v2_preflight_reviewer_fixture"
+    DELEGATE_TASK = "pave_v2_preflight_delegate_fixture"
+    REVIEWER_PATH = f"/root/{REVIEWER_TASK}"
+    DELEGATE_PATH = f"{REVIEWER_PATH}/{DELEGATE_TASK}"
+
+    def rollout_path(self, home: Path, thread_id: str) -> Path:
+        return home / "sessions" / "2026" / "09" / "04" / f"rollout-test-{thread_id}.jsonl"
+
+    def records(self, home: Path, thread_id: str) -> list[dict]:
+        return [
+            json.loads(line)
+            for line in self.rollout_path(home, thread_id).read_text(encoding="utf-8").splitlines()
         ]
-        write_rollout(sessions / f"rollout-test-{root_id}.jsonl", root_records)
-        write_rollout(sessions / f"rollout-test-{parent_id}.jsonl", parent_records)
-        write_rollout(sessions / f"rollout-test-{delegate_id}.jsonl", delegate_records)
+
+    def make_chain(self, home: Path, source_hash: str | None = None) -> str:
+        source_hash = source_hash or self.SOURCE_HASH
+        root_id = "root-thread"
+        parent_id = "reviewer-thread"
+        delegate_id = "delegate-thread"
+        reviewer_config = preflight.load_role_config(preflight.PARENT_AGENT)
+        delegate_config = preflight.load_role_config(preflight.DELEGATE_AGENT)
+
+        root_records = [
+            session_meta_record(root_id, None, root_id),
+            persisted_message(
+                "user",
+                "<skill>\n<name>pave-init:pave-init</name>\n"
+                f"<!-- source-sha256: {source_hash} -->\n</skill>",
+                preflight.SELECTED_SKILL_KIND,
+            ),
+            *spawn_records(
+                "root-spawn",
+                preflight.PARENT_AGENT,
+                self.REVIEWER_TASK,
+                self.REVIEWER_PATH,
+            ),
+            *followup_records("reviewer-followup", self.REVIEWER_PATH),
+            turn_context_record("root-turn"),
+            task_complete_record("root-turn", self.ROOT_NONCE),
+        ]
+        parent_records = [
+            session_meta_record(
+                parent_id,
+                root_id,
+                root_id,
+                self.REVIEWER_PATH,
+                preflight.PARENT_AGENT,
+                1,
+            ),
+            persisted_message(
+                "developer",
+                reviewer_config["developer_instructions"],
+                preflight.DEVELOPER_INSTRUCTIONS_KIND,
+            ),
+            *spawn_records(
+                "delegate-spawn",
+                preflight.DELEGATE_AGENT,
+                self.DELEGATE_TASK,
+                self.DELEGATE_PATH,
+            ),
+            turn_context_record("reviewer-turn-1", preflight.PARENT_AGENT),
+            task_complete_record("reviewer-turn-1", self.REVIEWER_NONCE),
+            turn_context_record("reviewer-turn-2", preflight.PARENT_AGENT),
+            task_complete_record("reviewer-turn-2", self.REVIEWER_NONCE),
+        ]
+        delegate_records = [
+            session_meta_record(
+                delegate_id,
+                parent_id,
+                root_id,
+                self.DELEGATE_PATH,
+                preflight.DELEGATE_AGENT,
+                2,
+            ),
+            persisted_message(
+                "developer",
+                delegate_config["developer_instructions"],
+                preflight.DEVELOPER_INSTRUCTIONS_KIND,
+            ),
+            turn_context_record("delegate-turn", preflight.DELEGATE_AGENT),
+            task_complete_record("delegate-turn", self.DELEGATE_NONCE),
+        ]
+        write_rollout(self.rollout_path(home, root_id), root_records)
+        write_rollout(self.rollout_path(home, parent_id), parent_records)
+        write_rollout(self.rollout_path(home, delegate_id), delegate_records)
         return root_id
 
-    def test_complete_persisted_chain_passes(self) -> None:
+    def verify(self, home: Path, source_hash: str | None = None) -> dict[str, str | int]:
+        return preflight.verify_rollout_chain(
+            home,
+            "root-thread",
+            source_hash or self.SOURCE_HASH,
+            self.ROOT_NONCE,
+            self.REVIEWER_NONCE,
+            self.DELEGATE_NONCE,
+            self.REVIEWER_TASK,
+            self.DELEGATE_TASK,
+        )
+
+    def test_complete_persisted_v2_chain_and_reviewer_continuity_pass(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp)
-            root_id = self.make_chain(home, "abc123", "nonce-42")
-            result = preflight.verify_rollout_chain(
-                home, root_id, "abc123", "nonce-42"
-            )
-            self.assertEqual(result["parent_thread_id"], "parent-thread")
+            self.make_chain(home)
+            result = self.verify(home)
+            self.assertEqual(result["parent_thread_id"], "reviewer-thread")
             self.assertEqual(result["delegate_thread_id"], "delegate-thread")
+            self.assertEqual(result["multi_agent_version"], "v2")
+            self.assertEqual(result["reviewer_turns"], 2)
 
-    def test_missing_second_spawn_fails(self) -> None:
+    def test_v1_spawn_output_and_noncanonical_v2_spawn_fail(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp)
-            root_id = self.make_chain(home, "abc123", "nonce-42")
-            parent = next((home / "sessions").rglob("*parent-thread.jsonl"))
-            records = [json.loads(line) for line in parent.read_text().splitlines()]
-            write_rollout(parent, [records[0], records[-1]])
-            with self.assertRaisesRegex(preflight.PreflightError, "research delegate"):
-                preflight.verify_rollout_chain(home, root_id, "abc123", "nonce-42")
+            self.make_chain(home)
+            root = self.rollout_path(home, "root-thread")
+            records = self.records(home, "root-thread")
+            output = next(
+                record
+                for record in records
+                if record.get("payload", {}).get("call_id") == "root-spawn"
+                and record.get("payload", {}).get("type") == "function_call_output"
+            )
+            output["payload"]["output"] = json.dumps({"agent_id": "legacy-id"})
+            write_rollout(root, records)
+            with self.assertRaisesRegex(preflight.PreflightError, "V1 agent id"):
+                self.verify(home)
 
-    def test_stale_source_hash_and_broken_parent_link_fail(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp)
-            root_id = self.make_chain(home, "old-hash", "nonce-42")
+            self.make_chain(home)
+            root = self.rollout_path(home, "root-thread")
+            records = self.records(home, "root-thread")
+            call = next(
+                record
+                for record in records
+                if record.get("payload", {}).get("call_id") == "root-spawn"
+                and record.get("payload", {}).get("type") == "function_call"
+            )
+            arguments = json.loads(call["payload"]["arguments"])
+            arguments["fork_turns"] = "all"
+            call["payload"]["arguments"] = json.dumps(arguments)
+            write_rollout(root, records)
+            with self.assertRaisesRegex(preflight.PreflightError, "strict V2 reviewer spawn"):
+                self.verify(home)
+
+    def test_missing_or_wrong_injected_skill_record_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            self.make_chain(home, "b" * 64)
             with self.assertRaisesRegex(preflight.PreflightError, "source hash"):
-                preflight.verify_rollout_chain(home, root_id, "new-hash", "nonce-42")
+                self.verify(home)
 
-            parent = next((home / "sessions").rglob("*parent-thread.jsonl"))
-            records = [json.loads(line) for line in parent.read_text().splitlines()]
-            records[0]["payload"]["parent_thread_id"] = "wrong-root"
-            write_rollout(parent, records)
-            with self.assertRaisesRegex(preflight.PreflightError, "parent link"):
-                preflight.verify_rollout_chain(home, root_id, "old-hash", "nonce-42")
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            self.make_chain(home)
+            root = self.rollout_path(home, "root-thread")
+            records = [
+                record
+                for record in self.records(home, "root-thread")
+                if preflight.SELECTED_SKILL_KIND
+                not in record.get("payload", {})
+                .get("internal_chat_message_metadata_passthrough", {})
+                .get("content_item_kinds", [])
+            ]
+            write_rollout(root, records)
+            with self.assertRaisesRegex(preflight.PreflightError, "injected PAVE Init skill"):
+                self.verify(home)
 
     def test_echo_without_rollouts_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp)
             with self.assertRaisesRegex(preflight.PreflightError, "rollout"):
                 preflight.verify_rollout_chain(
-                    home, "root-thread", "abc123", "nonce-42"
+                    home,
+                    "root-thread",
+                    self.SOURCE_HASH,
+                    self.ROOT_NONCE,
+                    self.REVIEWER_NONCE,
+                    self.DELEGATE_NONCE,
+                    self.REVIEWER_TASK,
+                    self.DELEGATE_TASK,
                 )
 
-    def test_malformed_and_incomplete_rollouts_fail(self) -> None:
+    def test_malformed_candidate_and_incomplete_reviewer_fail(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp)
-            root_id = self.make_chain(home, "abc123", "nonce-42")
-            delegate = next((home / "sessions").rglob("*delegate-thread.jsonl"))
-            delegate.write_text("{not-json}\n", encoding="utf-8")
+            self.make_chain(home)
+            delegate = self.rollout_path(home, "delegate-thread")
+            delegate.write_text(
+                json.dumps(
+                    {
+                        "parent_thread_id": "reviewer-thread",
+                        "agent_path": self.DELEGATE_PATH,
+                        "agent_role": preflight.DELEGATE_AGENT,
+                    }
+                )
+                + "\n{not-json}\n",
+                encoding="utf-8",
+            )
             with self.assertRaisesRegex(preflight.PreflightError, "malformed rollout"):
-                preflight.verify_rollout_chain(home, root_id, "abc123", "nonce-42")
+                self.verify(home)
 
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp)
-            root_id = self.make_chain(home, "abc123", "nonce-42")
-            root = next((home / "sessions").rglob("*root-thread.jsonl"))
-            records = [json.loads(line) for line in root.read_text().splitlines()]
+            self.make_chain(home)
+            reviewer = self.rollout_path(home, "reviewer-thread")
+            records = self.records(home, "reviewer-thread")
             write_rollout(
-                root,
+                reviewer,
                 [
                     record
                     for record in records
-                    if record.get("payload", {}).get("type") != "task_complete"
+                    if record.get("payload", {}).get("turn_id") != "reviewer-turn-2"
                 ],
             )
-            with self.assertRaisesRegex(preflight.PreflightError, "did not complete"):
-                preflight.verify_rollout_chain(home, root_id, "abc123", "nonce-42")
+            with self.assertRaisesRegex(preflight.PreflightError, "turn count"):
+                self.verify(home)
 
-    def test_delegate_parent_mismatch_fails(self) -> None:
+    def test_top_level_and_nested_v2_metadata_are_both_required(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp)
-            root_id = self.make_chain(home, "abc123", "nonce-42")
-            delegate = next((home / "sessions").rglob("*delegate-thread.jsonl"))
-            records = [json.loads(line) for line in delegate.read_text().splitlines()]
-            records[0]["payload"]["parent_thread_id"] = "wrong-parent"
+            self.make_chain(home)
+            delegate = self.rollout_path(home, "delegate-thread")
+            records = self.records(home, "delegate-thread")
+            records[0]["payload"]["multi_agent_version"] = "v1"
             write_rollout(delegate, records)
-            with self.assertRaisesRegex(preflight.PreflightError, "parent link"):
-                preflight.verify_rollout_chain(home, root_id, "abc123", "nonce-42")
+            with self.assertRaisesRegex(preflight.PreflightError, "expected one V2 rollout"):
+                self.verify(home)
 
-    def test_error_bearing_task_complete_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp)
-            root_id = self.make_chain(home, "abc123", "nonce-42")
-            delegate = next((home / "sessions").rglob("*delegate-thread.jsonl"))
-            records = [json.loads(line) for line in delegate.read_text().splitlines()]
+            self.make_chain(home)
+            delegate = self.rollout_path(home, "delegate-thread")
+            records = self.records(home, "delegate-thread")
+            records[0]["payload"]["source"]["subagent"]["thread_spawn"]["depth"] = 1
+            write_rollout(delegate, records)
+            with self.assertRaisesRegex(preflight.PreflightError, "expected one V2 rollout"):
+                self.verify(home)
+
+    def test_root_session_lineage_is_required(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            self.make_chain(home)
+            root = self.rollout_path(home, "root-thread")
+            records = self.records(home, "root-thread")
+            records[0]["payload"]["session_id"] = "wrong-root-session"
+            write_rollout(root, records)
+            with self.assertRaisesRegex(preflight.PreflightError, "root V2 session metadata"):
+                self.verify(home)
+
+        for thread_id in ("reviewer-thread", "delegate-thread"):
+            with self.subTest(thread_id=thread_id), tempfile.TemporaryDirectory() as temp:
+                home = Path(temp)
+                self.make_chain(home)
+                path = self.rollout_path(home, thread_id)
+                records = self.records(home, thread_id)
+                records[0]["payload"]["session_id"] = "wrong-root-session"
+                write_rollout(path, records)
+                with self.assertRaisesRegex(preflight.PreflightError, "expected one V2 rollout"):
+                    self.verify(home)
+
+    def test_duplicate_child_link_and_failed_turn_fail(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            self.make_chain(home)
+            duplicate = self.records(home, "delegate-thread")
+            duplicate[0]["payload"]["id"] = "duplicate-delegate-thread"
+            write_rollout(self.rollout_path(home, "duplicate-delegate-thread"), duplicate)
+            with self.assertRaisesRegex(preflight.PreflightError, "found 2"):
+                self.verify(home)
+
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            self.make_chain(home)
+            delegate = self.rollout_path(home, "delegate-thread")
+            records = self.records(home, "delegate-thread")
             records[-1]["payload"]["error"] = {
                 "message": "child request failed",
                 "codex_error_info": "other",
             }
             write_rollout(delegate, records)
             with self.assertRaisesRegex(preflight.PreflightError, "completed with an error"):
-                preflight.verify_rollout_chain(home, root_id, "abc123", "nonce-42")
+                self.verify(home)
+
+    def test_role_content_model_effort_and_sandbox_must_match(self) -> None:
+        mutations = {
+            "developer instructions": lambda records: records[1]["payload"]["content"][0].update(
+                {"text": "stale role"}
+            ),
+            "model": lambda records: records[4]["payload"].update({"model": "stale-model"}),
+            "reasoning effort": lambda records: records[4]["payload"].update(
+                {"effort": "low"}
+            ),
+            "sandbox": lambda records: records[4]["payload"].update(
+                {"sandbox_policy": {"type": "workspace-write"}}
+            ),
+        }
+        for message, mutate in mutations.items():
+            with self.subTest(field=message), tempfile.TemporaryDirectory() as temp:
+                home = Path(temp)
+                self.make_chain(home)
+                reviewer = self.rollout_path(home, "reviewer-thread")
+                records = self.records(home, "reviewer-thread")
+                mutate(records)
+                write_rollout(reviewer, records)
+                with self.assertRaisesRegex(preflight.PreflightError, message):
+                    self.verify(home)
+
+    def test_nonce_routes_and_followup_target_must_be_complete(self) -> None:
+        actors = {
+            "root": ("root-thread", self.ROOT_NONCE),
+            "reviewer": ("reviewer-thread", self.REVIEWER_NONCE),
+            "research delegate": ("delegate-thread", self.DELEGATE_NONCE),
+        }
+        for label, (thread_id, nonce) in actors.items():
+            with self.subTest(actor=label), tempfile.TemporaryDirectory() as temp:
+                home = Path(temp)
+                self.make_chain(home)
+                path = self.rollout_path(home, thread_id)
+                records = self.records(home, thread_id)
+                completion = next(
+                    record
+                    for record in records
+                    if record.get("payload", {}).get("type") == "task_complete"
+                )
+                completion["payload"]["last_agent_message"] = f"wrong-{nonce}"
+                write_rollout(path, records)
+                with self.assertRaisesRegex(preflight.PreflightError, label):
+                    self.verify(home)
+
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            self.make_chain(home)
+            root = self.rollout_path(home, "root-thread")
+            records = self.records(home, "root-thread")
+            followup = next(
+                record
+                for record in records
+                if record.get("payload", {}).get("call_id") == "reviewer-followup"
+                and record.get("payload", {}).get("type") == "function_call"
+            )
+            followup["payload"]["arguments"] = json.dumps(
+                {"target": "/root/fresh-reviewer", "message": "wrong thread"}
+            )
+            write_rollout(root, records)
+            with self.assertRaisesRegex(preflight.PreflightError, "followup_task"):
+                self.verify(home)
+
+    def test_project_pave_footprint_must_be_complete_and_current(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project_agents = root / "project" / ".codex" / "agents"
+            user_agents = root / "home" / "agents"
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(preflight.install_agents.install(user_agents, force=False), 0)
+            self.assertEqual(
+                preflight.require_current_agents(project_agents, user_agents), "user"
+            )
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(preflight.install_agents.install(project_agents, force=False), 0)
+            stale = project_agents / "pave_init_skill_builder.toml"
+            stale.write_text(
+                stale.read_text(encoding="utf-8") + "\n# stale project shadow\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(preflight.PreflightError, "project PAVE agents"):
+                preflight.require_current_agents(project_agents, user_agents)
+
+    def test_release_mode_forces_v2_slots_and_exact_project_trust(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            project = root / "project"
+            evidence = root / "evidence"
+            project.mkdir()
+            completed = subprocess.CompletedProcess(
+                args=[],
+                returncode=0,
+                stdout=json.dumps(
+                    {"type": "thread.started", "thread_id": "root-thread"}
+                )
+                + "\n",
+                stderr="",
+            )
+            chain = {
+                "parent_thread_id": "reviewer-thread",
+                "delegate_thread_id": "delegate-thread",
+                "multi_agent_version": "v2",
+                "reviewer_turns": 2,
+            }
+            with (
+                mock.patch.object(preflight, "require_current_agents", return_value="project"),
+                mock.patch.object(preflight, "generated_source_hash", return_value=self.SOURCE_HASH),
+                mock.patch.object(preflight, "verify_rollout_chain", return_value=chain),
+                mock.patch.object(preflight.subprocess, "run", return_value=completed) as run,
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(
+                    preflight.main(
+                        [
+                            "--release",
+                            "--project",
+                            str(project),
+                            "--evidence-dir",
+                            str(evidence),
+                        ]
+                    ),
+                    0,
+                )
+            command = run.call_args.args[0]
+            self.assertIn("features.multi_agent=true", command)
+            self.assertIn("features.multi_agent_v2.enabled=true", command)
+            self.assertIn("agents.enabled=true", command)
+            self.assertIn("agents.max_concurrent_threads_per_session=16", command)
+            self.assertIn(preflight.exact_project_trust_override(project), command)
+            self.assertNotIn("agents.max_depth=2", command)
+            self.assertNotIn("features.multi_agent_v2=false", command)
 
 
 if __name__ == "__main__":

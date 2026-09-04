@@ -90,10 +90,10 @@ edit them directly. Change `sources/` or a shared reference, inspect
 `python3 scripts/build_packages.py --check`, then regenerate explicitly with
 `python3 scripts/build_packages.py --force`.
 
-The Codex package uses V1 nested agents with `agents.max_depth = 2`. Claude
-`fable` and `opus` roles map to `gpt-5.6-sol`; `sonnet` roles map to
-`gpt-5.6-terra`. A persisted-thread preflight must prove the depth-2 chain
-before release.
+The Codex package requires V2 nested agents with 16 child slots and 17 total
+slots. Claude `fable` and `opus` roles map to `gpt-5.6-sol`; `sonnet` roles map
+to `gpt-5.6-terra`. A persisted-thread preflight must prove the canonical
+depth-2 task path and reviewer continuity before release.
 
 ## Install
 

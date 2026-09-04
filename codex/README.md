@@ -49,15 +49,22 @@ any differing generated file, so a hand edit cannot disappear silently.
    Codex ignores project-scoped `.codex/` configuration, hooks, rules, and
    custom agents while the project is untrusted. Trust only repositories you
    have reviewed.
-3. Configure Codex V1 at project scope in `.codex/config.toml`:
+3. Configure Codex V2 at project scope in `.codex/config.toml`:
 
    ```toml
    [features]
-   multi_agent_v2 = false
+   multi_agent = true
+
+   [features.multi_agent_v2]
+   enabled = true
 
    [agents]
-   max_depth = 2
+   enabled = true
+   max_concurrent_threads_per_session = 16
    ```
+
+   This gives each session 16 child slots and 17 total V2 slots. Remove
+   `agents.max_depth`; it applies only to V1.
 
    Codex layers user, project, profile, and command-line configuration. The live
    preflight below is the authority for the effective runtime.
@@ -99,7 +106,7 @@ python3 codex/install_agents.py --user
 ```
 
 User-scoped agents apply to every Codex project. Project scope is safer when
-you use PAVE only in selected repositories. Put the same V1 settings under
+you use PAVE only in selected repositories. Put the same V2 settings under
 `[features]` and `[agents]` in `$CODEX_HOME/config.toml` before user installation.
 
 Check or remove the installed files:
@@ -130,7 +137,7 @@ differences are:
   remains mandatory.
 - Role reasoning effort is preserved. Claude `fable` and `opus` map to
   `gpt-5.6-sol`; Claude `sonnet` maps to `gpt-5.6-terra`.
-- Nested dispatch uses Codex V1 with effective `agents.max_depth = 2`.
+- Nested dispatch uses Codex V2 with 16 child slots and 17 total slots.
 - Plugin-level `hooks/hooks.json` replaces skill-frontmatter hook registration.
 - `apply_patch` needs a path/content adapter for the planning-layout hook.
 - Direct Codex caller identity is preserved so the canonical hooks remain the
@@ -189,34 +196,34 @@ python3 codex/preflight.py \
   --evidence-dir /tmp/pave-init-release-preflight
 ```
 
-`--release` forces `features.multi_agent_v2=false` and `agents.max_depth=2` for
-the probe. It does not change durable user configuration. Do not use the user's
-live target as the clean room. A run that cannot load the current source hash,
-resolve both named agents, and prove the depth-2 thread chain is a release
-failure, not degraded evidence.
+`--release` forces Codex V2, 16 child slots, and trust for only the exact test
+project in that process. It does not change durable user configuration. Do not
+use the user's live target as the clean room. A run that cannot load the current
+source hash, resolve both named agents, prove the canonical depth-2 task path,
+and complete two turns on one reviewer thread is a release failure.
 
 ## Known runtime limitation
 
-### Custom-agent selection
+### Custom-agent selection and sandbox provenance
 
-Codex documents custom agents under `.codex/agents/*.toml`, but some
-runtime and GPT-5.6 combinations have exposed a spawn tool with only a
-task label and prompt. A matching `task_name` does not prove that the
-custom-agent TOML, sandbox, effort, or developer instructions loaded.
-PAVE Init therefore fails closed when it cannot select a role by name. It
-does not replace the material reviewer or another registered role with a
-generic child and report an equivalent pass.
+PAVE Init fails closed unless each V2 spawn returns one canonical task path and
+the child rollout persists the expected role instructions, model, effort, and
+effective sandbox. A project that contains any PAVE agent file must contain the
+complete current eight-file set; this prevents stale project roles from
+shadowing current user roles.
 
-On the tested Codex CLI 0.149.0 Bedrock runtime, the release preflight loads the
-exact `2.2.7` skill and its source hash, then the first named V1 spawn fails with
-`Invalid 'input': value did not match any expected variant`. This is a Codex
-runtime blocker. It is not a passing PAVE Init release result.
+Codex 0.153.2 preserves the parent permission state when it applies a custom
+role. The read-only release probe therefore proves the effective read-only
+sandbox for the reviewer and delegate, but it cannot prove that their TOML
+`sandbox_mode` caused that state. PAVE Init keeps every declared role sandbox
+unchanged and records this Codex runtime limit instead of claiming provenance.
 
 ### PostToolUse identity
 
 Current Codex source attaches `agent_id` and `agent_type` to `PostToolUse`
-events from spawned workers. Root calls omit them. The adapter preserves these
-fields and delegates all lead-versus-worker decisions to the canonical hooks.
+events from spawned workers. Root calls omit them. V2 task paths do not replace
+this hook identity. The adapter preserves these fields and delegates all
+lead-versus-worker decisions to the canonical hooks.
 
 A runtime that omits worker identity cannot preserve the identity-sensitive
 parts of the policy: a worker can receive the lead-only staleness reminder, and
