@@ -1,6 +1,6 @@
 {
   "name": "vllm-neuron-parity",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM: scan the upstream delta, cost each target's closing route, rank the backlog, and execute user-gated campaigns through correctness and performance gates against a GPU baseline into evidence-backed fork PRs. Ships the vllm-neuron-parity lead workflow skill plus its six dispatched role agent types.",
   "author": {
     "name": "jinhuang12"

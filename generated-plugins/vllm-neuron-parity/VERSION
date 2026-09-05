@@ -1,4 +1,181 @@
-version: 1.4.0
+version: 1.5.0
+
+## 1.5.0 — 2026-09-04
+
+Field learnings from a finished port campaign of the retiring sibling workflow
+(`vllm-neuron-model-port`, one model family on trn2 at Neuron SDK 2.32 and
+vllm-neuron 0.24) land in the reference layer. Read them for what they are: the
+same hardware class and the same stack as a parity run, measured on a different
+workflow's campaign, so each rule is a fact about the toolchain and the fork at
+that pin and none of them is parity evidence. The graph's meaning does not move
+in this release. The three acceptance-instrument duties that DO need the graph
+land separately as ledger revision 5 (32 nodes and 95 edges unchanged, checks 15
+to 16); this release carries the shapes that revision cites, so the two belong
+to one landing.
+
+Provenance of every rule below: 713 raw candidates from that campaign,
+consolidated to 342, then three filters (drop what public documentation already
+states with a quotable URL, drop what an installed Neuron skill already states,
+drop what is not still true at SDK 2.32 / vllm-neuron 0.24) and two refuters
+(truth, value). 172 survived. 42 more were not verifiable at this pin and 66
+stayed contested; both sets are deliberately absent — an unproven rule in a
+package whose whole discipline is provenance is worse than no rule.
+
+Every carried learning is cited where its mechanism landed: all 172, none
+uncited — 171 by id in the four references below, 6 in ledger revision 5's
+semantic diff, union 172. They collapse to 29 rules in this release layer,
+beside the 3 duties in ledger revision 5 — 32 across both layers. The basis for
+29, each component greppable: 13 `**Rule:**` blocks in
+`references/toolchain-evidence-pitfalls.md`, 8 added `**Rule` lines in
+`references/measurement-pitfalls.md` (12 to 20), 4 named duty blocks in
+`references/artifact-layout.md` (instrument-liveness pair, scan-completeness
+discipline, evaluated-threshold record, instances on this hardware class), 3
+items in the new section of `references/patch-mechanism-inventory.md`, and 1 new
+refusal class in the compile-cache guard. §4.13 is excluded: it is a move, not a
+new rule. Clustering by mechanism is the point — one mechanism, one rule, every
+id that found it. Read the 172 as CITATION coverage, not duty coverage: review sampled five landed ids and found
+two whose duty was partial or missing behind a correct citation (a one-sided
+clamp bound, and a segmented-prefill precondition cited but never stated), both
+repaired before landing. A citation proves provenance; only reading the rule
+proves the duty arrived.
+
+New — `references/toolchain-evidence-pitfalls.md` (372 lines, ceiling 400): 13
+rules for reading what the Neuron compiler and runtime say about themselves.
+Re-derive every second-hand claim at the pin; a flag's behaviour lives in the
+installed binary; credit a flag only after you prove delivery and that the pass
+ran; compile cost is composition, not graph size; price a device-memory
+overflow from the graph's own deduplicated resident I/O; a compiler-internal
+name or id is an anonymous version-minted lead, never a join key; each compiler
+artifact owns a disjoint field set and its own survival rule; per-core artifacts
+are legitimately asymmetric at two logical cores per device; a kernel is opaque
+to every graph-level channel; every bound in the stack is late and bounds a
+different wait; a runtime knob is delivered only when the runtime's own render
+changes; live wedge state is per-core and reachable only through the driver; the
+pipeline aborts at its first unmet precondition, so a cleared wall buys the next
+stage and nothing more.
+  - Why a new file: about 94 of the carried learnings had no home. The existing
+    four references are the instruments that produce a number for a verdict
+    (`measurement-pitfalls.md`), the fork's patch surfaces
+    (`patch-mechanism-inventory.md`), the file surfaces where ports collide
+    (`collision-ranking.md`), and the run's own artifact tree
+    (`artifact-layout.md`). A reader of all four would still credit a compiler
+    flag from its name, join compiler artifacts by an internal id, read a field
+    from the wrong compiler file, and reset a shared device on a late watchdog
+    status.
+  - Why one file and not two: the compiler half and the device half are read by
+    the same two seats (implementer at an attempt, investigator at costing and
+    triage) at overlapping moments, and they share one mechanism — the channel
+    reports a position, a name, or a count for its own purposes. Two authorities
+    for one duty drift apart.
+  - Each rule carries a one-sentence reason beside the trap, so a reader can
+    judge a case the rule did not foresee. That is the anti-patch instrument: it
+    is what keeps a rule from becoming a fix shaped to one incident.
+
+Changed — `references/measurement-pitfalls.md` (104 to 158 lines, ceiling 200):
+three new rules and two extensions. Prove the instrument before its verdict
+counts (a known-positive and a known-negative per criterion; an exit status is
+not an evaluation; a criterion whose instrument cannot be made to fail is
+unadjudicable). A zero is evidence only with a firing control and a bogus
+control on the same artifact type at the same verbosity. Record the emitter, the
+stage, and the divisor with every count, and confirm a count's role against a
+second independently printed quantity. A completion signal reports a position,
+not completion. Size host memory in the deployed multi-rank context, never from
+a proxy. Capture the stream the component actually writes. The compile-cache
+rule gains which fix site to pick: the key hashes graph structure, so a
+producer-side fix keeps the warm cache and a zero compiled-graph count on an
+expected-warm start proves it — with the pin caveat that the 0.24 key list drops
+the fork's port-added FX-pass fingerprint and the compile path moved into
+`libtorch_neuronx_lite`, so re-derive both the component list and the counter
+name at your own pin.
+
+Changed — `references/artifact-layout.md` (399 to 477 lines, ceiling 500). §4.5
+gains the instrument-liveness pair the graph now registers per criterion (the
+value that must appear as evaluated, and the tripwire input the procedure must
+fail on). §4.6 gains the scan-completeness discipline (a reported count carries
+the commit scanned, the tree state, and the tool's own completion signal; a tool
+that gates on a clean tree runs in a fresh throwaway worktree) and the
+evaluated-threshold record every evidence bundle carries. §4.10 gains the four
+measured instances of durable host state. §4.13 is new: the write-for-reader
+duty, defined once for every seat.
+
+Changed — `references/patch-mechanism-inventory.md` (138 to 148 lines, ceiling
+180): one new section for the 0.24 line and SDK 2.32, with its own pin note
+because every section above it is the 0.21 checkout. Upstream decides at a
+consumer you did not patch. Import time pins the venue before your code runs —
+so a device-free probe is constructed the way the runner constructs the model,
+or it grades a configuration the port never runs. The front end's authoring
+constraints: an in-range clamp maximum, a signed sentinel, an exactly floored
+low-bit scale, no literal constant tensor inside a traced forward pass, and a
+checkpoint resolved from its files rather than its names.
+
+Changed — `skills/vllm-neuron-parity/SKILL.md` (472 to 460 lines, ceiling 500).
+The 25-line write-for-reader restatement becomes a 13-line pointer at
+`references/artifact-layout.md` §4.13 and §4.12, which is where the duty and the
+cap now live once. The brief list gains the new reference; the stage-7 row briefs
+attempt and triage seats with it; the stage-8 row states the instrument-liveness
+duty the graph carries.
+
+Changed — `README.md` (642 to 652 lines, ceiling 700) and the lead skill drop
+every hard-coded ledger-head number. The appendix, the file tree, the migration
+steps, and the skill's evolution-root paragraph now name "the ledger head" and
+send the reader to `revisions.yaml` and the validator. Reason: those numbers
+were stale the moment a revision landed, and a rendered view that states a fact
+the authority owns is a second authority. Dated changelog entries keep their
+numbers — 1.4.0 shipped revision 4 with 15 checks, and that stays true of 1.4.0.
+
+Changed — four seat contracts gain one pointer clause each, identical in both
+harness ports (`agents/*.md` and `codex/agents/*.toml`). The implementer's
+increment plan declares the venue its CPU-mode acceptance grades, and its
+attempt loop reads the toolchain reference before attributing a failure. The
+investigator gets compile costing and the second-hand-claim duty. The measurer
+gets instrument liveness and the firing control. The adjudicator takes each
+measured value from the bundle's own evaluated-threshold record and never from a
+comparator's exit status. No duty text is restated in a contract: every clause
+points at the one authority.
+
+Changed — `skills/vllm-neuron-parity/hooks/compile-cache-guard.sh` refuses
+irreversible verbs (`rm`, `rmdir`, `unlink`, `shred`, `truncate`, `trash`,
+`find -delete`, `git clean`, `rsync --delete`) against
+`/var/tmp/nki-intermediate-cache`, where the kernel toolchain writes its
+compiled kernel artifacts — outside every cache root a run can set, and possibly
+holding a co-tenant's. `mv` stays allowed there on purpose: renaming aside is
+the sanctioned clear, and a delete is the irreversible act. The guard still
+registers as one of eight controls.
+  - What the prohibition always said, and what the prose got wrong: the graph
+    declares this forbidden effect as a CLASS — "clearing the shared compile
+    cache", at `realize_increment`, `execute_attempt_loop`, and
+    `recover_leased_host` — enumerating no paths and carrying no `P2` label. The
+    enumeration lived only in package prose, and it named three of the four
+    roots in that class. This release corrects an incomplete enumeration; it
+    does not widen a prohibition, and no graph text moves. The fourth root is in
+    the class on the facts: the kernel toolchain compiles into it, it is shared
+    between tenants, and the same measured remedy ("clear the cache") aims at
+    it.
+  - Every copy of the enumeration is corrected: the P2 row and the hook
+    disclosure in `skills/vllm-neuron-parity/SKILL.md`, the prohibition row in
+    `README.md`, the P2 clause in all six seat contracts, their six codex
+    mirrors, and the guard's own header and refusal text.
+    `references/artifact-layout.md` §4.10 holds the instances and the
+    rename-aside duty once.
+  - Field evidence: that directory holds the real kernel artifacts and can hold
+    a co-tenant's, so a documented "clear the cache" remedy followed there
+    destroys another tenant's work.
+
+New — `tests/test_document_ceilings.py`: every prose document in the package
+sits under a pinned line ceiling, and every prose document is pinned. A release
+that grows a document past its ceiling raises the ceiling in the same change,
+with the reason here. This is the ratchet the package did not have; the prose
+budget was a promise before it.
+
+Not landed, deliberately. The digest's second proposed new reference (a separate
+runtime-hang-triage file) — folded into the one file above, same reason as
+"why one file". `references/collision-ranking.md` untouched: the seven rows
+mapped to it are compile-cost and upstream-gating facts, and its subject is
+file-surface collision order, which none of them changes. A named census for one
+dtype hazard as a graph or lead-skill rule: a rule that names today's hazard is a
+patch, so the mechanism landed in the reference where a reader can re-derive it
+at the next pin. The 42 unverified and 66 contested learnings: no rule ships
+without a verified mechanism.
 
 ## 1.4.0 — 2026-09-03
 

@@ -32,7 +32,10 @@ on the artifact and disclose the disagreement in one line.
   (`references/artifact-layout.md` §4.5) and confirm the comparator set
   was frozen before the measurements you are reading — a verdict against
   post-hoc comparators is void. Quote each threshold verbatim from the
-  registration and record the evidence trail for each verdict.
+  registration and record the evidence trail for each verdict, taking
+  each measured value from the bundle's own evaluated-threshold record
+  (`references/artifact-layout.md` §4.6) and never from a comparator's
+  exit status.
   `evidence_unstable` is the honest outcome when an artifact under verdict
   is incomplete or changed on re-read — measurement must re-collect, and
   you never repair the artifact yourself. `no_progress` is the honest
@@ -85,7 +88,8 @@ provisioning STOP gate (P6).
 
 ## Run-wide prohibitions that bind you
 
-- P2 — never clear or bypass the shared Neuron compile cache.
+- P2 — never clear or bypass a shared Neuron compile cache (a vLLM compile-cache root or
+  the kernel intermediate cache, `references/artifact-layout.md` §4.10).
 - P3 — no `cp -a` venv cloning; no pip write into `/opt`.
 - P5 — the GPU baseline is read-only; no autonomous reboot or reset.
 - P7 — closure evidence counts only when the PR URL resolves ON the

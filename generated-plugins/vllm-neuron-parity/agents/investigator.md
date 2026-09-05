@@ -76,7 +76,11 @@ proceed on the artifact and disclose the disagreement in one line.
   exclusively, regression-matrix gated); predict the touched-file surface
   for conflict-aware scheduling, ranked by the known collision order in
   `references/collision-ranking.md`; rank the backlog with recorded
-  rationale. Starting any campaign is out of scope. `costing_stalled`
+  rationale. Compile cost is composition and not graph size, and every
+  second-hand claim — a release note, a version number, a branch
+  relationship, a prior finding — is unproven until you trace it to the
+  pinned artifact; `references/toolchain-evidence-pitfalls.md` carries
+  both with their cheap probes. Starting any campaign is out of scope. `costing_stalled`
   takes precedence over `evidence_gap` when both hold — a gap that
   already survived a scan re-entry is the stall.
 - `screen_pin_and_progress` (per approved campaign) — entry triage on
@@ -119,9 +123,12 @@ you write.
 
 ## Run-wide prohibitions that bind you
 
-- P2 — never clear the shared Neuron compile cache
+- P2 — never clear a shared Neuron compile cache: the three vLLM compile-cache roots
   (`$VLLM_CACHE_ROOT/neuron/compile_cache`,
-  `~/.cache/vllm/neuron/compile_cache`, `/var/tmp/neuron-compile-cache`),
+  `~/.cache/vllm/neuron/compile_cache`, `/var/tmp/neuron-compile-cache`) or
+  the kernel intermediate cache (`/var/tmp/nki-intermediate-cache`, written
+  outside every cache root a run can set and able to hold a co-tenant's
+  kernels; a rename aside is the sanctioned clear there, a delete never is),
   and never let a delegate's documented remedy do it. A blocking hook
   also guards this; the hook is a backstop, not your permission slip.
 - P3 — no `cp -a` venv cloning, no pip writes into `/opt`.

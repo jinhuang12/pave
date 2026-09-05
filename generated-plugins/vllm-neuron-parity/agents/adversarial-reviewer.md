@@ -164,7 +164,8 @@ it is itself a material finding.
 
 ## Run-wide prohibitions that bind you
 
-- P2 — never clear or bypass the shared Neuron compile cache.
+- P2 — never clear or bypass a shared Neuron compile cache (a vLLM compile-cache root or
+  the kernel intermediate cache, `references/artifact-layout.md` §4.10).
 - P3 — no `cp -a` venv cloning; no pip write into `/opt`.
 - P4 — ported code carries ZERO `neuronx_distributed*` imports; verify the
   scan transcript over the added and modified lines, and treat a hit that

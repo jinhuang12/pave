@@ -8,7 +8,7 @@ evidence-backed pull requests, measured against a GPU baseline.
 
 This README is a rendered view of the shipped package, never an
 authority. The packaged graph (`workflow.pave.yaml`, the head of
-`revisions.yaml` at revision 4), the lead skill
+`revisions.yaml`), the lead skill
 (`skills/vllm-neuron-parity/SKILL.md`), and the role contracts stay
 the source of truth; every section below links what it renders.
 
@@ -445,18 +445,19 @@ vllm-neuron-parity/
     SKILL.md                            # the lead workflow skill
     hooks/
       protected-branch-guard.sh        # blocks pushes to protected branches
-      compile-cache-guard.sh           # blocks Neuron compile-cache clears
+      compile-cache-guard.sh           # blocks irreversible clears of the shared Neuron caches
       venv-opt-guard.sh                # blocks venv cloning / /opt writes
       graph_edit_guard.sh              # denies direct edits of the live graph or revisions.yaml outside a landing
       state-staleness-reminder.sh      # re-presents run position periodically (lead-session-gated)
       stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active (lead-session-gated)
       write-for-reader.sh              # reminds any actor to write documents for the reader (advisory, throttled); names an over-cap document with its size
   agents/*.md                          # role contracts registered on Claude Code
-  workflow.pave.yaml                   # immutable packaged graph seed (ledger head, revision 4)
-  revisions.yaml                       # immutable packaged ledger seed (entries 0-4; patches under history/)
+  workflow.pave.yaml                   # immutable packaged graph seed (the ledger head; its revision number is revisions.yaml's, not this README's)
+  revisions.yaml                       # immutable packaged ledger seed (entry 0 is the delivered graph; one history/v<N>.patch per later entry)
   references/
     artifact-layout.md                 # single authority for artifact shapes
     measurement-pitfalls.md            # known measurement-tool traps
+    toolchain-evidence-pitfalls.md     # what the compiler and runtime say about themselves
     patch-mechanism-inventory.md       # how the plugin patches vLLM
     collision-ranking.md               # file surfaces where ports collide
     pave.schema.json                   # PAVE graph schema (validator input)
@@ -468,6 +469,7 @@ vllm-neuron-parity/
     measure_artifact.py                # living-document size vs its cap (references/artifact-layout.md §4.12)
   tests/
     test_codex_port.py                 # Codex port: version pin, eight hook controls, TOML fields, legacy-token absence, harness tool map
+    test_document_ceilings.py          # every prose document under its pinned line ceiling, and none unpinned
     test_hooks.sh                      # hook behaviour: marker gating, guards, reader reminder, cap notice
     test_measure_artifact.py           # size instrument tests
     test_run_state_schema.py           # schema accept/reject tests
@@ -498,7 +500,7 @@ A root created by the 1.3.x manifest scheme (`workflow-manifest.yaml`,
 `history/v1/`, `binding-revisions.yaml`) migrates once, by hand. In that scheme
 the live graph is `history/v1/workflow.pave.yaml`, amended in place; the 1.4.0
 package ledger carries those amendments as revisions 1 and 2 and continues to
-revision 4, so the migration proves the old live graph is revision 2, installs
+its own head, so the migration proves the old live graph is revision 2, installs
 the packaged root in its place, and moves the run per evolution rule 7. Proven
 on a scratch copy of a field root inside a git work tree with the tool as
 shipped; `TOOL` is `<plugin-root>/scripts/record_revision.py`, run with a
@@ -518,7 +520,7 @@ Python that has pyyaml and jsonschema.
    the ledger.
 3. Move the old root aside (`git mv <root> <root>.pre-1.4.0`) and install the
    packaged root: `TOOL install <root> --from <plugin-root>`, then
-   `TOOL verify <root>` exits 0 at revision 4. `install` refuses a non-empty
+   `TOOL verify <root>` exits 0 at the packaged head. `install` refuses a non-empty
    directory; it seeds fresh roots only, and it creates only the graph, the
    ledger, and `history/`. Move any evidence file the run cites from the old
    root (the seat investigations, the ceremony checklist) into the new root
@@ -529,13 +531,14 @@ Python that has pyyaml and jsonschema.
    exits 1). `TOOL verify <root> --pinned-revision 2 --pinned-digest
    sha256:e9f063e2...` prints `ROUTE: graph landed since pin (revision 3)` and
    exits 3. With the user's approval recorded verbatim: `TOOL pin <root>
-   --run-id <run id>`, set the run state's `active_revision` to 4 and its
-   digest to revision 4's `digest_after`, and resume from the last satisfied
+   --run-id <run id>`, set the run state's `active_revision` to the packaged
+   head's revision and its digest to that entry's `digest_after`, and resume
+   from the last satisfied
    gate — landed work stays landed. Where a landed revision adds a gate that
    landed work never passed (revision 1's `review_increment_batch` for
    increments landed before it), record a backfill duty per landed item and
-   discharge it before those items are promoted. `verify --pinned-revision 4
-   --pinned-digest <digest>` then exits 0 (current). A run that declines to
+   discharge it before those items are promoted. `verify --pinned-revision
+   <head> --pinned-digest <digest>` then exits 0 (current). A run that declines to
    move records the decline verbatim in run state
    (`workflow_identity.move_declined`) and stays pinned; the tool keeps
    printing the route, and the lead does not re-ask while the decline stands.
@@ -585,7 +588,7 @@ weakest to strongest: prose < reinjection < reviewed < mechanical
 | Rule | Rung | Why that rung |
 |---|---|---|
 | Never mutate protected branches (release-0.24.0.1.1.0, release-0.21.0.1.0.0, main, mainline — exact names) | BLOCKING hook | likely, costly, irreversible, precisely detectable. Disclosed residual: the no-refspec `git push` arm resolves the current branch in the payload's cwd and fails open — a push that changes directory (`cd … && git push`, `git -C … push`) or a non-default `push.default` can evade it; explicit-refspec and mutation forms are exact matches, and contract text plus the next review gate back the hook |
-| Never clear the shared Neuron compile cache | BLOCKING hook + delegate wrapper | documented remedies include cache-clearing, so delegates will try it; hours of recompile for every tenant |
+| Never clear a shared Neuron compile cache (three vLLM compile-cache roots plus the kernel intermediate cache) | BLOCKING hook + delegate wrapper | documented remedies include cache-clearing, so delegates will try it; hours of recompile for every tenant, and the kernel cache can hold a co-tenant's artifacts |
 | No `cp -a` venv cloning; no pip writes into /opt | BLOCKING hook | dead-end pressure makes the shortcut likely; /opt damage breaks co-tenants |
 | Never edit the live graph or the revision ledger outside a landing (`skills/vllm-neuron-parity/hooks/graph_edit_guard.sh`) | BLOCKING hook (PreToolUse Edit\|Write\|MultiEdit) | the violation has happened (v1 amended in place), it is path-detectable, and `record_revision.py land` is the only legitimate writer; denies when `revisions.yaml` sits beside the target and no `.landing` marker exists |
 | Zero NxDI imports in ported code | MECHANICAL scan (diff-scoped) | exact over added/modified lines; runs before the review gate |
@@ -616,8 +619,11 @@ Nothing registers silently.
 ## 6. Appendix — the shipped authorities
 
 - `workflow.pave.yaml` and `revisions.yaml` — the immutable packaged seed, at
-  its ledger head revision 4 (32 nodes, 95 edges, 15 checks, 24 evidence definitions, 5
-  endpoints; validates clean with `scripts/validate_pave.py`). A project's
+  its ledger head (32 nodes, 95 edges, 24 evidence definitions, 5 endpoints;
+  validates clean with `scripts/validate_pave.py`). The head's revision number
+  and check count are the ledger's, not this README's — read them from
+  `revisions.yaml` and the validator, which is why no number here can go
+  stale. A project's
   live graph is the ledger head of its evolution root, changed only by a
   landing; binding revisions (`kind: binding`) never change graph meaning, so
   never move node, edge, or check counts; a count change is a graph successor
@@ -635,7 +641,11 @@ Nothing registers silently.
 - `references/artifact-layout.md` — artifact tree, write ownership,
   precedence, supersession rules for a live run.
 - `references/measurement-pitfalls.md` — measurement-tool traps the
-  measurer must pre-empt.
+  measurer must pre-empt, and the instrument-liveness duty behind
+  `acceptance_threshold_evaluated`.
+- `references/toolchain-evidence-pitfalls.md` — how to read the Neuron
+  compiler and runtime channels: flags, compile cost, per-core artifacts,
+  late bounds, knob delivery, wedge state.
 - `references/patch-mechanism-inventory.md` — how the vllm-neuron
   plugin patches vLLM, and where a ported change lands.
 - `references/collision-ranking.md` — which fork files concurrent

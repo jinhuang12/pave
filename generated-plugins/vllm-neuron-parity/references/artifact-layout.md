@@ -259,6 +259,18 @@ commitment, adjudicator reads): **subject, digest, timestamp** —
 schema'd once. The comparators_preregistered check compares the
 commitment timestamp against every measurement artifact.
 
+**Instrument-liveness pair**, registered per criterion in this same
+write-once record: the VALUE that must appear as evaluated in the
+evidence for that criterion, and the TRIPWIRE input the procedure must
+fail on. Both are adjudicable values, so the P9 digest fixes both.
+`procedures_smoke_verified` reads the tripwire result out of the smoke
+record; `acceptance_threshold_evaluated` reads the value out of the
+evidence bundle (§4.6). A criterion for which no tripwire exists is
+`criteria_unadjudicable`: an instrument nobody can make fail grades
+nothing. Rationale and the measured cases:
+`references/measurement-pitfalls.md`, "Prove the instrument before its
+verdict counts".
+
 ### 4.6 Evidence index
 
 Element set pinned here, three consumers (review_implementation a4/a5,
@@ -274,6 +286,24 @@ increment id -> evidence file(s) -> acceptance command + exit code.
   instrument): the added and modified lines of the campaign branch diff
   against the pinned base — never whole files, never upstream context
   lines.
+- **Scan-completeness discipline** (all census-bearing artifacts,
+  run-wide, beside the exit-code discipline): a reported hit count — a
+  zero above all — carries the commit scanned, the tree state it was
+  scanned in (clean, or the untracked and modified paths), and the scan
+  tool's own completion signal. A tool whose validity depends on a clean
+  tree runs in a fresh throwaway worktree at the commit under test,
+  because untracked build artifacts make a long-lived checkout
+  permanently dirty and the tool then reports an invalid scan as a
+  result. A zero nobody can show complete is not evidence. The controls that
+  prove a channel fired at all are `references/measurement-pitfalls.md`, "A
+  zero is evidence only with a firing control" — the implementer runs these
+  scans, so read the duty there instead of assuming a measurer brief carries
+  it.
+- **Evaluated-threshold record** (every evidence bundle, per criterion it
+  realizes): the value read, the threshold it was compared against, the
+  result of that comparison, and the negative-control result from that
+  procedure's smoke record (§4.5). An exit status is not an evaluation,
+  and an empty record makes the bundle incomplete.
 - **Revision phrasing rule**: provenance identifiers at record time,
   content-identity predicate downstream, SHA-equality nowhere.
 
@@ -352,6 +382,23 @@ write a cache), and either misreading is harmful — strict reading emits
 a false baseline_unusable on lap one; loose reading permits the
 inference-time cache write the prohibition was minted to forbid.
 
+**Instances on this hardware class**, each measured on a prior campaign at
+Neuron SDK 2.32 (L-136, L-139, L-147, L-159), so the definition binds where a
+run actually meets it: the kernel toolchain's own
+intermediate cache, written outside the run root and outside any cache
+variable you set, and possibly holding a co-tenant's artifacts; a shared
+compile cache whose key directories any re-trace rewrites; a long-lived
+serving checkout that untracked build artifacts make permanently
+git-dirty; and instance-store devices that are encrypted at rest, whose
+never-written blocks read back as pseudorandom bytes. The duties that
+follow: rename a cache partition aside inside a root you own and never
+delete a shared one (P2's hook refuses both shared roots); run any tool
+that gates on tree cleanliness in a fresh throwaway worktree at the
+commit under test (§4.6); and prove a device unclaimed from the absence
+of a partition table, filesystem signature, holder, and mount, swap or
+fstab entry, plus unchanged write counters across a quiet window — never
+from reading it back as zeros.
+
 ### 4.11 Cross-run artifacts
 
 The four artifacts live at the §1 `cross-run/` paths, committed to git.
@@ -397,3 +444,34 @@ archive:
   before any new content. `write-for-reader.sh` names an over-cap
   document with its size at the write; the writer classifies it, and a
   record or transcript is left alone.
+
+### 4.13 Write for the reader
+
+The prose duty, defined once for every seat and every brief. It covers
+every document a person will read: delta reports and the backlog, design
+records and increment plans, verdicts, review and decision records,
+rederivation records, PR packages, closure records.
+
+- Concise simple plain english. Each entry leads with one sentence saying
+  what happened and why.
+- An identifier is a pointer, not a noun: pair it with its plain name at
+  first use ("the rotary increment (`inc-025`)"), and never leave an
+  identifier chain where a sentence should stand.
+- Digests, counts, and checker output live in run state or the check's
+  own file, cited in one line, never interleaved with the narrative.
+- Every number lives in exactly one file that everything else cites.
+- A reader learns what happened, what changed, and what is still open in
+  one pass.
+- Superseded prose is deleted in place with one revision-log line, never
+  archived.
+
+Exempt: working state written for the next agent — attempt, lease,
+measurement, increment, index, and intake-preflight records, and run
+state itself. The cap in §4.12 is a separate duty with a separate scope:
+this one covers every reader-facing `.md`, the cap covers living
+documents only.
+
+Enforcement: `write-for-reader.sh` re-presents this duty on document
+writes (advisory, never blocking) and names an over-cap document with its
+size; the adversarial reviewer treats a reader-facing artifact that fails
+either duty as a material finding.

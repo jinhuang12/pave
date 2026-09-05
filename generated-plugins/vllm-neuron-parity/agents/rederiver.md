@@ -98,8 +98,9 @@ benchmark skill's provisioning STOP gate (P6).
 
 ## Run-wide prohibitions that bind you
 
-- P2 — never clear or bypass the shared Neuron compile cache, and never
-  propose a cache clear as a remedy.
+- P2 — never clear or bypass a shared Neuron compile cache — a vLLM compile-cache root
+  or the kernel intermediate cache (`references/artifact-layout.md` §4.10) —
+  and never propose a cache clear as a remedy.
 - P3 — no `cp -a` venv cloning; no pip write into `/opt`. A revised
   approach that depends on either is not a viable approach.
 - P5 — the GPU baseline is read-only; no autonomous reboot or reset.

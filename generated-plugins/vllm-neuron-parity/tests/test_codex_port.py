@@ -49,7 +49,7 @@ class PackageStructureTests(unittest.TestCase):
         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        self.assertEqual(manifest["version"], "1.4.0")
+        self.assertEqual(manifest["version"], "1.5.0")
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())
@@ -272,6 +272,24 @@ class HookSmokeTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertIn("BLOCKED", result.stderr)
 
+    def test_compile_cache_guard_covers_the_shared_kernel_cache(self) -> None:
+        # The kernel toolchain writes /var/tmp/nki-intermediate-cache outside
+        # every cache root the run can set, and it can hold another tenant's
+        # artifacts: a delete is refused, a rename aside is not.
+        blocked = self._run_guard(
+            "compile-cache",
+            "rm -rf /var/tmp/nki-intermediate-cache",
+            dict(ACTIVE_STATE),
+        )
+        self.assertEqual(blocked.returncode, 2, blocked.stderr)
+        self.assertIn("rename it aside", blocked.stderr)
+        allowed = self._run_guard(
+            "compile-cache",
+            "mv /var/tmp/nki-intermediate-cache /var/tmp/nki-cache.aside",
+            dict(ACTIVE_STATE),
+        )
+        self.assertEqual(allowed.returncode, 0, allowed.stderr)
+
     def test_blocking_guards_allow_inactive_and_terminal_runs(self) -> None:
         cases = {
             "protected-branch": "git push origin HEAD:main",
@@ -333,9 +351,17 @@ class RevisionLedgerTests(unittest.TestCase):
         )
 
     def test_packaged_root_verifies(self) -> None:
+        # Head-agnostic on purpose: a pinned revision number would break at
+        # every future landing, which is a test that fails for being correct.
+        # The invariant is that verify agrees with the ledger's last entry.
+        import yaml
+
         result = self._run("verify", str(PLUGIN_ROOT))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("revision 4", result.stdout)
+        entries = yaml.safe_load((PLUGIN_ROOT / "revisions.yaml").read_text())["entries"]
+        head = entries[-1]
+        self.assertIn(f"revision {head['revision']}", result.stdout)
+        self.assertIn(head["digest_after"], result.stdout)
 
     def test_install_seeds_a_project_root_that_verifies(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -353,28 +379,40 @@ class RevisionLedgerTests(unittest.TestCase):
         import yaml
 
         entries = yaml.safe_load((PLUGIN_ROOT / "revisions.yaml").read_text())["entries"]
-        self.assertEqual([entry["revision"] for entry in entries], [0, 1, 2, 3, 4])
-        self.assertEqual(
-            [entry["kind"] for entry in entries],
-            ["graph", "graph", "binding", "graph", "binding"],
-        )
+        # The ledger is append-only and numbered from the delivered graph, so
+        # these hold at every head. A landed revision adds an entry; it never
+        # renumbers, reorders, or rewrites one.
+        revisions = [entry["revision"] for entry in entries]
+        self.assertEqual(revisions, list(range(len(entries))))
+        self.assertGreaterEqual(len(entries), 5)
+        self.assertEqual(entries[0]["kind"], "graph")
+        for entry in entries:
+            self.assertIn(entry["kind"], {"graph", "binding"})
         self.assertIsNone(entries[0]["digest_before"])
         self.assertTrue(entries[0]["digest_after"].startswith("sha256:"))
         # Each landing chains from the previous head.
-        for later in range(1, 5):
+        for later in range(1, len(entries)):
             self.assertEqual(entries[later]["digest_before"], entries[later - 1]["digest_after"])
+        # History that cannot move: the delivered lean successors 1-4.
+        self.assertEqual(
+            [entry["kind"] for entry in entries[:5]],
+            ["graph", "graph", "binding", "graph", "binding"],
+        )
         # Revision 2 is the field root's live graph (the 1.3.x root the README migrates).
         self.assertEqual(
             entries[2]["digest_after"],
             "sha256:e9f063e2cde9752a0f530c4ceb9fe425873df2777f5c9dfa4135bc209e444e7c",
         )
-        # Revision 4 is the packaged head: the gate-2 loop bound and its instruments.
+        # Revision 4 is the gate-2 loop bound and its instruments.
         self.assertEqual(
             entries[4]["digest_after"],
             "sha256:a81bb97d1b6842cdaee8ea85b3325304e02a44d551180fc2b4cc50e598b613b3",
         )
-        for revision in (1, 2, 3, 4):
-            self.assertTrue((PLUGIN_ROOT / "history" / f"v{revision}.patch").is_file())
+        # Every landing keeps its patch, so any revision can be read back.
+        for entry in entries[1:]:
+            self.assertTrue(
+                (PLUGIN_ROOT / "history" / f"v{entry['revision']}.patch").is_file()
+            )
         # The manifest and the freeze script the ledger replaced are gone.
         self.assertFalse((PLUGIN_ROOT / "workflow-manifest.yaml").exists())
         self.assertFalse((PLUGIN_ROOT / "scripts" / "freeze_revision.py").exists())

@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# P2 -- Never clear the shared Neuron compile cache:
+# P2 -- Never clear a shared Neuron compile cache. Four roots are in the class:
 #   $VLLM_CACHE_ROOT/neuron/compile_cache
 #   ~/.cache/vllm/neuron/compile_cache
 #   /var/tmp/neuron-compile-cache
+#   /var/tmp/nki-intermediate-cache   (kernel artifacts, written outside every
+#                                      cache root you can set; may hold a
+#                                      co-tenant's kernels. Irreversible verbs
+#                                      are refused; `mv` is NOT, because
+#                                      renaming aside is the sanctioned clear)
 #
 # Enforcement rung: BLOCKING PreToolUse hook (enforcement-record.md §1, P2),
 # paired with the delegate guardrail wrapper. Blocking is justified there
@@ -53,12 +58,21 @@ DESTRUCTIVE = {
     "shred": "destroys", "truncate": "truncates", "mv": "moves away",
     "trash": "removes",
 }
+# The kernel toolchain writes its intermediate cache outside every cache root
+# the run can set, and it can hold artifacts of another tenant. A delete there
+# is irreversible; a rename is the sanctioned clear, so "mv" is left out.
+KERNEL_CACHE_PATTERN = re.compile(r"nki-intermediate-cache")
+IRREVERSIBLE = {k: v for k, v in DESTRUCTIVE.items() if k != "mv"}
 
 
 def touches_cache(tok):
     if not isinstance(tok, str):
         return False
     return any(p.search(tok) for p in CACHE_PATTERNS)
+
+
+def touches_kernel_cache(tok):
+    return isinstance(tok, str) and bool(KERNEL_CACHE_PATTERN.search(tok))
 
 
 def segments(text):
@@ -94,20 +108,26 @@ hits = []
 for toks in segments(command):
     exe, rest = head(toks)
     cache_toks = [t for t in rest if touches_cache(t)]
+    kernel_toks = [t for t in rest if touches_kernel_cache(t)]
+    any_toks = cache_toks + kernel_toks
     if exe in DESTRUCTIVE and cache_toks:
         hits.append("`%s` %s the shared Neuron compile cache (%s)"
                     % (exe, DESTRUCTIVE[exe], cache_toks[0]))
-    elif exe == "find" and cache_toks:
+    elif exe in IRREVERSIBLE and kernel_toks:
+        hits.append("`%s` %s the shared Neuron kernel intermediate cache "
+                    "(%s); rename it aside instead"
+                    % (exe, IRREVERSIBLE[exe], kernel_toks[0]))
+    elif exe == "find" and any_toks:
         if any(f in rest for f in ("-delete", "-exec", "-execdir", "-ok")):
-            hits.append("`find ... -delete/-exec` clears the shared Neuron "
-                        "compile cache (%s)" % cache_toks[0])
-    elif exe in ("git",) and rest[:1] == ["clean"] and cache_toks:
-        hits.append("`git clean` clears the shared Neuron compile cache (%s)"
-                    % cache_toks[0])
-    elif exe == "rsync" and cache_toks and any(
+            hits.append("`find ... -delete/-exec` clears a shared Neuron "
+                        "cache (%s)" % any_toks[0])
+    elif exe in ("git",) and rest[:1] == ["clean"] and any_toks:
+        hits.append("`git clean` clears a shared Neuron compile cache (%s)"
+                    % any_toks[0])
+    elif exe == "rsync" and any_toks and any(
             t.startswith("--delete") for t in rest):
-        hits.append("`rsync --delete` clears the shared Neuron compile cache "
-                    "(%s)" % cache_toks[0])
+        hits.append("`rsync --delete` clears a shared Neuron compile cache "
+                    "(%s)" % any_toks[0])
 
 if hits:
     print("; ".join(sorted(set(hits))))
@@ -117,15 +137,20 @@ if hits:
 cat >&2 <<EOF
 [compile-cache-guard] BLOCKED by prohibition P2: $REASON.
 
-The Neuron compile cache is shared with every co-tenant on the host. Clearing
-it costs everyone hours of recompilation, and it is irreversible. Protected
-roots: \$VLLM_CACHE_ROOT/neuron/compile_cache,
-~/.cache/vllm/neuron/compile_cache, /var/tmp/neuron-compile-cache.
+These caches are shared with every co-tenant on the host. Clearing one
+costs everyone hours of recompilation, and it is irreversible. Protected roots:
+\$VLLM_CACHE_ROOT/neuron/compile_cache, ~/.cache/vllm/neuron/compile_cache,
+/var/tmp/neuron-compile-cache, and /var/tmp/nki-intermediate-cache -- the
+kernel intermediate cache, which sits outside every cache root you can set and
+can hold another tenant's kernel artifacts.
 
 Do this instead: a bring-up remedy that reads "clear the compile cache" is
 intercepted, not followed. Point the run at a private cache root you own for
 this campaign, or record the recompile-suspected symptom as an attempt-record
 observation and take a declared route (host recovery, or the breaker into
-re-derivation). Never widen the blast radius to shared state.
+re-derivation). Never widen the blast radius to shared state. Inside a root you
+own, rename a partition aside rather than deleting it -- that keeps every new
+artifact provably post-change (references/measurement-pitfalls.md, "Control
+compile-cache state").
 EOF
 exit 2

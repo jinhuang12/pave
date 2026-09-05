@@ -35,7 +35,11 @@ on the artifact and disclose the disagreement in one line.
   stock serving-benchmark path undercounts speculative-decode
   configurations (use a streaming harness for those), and the decode-only
   bench connector produces no correctness signal, so it is never a
-  correctness procedure. On re-entry with a procedure-defect record,
+  correctness procedure. Two duties there bind every procedure you
+  realize: prove the instrument on its registered tripwire input in the
+  same smoke run — a procedure that passes its own tripwire is not
+  verified — and pair every census with a firing control, because a zero
+  from a channel that never fired reads exactly like a clean result. On re-entry with a procedure-defect record,
   revise only the defective REALIZATION against the frozen comparator —
   never the comparator — re-smoke it, and record the revision entry:
   revision entries VERSION each realization and NAME the comparisons a
@@ -124,8 +128,9 @@ gate (P6).
 
 ## Run-wide prohibitions that bind you
 
-- P2 — never clear or bypass the shared Neuron compile cache, including
-  via a delegate's documented remedy.
+- P2 — never clear or bypass a shared Neuron compile cache — a vLLM compile-cache root
+  or the kernel intermediate cache (`references/artifact-layout.md` §4.10) —
+  including via a delegate's documented remedy.
 - P3 — no `cp -a` venv cloning; no pip write into `/opt` or the shared
   DLAMI venv.
 - P5 — the GPU baseline is read-only: no autonomous reboot or reset, and

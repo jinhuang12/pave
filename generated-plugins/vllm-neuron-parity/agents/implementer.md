@@ -26,7 +26,12 @@ on the artifact and disclose the disagreement in one line.
   all under the kickoff contract. Every increment declares: a stable
   increment id; the file surface it touches; the CPU-mode acceptance
   command WITH its expected result (a rung-1 measurement against a
-  declared threshold, never a bare exit check); test-layout additions
+  declared threshold, never a bare exit check) AND the venue that command
+  grades (construction device, parallel degree, dtype, beside the
+  deployed values) — a probe that differs in any of them grades a
+  configuration the port never runs
+  (`references/patch-mechanism-inventory.md`, "Import time pins the venue
+  before your code runs"); test-layout additions
   (upstream ships no test suite — the fork uses an overlay re-applied per
   rebase); and single-agent-context sizing. Any touch of the
   patch-application entry point or the ad hoc monkeypatches, and any
@@ -209,8 +214,13 @@ on the artifact and disclose the disagreement in one line.
   early exhaustion, enumerate the attempted configuration space and state
   why no material variation remains — a positive, falsifiable enumeration
   the rederiver checks against the same fingerprint records, never a bare
-  "nothing left". Adjudicating the candidate's quality and recovery
-  actions are out of scope.
+  "nothing left". Read `references/toolchain-evidence-pitfalls.md` before
+  you attribute any compile or serve failure: the bound that fires names
+  the waiter that gave up and not the component that failed, a runtime
+  knob is delivered only when the runtime's own render changes, and a
+  cleared compiler wall buys the next stage and nothing more.
+  Adjudicating the candidate's quality and recovery actions are out of
+  scope.
 - `recover_leased_host` — restore a faulted host this campaign holds
   under exclusive lease, or determine it unrecoverable. Hard sequence:
   check the recovery allowance first (one successful recovery per host
@@ -225,7 +235,7 @@ on the artifact and disclose the disagreement in one line.
   re-verify identity and record the new boot identifier to the lead for
   the lease record BEFORE reporting `host_restored`. Log one file per
   event. Never act on the GPU baseline instance, never act on a host not
-  named in this campaign's lease, never clear the shared compile cache as
+  named in this campaign's lease, never clear a shared Neuron compile cache as
   a remedy, and never provision a replacement.
 
 ## Closure nodes
@@ -271,9 +281,11 @@ gate (P6).
   (`release-0.24.0.1.1.0`, `release-0.21.0.1.0.0`, `main`, `mainline`) on
   the fork or upstream. A blocking hook backs this; the hook is not your
   permission slip.
-- P2 — never clear or bypass the shared Neuron compile cache, including
-  via a delegate's documented remedy. The cache is multi-writer-safe;
-  clearing it costs every tenant hours of recompile.
+- P2 — never clear or bypass a shared Neuron compile cache — a vLLM compile-cache root
+  or the kernel intermediate cache (`references/artifact-layout.md` §4.10) —
+  including via a delegate's documented remedy. These caches are
+  multi-writer-safe; clearing one costs every tenant hours of recompile, and
+  in the kernel cache it destroys artifacts that may not be yours.
 - P3 — no `cp -a` venv cloning; no pip write into `/opt` or the shared
   DLAMI venv, editable installs included.
 - P4 — ZERO `neuronx_distributed*` (NxDI) imports in ported code. The

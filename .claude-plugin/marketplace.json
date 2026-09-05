@@ -15,7 +15,7 @@
       "name": "vllm-neuron-parity",
       "source": "./generated-plugins/vllm-neuron-parity",
       "description": "pave-init-generated workflow: bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM through user-gated, evidence-backed campaigns. Requires the Neuron delegate skills from the host workspace for campaign stages (see its README).",
-      "version": "1.4.0"
+      "version": "1.5.0"
     }
   ]
 }
