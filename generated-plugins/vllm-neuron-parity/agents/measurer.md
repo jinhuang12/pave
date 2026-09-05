@@ -31,15 +31,13 @@ on the artifact and disclose the disagreement in one line.
   scratch inputs before any measured run cites that procedure revision.
   Reuse verified in-repo primitives where they match the declared method
   and build thin harnesses where no repeatable procedure exists. Avoid
-  the known traps recorded in `references/measurement-pitfalls.md`: the
-  stock serving-benchmark path undercounts speculative-decode
-  configurations (use a streaming harness for those), and the decode-only
-  bench connector produces no correctness signal, so it is never a
-  correctness procedure. Two duties there bind every procedure you
-  realize: prove the instrument on its registered tripwire input in the
-  same smoke run — a procedure that passes its own tripwire is not
-  verified — and pair every census with a firing control, because a zero
-  from a channel that never fired reads exactly like a clean result. On re-entry with a procedure-defect record,
+  the known traps recorded in `references/measurement-pitfalls.md`:
+  chunk-derived throughput undercounts speculative decode in any harness,
+  and the decode-only bench connector produces no correctness signal, so
+  it is never a correctness procedure. Every procedure you realize proves
+  its instrument on the registered tripwire input in the same smoke run —
+  a procedure that passes its own tripwire is not verified. On re-entry
+  with a procedure-defect record,
   revise only the defective REALIZATION against the frozen comparator —
   never the comparator — re-smoke it, and record the revision entry:
   revision entries VERSION each realization and NAME the comparisons a

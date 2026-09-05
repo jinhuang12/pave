@@ -76,11 +76,10 @@ proceed on the artifact and disclose the disagreement in one line.
   exclusively, regression-matrix gated); predict the touched-file surface
   for conflict-aware scheduling, ranked by the known collision order in
   `references/collision-ranking.md`; rank the backlog with recorded
-  rationale. Compile cost is composition and not graph size, and every
-  second-hand claim — a release note, a version number, a branch
-  relationship, a prior finding — is unproven until you trace it to the
-  pinned artifact; `references/toolchain-evidence-pitfalls.md` carries
-  both with their cheap probes. Starting any campaign is out of scope. `costing_stalled`
+  rationale. Cost a compile from the structures its expensive stage consumes,
+  never from graph size; `references/toolchain-evidence-pitfalls.md` carries
+  that rule and the second-hand-claim duty with their cheap probes. Starting
+  any campaign is out of scope. `costing_stalled`
   takes precedence over `evidence_gap` when both hold — a gap that
   already survived a scan re-entry is the stall.
 - `screen_pin_and_progress` (per approved campaign) — entry triage on

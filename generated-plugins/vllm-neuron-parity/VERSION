@@ -1,4 +1,45 @@
-version: 1.5.1
+version: 1.5.2
+
+## 1.5.2 — 2026-09-05
+
+Restore two measured facts release 1.5.1 dropped, fix the dangling referent in
+the toolchain header, and collapse release 1.5.0's restatements to pointers at
+their authority.
+
+Restored at the cited pin, not new campaign evidence: the compile-cost trap
+again carries the measured front-end share (about 5% of a good compile and
+under 0.5% of a failing one, L-036), and the import-order duty again carries
+its consequence — a late override freezes a platform constant at the wrong
+value and corrupts numerics with no error (L-341).
+
+Removed: §4.10's copy of the throwaway-worktree duty that §4.6 states with its
+reason, and five glosses that restated the toolchain, measurement, and
+patch-mechanism references beside their own pointers — four in seat contracts,
+one in the lead's stage-7 row. Each site keeps its pointer plus at most one
+clause that changes what its reader does, and the three codex mirrors carry the
+same text. References, seats, and lead lose 7 lines and 89 words; no pinned
+ceiling is raised and every pinned file stays under its cap.
+
+Two clauses had drifted from the reference they cite, so this release is also a
+correctness fix. The venue gloss named three of that reference's five venue
+components and misnamed one ("construction device" for "construction context"),
+so a seat that trusted it would declare an incomplete venue; it is gone and the
+pointer names the section. The measurer's spec-decode clause blamed the stock
+benchmark path, which the reference records as unverified at this pin, and
+prescribed the streaming harness that had itself reproduced the undercount, so
+a measurer that trusted it built the anti-pattern. It now carries the
+reference's own mechanism instead: chunk-derived throughput undercounts
+speculative decode in any harness. The same wrong guidance survives in one more
+place, an activity of `realize_measurement_procedures` in the graph; a release
+cannot touch the graph, so that copy is owed a graph revision and is recorded
+here until it lands.
+
+Nothing else moves: the graph, the ledger at revision 5, state authority,
+hooks, seats, models, and efforts are unchanged, so this release adds no ledger
+revision. Test logic is unchanged — only the expected version pin in
+`tests/test_codex_port.py` moves. Both plugin manifests and the marketplace
+entry declare 1.5.2. Usage summaries in releases 1.2.0–1.5.1 and ledger
+revisions 1–5 record no new field evidence for this layer to answer.
 
 ## 1.5.1 — 2026-09-05
 

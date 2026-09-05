@@ -392,12 +392,12 @@ serving checkout that untracked build artifacts make permanently
 git-dirty; and instance-store devices that are encrypted at rest, whose
 never-written blocks read back as pseudorandom bytes. The duties that
 follow: rename a cache partition aside inside a root you own and never
-delete a shared one (P2's hook refuses both shared roots); run any tool
-that gates on tree cleanliness in a fresh throwaway worktree at the
-commit under test (§4.6); and prove a device unclaimed from the absence
-of a partition table, filesystem signature, holder, and mount, swap or
-fstab entry, plus unchanged write counters across a quiet window — never
-from reading it back as zeros.
+delete a shared one (P2's hook refuses both shared roots); §4.6's
+throwaway-worktree duty for any tool that gates on tree cleanliness; and
+prove a device unclaimed from the absence of a partition table,
+filesystem signature, holder, and mount, swap or fstab entry, plus
+unchanged write counters across a quiet window — never from reading it
+back as zeros.
 
 ### 4.11 Cross-run artifacts
 

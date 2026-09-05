@@ -1,0 +1,234 @@
+{
+ "source": "Workflow wf_e2de94b4-e86 (task w9l0oupi7), independent adversarial review of the round-1 release-1.5.2.patch; 5 finders, 9 raw, 3-lens refute (evidence/materiality/counter), majority survival",
+ "reviewed_patch": "round 1 (identical to round 2 except the VERSION entry)",
+ "counts": {
+  "finders": 5,
+  "raw": 9,
+  "confirmed": 4,
+  "rejected": 5
+ },
+ "confirmed": [
+  {
+   "id": "copies-1",
+   "severity": "HIGH",
+   "category": "mirror",
+   "title": "Kept measurer clause contradicts its authority on the spec-decode remedy",
+   "file": "generated-plugins/vllm-neuron-parity/agents/measurer.md",
+   "line": 35,
+   "claim": "Updater kept this clause (proposal.md judgment 4). Authority disagrees: measurement-pitfalls.md:46 titles the trap \"any harness, stock or custom\"; :48 says \"Avoiding the stock tool does not avoid the trap\" and the stock tool is \"unverified at this pin\"; :50 prescribes end-to-end latency over /v1/completions, not a streaming harness.",
+   "votes": [
+    {
+     "lens": "evidence",
+     "refuted": false,
+     "confidence": 0.9
+    },
+    {
+     "lens": "materiality",
+     "refuted": false,
+     "confidence": 0.88
+    },
+    {
+     "lens": "counter",
+     "refuted": false,
+     "confidence": 0.87
+    }
+   ]
+  },
+  {
+   "id": "copies-2",
+   "severity": "HIGH",
+   "category": "changelog",
+   "title": "VERSION claim \"every pinned ceiling gains headroom\" is false",
+   "file": "generated-plugins/vllm-neuron-parity/VERSION",
+   "line": 20,
+   "claim": "toolchain-evidence-pitfalls.md goes 367 -> 368 lines against its 400 ceiling (test_document_ceilings.py:36), so it LOSES headroom; artifact-layout (477), patch-mechanism-inventory (160) and SKILL.md (460) gain none. Only 3 of 7 gain. proposal.md repeats the claim one line after its own table records \"+1\".",
+   "votes": [
+    {
+     "lens": "evidence",
+     "refuted": false,
+     "confidence": 0.96
+    },
+    {
+     "lens": "materiality",
+     "refuted": false,
+     "confidence": 0.93
+    },
+    {
+     "lens": "counter",
+     "refuted": false,
+     "confidence": 0.8
+    }
+   ]
+  },
+  {
+   "id": "changelog-1",
+   "severity": "HIGH",
+   "category": "changelog",
+   "title": "VERSION 1.5.2 claim \"every pinned ceiling gains headroom\" is false",
+   "file": "generated-plugins/vllm-neuron-parity/VERSION",
+   "line": 20,
+   "claim": "Recomputed over all 13 CEILINGS entries: only 3 gain headroom (implementer 350->345, measurer 171->169, investigator 179->178), 9 are unchanged, and references/toolchain-evidence-pitfalls.md LOSES headroom (367->368, so 33->32 under its 400 cap). proposal.md:52 repeats it. \"none is raised\" and \"-7 lines and 84 words\" are exact (21,546->21,462 words).",
+   "votes": [
+    {
+     "lens": "evidence",
+     "refuted": false,
+     "confidence": 0.97
+    },
+    {
+     "lens": "materiality",
+     "refuted": false,
+     "confidence": 0.95
+    },
+    {
+     "lens": "counter",
+     "refuted": false,
+     "confidence": 0.9
+    }
+   ]
+  },
+  {
+   "id": "changelog-2",
+   "severity": "LOW",
+   "category": "changelog",
+   "title": "Entry says tests are unchanged while the patch edits a test file",
+   "file": "generated-plugins/vllm-neuron-parity/VERSION",
+   "line": 24,
+   "claim": "The same patch edits tests/test_codex_port.py:52 (\"1.5.1\" -> \"1.5.2\"), so \"tests ... are unchanged\" is false; only test LOGIC was in scope (brief.md:3) and brief.md:37 required this bump. That hunk and the marketplace.json hunk are the two hunks the entry describes nowhere. 1.5.1's entry (VERSION:52) listed graph/ledger/state/hooks/model bindings and omitted \"tests\".",
+   "votes": [
+    {
+     "lens": "evidence",
+     "refuted": false,
+     "confidence": 0.9
+    },
+    {
+     "lens": "materiality",
+     "refuted": false,
+     "confidence": 0.62
+    },
+    {
+     "lens": "counter",
+     "refuted": true,
+     "confidence": 0.6
+    }
+   ]
+  }
+ ],
+ "rejected": [
+  {
+   "id": "copies-3",
+   "severity": "LOW",
+   "title": "VERSION discloses four gloss removals; the patch removes five",
+   "votes": [
+    {
+     "lens": "evidence",
+     "refuted": false,
+     "reason": "Confirmed in scratch rebuild. implementer.md:31-32 (in cited 29-33) lost the quoted sentence, citing patch-mechanism-inventory.md, not toolchain/measurement refs. Real hunk count: implementer.md has 2 gloss removals, investigator.md 1, measurer.md 1 (=4 in seat contracts) + SKILL.md stage-7 row 1 = "
+    },
+    {
+     "lens": "materiality",
+     "refuted": true,
+     "reason": "\"Four\" is scoped to toolchain/measurement-reference glosses; exactly four such sites exist (implementer attempt-loop, investigator, measurer = 3 seats; SKILL.md stage 7). implementer.md:29-33 restated patch-mechanism-inventory, outside that scope, and is disclosed by VERSION:6 and by VERSION:20's ta"
+    },
+    {
+     "lens": "counter",
+     "refuted": true,
+     "reason": "The claim is scoped and true: exactly four glosses restated the toolchain/measurement references. The venue gloss restated a THIRD reference (patch-mechanism-inventory.md), so excluding it is correct, not false. It is accounted for: VERSION:6 general summary covers it, the 7-line/84-word total inclu"
+    }
+   ]
+  },
+  {
+   "id": "copies-4",
+   "severity": "LOW",
+   "title": "Sibling copy of the rewritten header trigger list still omits one trigger",
+   "votes": [
+    {
+     "lens": "evidence",
+     "refuted": true,
+     "reason": "Quote exists, but premises fail. The patch did not rewrite the trigger list: the only line-8 change is \"Read it\" -> \"Read this file\" plus rewrap; the list is byte-identical BASE vs RESULT and still names the compile/serve trigger. implementer.md:215 states that trigger itself, so it does not depend "
+    },
+    {
+     "lens": "materiality",
+     "refuted": true,
+     "reason": "Harm doesn't materialize. implementer.md:216 routes to the AUTHORITY toolchain-evidence-pitfalls.md, which keeps all 4 triggers incl \"attribute a compile or serve failure\" \u2014 not to the measurement gloss \u2014 so no fact is lost. The patch only changed \"Read it\"->\"Read this file\"; it never rewrote the tr"
+    },
+    {
+     "lens": "counter",
+     "refuted": true,
+     "reason": "Dependency claim is wrong: implementer.md:215 cites toolchain-evidence-pitfalls.md directly for the \"attribute\" trigger, not measurement-pitfalls.md; that authority is intact post-1.5.2 (only \"it\"->\"this file\" changed). measurement-pitfalls.md:3 is unchanged by the patch and was never identical to t"
+    }
+   ]
+  },
+  {
+   "id": "changelog-3",
+   "severity": "LOW",
+   "title": "\"four glosses ... three in seat contracts\" undercounts the collapsed sites",
+   "votes": [
+    {
+     "lens": "evidence",
+     "refuted": true,
+     "reason": "Quote absent. RESULT VERSION:16-18 reads \"five glosses ... four in seat contracts, one in the lead's stage-7 row\" \u2014 exactly the five sites the finding enumerates. The venue gloss (implementer.md:29) is also explicitly named at VERSION:18-21. No \"three in seat contracts\" or \"four glosses\" string exis"
+    },
+    {
+     "lens": "materiality",
+     "refuted": true,
+     "reason": "Finding misquotes the changelog. VERSION says \"five glosses ... four in seat contracts, one in the lead's stage-7 row\" \u2014 not \"four glosses / three in seat contracts.\" Five = 4 seat sites + 1 lead, matching the finding's own list, so no undercount. And the venue gloss (implementer.md:29) IS named in "
+    },
+    {
+     "lens": "counter",
+     "refuted": true,
+     "reason": "Finding's quote doesn't exist in the file. VERSION:17-18 actually reads \"four in seat contracts, one in the lead's stage-7 row\" (not \"three\"), summing to 5 = the 4 seat sites + 1 lead site the claim itself lists. The count is already correct; \"three\" only appears in an unrelated sentence about the v"
+    }
+   ]
+  },
+  {
+   "id": "refactor-1",
+   "severity": "LOW",
+   "title": "VERSION Removed-list omits change 6 (venue-gloss removal)",
+   "votes": [
+    {
+     "lens": "evidence",
+     "refuted": true,
+     "reason": "The finding's quote (\"four glosses...toolchain and measurement references\") does not exist in the RESULT. Actual VERSION:16 says \"five glosses...toolchain, measurement, and patch-mechanism references,\" and lines 18-21 devote a full sentence to the venue gloss. Change 6 IS enumerated by count, catego"
+    },
+    {
+     "lens": "materiality",
+     "refuted": true,
+     "reason": "Real VERSION text says five glosses (toolchain, measurement, patch-mechanism), then: The venue gloss went because its list named three of five venue components and misnamed one (construction device for construction context). This explicitly names/explains change 6, not just the generic opening. The "
+    },
+    {
+     "lens": "counter",
+     "refuted": true,
+     "reason": "The finding's quote is not in the artifact. VERSION says \"five glosses\", names patch-mechanism, splits them \"four in seat contracts, one in the lead's stage-7 row\", then spends three lines on change 6 itself (venue gloss, its misnamed component, why the pointer is the fix). Count is exact: implement"
+    }
+   ]
+  },
+  {
+   "id": "refactor-2",
+   "severity": "LOW",
+   "title": "Measurer two-trap deferral thin under equivalence rule",
+   "votes": [
+    {
+     "lens": "evidence",
+     "refuted": true,
+     "reason": "Quote exists as cited, but the premise \"restatement is correct\" is false. Trap-1's restatement states as fact (\"stock serving-benchmark path undercounts...\") what pitfalls.md \u00a746 flags as unverified for the stock tool. The copy misstates its authority, so the equivalence-rule defense rests on a fals"
+    },
+    {
+     "lens": "materiality",
+     "refuted": false,
+     "reason": "Cosmetic, not refuted. The :34-38 trap gloss is byte-identical to base 2c1454c \u2014 the patch hunk starts at \"Two duties there bind\", so nothing there was added or changed. Brief item 8 scoped only :38-42, and proposal.md:85 discloses the deferral. No wrong rule reachable, no fact lost, no false change"
+    },
+    {
+     "lens": "counter",
+     "refuted": true,
+     "reason": "Patch never touches the two traps at :34-38; the -U0 diff changes only the \"Two duties\" block (item-8 tripwire/firing-control), cut to pointer+one clause as asked. Traps are unchanged pre-existing context, outside item-8 scope; brief says do not re-litigate 1.5.1 scoping. No copy \"now\" contradicts a"
+    }
+   ]
+  }
+ ],
+ "lead_disposition": {
+  "copies-2": "already fixed in round 2 (VERSION headroom line rewritten)",
+  "changelog-1": "already fixed in round 2",
+  "copies-1": "folded into round 3 (measurer.md:33-38 contradicts measurement-pitfalls.md:46-50)",
+  "changelog-2": "folded into round 3 (VERSION wording: tests pin and marketplace hunk)"
+ }
+}

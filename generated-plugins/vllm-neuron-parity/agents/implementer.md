@@ -27,9 +27,7 @@ on the artifact and disclose the disagreement in one line.
   increment id; the file surface it touches; the CPU-mode acceptance
   command WITH its expected result (a rung-1 measurement against a
   declared threshold, never a bare exit check) AND the venue that command
-  grades (construction device, parallel degree, dtype, beside the
-  deployed values) — a probe that differs in any of them grades a
-  configuration the port never runs
+  grades beside the deployed values
   (`references/patch-mechanism-inventory.md`, "Import time pins the venue
   before your code runs"); test-layout additions
   (upstream ships no test suite — the fork uses an overlay re-applied per
@@ -214,13 +212,10 @@ on the artifact and disclose the disagreement in one line.
   early exhaustion, enumerate the attempted configuration space and state
   why no material variation remains — a positive, falsifiable enumeration
   the rederiver checks against the same fingerprint records, never a bare
-  "nothing left". Read `references/toolchain-evidence-pitfalls.md` before
-  you attribute any compile or serve failure: the bound that fires names
-  the waiter that gave up and not the component that failed, a runtime
-  knob is delivered only when the runtime's own render changes, and a
-  cleared compiler wall buys the next stage and nothing more.
-  Adjudicating the candidate's quality and recovery actions are out of
-  scope.
+  "nothing left". Read `references/toolchain-evidence-pitfalls.md` before you
+  attribute any compile or serve failure: the bound that fires names the
+  waiter that gave up and not the component that failed. Adjudicating the
+  candidate's quality and recovery actions are out of scope.
 - `recover_leased_host` — restore a faulted host this campaign holds
   under exclusive lease, or determine it unrecoverable. Hard sequence:
   check the recovery allowance first (one successful recovery per host

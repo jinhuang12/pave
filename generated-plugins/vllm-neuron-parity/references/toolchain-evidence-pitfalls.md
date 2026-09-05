@@ -5,8 +5,8 @@ For verdict instruments, read `references/measurement-pitfalls.md`.
 These observations describe the cited pins. Apply a remedy when the current
 path has the same failure mechanism; a past fix alone does not establish that.
 
-Read it before you credit a compiler flag, cost a compile, attribute a compile
-or serve failure, or localize a device wedge.
+Read this file before you credit a compiler flag, cost a compile, attribute a
+compile or serve failure, or localize a device wedge.
 
 Citation classes used below:
 - A construct named without a line number (a flag, an env knob, an assertion
@@ -100,8 +100,9 @@ about a pass that may never have started.
 **Trap:** At the cited pin, expensive compiles depended on custom-call
 composition, shared-device-memory tensors, repeated kernel call sites,
 collective partitions, retained access-pattern caches, and expansion passes.
-Raw graph bytes or instruction counts did not capture those costs. The
-observed parallelism knobs controlled different work: one limited threads;
+Raw graph bytes or instruction counts did not capture those costs, and the
+front end measured about 5% of a good compile and under 0.5% of a failing one.
+The observed parallelism knobs controlled different work: one limited threads;
 another replicated front-end memory per worker.
 
 **Rule:** Rank compile buckets by the structures the expensive stage consumes.
