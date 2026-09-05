@@ -329,6 +329,21 @@ pave:
         first-sighting signals) before adjudication begins?
       evaluated_by: lead
       on_failure_route: stabilize_and_package_evidence
+    acceptance_threshold_evaluated:
+      style: mechanical
+      question: Does every evidence bundle under verdict record at least one pre-registered
+        threshold actually evaluated - the value read, the threshold it was compared
+        against, and the result of that comparison - together with the negative-control
+        result from the procedure's smoke record?
+      evaluated_by: lead
+      on_failure_route: stabilize_and_package_evidence
+      rationale: A comparator's exit status is not an evaluation. A comparator can
+        exit zero with an empty evaluated-threshold list when the criterion it needed
+        was never recorded, so a gate that reads the exit code passes silently on
+        the one case that matters, and the artifact reads like a pass, which is why
+        prose and review are not enough. The lead reads the bundle's own evaluated-threshold
+        record and the smoke negative control, so this costs no seat and no new
+        measurement.
     measurer_not_adjudicator:
       style: mechanical
       question: Is the adjudicating agent identity distinct from every agent that
@@ -385,7 +400,10 @@ pave:
       style: mechanical
       question: Does every declared measurement for this campaign's route have
         a runnable procedure with a passing smoke record and a fixed invocation,
-        recorded before any measured run that cites that procedure revision?
+        recorded before any measured run that cites that procedure revision -
+        and does the same smoke record show the procedure FAILING on its registered
+        tripwire input, the negative control that proves this instrument can fail
+        at all?
       evaluated_by: lead
       on_failure_route: realize_measurement_procedures
     revision_stamped:
@@ -1244,7 +1262,12 @@ pave:
         procedure references; a criterion that cannot be registered adjudicably
         is surfaced, never reworded, because kickoff-declared criteria change
         only by explicit user decision. Record known measurement-tool pitfalls
-        per procedure as pre-emptions the measurement design must honor. Inputs
+        per procedure as pre-emptions the measurement design must honor. Register
+        each criterion's instrument-liveness pair beside the criterion - the value
+        that must appear as evaluated in the evidence, and a tripwire input the
+        procedure must fail on - because an instrument nobody has seen fail grades
+        nothing, and a criterion whose instrument has no such tripwire is surfaced
+        as unadjudicable rather than registered. Inputs
         are route- and lap-conditional - backport-route instances arrive without
         regression_matrix_draft (the matrix node is never instantiated on that
         route), and first-lap instances arrive without adversarial_review_findings
@@ -1276,6 +1299,9 @@ pave:
       - Criteria registered verbatim with procedure references, scoped to this
         campaign's route.
       - Per-procedure measurement-pitfall pre-emptions recorded.
+      - Per-criterion instrument-liveness pair registered as adjudicable values
+        - the value that must appear evaluated, and the tripwire input the procedure
+        must fail on (shape in references/artifact-layout.md section 4.5).
       - Consecutive-read stability count and minimum re-read spacing for stable-read
         collection declared as adjudicable values; they enter the campaign design
         record with the registration.
@@ -1294,7 +1320,9 @@ pave:
         criteria_unadjudicable:
           meaning: A kickoff-declared criterion cannot be registered as adjudicable
             without changing it; names the criterion and the ambiguity for an
-            explicit user decision.
+            explicit user decision. A criterion whose instrument cannot be shown
+            to fail on any tripwire input lands here too - it cannot be graded,
+            and rewording it is forbidden.
     assemble_design_record:
       intent: plan
       instance_per: approved_campaigns
@@ -1639,8 +1667,12 @@ pave:
         surface shows NKI usage, a presence predicate on a doer-made declaration
         (zero NKI usage in a declared-NKI increment is a recorded contradiction;
         the predicate never asks what any torch code is doing, so boundary plumbing
-        cannot false-fire it). Out of scope - any new code change; a gap found
-        here routes back to scoping.
+        cannot false-fire it). Both transcripts meet the scan-completeness discipline
+        pinned at references/artifact-layout.md section 4.6 - the commit scanned,
+        the tree state it was scanned in, and the scan tool''s own completion signal
+        - because a search over a dirty or partly written tree reports a zero it
+        never established, and a zero nobody can show complete is not evidence.
+        Out of scope - any new code change; a gap found here routes back to scoping.
 
         '
       roles:
@@ -1736,6 +1768,15 @@ pave:
             failed identity verification, exhausted its recovery allowance for
             this campaign, or is unreachable, and no replacement exists; maps
             to the parent's hardware_unavailable with the per-host refusal evidence.
+            Each refusal names the measured state it rests on - the probe or read
+            output showing that host claimed, unreachable, or mismatched - because
+            this outcome closes an approved campaign, so a refusal resting on a
+            precheck verdict instead of a measurement can close a campaign whose
+            hardware was free. A precheck clause that no host of this class can
+            satisfy is a defect in the precheck, recorded and re-run, never a
+            refusal.
+          required_evidence:
+          - hardware_attempt_log
       instance_per: approved_campaigns
     replicate_campaign_venv:
       intent: execute
@@ -2008,7 +2049,9 @@ pave:
         the decode-only bench connector produces no correctness signal and is
         never a correctness procedure.
       - Smoke-verify every procedure end-to-end on scratch inputs and record the
-        smoke evidence and the fixed invocation per procedure.
+        smoke evidence and the fixed invocation per procedure. The same smoke run
+        feeds the registered tripwire input and records the procedure failing on
+        it; a procedure that passes its own tripwire is not verified.
       - On re-entry with a procedure-defect record, revise only the defective
         realization against the frozen comparator, re-smoke it, and record the
         revision in the procedure record - revision entries VERSION each realization
@@ -2022,7 +2065,9 @@ pave:
         procedures_ready:
           meaning: Every declared measurement for this campaign's route has a
             runnable, smoke-verified procedure with a fixed invocation recorded
-            before any measured run that cites that procedure revision.
+            before any measured run that cites that procedure revision, each
+            smoke record carrying the negative-control result for its registered
+            tripwire input.
           required_evidence:
           - measurement_procedure_record
         procedure_unrealizable:
@@ -2178,7 +2223,10 @@ pave:
         vLLM version and the known cross-version behavior differences from the
         skew record, carries the measured git revision copied verbatim from the
         run records (this node never mints or rewrites it), and links the pre-registered
-        comparator and procedure it realizes. Completeness is checked against
+        comparator and procedure it realizes. Each bundle also records, per criterion
+        it realizes, the threshold that was evaluated with the value read and the
+        result of the comparison, plus the negative-control result from that procedure's
+        smoke record - an exit status is not an evaluation. Completeness is checked against
         the kickoff-declared acceptance procedures for this campaign's route (upgrade
         routes execute the regression matrix instead of correctness+perf); stability
         is settled by consecutive matching re-reads over time, never a first sighting.
@@ -2191,8 +2239,9 @@ pave:
       - measurement_artifacts
       activities:
       - Assemble one evidence bundle per declared measurement with skew record,
-        measured revision (verbatim from run records), comparator identity, and
-        procedure reference.
+        measured revision (verbatim from run records), comparator identity, procedure
+        reference, and the evaluated-threshold record (value read, threshold, result)
+        with the procedure's negative-control result.
       - Check bundle completeness against the route-scoped declared measurement
         list; record any gap or instability as its own defect-record event file,
         so the shared per-measurement repair count is derivable by counting defect-record
@@ -2215,11 +2264,12 @@ pave:
       outcomes:
         bundles_stable:
           meaning: Every kickoff-declared measurement exists as a complete, stable-read-verified
-            evidence bundle.
+            evidence bundle, each carrying its evaluated-threshold record.
           required_evidence:
           - measurement_artifacts
         collection_defect_found:
-          meaning: A bundle is missing, incomplete, or changed on re-read; routed
+          meaning: A bundle is missing, incomplete - an empty evaluated-threshold
+            record included - or changed on re-read; routed
             back to candidate measurement within the shared per-measurement repair
             budget. Takes precedence over declared_measurement_unproducible while
             any declared measurement retains repair budget.
@@ -2375,6 +2425,7 @@ pave:
     to: adjudicate_results
     checks:
     - evidence_stable_before_verdict
+    - acceptance_threshold_evaluated
     - measurer_not_adjudicator
   - id: verdict_to_verdict_review
     from: adjudicate_results.verdict_recorded

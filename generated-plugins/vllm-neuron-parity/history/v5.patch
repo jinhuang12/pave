@@ -1,0 +1,326 @@
+kind: graph
+semantic_diff: >-
+  Three evidence-strength changes in one graph revision: an acceptance instrument
+  must be shown to fail before it grades anything, a zero-hit scan must state what
+  it scanned, and a refusal that closes a campaign must rest on a measurement.
+  Counts: 32 nodes / 95 edges / 15 checks become 32 / 95 / 16; 5 control endpoints
+  and 24 evidence definitions unchanged. No node, outcome, edge, or evidence
+  definition is added or removed, and no check is dropped or weakened. Field
+  evidence is the verified learning set of a finished port campaign of the
+  retiring sibling workflow (vllm-neuron-model-port, DeepSeek-V4-Flash on a
+  trn2.48xlarge) re-checked at Neuron SDK 2.32 and vllm-neuron 0.24: the same
+  hardware class and stack as a parity run, but not a parity run. Every learning
+  cited below is in the Carry set (three filters, two refuters) and was audited
+  block against source; the four ids named here are L-204, L-119, L-139 with
+  L-082, and L-140, and their persistence verdicts were read from the primary
+  persist files, not from the record's summary lines.
+  (1) INSTRUMENT LIVENESS BEFORE ACCEPTANCE. preregister_acceptance registers, per
+  criterion and as adjudicable values, an instrument-liveness pair: the value that
+  must appear as evaluated in the evidence, and a tripwire input the procedure must
+  fail on. realize_measurement_procedures feeds that tripwire in the smoke run it
+  already performs and records the procedure failing on it. The existing check
+  procedures_smoke_verified now asks for that negative control beside the passing
+  smoke, so no check is added there. stabilize_and_package_evidence records, per
+  criterion in each bundle, the threshold evaluated with the value read and the
+  comparison result, plus the procedure's negative-control result; bundles_stable
+  and collection_defect_found say so, and an empty evaluated-threshold record is an
+  incomplete bundle on the route it already has. One new check,
+  acceptance_threshold_evaluated (mechanical, evaluated by the lead), rides the
+  existing edge measurements_to_adjudication beside the two lead-mechanical checks
+  already on it, and fails back to stabilize_and_package_evidence. A criterion whose
+  instrument cannot be made to fail takes the existing criteria_unadjudicable
+  outcome down the existing edge to re-derivation: no outcome and no edge is
+  invented. WHY, generally: acceptance here is a comparator's word, and the field
+  evidence found a shipped parity comparator that returns exit 0 with an empty
+  evaluated-threshold list whenever the criterion it needed was not recorded, and
+  hard-fails on any divergence when it was (L-204, persists_verified against the
+  script itself; the construct reads JSON captures and imports none of the stack,
+  so no SDK or plugin upgrade can move it), and a sealed pre-registered gate that
+  hard-coded the changed value at a lower level, never executed the code the fix
+  changed, and graded a correct fix FAIL (L-119, persists_verified: the knob is
+  still a plain kwarg with no env or CLI exposure at 0.24). Both are one defect: the
+  graph believed an instrument nobody had ever seen fail. This is the acceptance
+  ladder's own guard (pave-spec 5.3.1 - a metric that does not measure the
+  acceptance property is as much a defect as missing evidence) against the smell
+  acceptance by assertion (13). It holds for any run because it names no
+  comparator, no metric and no tool: it asks the instrument to demonstrate that it
+  can fail, and asks the evidence to show which threshold it actually evaluated.
+  (2) A ZERO-HIT SCAN STATES WHAT IT SCANNED. record_changeset's two mechanical
+  scans (the NxDI import scan, P4, and the substrate-fidelity check, P13) carry the
+  scan-completeness discipline pinned once at references/artifact-layout.md section
+  4.6, beside the exit-code discipline already there: the commit scanned, the tree
+  state it was scanned in, and the scan tool's own completion signal. The graph
+  states the duty and cites the shape; the shape and its mechanics (a fresh
+  checkout at the commit under test for a tool that gates on tree cleanliness)
+  land in the reference with the plugin release, so this hunk and that release
+  belong to one landing. WHY, generally: a scan whose validity gates on a clean
+  tree reported an invalid scan because untracked bytecode directories made a
+  long-lived checkout dirty (L-139), and a truncated dump gave a false grep-zero
+  (L-082, whose audited corrected rule is completion marker, size stable across
+  two reads, checksum, well-formed tail). A zero nobody can show complete is not
+  evidence, and it fails both ways: a false hit costs a rescoping lap, a false
+  zero sends a forbidden import to hardware under a green changeset.
+  (3) A REFUSAL THAT CLOSES A CAMPAIGN RESTS ON A MEASUREMENT.
+  acquire_hardware_lease.no_host_available gains required_evidence
+  (hardware_attempt_log) and states that each per-host refusal names the measured
+  state it rests on, and that a precheck clause no host of the class can satisfy is
+  a defect in the precheck, recorded and re-run, never a refusal. WHY, generally:
+  this outcome's only edge is lost_hardware_to_closeout into close_campaign, so it
+  closes work the user approved, and it carried no required evidence at all, which
+  put a campaign closure below the evidence ladder on a doer's self-report
+  (pave-spec 5.3.1). The field evidence is a readiness precheck whose clause could
+  never pass on that hardware class and refused four devices that direct
+  measurement then showed present and free (L-140; its Rule field is narrative, so
+  the instruction written here is mine and the mechanism is the reason).
+  PRICE PER RUN: no new seat, no new node, no new lap, no new artifact file. Item 1
+  costs one extra invocation per declared procedure inside the smoke run that
+  already happens, one lead-run read per evidence bundle at the gate into
+  adjudication, and one registered line per criterion. Item 2 costs one fresh
+  checkout per changeset scan, seconds. Item 3 costs one probe output per refused
+  host, on a path that runs only when no lease can be had. Against that, item 1 is
+  the only guard the graph has against a false parity PASS becoming an
+  evidence-backed pull request, which is the most expensive defect this workflow
+  can produce.
+  WHAT WAS CUT, AND WHAT WAS REJECTED. Nothing is deleted from the graph; the
+  diff is 63 added lines against 12 rewritten, a net 51 lines of graph text. The
+  release patch that accompanies this revision is a net ADDITION, not a cut: 25
+  files, 970 added lines against 103 removed, a net 867, of which the four
+  references take 518 added against 4 removed, a net 514. It carries one new
+  reference of 372 lines citing 96 verified learnings that no existing
+  reference's reader could reach, priced and justified in VERSION 1.5.0. Across
+  both layers all 172 carried learnings are cited, none uncited - 171 by id in
+  the release layer's references and 6 here - and that figure is citation
+  coverage, not duty coverage. The 172 ids collapse to 29 rules in the release
+  layer, beside the 3 duties here, 32 across both layers; the basis for 29 is
+  greppable, 13 Rule blocks in toolchain-evidence-pitfalls.md, 8 added Rule
+  lines in measurement-pitfalls.md (12 to 20), 4 named duty blocks in
+  artifact-layout.md, 3 items in the new section of
+  patch-mechanism-inventory.md, and 1 new refusal class in the compile-cache
+  guard. One mechanism gets one rule and every id that found it. What pays for
+  the growth inside the package: a 25-line restatement cut from the lead skill
+  to a 13-line pointer, no duty text restated in any seat contract, one
+  reference left untouched on purpose, and a new document-ceiling test that pins
+  every prose file in the package so the next release cannot grow one silently. Rejected as prose, not graph, after
+  the section-2.1 layer test: the 17 learnings the digest proposed for
+  execute_attempt_loop and the 8 for realize_increment are triage procedures and
+  coding rules (how to read a watchdog timeout back to the first device fault, how
+  to bound a clamp, which flags are inert), so they change no outcome, no evidence
+  and no route; the venv learnings are probe mechanics already settled by the three
+  self-verification probes the node declares (a co-tenant package tree fails the
+  existing sentinel round-trip probe, so a fourth probe would be a second gate on
+  one claim, which pave-spec 4.11 forbids); the compile-bucket costing and
+  release-note learnings sharpen an investigator's method, not the graph's
+  evidence. Rejected as a graph edit for one incident: a named int64-clamp census
+  (L-280) is not in the graph, because a graph that lists today's dtype hazard by
+  name is a patch; the durable clause is item 2 plus the design record's existing
+  per-increment acceptance declaration, and the census itself lands in the release
+  layer where a reader can re-derive it at the next pin.
+  USAGE EVIDENCE (rule 8). No usage record of a predecessor parity run is reachable
+  on this host, so the recorded field evidence read instead was this root's VERSION
+  entries 1.2.0 through 1.4.0 and the semantic diffs of revisions 1 through 4. They
+  changed this proposal: every one of those four revisions cut priced judgment that
+  never fired (17 screen laps on an unmoved pin, 19 preregistration laps on a
+  never-opened registration, 51 scoping laps whose priced outcome never fired) and
+  the one revision that added a seat added twenty to fifty-five of them per
+  campaign, so this proposal adds no seat and puts all three items on the
+  lead-mechanical rung, where the answer is a read of a persisted artifact. Nothing
+  in those records shows a measurement-boundary seat that never fired, so nothing
+  here retires one.
+envelope_check: changed_with_approval
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 5 (graph): an acceptance instrument must be shown to fail before it
+  grades anything, a zero-hit scan must state what it scanned, and a refusal that
+  closes a campaign must rest on a measurement. Checks go from 15 to 16
+  (acceptance_threshold_evaluated, mechanical, lead, on the edge into
+  adjudication); nodes and edges stay 32 and 95. preregister_acceptance registers
+  a per-criterion liveness pair (the value that must appear evaluated, and a
+  tripwire the procedure must fail on), realize_measurement_procedures proves it
+  in the smoke run it already does, procedures_smoke_verified asks for that
+  negative control, and each evidence bundle carries the threshold it evaluated
+  with the value read. record_changeset's two mechanical scans carry the
+  scan-completeness discipline (commit scanned, tree state, completion signal).
+  acquire_hardware_lease.no_host_available now requires the attempt log and names
+  the measured state behind each refusal. Field evidence, a finished campaign of
+  the retiring sibling workflow on the same hardware class re-checked at Neuron
+  SDK 2.32 and vllm-neuron 0.24: a shipped parity comparator returns exit 0 with
+  zero thresholds evaluated when no threshold was recorded (L-204); a sealed
+  pre-registered gate hard-coded the value below the code it claimed to grade and
+  failed a correct fix (L-119); a cleanliness-gated scan reported an invalid scan
+  over untracked bytecode and a truncated dump gave a false grep-zero (L-139,
+  L-082); a readiness precheck clause that no device of that class could satisfy
+  refused four devices that measurement showed free (L-140).
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index 89e6020..beb00ed 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -329,6 +329,21 @@ pave:
+         first-sighting signals) before adjudication begins?
+       evaluated_by: lead
+       on_failure_route: stabilize_and_package_evidence
++    acceptance_threshold_evaluated:
++      style: mechanical
++      question: Does every evidence bundle under verdict record at least one pre-registered
++        threshold actually evaluated - the value read, the threshold it was compared
++        against, and the result of that comparison - together with the negative-control
++        result from the procedure's smoke record?
++      evaluated_by: lead
++      on_failure_route: stabilize_and_package_evidence
++      rationale: A comparator's exit status is not an evaluation. A comparator can
++        exit zero with an empty evaluated-threshold list when the criterion it needed
++        was never recorded, so a gate that reads the exit code passes silently on
++        the one case that matters, and the artifact reads like a pass, which is why
++        prose and review are not enough. The lead reads the bundle's own evaluated-threshold
++        record and the smoke negative control, so this costs no seat and no new
++        measurement.
+     measurer_not_adjudicator:
+       style: mechanical
+       question: Is the adjudicating agent identity distinct from every agent that
+@@ -385,7 +400,10 @@ pave:
+       style: mechanical
+       question: Does every declared measurement for this campaign's route have
+         a runnable procedure with a passing smoke record and a fixed invocation,
+-        recorded before any measured run that cites that procedure revision?
++        recorded before any measured run that cites that procedure revision -
++        and does the same smoke record show the procedure FAILING on its registered
++        tripwire input, the negative control that proves this instrument can fail
++        at all?
+       evaluated_by: lead
+       on_failure_route: realize_measurement_procedures
+     revision_stamped:
+@@ -1244,7 +1262,12 @@ pave:
+         procedure references; a criterion that cannot be registered adjudicably
+         is surfaced, never reworded, because kickoff-declared criteria change
+         only by explicit user decision. Record known measurement-tool pitfalls
+-        per procedure as pre-emptions the measurement design must honor. Inputs
++        per procedure as pre-emptions the measurement design must honor. Register
++        each criterion's instrument-liveness pair beside the criterion - the value
++        that must appear as evaluated in the evidence, and a tripwire input the
++        procedure must fail on - because an instrument nobody has seen fail grades
++        nothing, and a criterion whose instrument has no such tripwire is surfaced
++        as unadjudicable rather than registered. Inputs
+         are route- and lap-conditional - backport-route instances arrive without
+         regression_matrix_draft (the matrix node is never instantiated on that
+         route), and first-lap instances arrive without adversarial_review_findings
+@@ -1276,6 +1299,9 @@ pave:
+       - Criteria registered verbatim with procedure references, scoped to this
+         campaign's route.
+       - Per-procedure measurement-pitfall pre-emptions recorded.
++      - Per-criterion instrument-liveness pair registered as adjudicable values
++        - the value that must appear evaluated, and the tripwire input the procedure
++        must fail on (shape in references/artifact-layout.md section 4.5).
+       - Consecutive-read stability count and minimum re-read spacing for stable-read
+         collection declared as adjudicable values; they enter the campaign design
+         record with the registration.
+@@ -1294,7 +1320,9 @@ pave:
+         criteria_unadjudicable:
+           meaning: A kickoff-declared criterion cannot be registered as adjudicable
+             without changing it; names the criterion and the ambiguity for an
+-            explicit user decision.
++            explicit user decision. A criterion whose instrument cannot be shown
++            to fail on any tripwire input lands here too - it cannot be graded,
++            and rewording it is forbidden.
+     assemble_design_record:
+       intent: plan
+       instance_per: approved_campaigns
+@@ -1639,8 +1667,12 @@ pave:
+         surface shows NKI usage, a presence predicate on a doer-made declaration
+         (zero NKI usage in a declared-NKI increment is a recorded contradiction;
+         the predicate never asks what any torch code is doing, so boundary plumbing
+-        cannot false-fire it). Out of scope - any new code change; a gap found
+-        here routes back to scoping.
++        cannot false-fire it). Both transcripts meet the scan-completeness discipline
++        pinned at references/artifact-layout.md section 4.6 - the commit scanned,
++        the tree state it was scanned in, and the scan tool''s own completion signal
++        - because a search over a dirty or partly written tree reports a zero it
++        never established, and a zero nobody can show complete is not evidence.
++        Out of scope - any new code change; a gap found here routes back to scoping.
+ 
+         '
+       roles:
+@@ -1736,6 +1768,15 @@ pave:
+             failed identity verification, exhausted its recovery allowance for
+             this campaign, or is unreachable, and no replacement exists; maps
+             to the parent's hardware_unavailable with the per-host refusal evidence.
++            Each refusal names the measured state it rests on - the probe or read
++            output showing that host claimed, unreachable, or mismatched - because
++            this outcome closes an approved campaign, so a refusal resting on a
++            precheck verdict instead of a measurement can close a campaign whose
++            hardware was free. A precheck clause that no host of this class can
++            satisfy is a defect in the precheck, recorded and re-run, never a
++            refusal.
++          required_evidence:
++          - hardware_attempt_log
+       instance_per: approved_campaigns
+     replicate_campaign_venv:
+       intent: execute
+@@ -2008,7 +2049,9 @@ pave:
+         the decode-only bench connector produces no correctness signal and is
+         never a correctness procedure.
+       - Smoke-verify every procedure end-to-end on scratch inputs and record the
+-        smoke evidence and the fixed invocation per procedure.
++        smoke evidence and the fixed invocation per procedure. The same smoke run
++        feeds the registered tripwire input and records the procedure failing on
++        it; a procedure that passes its own tripwire is not verified.
+       - On re-entry with a procedure-defect record, revise only the defective
+         realization against the frozen comparator, re-smoke it, and record the
+         revision in the procedure record - revision entries VERSION each realization
+@@ -2022,7 +2065,9 @@ pave:
+         procedures_ready:
+           meaning: Every declared measurement for this campaign's route has a
+             runnable, smoke-verified procedure with a fixed invocation recorded
+-            before any measured run that cites that procedure revision.
++            before any measured run that cites that procedure revision, each
++            smoke record carrying the negative-control result for its registered
++            tripwire input.
+           required_evidence:
+           - measurement_procedure_record
+         procedure_unrealizable:
+@@ -2178,7 +2223,10 @@ pave:
+         vLLM version and the known cross-version behavior differences from the
+         skew record, carries the measured git revision copied verbatim from the
+         run records (this node never mints or rewrites it), and links the pre-registered
+-        comparator and procedure it realizes. Completeness is checked against
++        comparator and procedure it realizes. Each bundle also records, per criterion
++        it realizes, the threshold that was evaluated with the value read and the
++        result of the comparison, plus the negative-control result from that procedure's
++        smoke record - an exit status is not an evaluation. Completeness is checked against
+         the kickoff-declared acceptance procedures for this campaign's route (upgrade
+         routes execute the regression matrix instead of correctness+perf); stability
+         is settled by consecutive matching re-reads over time, never a first sighting.
+@@ -2191,8 +2239,9 @@ pave:
+       - measurement_artifacts
+       activities:
+       - Assemble one evidence bundle per declared measurement with skew record,
+-        measured revision (verbatim from run records), comparator identity, and
+-        procedure reference.
++        measured revision (verbatim from run records), comparator identity, procedure
++        reference, and the evaluated-threshold record (value read, threshold, result)
++        with the procedure's negative-control result.
+       - Check bundle completeness against the route-scoped declared measurement
+         list; record any gap or instability as its own defect-record event file,
+         so the shared per-measurement repair count is derivable by counting defect-record
+@@ -2215,11 +2264,12 @@ pave:
+       outcomes:
+         bundles_stable:
+           meaning: Every kickoff-declared measurement exists as a complete, stable-read-verified
+-            evidence bundle.
++            evidence bundle, each carrying its evaluated-threshold record.
+           required_evidence:
+           - measurement_artifacts
+         collection_defect_found:
+-          meaning: A bundle is missing, incomplete, or changed on re-read; routed
++          meaning: A bundle is missing, incomplete - an empty evaluated-threshold
++            record included - or changed on re-read; routed
+             back to candidate measurement within the shared per-measurement repair
+             budget. Takes precedence over declared_measurement_unproducible while
+             any declared measurement retains repair budget.
+@@ -2375,6 +2425,7 @@ pave:
+     to: adjudicate_results
+     checks:
+     - evidence_stable_before_verdict
++    - acceptance_threshold_evaluated
+     - measurer_not_adjudicator
+   - id: verdict_to_verdict_review
+     from: adjudicate_results.verdict_recorded
