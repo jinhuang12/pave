@@ -1,0 +1,255 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index c8d3e48..69d2430 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "vllm-neuron-parity",
+-  "version": "1.5.0",
++  "version": "1.5.1",
+   "description": "Bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM: scan the upstream delta, cost each target's closing route, rank the backlog, and execute user-gated campaigns through correctness and performance gates against a GPU baseline into evidence-backed fork PRs. Ships the vllm-neuron-parity lead workflow skill plus its six dispatched role agent types.",
+   "author": {
+     "name": "jinhuang12"
+diff --git a/.codex-plugin/plugin.json b/.codex-plugin/plugin.json
+index e285562..409501c 100644
+--- a/.codex-plugin/plugin.json
++++ b/.codex-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "vllm-neuron-parity",
+-  "version": "1.5.0",
++  "version": "1.5.1",
+   "description": "Run evidence-backed campaigns that close approved vLLM-Neuron parity gaps against upstream GPU vLLM.",
+   "author": {
+     "name": "jinhuang12"
+diff --git a/VERSION b/VERSION
+index 9c20cc4..7004948 100644
+--- a/VERSION
++++ b/VERSION
+@@ -1,4 +1,32 @@
+-version: 1.5.0
++version: 1.5.1
++
++## 1.5.1 — 2026-09-05
++
++Scope the 1.5.0 reference remedies to the decisions their evidence supports,
++so a future campaign can choose a valid experiment or representation.
++
++Compile-cost guidance now asks which work a change removes and what a
++parallelism knob controls. Flag syntax probes and kernel lowering probes can
++reuse matching evidence. Counts keep their emitter, stage, and normalizer;
++an arithmetic cross-check now needs a known relation. Timeout budgets follow
++the actual waits and clock origins instead of a fixed ordering.
++
++Device-free probes match production context when they claim production
++compatibility. Isolated probes state their narrower claim. Clamp and sentinel
++remedies preserve the producer's range and bit meaning. Low-bit scale rounding
++follows the format, and the boundary-count lookup remedy applies to ordered
++boundaries. These replace unconditional recipes in the existing references.
++
++The defect review found that two remedies from a sibling port campaign had
++become universal instructions. It did not refute the compiler observations or
++supply new campaign measurements. Prior usage summaries in releases 1.2.0–1.5.0
++and ledger revisions 1–5 argue against repeat work on settled inputs. This
++release adds no seat, lap, artifact, or recurring gate. It preserves revision
++5's acceptance controls, scan evidence, and measured hardware refusals.
++
++The graph, ledger, state authority, hooks, and model bindings do not change.
++Both plugin manifests declare 1.5.1. Historical entries below describe their
++own releases; their remedy and learning counts are not current policy.
+ 
+ ## 1.5.0 — 2026-09-04
+ 
+diff --git a/references/measurement-pitfalls.md b/references/measurement-pitfalls.md
+index 724e19c..6e437b4 100644
+--- a/references/measurement-pitfalls.md
++++ b/references/measurement-pitfalls.md
+@@ -39,7 +39,7 @@ Citation classes used below:
+ 
+ **Trap:** A printed number in this stack is normalized, paced, sampled, or re-emitted, and none of that is visible in the number. The compiler driver re-prints the backend error block inside its own exception report, so one genuine error appears about three times in one log. A pass multiplies the intermediate representation between the two stages at which a count can be read, so a count read at the wrong stage understates the checked count. The compiler self-normalizes its percentage columns inside a shard group and caps its top-N rows, so the listed rows are a sample. The runtime's error-notification stream is paced by a hardware coalescing timer and a host drain thread, so a fixed period is not per-item device cost. Some log families double-emit and others do not, on the same file. A live-incrementing execution tally carries a label from the live request count, not from the compiled bucket. And a bare number can be a hard limit or a size report, with nothing in the line to tell you which.
+ 
+-**Rule:** Carry with every count its emitter, the stage it was read at, and its divisor or normalizer, and confirm its role against a second independently printed quantity that must agree with it arithmetically. Prove any double-emission factor on the file you measured, per family; never halve or double a count by assumption. Never divide a total span by a count for a per-item cost until you have measured the pacing value. Where the toolchain's own print disagrees with a static specification document, trust the print, because it governs what the program enforces.
++**Rule:** Carry with every count its emitter, stage, and divisor or normalizer. Establish what it counts from the producing code, schema, or a controlled sample. If its role remains ambiguous, cross-check an independently emitted quantity with a known arithmetic relation; agreement without that relation proves nothing. Prove any double-emission factor on the measured file, per family. Do not normalize by assumption or infer per-item cost until the emission pacing is known. When a printed limit and a static specification disagree, establish what the installed program enforces before using either as a capacity bound.
+ 
+ **Evidence:** L-017, L-019, L-021, L-038, L-055, L-062, L-095, L-097, L-196, L-201, L-206, L-239, L-277 (campaign history).
+ 
+diff --git a/references/patch-mechanism-inventory.md b/references/patch-mechanism-inventory.md
+index 3f69709..467a96e 100644
+--- a/references/patch-mechanism-inventory.md
++++ b/references/patch-mechanism-inventory.md
+@@ -131,9 +131,21 @@ Pin note: every section above is the 0.21 checkout. The facts below were measure
+ 
+ **Upstream decides at a consumer you did not patch.** Upstream vLLM on this line branches on Python spec-class identity, on a data-parallel degree above one, on a CUDA-alike platform test, and on per-architecture config hooks that rewrite fields in place before the platform gate reads them. The Neuron platform sits at data parallel one, non-CUDA, with its own spec classes, and its resolver raises a ceiling rather than degrading. So a feature that looks armed can be inert because each consumer carries its own gate; an upstream unification path can reject the port on class identity before it ever reads a width; and admitting a name into the platform gate is not inert upstream. **Duty:** trace the resolver AND every downstream consumer's own gate before you rate a feature as armed or a config name as inert, and prove inertness with a completed compile, never with a read-audit. One measured case: a per-architecture config hook rewrote the checkpoint quantization method in place, keyed only on model type, so the platform allowlist and the plugin's own quantization-method literal both had to admit the rewritten name. A second gate to settle before you compile: when a plan sets `max_model_len` above the shipped single-shot-prefill constant, segmented prefill is mandatory — no `max_num_batched_tokens` value buys single-shot back — so confirm the target model family has a segmented-prefill code path first. (L-029, L-314, L-317, L-377, L-378, L-380, L-381, L-382)
+ 
+-**Import time pins the venue before your code runs.** Importing the fork runs the meta-path redirector plus unconditional environment and torch mutations before the XLA runtime initializes: it disables XLA functionalization, adds an XLA fast-math flag, forces an always-all-reduce flag, and pins the XLA device to CPU; platform constants such as the fp8 clamp maximum freeze at first import; eight lazy operator overrides register with a one-shot setattr, two of them disabled unless you pass an explicit pattern; the torch top-k override patches torch globally and emits its custom call only for the largest-sorted-last-dimension case, falling back otherwise; a fused-softmax override does nothing without its own env flag; and the worker deletes any environment key absent from its inherited baseline. **Duties:** export any platform-target override or Neuron knob in the shell BEFORE the first import — a device-free leg otherwise freezes a platform constant at the wrong value and corrupts numerics silently; assert each package resolves from the tree you intend, by its `__file__`; inventory these import-time changes before you attribute a lowering or numeric difference to your own code; and construct every device-free probe the way the runner does — under the meta device, at the deployed parallel degree with the process group monkeypatched, at the deployed dtype, through the production compile route rather than an ad-hoc XLA device. A probe that differs in import order, device pin, construction context, degree, or dtype grades a configuration the port never runs. A CPU reference leg cannot discriminate an fp8 kernel at all: CPU has no fp8 matmul and raises. (L-122, L-145, L-187, L-285, L-299, L-320, L-331, L-333, L-341, L-371, L-373, L-388, L-389)
++**Import time pins the venue before your code runs.** Importing the fork runs the meta-path redirector plus unconditional environment and torch mutations before the XLA runtime initializes: it disables XLA functionalization, adds an XLA fast-math flag, forces an always-all-reduce flag, and pins the XLA device to CPU; platform constants such as the fp8 clamp maximum freeze at first import; eight lazy operator overrides register with a one-shot setattr, two of them disabled unless you pass an explicit pattern; the torch top-k override patches torch globally and emits its custom call only for the largest-sorted-last-dimension case, falling back otherwise; a fused-softmax override does nothing without its own env flag; and the worker deletes any environment key absent from its inherited baseline. (L-122, L-145, L-187, L-285, L-299, L-320, L-331, L-333, L-341, L-371, L-373, L-388, L-389)
+ 
+-**Authoring constraints the front end imposes.** The front end rejects 64-bit constants outside 32-bit range with its own legalization error, while lowering synthesizes an absent operand as the dtype maximum — so a minimum-only clamp on a 64-bit tensor mints an out-of-range constant that no source grep will show you. An unsigned sentinel above 32-bit range is out of range as a signed 64-bit value. A ceiling-of-log2 scale doubles at binade edges, and a per-limb scale lets residual limbs saturate. A constant tensor built from a Python literal sequence inside a traced forward pass yields a real non-fake tensor and aborts tracing, and the obvious substitutes do not fix it. **Duties:** give every clamp explicit in-range bounds at BOTH ends against the producer's dtype — lowering synthesizes an absent maximum as the dtype maximum and an absent minimum as the dtype minimum, so a one-sided clamp mints an out-of-range constant whichever end you leave open; express an out-of-range sentinel as its signed two's-complement; in any low-bit encode compute the final floored and clamped scale from a floor-of-log2 seed with exact fixups before you quantize any limb; and replace a literal constant tensor with a boundary count against zero-dimensional comparisons plus an index select. Resolve a checkpoint from its files, never from its names: the weights cache mints a decoy directory for a missed lookup, so resolve only under the snapshots directory, and read the actual weight tensors and the upstream loader before you accept a mechanism or a dimension named by a config field. (L-134, L-135, L-280, L-289, L-295, L-329, L-336)
++For a probe that claims production tracing or lowering compatibility, match the runner's import order, construction context, parallel degree, dtype, and compile route. Set import-read overrides before import and confirm relevant package paths with `__file__`. Where the runner uses meta construction and mocked process groups, use that setup. Inspect the import mutations and override gates relevant to the claimed difference.
++
++An isolated numerical or parser probe may use a smaller context. State which property it tests and which production behavior remains untested. A CPU reference can test representable arithmetic; it cannot validate a device-only fp8 matmul implementation. This boundary keeps a cheap discriminator useful without treating it as production proof.
++
++The authoring observations below share the original evidence group: L-134, L-135, L-280, L-289, L-295, L-329, L-336 (the cited campaign and pin).
++
++**Match constant encoding to the lowering path.** At this pin, int64 legalization rejects constants outside signed int32 range, including dtype extrema synthesized for omitted clamp bounds. Inspect both lowered bounds on an affected clamp; choose explicit legal bounds only if they preserve the producer's required range. Otherwise use a supported representation or lowering. Express a bit-pattern sentinel as signed two's-complement only when its width and consumers preserve that bit interpretation; a numerical sentinel needs an equivalent numerical representation.
++
++**Choose scale rounding from the format.** The observed residual-limb encode required one final floored, clamped scale before any limb was quantized. A ceiling-of-log2 seed crossed its binade boundary, and separate limb scales caused saturation. For a format with that scale contract, a floor-of-log2 seed plus exact boundary fixups is a candidate. Check it against the format's reference at binade edges, clamp limits, zero, and residual saturation cases. Other low-bit formats can require different rounding or scale sharing; derive those from their encoding contract before selecting a recipe.
++
++**Keep constants compatible with tracing.** On the affected tracing path, constructing a tensor from a Python literal sequence inside forward creates a real tensor where a fake tensor is required. Choose a trace-compatible construction that preserves values, dtype, device, and indexing. Boundary counting with zero-dimensional comparisons followed by index select fits an ordered-boundary lookup; it is not a replacement for an arbitrary constant tensor. Verify the chosen form through the target trace and lowering path.
++
++**Resolve checkpoint contents before interpreting config.** The weights cache can create a decoy directory for a missed lookup. For cache-backed checkpoints, resolve the snapshot that contains the actual weights. Read those tensors and the upstream loader before accepting a mechanism or dimension named by a config field; a local checkpoint outside that cache still requires real weight files.
+ 
+ ## Porter rules
+ 
+diff --git a/references/toolchain-evidence-pitfalls.md b/references/toolchain-evidence-pitfalls.md
+index 698bfe8..4b35174 100644
+--- a/references/toolchain-evidence-pitfalls.md
++++ b/references/toolchain-evidence-pitfalls.md
+@@ -1,12 +1,9 @@
+ # Toolchain evidence pitfalls — the Neuron compiler and runtime
+ 
+-Operational rules for reading what the Neuron toolchain says about itself.
+-`references/measurement-pitfalls.md` covers the instruments that produce a
+-number for a verdict; this file covers the compiler, the runtime, and the
+-device dumps you read while a candidate is being built or brought up. One
+-mechanism runs through every rule: each of these channels is a program that
+-reports a position, a name, or a count for its own purposes, so its output is
+-evidence for what that channel measured and for nothing else.
++Use compiler and runtime evidence for the claim its channel can support.
++For verdict instruments, read `references/measurement-pitfalls.md`.
++These observations describe the cited pins. Apply a remedy when the current
++path has the same failure mechanism; a past fix alone does not establish that.
+ 
+ Read it before you credit a compiler flag, cost a compile, attribute a compile
+ or serve failure, or localize a device wedge.
+@@ -57,18 +54,17 @@ option by name class. A flag that reads like a switch can be an integer, can
+ already be on, can be an echo of a default rather than something you passed,
+ and can change a second thing you did not plan for.
+ 
+-**Rule:** Before you plan any leg around a compiler flag, enumerate it against
+-the installed binary (`--help-hidden`, capturing stderr; the machine-readable
+-list is not the roster), classify it device-free by passing it bare to the
+-binary and reading the parse text (a value option says it requires a value; a
+-boolean falls through to the missing-input error; a non-existent flag says
+-unknown argument), and include a known-value flag, a known-boolean, and a
+-bogus flag as controls in the same probe. Read its coupled effects out of the
+-pinned source, never out of its description. State in the plan what the flag
+-re-keys: a compiler-argument change re-keys every cached graph.
++**Rule:** Before a flag experiment, establish its accepted syntax, default,
++and coupled effects at the installed pin. Reuse evidence for that binary and
++path. If syntax is unresolved, inspect `--help-hidden` (including stderr);
++the machine-readable list omits some options. If you infer the type from bare
++argument parse errors, include known-value, known-boolean, and bogus controls.
++Use pinned source or a controlled probe to settle effects that help text does
++not establish. State the affected graph classes and cache keys using "Credit
++a flag" below and the cache rule in `references/measurement-pitfalls.md`.
+ 
+-**Why:** a flag is an interface the vendor never promised you, so its name is
+-a hint and its documented description is a different version's behaviour.
++**Why:** an option's name does not establish its type or effects; a repeated
++syntax probe adds no evidence once the installed interface is established.
+ 
+ **Evidence:** L-002, L-003, L-005, L-008, L-025, L-044, L-056, L-066, L-079,
+ L-085, L-086, L-087, L-113 (campaign history). Public-documentation gap:
+@@ -99,29 +95,24 @@ about a pass that may never have started.
+ 
+ **Evidence:** L-043, L-057, L-114, L-203, L-311 (campaign history).
+ 
+-## Compile cost is set by composition, not by graph size
+-
+-**Trap:** At this pin the compile wall and the compiler's host memory are
+-driven by structure the graph text does not show: custom-call composition,
+-the shared-device-memory tensor population, the number of kernel call sites
+-(a kernel body is ingested once per call site, not once per unique kernel),
+-collective boundaries that cut the graph into partitions, the stride shape of
+-kernel memory access patterns retained in a pass's interval cache,
+-architecture-gated quadratic nests, and a module-parallel expansion pass.
+-Graph bytes and instruction counts predict none of it, and the front end is a
+-few percent of a good compile and a fraction of a percent of a failing one.
+-
+-**Rule:** Classify every compile bucket from the graph the compiler will read,
+-before you schedule anything: computation count, custom-call composition,
+-shared-device-memory tensor population, kernel call sites, and collective
+-boundaries. Pilot each candidate flag or fix on the cheapest class in that
+-ranking, against a recorded control wall. Do not attack compile time by
+-removing instructions, and do not lower a parallelism knob to save memory —
+-one such knob sets only a thread limit and another multiplies front-end memory
+-per worker.
+-
+-**Why:** the cost model is composition, so a plan that budgets by graph size
+-buys the wrong pilot and pays the wall twice.
++## Cost a compile from the structure the changed pass processes
++
++**Trap:** At the cited pin, expensive compiles depended on custom-call
++composition, shared-device-memory tensors, repeated kernel call sites,
++collective partitions, retained access-pattern caches, and expansion passes.
++Raw graph bytes or instruction counts did not capture those costs. The
++observed parallelism knobs controlled different work: one limited threads;
++another replicated front-end memory per worker.
++
++**Rule:** Rank compile buckets by the structures the expensive stage consumes.
++Pilot a flag or fix on the cheapest representative class against a recorded
++control wall. Instruction removal is a useful candidate when it reduces that
++stage's work; a smaller count alone does not predict a faster compile. Before
++changing parallelism for memory, establish which workers, allocations, and
++stages the knob controls at the pin, then measure peak memory and wall time.
++
++**Why:** cost follows the work the compiler performs, so size and knob names
++alone can select the wrong pilot or reject a useful one.
+ 
+ **Evidence:** L-031, L-034, L-035, L-036, L-070, L-075, L-078, L-094, L-099,
+ L-100, L-103, and knob behaviour L-005 (campaign history).
+@@ -247,9 +238,12 @@ out-of-bounds mode. The kernels-disabled flag is not a free A/B: it re-keys
+ the cache because the graph traces differently, and at least two paths raise
+ an error naming the flag instead of falling back.
+ 
+-**Rule:** Validate each candidate kernel operation through a full compile of a
+-tiny micro-kernel, and count kernel-internal quantities in the per-kernel
+-representation rather than from any whole-graph counter. Before you read a
++**Rule:** When a candidate operation's lowering is unproven for the target
++compiler, dtype, shape, and kernel context, use a representative micro-kernel
++that reaches the backend stage in question. Reuse matching compile evidence;
++tracing alone does not establish backend support. Count kernel-internal
++quantities in the per-kernel representation, per the count rule in
++`references/measurement-pitfalls.md`. Before you read a
+ kernels-off run as a clean fallback comparison, confirm that the specific
+ operation's gate consults the flag, and record that the toggle re-keyed the
+ cache. Treat a raise that names the flag as designed behaviour, not a new
+@@ -265,7 +259,7 @@ site.
+ **Evidence:** L-098, L-193, L-209, L-217, L-225, L-233, L-237, L-386
+ (campaign history).
+ 
+-## Every bound in the stack is late, and each bounds a different wait
++## Set deadlines from the waits they cover
+ 
+ **Trap:** The runtime's execution watchdog is a shared deadline: it fires tens
+ of seconds after the first device-timestamped error and names the stage where
+@@ -277,10 +271,11 @@ the framework read back rather than on the device fault, so one wedge surfaces
+ as two different statuses.
+ 
+ **Rule:** Map each startup and execution bound to the exact wait it covers,
+-and pin them in order — tracer admission below the compilation lock, below the
+-barrier, below engine-ready — with engine-ready above the compile wall you
+-recorded. Read a terminal timeout or an unrecoverable-execution-unit status as
+-a downstream consequence: order the device-timestamped errors, take the
++including when each clock starts. Set an enclosing deadline to cover the work
++and cleanup it must await, using the measured wall and the allowed budget.
++Order bounds only where those waits are nested; independent waits need no
++fixed ordering. A terminal timeout or unrecoverable-execution-unit status can
++be a downstream consequence: order the device-timestamped errors, take the
+ earliest, and walk the barrier or semaphore chain back to the first unmet
+ threshold. Compare the deterministic device error chain before you conclude
+ that two legs failed differently. Never reset a shared device as a first move.
+diff --git a/tests/test_codex_port.py b/tests/test_codex_port.py
+index 170adad..e92fd4b 100644
+--- a/tests/test_codex_port.py
++++ b/tests/test_codex_port.py
+@@ -49,7 +49,7 @@ class PackageStructureTests(unittest.TestCase):
+         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
+         manifest = json.loads(path.read_text(encoding="utf-8"))
+         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
+-        self.assertEqual(manifest["version"], "1.5.0")
++        self.assertEqual(manifest["version"], "1.5.1")
+         self.assertNotIn("hooks", manifest)
+         self.assertEqual(manifest["skills"], "./skills/")
+         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())

@@ -1,4 +1,32 @@
-version: 1.5.0
+version: 1.5.1
+
+## 1.5.1 — 2026-09-05
+
+Scope the 1.5.0 reference remedies to the decisions their evidence supports,
+so a future campaign can choose a valid experiment or representation.
+
+Compile-cost guidance now asks which work a change removes and what a
+parallelism knob controls. Flag syntax probes and kernel lowering probes can
+reuse matching evidence. Counts keep their emitter, stage, and normalizer;
+an arithmetic cross-check now needs a known relation. Timeout budgets follow
+the actual waits and clock origins instead of a fixed ordering.
+
+Device-free probes match production context when they claim production
+compatibility. Isolated probes state their narrower claim. Clamp and sentinel
+remedies preserve the producer's range and bit meaning. Low-bit scale rounding
+follows the format, and the boundary-count lookup remedy applies to ordered
+boundaries. These replace unconditional recipes in the existing references.
+
+The defect review found that two remedies from a sibling port campaign had
+become universal instructions. It did not refute the compiler observations or
+supply new campaign measurements. Prior usage summaries in releases 1.2.0–1.5.0
+and ledger revisions 1–5 argue against repeat work on settled inputs. This
+release adds no seat, lap, artifact, or recurring gate. It preserves revision
+5's acceptance controls, scan evidence, and measured hardware refusals.
+
+The graph, ledger, state authority, hooks, and model bindings do not change.
+Both plugin manifests declare 1.5.1. Historical entries below describe their
+own releases; their remedy and learning counts are not current policy.
 
 ## 1.5.0 — 2026-09-04
 

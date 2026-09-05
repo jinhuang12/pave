@@ -1,12 +1,9 @@
 # Toolchain evidence pitfalls — the Neuron compiler and runtime
 
-Operational rules for reading what the Neuron toolchain says about itself.
-`references/measurement-pitfalls.md` covers the instruments that produce a
-number for a verdict; this file covers the compiler, the runtime, and the
-device dumps you read while a candidate is being built or brought up. One
-mechanism runs through every rule: each of these channels is a program that
-reports a position, a name, or a count for its own purposes, so its output is
-evidence for what that channel measured and for nothing else.
+Use compiler and runtime evidence for the claim its channel can support.
+For verdict instruments, read `references/measurement-pitfalls.md`.
+These observations describe the cited pins. Apply a remedy when the current
+path has the same failure mechanism; a past fix alone does not establish that.
 
 Read it before you credit a compiler flag, cost a compile, attribute a compile
 or serve failure, or localize a device wedge.
@@ -57,18 +54,17 @@ option by name class. A flag that reads like a switch can be an integer, can
 already be on, can be an echo of a default rather than something you passed,
 and can change a second thing you did not plan for.
 
-**Rule:** Before you plan any leg around a compiler flag, enumerate it against
-the installed binary (`--help-hidden`, capturing stderr; the machine-readable
-list is not the roster), classify it device-free by passing it bare to the
-binary and reading the parse text (a value option says it requires a value; a
-boolean falls through to the missing-input error; a non-existent flag says
-unknown argument), and include a known-value flag, a known-boolean, and a
-bogus flag as controls in the same probe. Read its coupled effects out of the
-pinned source, never out of its description. State in the plan what the flag
-re-keys: a compiler-argument change re-keys every cached graph.
+**Rule:** Before a flag experiment, establish its accepted syntax, default,
+and coupled effects at the installed pin. Reuse evidence for that binary and
+path. If syntax is unresolved, inspect `--help-hidden` (including stderr);
+the machine-readable list omits some options. If you infer the type from bare
+argument parse errors, include known-value, known-boolean, and bogus controls.
+Use pinned source or a controlled probe to settle effects that help text does
+not establish. State the affected graph classes and cache keys using "Credit
+a flag" below and the cache rule in `references/measurement-pitfalls.md`.
 
-**Why:** a flag is an interface the vendor never promised you, so its name is
-a hint and its documented description is a different version's behaviour.
+**Why:** an option's name does not establish its type or effects; a repeated
+syntax probe adds no evidence once the installed interface is established.
 
 **Evidence:** L-002, L-003, L-005, L-008, L-025, L-044, L-056, L-066, L-079,
 L-085, L-086, L-087, L-113 (campaign history). Public-documentation gap:
@@ -99,29 +95,24 @@ about a pass that may never have started.
 
 **Evidence:** L-043, L-057, L-114, L-203, L-311 (campaign history).
 
-## Compile cost is set by composition, not by graph size
+## Cost a compile from the structure the changed pass processes
 
-**Trap:** At this pin the compile wall and the compiler's host memory are
-driven by structure the graph text does not show: custom-call composition,
-the shared-device-memory tensor population, the number of kernel call sites
-(a kernel body is ingested once per call site, not once per unique kernel),
-collective boundaries that cut the graph into partitions, the stride shape of
-kernel memory access patterns retained in a pass's interval cache,
-architecture-gated quadratic nests, and a module-parallel expansion pass.
-Graph bytes and instruction counts predict none of it, and the front end is a
-few percent of a good compile and a fraction of a percent of a failing one.
+**Trap:** At the cited pin, expensive compiles depended on custom-call
+composition, shared-device-memory tensors, repeated kernel call sites,
+collective partitions, retained access-pattern caches, and expansion passes.
+Raw graph bytes or instruction counts did not capture those costs. The
+observed parallelism knobs controlled different work: one limited threads;
+another replicated front-end memory per worker.
 
-**Rule:** Classify every compile bucket from the graph the compiler will read,
-before you schedule anything: computation count, custom-call composition,
-shared-device-memory tensor population, kernel call sites, and collective
-boundaries. Pilot each candidate flag or fix on the cheapest class in that
-ranking, against a recorded control wall. Do not attack compile time by
-removing instructions, and do not lower a parallelism knob to save memory —
-one such knob sets only a thread limit and another multiplies front-end memory
-per worker.
+**Rule:** Rank compile buckets by the structures the expensive stage consumes.
+Pilot a flag or fix on the cheapest representative class against a recorded
+control wall. Instruction removal is a useful candidate when it reduces that
+stage's work; a smaller count alone does not predict a faster compile. Before
+changing parallelism for memory, establish which workers, allocations, and
+stages the knob controls at the pin, then measure peak memory and wall time.
 
-**Why:** the cost model is composition, so a plan that budgets by graph size
-buys the wrong pilot and pays the wall twice.
+**Why:** cost follows the work the compiler performs, so size and knob names
+alone can select the wrong pilot or reject a useful one.
 
 **Evidence:** L-031, L-034, L-035, L-036, L-070, L-075, L-078, L-094, L-099,
 L-100, L-103, and knob behaviour L-005 (campaign history).
@@ -247,9 +238,12 @@ out-of-bounds mode. The kernels-disabled flag is not a free A/B: it re-keys
 the cache because the graph traces differently, and at least two paths raise
 an error naming the flag instead of falling back.
 
-**Rule:** Validate each candidate kernel operation through a full compile of a
-tiny micro-kernel, and count kernel-internal quantities in the per-kernel
-representation rather than from any whole-graph counter. Before you read a
+**Rule:** When a candidate operation's lowering is unproven for the target
+compiler, dtype, shape, and kernel context, use a representative micro-kernel
+that reaches the backend stage in question. Reuse matching compile evidence;
+tracing alone does not establish backend support. Count kernel-internal
+quantities in the per-kernel representation, per the count rule in
+`references/measurement-pitfalls.md`. Before you read a
 kernels-off run as a clean fallback comparison, confirm that the specific
 operation's gate consults the flag, and record that the toggle re-keyed the
 cache. Treat a raise that names the flag as designed behaviour, not a new
@@ -265,7 +259,7 @@ site.
 **Evidence:** L-098, L-193, L-209, L-217, L-225, L-233, L-237, L-386
 (campaign history).
 
-## Every bound in the stack is late, and each bounds a different wait
+## Set deadlines from the waits they cover
 
 **Trap:** The runtime's execution watchdog is a shared deadline: it fires tens
 of seconds after the first device-timestamped error and names the stage where
@@ -277,10 +271,11 @@ the framework read back rather than on the device fault, so one wedge surfaces
 as two different statuses.
 
 **Rule:** Map each startup and execution bound to the exact wait it covers,
-and pin them in order — tracer admission below the compilation lock, below the
-barrier, below engine-ready — with engine-ready above the compile wall you
-recorded. Read a terminal timeout or an unrecoverable-execution-unit status as
-a downstream consequence: order the device-timestamped errors, take the
+including when each clock starts. Set an enclosing deadline to cover the work
+and cleanup it must await, using the measured wall and the allowed budget.
+Order bounds only where those waits are nested; independent waits need no
+fixed ordering. A terminal timeout or unrecoverable-execution-unit status can
+be a downstream consequence: order the device-timestamped errors, take the
 earliest, and walk the barrier or semaphore chain back to the first unmet
 threshold. Compare the deterministic device error chain before you conclude
 that two legs failed differently. Never reset a shared device as a first move.

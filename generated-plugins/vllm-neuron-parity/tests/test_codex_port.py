@@ -49,7 +49,7 @@ class PackageStructureTests(unittest.TestCase):
         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        self.assertEqual(manifest["version"], "1.5.0")
+        self.assertEqual(manifest["version"], "1.5.1")
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())
