@@ -1,0 +1,2295 @@
+{
+ "source": "Workflow wf_44a676b2-5f9: 6 lenses, loop-until-dry (4 rounds), 3-lens refute majority; 300 agents",
+ "counts": {
+  "rounds": 4,
+  "raw": 92,
+  "confirmed": 44,
+  "rejected": 48,
+  "release": 35,
+  "graph": 9
+ },
+ "confirmed": [
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "validator",
+   "file": "skills/vllm-neuron-parity/SKILL.md",
+   "line": 3,
+   "title": "SKILL.md description exceeds the 1024-character skill-creator limit",
+   "quote": "description: >-",
+   "authority": ":",
+   "authority_quote": "",
+   "claim": "The frontmatter description measures 1096 characters against a 1024 limit; the skill-creator validator fails.",
+   "proposed_repair": "Cut 72+ characters while keeping every trigger phrase and the hook disclosure.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Quote matches verbatim at cited line; independent character count and existing planning-records confirm the 1096>1024 failure is real and pre-existing, not a fabricated claim."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Reproduced exactly: the folded description is 1096 chars and the official skill-creator validator exits 1 against the shipped SKILL.md. The plugin's own 1.5.2 release-validation record quotes the same failure, so it is an objective, still-open spec violation (over-limit descriptions risk host truncation), not a paraphrase or style preference. Severity stays LOW: no seat acts wrongly."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.95,
+     "reason": "Verified: the folded description is exactly 1096 chars and skill-creator's quick_validate.py fails on it (\"Maximum is 1024 characters\"); improve_description.py calls 1024 a platform hard limit with truncation. Live SKILL.md, not an append-only record; layer/rank all correct. No reconciling save exists."
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "severity": "HIGH",
+   "category": "drift",
+   "file": "workflow.pave.yaml",
+   "line": 2047,
+   "title": "Graph activity still prescribes the streaming-harness remedy",
+   "quote": "Avoid the known tool traps - the stock serving-benchmark path undercounts speculative-decode configurations (use a streaming harness for those);",
+   "authority": ":",
+   "authority_quote": "",
+   "claim": "Contradicts references/measurement-pitfalls.md:46-50 and agents/measurer.md:34-35.",
+   "proposed_repair": "Graph revision 6: point the activity at the reference and carry the mechanism only.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Quote verified verbatim at workflow.pave.yaml:2047-2048. It contradicts the authority: measurement-pitfalls.md:46-50 says \"Avoiding the stock tool does not avoid the trap\" \u2014 a streaming harness itself reproduced the chunk-derived undercount \u2014 yet the graph text prescribes \"use a streaming harness for those\" as the remedy. agents/measurer.md:34-35 already carries the corrected clause (\"chunk-derived throughput undercounts speculative decode in any harness\"), confirming the graph text is the stale/wrong version."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.93,
+     "reason": "Graph text contradicts its authority twice: it blames the stock path (reference calls that unverified) and prescribes a streaming harness (the reference records that harness as reproducing the undercount). A measurer following it builds the anti-pattern. The plugin's own 1.5.2 changelog names this exact activity as still carrying the wrong guidance, owed a graph revision. HIGH, layer graph."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Workflow:2047-48 blames the stock tool and prescribes \"use a streaming harness,\" but the authority's title says the undercount hits \"any harness, stock or custom\" and :48 states \"Avoiding the stock tool does not avoid the trap ... reproduced the undercount in its custom harness.\" No reconciling read survives; layer=graph is correct; file is live, not append-only. Genuine HIGH contradiction."
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "severity": "HIGH",
+   "category": "contradiction",
+   "file": "workflow.pave.yaml",
+   "line": 2048,
+   "title": "Workflow spec-decode activity prescribes the streaming harness its authority says reproduces the undercount",
+   "quote": "speculative-decode configurations (use a streaming harness for those);",
+   "authority": "references/measurement-pitfalls.md:48-50",
+   "authority_quote": "Avoiding the stock tool does not avoid the trap: that campaign had already set `vllm bench serve` aside for unrelated dataset-shape reasons and reproduced the undercount in its custom harness. [...] For spec-decode benefit legs, measure end-to-end latency for a fixed N-token generation over `/v1/completions` with `stream: true`, not chunk-derived throughput.",
+   "claim": "The realize_measurement_procedures activity tells the measurer to use a streaming harness for speculative-decode configurations. The graph is the measurer's stated authority for its node activities (measurer.md:19-20), so a measurer realizing spec-decode procedures would build a streaming harness. Its authority references/measurement-pitfalls.md directly contradicts this: the trap section 'Do not adjudicate spec-decode comparisons from chunk-derived throughput \u2014 any harness, stock or custom' records that a campaign 'had already set `vllm bench serve` aside for unrelated dataset-shape reasons and reproduced the undercount in its custom [streaming] harness' (:48), and its Rule prescribes measuring 'end-to-end latency for a fixed N-token generation over `/v1/completions` with `stream: true`, not chunk-derived throughput' (:50). The remedy the activity names is exactly the one the authority blames for the undercount \u2014 same failure archetype as the already-fixed streaming-harness case, still live in the graph layer while SKILL.md:225 and measurer.md:34-37 were corrected to 'any harness, stock or custom'. A measurer following this activity for spec-decode legs would reproduce the undercount and bias the comparison against spec configs.",
+   "proposed_repair": "Cut the parenthetical remedy '(use a streaming harness for those)' and reword to the authority's remedy pointer: measure end-to-end latency for a fixed N-token generation over /v1/completions with stream:true (never chunk-derived throughput, any harness), citing references/measurement-pitfalls.md \u2014 matching the corrected measurer.md:34-37 and SKILL.md:225 'any harness, stock or custom' text.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "All cited quotes verified verbatim at their exact file:line locations in both the finding and its authority. The workflow's literal remedy (\"use a streaming harness\") matches the exact failure mode (\"streaming harness ... reproduced the undercount\") the authority warns against, and parallel text in measurer.md/SKILL.md was already corrected to drop this remedy \u2014 supporting a genuine, still-live contradiction in the graph layer."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Quote is verbatim at workflow.pave.yaml:2048. It blames the stock path (authority calls that \"unverified at this pin\") and prescribes the harness that reproduced the undercount. The graph is the measurer's authority, and VERSION:29-35 itself calls this same wording a correctness bug \"owed a graph revision\", so a measurer following it acts wrongly."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.8,
+     "reason": "The authority blames chunk-derived throughput, not streaming per se \u2014 its own prescribed remedy is a streaming harness (`/v1/completions` with `stream: true`). \"Use a streaming harness\" agrees with that remedy at the harness level; it does not prescribe chunk counting. The finding conflates \"streaming harness\" with \"chunk-derived throughput,\" so no contradiction \u2014 a measurer reading the cited authority would build the stream:true latency harness."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "agents/measurer.md",
+   "line": 96,
+   "title": "measurer.md restates the measurement-pitfalls.md stable-reads rule verbatim instead of citing it",
+   "quote": "Re-read every bundle until the design-declared count of consecutive matching reads passes, honoring the declared minimum re-read spacing, and record the stability trace \u2014 a first sighting is never stability.",
+   "authority": "references/measurement-pitfalls.md:76",
+   "authority_quote": "**Rule:** After a completion signal appears, re-read the full evidence set until N consecutive reads are identical before adjudicating. Take N and the minimum re-read spacing from the campaign design record; never default them. A process-exit signal is not proof that output artifacts are fully materialized.",
+   "claim": "measurer.md's `stabilize_and_package_evidence` node restates the full multi-clause \"wait for stable reads\" rule (re-read count N from the design record, minimum re-read spacing, first-sighting-is-not-stability) with no citation to measurement-pitfalls.md, breaking the plugin's own stated discipline elsewhere in the same file of citing budget/shape authorities rather than restating them (e.g. measurer.md:61 \"cite it rather than restating it\", :107 \"Cite that entry; do not restate the numbers\").",
+   "proposed_repair": "Cut to a pointer: \"Re-read every bundle to the stability rule at `references/measurement-pitfalls.md`, \"Do not adjudicate evidence on first sighting\", and record the stability trace.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Both quotes verified verbatim at cited locations; no citation to measurement-pitfalls.md exists near the restated rule, while the file demonstrably uses a cite-not-restate pattern elsewhere for other authorities."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.85,
+     "reason": "The line distills measurer.md's declared authority for activities \u2014 the graph \u2014 not measurement-pitfalls.md. workflow.pave.yaml states the same activity nearly word-for-word, and measurer.md:18-20 says the graph governs activities and this contract distills it. It also restates no numbers (N and spacing stay deferred to the design record), so the cite-don't-restate discipline is honored. No wrong action, no failing check."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "No save holds. The measurer's reader IS told to load the authority (measurer.md:34, SKILL.md:225), and :96 is a genuine multi-clause restatement (N count, min spacing, first-sighting-not-stability) matching measurement-pitfalls.md:76 with no cite, while the same file cites authorities elsewhere (:61, :107). Authority is higher-rank; layer is release (agents file, not append-only). Anti-accretion: convert to pointer, keep node-specific \"stability trace\" output."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "agents/investigator.md",
+   "line": 125,
+   "title": "investigator.md fully restates SKILL.md's P2 cache-root enumeration instead of citing it like every sibling seat contract",
+   "quote": "P2 \u2014 never clear a shared Neuron compile cache: the three vLLM compile-cache roots (`$VLLM_CACHE_ROOT/neuron/compile_cache`, `~/.cache/vllm/neuron/compile_cache`, `/var/tmp/neuron-compile-cache`) or the kernel intermediate cache (`/var/tmp/nki-intermediate-cache`, written outside every cache root a run can set and able to hold a co-tenant's kernels; a rename aside is the sanctioned clear there, a delete never is), and never let a delegate's documented remedy do it.",
+   "authority": "skills/vllm-neuron-parity/SKILL.md:423",
+   "authority_quote": "P2 | Never clear a shared Neuron compile cache \u2014 the prohibition is the class, and four roots are in it. The three vLLM compile-cache roots ($VLLM_CACHE_ROOT/neuron/compile_cache, ~/.cache/vllm/neuron/compile_cache, /var/tmp/neuron-compile-cache) and the kernel intermediate cache (/var/tmp/nki-intermediate-cache \u2014 the kernel toolchain writes it outside every cache root a run can set, and it can hold a co-tenant's kernel artifacts). Instances and the rename-aside duty: `references/artifact-layout.md` \u00a74.10",
+   "claim": "investigator.md is the only one of the six seat contracts whose P2 clause spells out the four literal cache-root paths and the rename-aside duty inline with zero citation; every sibling contract (measurer.md:129-131, adjudicator.md:91-92, adversarial-reviewer.md:167-168, rederiver.md:101-103, and implementer.md's equivalent line) compresses P2 to a citation of `references/artifact-layout.md` \u00a74.10. SKILL.md:423 carries the Why (\"the prohibition is the class, and four roots are in it\") and is the sole other place these four literal paths are enumerated, making it the authority investigator.md silently duplicates.",
+   "proposed_repair": "Match the sibling contracts: \"P2 \u2014 never clear or bypass a shared Neuron compile cache \u2014 a vLLM compile-cache root or the kernel intermediate cache (`references/artifact-layout.md` \u00a74.10) \u2014 and never let a delegate's documented remedy do it.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Quote at investigator.md:125 matches verbatim; SKILL.md:423 quote matches verbatim; all five sibling contracts (measurer.md:129, adjudicator.md:91, adversarial-reviewer.md:167, rederiver.md:101, implementer.md:279) cite `references/artifact-layout.md` \u00a74.10 instead of spelling out the four literal paths, confirming investigator.md is the outlier. investigator.md already cites artifact-layout.md elsewhere (lines 138,150,161), so it does load the authority."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.72,
+     "reason": "Verified: investigator.md alone enumerates all four literal cache roots plus the rename-aside/delete rule with no citation, while the five sibling contracts compress P2 to a pointer at references/artifact-layout.md \u00a74.10. The changelog states \u00a74.10 holds these once. Genuine multi-clause duplicate; it agrees with its authority, so LOW."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.83,
+     "reason": "Confirmed. investigator.md:125 alone inline-enumerates the four cache roots plus rename-aside with no citation; all five siblings compress P2 to \"references/artifact-layout.md \u00a74.10\". Its reader is directed to artifact-layout.md (lines 138,150,161), so this multi-clause restatement should be a pointer. Release layer, editable, not append-only. No save holds."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "stale-copy",
+   "file": "codex/agents/vllm_neuron_parity_adversarial_reviewer.toml",
+   "line": 6,
+   "title": "Codex adversarial-reviewer mirror carries a narrow-triage duty its Markdown twin does not",
+   "quote": "After your findings return, the LEAD (never you) classifies the round via narrow_delta_scoped: material findings that all name only increment-plan text, design-record, or registration surfaces take a block-scoped narrow repair edge instead of the full design lap; recurrence or ambiguity fails closed into the full lap. Name the surfaces each finding touches so the classification stays mechanical.",
+   "authority": "VERSION:19",
+   "authority_quote": "clause that changes what its reader does, and the three codex mirrors carry the\nsame text.",
+   "claim": "Decoding developer_instructions and diffing it against agents/adversarial-reviewer.md (after normalising the four harness substitutions: gpt-5.6-sol/fable, gpt-5.6-terra/sonnet, custom-agent thread/teammate, followup_task/SendMessage) shows this whole paragraph exists only in the TOML. The Markdown contract stops at \"or stands per `design_approved_by_user`.\" (agents/adversarial-reviewer.md:74). The duty itself is graph-carried at workflow.pave.yaml:561-562 (\"and names the\\nsurfaces it touches, so the lead's classification (narrow_delta_scoped)\"), so the TOML is a seat-contract restatement of graph text that its twin never received - the two mirrors of one seat contract disagree in duty content, against VERSION 1.5.2's claim that the mirrors carry the same text.",
+   "proposed_repair": "Cut the toml-only paragraph so the mirror matches agents/adversarial-reviewer.md; the duty already lives in the graph at workflow.pave.yaml:561-562 and reaches the seat through the lead's brief. (If the clause is wanted in the seat layer, add the identical sentence to agents/adversarial-reviewer.md:74 instead - but not one copy without the other.)",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Quote confirmed verbatim in the TOML's single developer_instructions line (line 6); the identical paragraph (narrow_delta_scoped classification, \"LEAD (never you)\") is absent from agents/adversarial-reviewer.md, which stops at \"design_approved_by_user.\" (line 74) before moving to review_increment_batch. The graph carries the underlying mechanism at workflow.pave.yaml:561-562."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.66,
+     "reason": "Text asymmetry is real (decoded diff shows one TOML-only paragraph), but immaterial: the duty it names is already in the Markdown twin at :61-62, the rest describes the LEAD's action and agrees with the graph, so neither mirror's seat acts wrongly. No shipped check tests md/TOML parity, and VERSION:19 is scoped to the 1.5.2 gloss removals, not global mirror byte-parity."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.82,
+     "reason": "Grep confirms the narrow_delta_scoped paragraph exists only in the TOML mirror; the Markdown twin has no \"narrow_delta\" match and its review_campaign_design node stops at \"design_approved_by_user`.\" It restates graph text (workflow.pave.yaml:561-562) the reader is pointed at, so it is an accreted restatement the twin lacks. VERSION:19's \"carry the same text\" is narrowly scoped to the 1.5.2 gloss removals, but the defect stands independently on the mirror-parity/anti-accretion rule. Layer \"release\" is correct."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "stale-copy",
+   "file": "codex/agents/vllm_neuron_parity_implementer.toml",
+   "line": 6,
+   "title": "Codex implementer mirror carries two Re-entry instrument clauses absent from implementer.md",
+   "quote": "Re-entry instrument: update in place only the sections whose inputs changed since the current design-entry id was minted \u2014 never re-copy unchanged text. Lap banners and repair narratives are deleted at re-entry - history is the record's one-line revision log plus run state; the current record carries the current revision only, and a record that grows monotonically with lap count is a defect of your node.",
+   "authority": "VERSION:19",
+   "authority_quote": "clause that changes what its reader does, and the three codex mirrors carry the\nsame text.",
+   "claim": "The normalised decode-and-diff finds exactly two TOML-only insertions in this seat: this design-record clause (Markdown stops at \"owns is forbidden.\", agents/implementer.md:100) and a registration clause (\"Re-entry instrument: you are dispatched for the FIRST registration and for re-entries whose repair touches a registered-value surface \u2014 those get the full value-level comparison, never hash-only. Byte-unchanged re-entries with no registered-value finding the lead settles mechanically with the four-slice check \u2014 expect no dispatch for those.\", Markdown stops at \"registration completes before measurement begins.\", agents/implementer.md:80). Both duties are graph-carried (workflow.pave.yaml:1350-1361 and :1283-1285), so the two mirrors of one seat contract differ in what the seat is told to do.",
+   "proposed_repair": "Cut both toml-only Re-entry instrument clauses so the mirror matches agents/implementer.md; workflow.pave.yaml:1350-1361 and :1283-1285 already carry them. Alternatively add the same two sentences at agents/implementer.md:100 and :80 - but the pair must move together.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Quote at codex toml:6 verified verbatim; agents/implementer.md:80 and :100 confirmed to end exactly where claimed with no Re-entry instrument text; VERSION:19-20 authority quote matches exactly; workflow.pave.yaml carries equivalent Re-entry instrument duties at lines 1276 (within cited 1283-1285) and 1350 (matching cited 1350-1361)."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Verified. A normalized sentence diff finds exactly two TOML-only Re-entry instrument insertions (four sentences) beyond the expected Codex preamble and tool-name paraphrases. Both are multi-clause restatements of graph text the brief already renders, so the two mirrors of one seat contract differ. No wrong action and no shipped check fails, so LOW is correct."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.78,
+     "reason": "Divergence confirmed: implementer.md has 0 Re-entry instrument clauses, the .toml mirror has exactly 2, and both duties are graph-carried, so the two seat-contract mirrors differ in what the seat is told. VERSION:19 is a slight mis-citation (it covers the removed glosses) and the primary repair direction is debatable, but neither refutes the real mismatch."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "VERSION",
+   "line": 18,
+   "title": "VERSION 1.5.2's \"at most one clause\" claim is contradicted by the measurer site it edited",
+   "quote": "Each site keeps its pointer plus at most one\nclause that changes what its reader does",
+   "authority": "agents/measurer.md:33",
+   "authority_quote": "the known traps recorded in `references/measurement-pitfalls.md`:\n  chunk-derived throughput undercounts speculative decode in any harness,\n  and the decode-only bench connector produces no correctness signal, so\n  it is never a correctness procedure. Every procedure you realize proves\n  its instrument on the registered tripwire input in the same smoke run \u2014\n  a procedure that passes its own tripwire is not verified.",
+   "claim": "The measurer site that release 1.5.2 rewrote keeps its pointer plus THREE clauses that change what the reader does (the chunk-derived undercount, the decode-only connector, and the tripwire-liveness duty), not \"at most one\". The 1.5.2 patch at planning-records/.../release-1.5.2.patch confirms it deliberately kept two of the three (it removed only the firing-control duty), so the release note overstates the consolidation rule it claims to have applied. The other numbers in the same paragraph do verify: the touched references, seats and lead net -7 lines and -89 words exactly.",
+   "proposed_repair": "Reword VERSION:18-19 to what shipped, e.g. \"Each site keeps its pointer plus only the clauses that change what its reader does\" - or cut the measurer's tripwire clause to a pointer so the stated rule becomes true.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.82,
+     "reason": "Quote at VERSION:18-19 verbatim confirmed. The measurer.md site VERSION describes as consolidated (one of the \"four in seat contracts\") still keeps 3 clauses (chunk-derived undercount, decode-only-connector ban, tripwire-liveness duty), not \"at most one\" \u2014 patch diff shows only the firing-control duty was cut. Minor caveat: authority line cited as 33, but quoted text actually starts at line 34 (line 33 ends with \"Avoid\")."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.82,
+     "reason": "Immaterial wording quibble in a changelog: no seat reads VERSION as a rule and no shipped check depends on it. The \"at most one clause\" rule targets the removed gloss/restatement clauses (firing control cut, tripwire kept as one), while the two trap clauses are retained one-clause applications that agree with measurement-pitfalls.md, per the design record."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Shipped measurer node keeps pointer + three action-changing clauses (chunk-derived trap, decode-only trap, tripwire duty); patch removed only the firing-control duty. That site is one of the five removed glosses, so VERSION:18's \"at most one clause\" describes it and is false. No append-only save (1.5.2 is current, not history); layer \"release\" is right."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "codex/agents/vllm_neuron_parity_adversarial_reviewer.toml",
+   "line": 6,
+   "title": "Codex adversarial-reviewer mirror carries a narrow_delta_scoped clause absent from its seat .md",
+   "quote": "or stands per `design_approved_by_user`. After your\\nfindings return, the LEAD (never you) classifies the round via\\nnarrow_delta_scoped: material findings that all name only increment-plan text,\\ndesign-record, or registration surfaces take a block-scoped narrow\\nrepair edge ... Name the surfaces each finding touches so the\\nclassification stays mechanical.",
+   "authority": "agents/adversarial-reviewer.md:74",
+   "authority_quote": "or stands per `design_approved_by_user`.",
+   "claim": "developer_instructions must decode to agents/adversarial-reviewer.md, but the .md sentence ends at 'or stands per `design_approved_by_user`.' with none of the narrow_delta_scoped follow-on the TOML carries. This is body drift beyond the model line; the graph (workflow.pave.yaml:562) carries the TOML's version, so the .md seat is stale.",
+   "proposed_repair": "Sync the mirror to its source: add the same narrow_delta_scoped clause to agents/adversarial-reviewer.md:74 so the seat matches the graph and the mirror (or, if the seat intentionally omits it, drop the clause from the TOML).",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.92,
+     "reason": "TOML quote at line 6 matches verbatim (decoded). Authority quote at agents/adversarial-reviewer.md:74 matches verbatim and the bullet truly ends there with no narrow_delta_scoped follow-on; next line starts a new bullet. Drift claim holds."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.75,
+     "reason": "Mismatch is real but immaterial. The only reviewer-facing duty in the extra clause (name surfaces) is already in the .md at :62; the rest is explicitly lead-side (\"the LEAD (never you)\") and the lead has it at SKILL.md:222 plus the graph. No shipped check compares bodies (test_codex_port.py only asserts substrings), and the same TOML-only surplus exists for implementer/investigator, so no seat or lead acts wrongly."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.72,
+     "reason": "All facts verified: the .md bullet ends at \"design_approved_by_user.\" and grep finds narrow_delta_scoped zero times in it, while the TOML carries the follow-on and the graph backs it (workflow.pave.yaml:562). A real mirror-vs-source drift beyond the model line, matching the already-repaired measurer precedent. Reviewer duty (\"names the surfaces\") survives in both, so LOW is right, but the drift is genuine."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "codex/agents/vllm_neuron_parity_implementer.toml",
+   "line": 6,
+   "title": "Codex implementer mirror carries a Re-entry instrument clause absent from its seat .md",
+   "quote": "this registration completes before measurement begins. Re-entry instrument:\\nyou are dispatched for the FIRST registration and for re-entries whose\\nrepair touches a registered-value surface ... Byte-unchanged re-entries with\\nno registered-value finding the lead settles mechanically with the\\nfour-slice check \u2014 expect no dispatch for those.",
+   "authority": "agents/implementer.md:80",
+   "authority_quote": "registration completes before measurement begins.",
+   "claim": "developer_instructions must decode to agents/implementer.md, but the .md sentence ends at 'registration completes before measurement begins.' with no Re-entry instrument clause. This is body drift beyond the model line; workflow.pave.yaml:1276-1285 carries the TOML's version, so the .md seat is stale.",
+   "proposed_repair": "Sync the mirror to its source: add the same Re-entry instrument clause to agents/implementer.md:80 so the seat matches the graph and the mirror (or drop it from the TOML if the seat intentionally omits it).",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Quote and authority both verified verbatim. The TOML mirror has a Re-entry instrument clause the .md authority lacks, and workflow.pave.yaml carries the same clause the TOML has, matching the finding's claim exactly."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Drift is real and verbatim: the TOML clause exists, agents/implementer.md:80 ends at \"begins.\" Decoded diff shows every other delta is platform terms (teammate/SendMessage/model names) or rewrapping, so this is genuine body drift, not paraphrase. LOW is correct (graph carries it; no shipped check). Prefer the \"drop from TOML\" branch or a graph pointer."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Verified real body drift. The TOML mirror and the graph both carry the Re-entry instrument clause; the .md seat has zero \"Re-entry\"/\"four-slice\" hits and ends at \"...before measurement begins.\" No reconciling reading, no append-only save (implementer.md is a live seat), layer \"release\" correct. Genuine mirror-vs-source divergence per the decode-and-compare rule."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "codex/agents/vllm_neuron_parity_investigator.toml",
+   "line": 6,
+   "title": "Codex investigator mirror carries a Re-entry instrument clause absent from its seat .md",
+   "quote": "no code change, no hardware contact. Re-entry instrument: you\\nare dispatched on the FIRST entry into the design boundary and on\\nre-entries carrying feasibility-questioning evidence or new\\nfindings-history entries; unchanged re-entries the lead settles\\nmechanically against your standing note - expect no dispatch for those.",
+   "authority": "agents/investigator.md:94",
+   "authority_quote": "authoring, no code change, no hardware contact.",
+   "claim": "developer_instructions must decode to agents/investigator.md, but the .md sentence ends at 'no code change, no hardware contact.' with no Re-entry instrument clause. This is body drift beyond the model line; workflow.pave.yaml:1072 carries the TOML's version, so the .md seat is stale.",
+   "proposed_repair": "Sync the mirror to its source: add the same Re-entry instrument clause to agents/investigator.md:94 so the seat matches the graph and the mirror (or drop it from the TOML if the seat intentionally omits it).",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Both quote and authority verified verbatim. TOML line 6 contains the exact Re-entry instrument clause quoted; agents/investigator.md:94 ends at \"no hardware contact.\" with no such clause. workflow.pave.yaml:1072-1083 does carry an equivalent Re-entry instrument clause for screen_pin_and_progress, supporting the claim that the .md is stale relative to the graph and the TOML."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.68,
+     "reason": "Drift is real but immaterial: the TOML clause is a one-sentence application that AGREES with its authority (graph 1072) in a file whose seat reader never loads the graph, so it stays. The .md omission describes the LEAD's dispatch cadence, not a seat action; no seat acts wrongly and no shipped check compares mirror bodies."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Confirmed drift. The TOML mirror (line 6) carries the \"Re-entry instrument:\" clause in the screen_pin_and_progress bullet; investigator.md:94 ends the same bullet at \"no hardware contact.\" with no such clause; workflow.pave.yaml:1072 carries the graph's Re-entry instrument version. An entire substantive clause is present in mirror+graph but absent from the seat \u2014 content divergence, not paraphrase. No append-only save (release-layer files), layer classification is correct, and the \"complete Codex contract\" note doesn't reconcile since the two runtimes then get different contracts. Real LOW defect."
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "severity": "HIGH",
+   "category": "contradiction",
+   "file": "workflow.pave.yaml",
+   "line": 256,
+   "title": "kickoff_contract_approved check names a specific model ('deepseek') where every other node uses the generic 'prior-run carry-over decision'",
+   "quote": "pinned-release-branch-present-on-fork and SDK-uniformity preflight, deepseek carry-over decision, and for upgrade-route campaigns the upgrade base",
+   "authority": "workflow.pave.yaml:511-512",
+   "authority_quote": "prior-run carry-over decisions, and for upgrade-route campaigns the upgrade base (feeding campaign_target_pins) and the regression-matrix criteria",
+   "claim": "The gate-1 check kickoff_contract_approved requires a 'deepseek carry-over decision' as part of a complete kickoff contract, but the node that produces and defines that same contract (assemble_kickoff_contracts, workflow.pave.yaml:512) and the node that first surfaces it (verify_run_preconditions, workflow.pave.yaml:436) both call it the generic 'prior-run carry-over decision(s)'. This parity workflow is model-agnostic; 'deepseek' does not appear anywhere else in the graph, agents/*.md, or SKILL.md - its only other occurrence in the plugin is a provenance citation in revisions.yaml:243 naming DeepSeek-V4-Flash as the sibling campaign that supplied revision 5's field learnings. The word 'deepseek' is a leaked, unscrubbed copy-paste artifact from that sibling campaign that got substituted for the generic term in this one check, so a lead evaluating this check for a non-deepseek target is asked to verify a decision that does not exist for that campaign.",
+   "proposed_repair": "In workflow.pave.yaml:256-257, replace 'deepseek carry-over decision' with 'prior-run carry-over decision' to match the term used at :436 and :512 for the same artifact field.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.93,
+     "reason": "Quote and authority text both verified verbatim in the tree; the term \"deepseek\" is isolated to this one check and matches no other node's generic wording, and its only other appearances are unrelated provenance citations."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Confirmed. The gate-1 check narrows the model-agnostic contract field to one model name. \"deepseek\" occurs nowhere else in the graph, agents, or references - only as sibling-campaign provenance in revisions.yaml/history. A user or lead evaluating gate 1 for a non-DeepSeek target reads the clause as inapplicable and can approve a kickoff contract that omits the carry-over decision."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Confirmed defect. The live gate-1 check at :256-257 says \"deepseek carry-over decision\" but its own contract definer (:512) and surfacer (:436) say \"prior-run carry-over decision(s)\". \"deepseek\" only appears elsewhere in append-only records (revisions.yaml:243, history/v5.patch:10) as sibling-campaign provenance. No reconciling reading; layer=graph correct; line 256 is a live check, not append-only."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "references/patch-mechanism-inventory.md",
+   "line": 86,
+   "title": "Patch-count header says 6 patch sites while its own table lists 8",
+   "quote": "Current verified count: **8 distinct vLLM-internal patch targets** across 6 patch sites, plus 4 torch-level patch sites.",
+   "authority": "references/patch-mechanism-inventory.md:96-97",
+   "authority_quote": "| `vllm_neuron/vllm/worker/neuron_worker.py:433-490` | `vllm.distributed.parallel_state.in_the_same_node_as` | Worker init (`init_device` \u2192 `:567`) |\n| `vllm_neuron/parallel/neuron_parallel_state.py:806-822` | `vllm.distributed.parallel_state.in_the_same_node_as` (test/MPExecutor path) | Once per worker process on the test path |",
+   "claim": "The table immediately below carries 8 vLLM-internal patch-site rows, not 6: platform.py:93-115, platform.py:828-864, platform.py:867-902, platform.py:758-780, neuron_parallel_state.py:622-629, neuron_parallel_state.py:631-662, neuron_worker.py:433-490, and neuron_parallel_state.py:806-822 (`:90-97`). The two `in_the_same_node_as` rows (`:96-97`) are real, separately located rebinding sites \u2014 `:74` states them as \"two sites for the same target\" \u2014 so the header's arithmetic strands them. The torch count (4 rows, `:103-106`) is right. A porter counting sites from the header under-reads the surface by two.",
+   "proposed_repair": "Change \"across 6 patch sites\" to \"across 8 patch sites (6 named patch functions plus two inline rebinding sites)\".",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.93,
+     "reason": "Quote at line 86 matches verbatim; table has exactly 8 rows (lines 90-97), two of which (96-97) are the in_the_same_node_as rebindings that line 74 itself calls \"two sites for the same target.\" Header's \"6 patch sites\" undercounts against its own table and its own line-74 statement."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.62,
+     "reason": "Verified internal inconsistency: the \"Patch site\" table under the header holds 8 rows, and :74 itself calls the two in_the_same_node_as locations \"two sites for the same target\". No counting scheme fits 8 vLLM-internal targets into 6 sites (in_the_same_node_as sits outside the 6 named patch functions). Real but LOW: the table enumerates all 8, so no seat acts wrongly and no shipped check pins the number; only the \"Current verified count\" line is stale."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Header line 86 states \"across 6 patch sites,\" but the table below (column headed \"Patch site\") holds 8 distinct file:line rows (:90-97). The two in_the_same_node_as rows (:96-97) are separate locations; :74 calls them \"two sites for the same target.\" No reading reconciles 6 with 8; the header strands the two inline sites. Release layer, not append-only."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "references/toolchain-evidence-pitfalls.md",
+   "line": 45,
+   "title": "The toolchain file's first rule has no reason line, against the release's \"each rule carries a one-sentence reason\"",
+   "quote": "**Evidence:** L-080, L-124, L-169, L-213, L-379 (campaign history).",
+   "authority": "VERSION:139-141",
+   "authority_quote": "  - Each rule carries a one-sentence reason beside the trap, so a reader can\n    judge a case the rule did not foresee. That is the anti-patch instrument: it\n    is what keeps a rule from becoming a fix shaped to one incident.",
+   "claim": "The file has 13 `**Rule:**` blocks but only 12 `**Why:**` lines; the rule \"Re-derive every second-hand claim at the pin\" (`:24-45`) goes Trap \u2192 Rule \u2192 Evidence with no reason line, so this Evidence line sits where the Why belongs. VERSION:139-141 states the opposite for this file and calls the reason line the file's anti-generalization instrument: \"Each rule carries a one-sentence reason beside the trap, so a reader can / judge a case the rule did not foresee. That is the anti-patch instrument\". The rule missing its reason is the one whose over-scoped tail clause is reported above \u2014 precisely the case the reason line is supposed to let a reader judge.",
+   "proposed_repair": "Insert one `**Why:**` line before `:45`, stating the rule's mechanism (a secondary source describes a different pin than the one installed, so only the pinned artifact settles the claim).",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.93,
+     "reason": "Quote at :45 matches verbatim. Structure check confirms 13 **Rule:** blocks but only 12 **Why:** lines; the first rule (Trap:26, Rule:37, Evidence:45) has no **Why:** line, unlike all 12 other rules which each have one. VERSION:139-141 quote matches verbatim and states each rule carries a reason line as the anti-patch instrument."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.79,
+     "reason": "Fact is right (13 Rule, 12 Why), but immaterial. No seat reads VERSION as instruction; the rule's own Trap (:26-36) already supplies the mechanism a reader needs to judge an unforeseen case; no shipped check inspects structure (test_document_ceilings.py pins only a 400-line cap); the sibling authority has 18 Rules and 1 Why, so a labeled reason line is a style convention, not an invariant."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Verified: file has 13 Rule/Trap blocks but only 12 Why lines; the first rule (24-45) uniquely goes Trap-Rule-Evidence with no reason line, while all 12 others carry Why. VERSION states each rule carries a reason. Target is a release file, not append-only history, so no save holds. Finding is a genuine LOW drift."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "contradiction",
+   "file": "skills/vllm-neuron-parity/SKILL.md",
+   "line": 219,
+   "title": "SKILL.md's collision-surface brief drops the worker.py surface that outranks the surface it keeps",
+   "quote": "Brief the scan and costing seats with `references/collision-ranking.md` \u2014 the runner, platform, and scheduler surfaces where ports collide are what makes a route expensive.",
+   "authority": "references/collision-ranking.md:1, 17-22",
+   "authority_quote": "# Collision-surface ranking \u2014 runner, platform, worker, scheduler ... | 3 | `vllm_neuron/vllm/worker/neuron_worker.py` | 1909 | ... | 4 | `vllm_neuron/vllm/core/scheduler.py` | 1025 | ...",
+   "claim": "The lead's briefing gloss names three collision surfaces (runner, platform, scheduler) as the ones that make a route expensive, but the cited authority ranks FOUR surfaces by collision probability \u2014 runner (1), platform (2), worker/neuron_worker.py (3), scheduler (4) \u2014 and the omitted worker.py surface ranks strictly above the scheduler surface the gloss keeps. This mirrors the exact defect class 1.5.2 already fixed elsewhere (a gloss naming N-1 of N authority components, dropping the wrong one).",
+   "proposed_repair": "Either name all four ranked surfaces (runner, platform, worker, scheduler) or drop the specific enumeration and point at the reference alone, since the seats are already briefed with the full file.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Both quotes verified verbatim at cited locations. SKILL.md:219 names only runner/platform/scheduler; authority ranks 4 surfaces with worker (rank 3, neuron_worker.py) strictly above scheduler (rank 4), which the gloss keeps while dropping the higher-ranked one."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.72,
+     "reason": "The clause is a one-clause rationale beside its pointer, not an exhaustive list and not action-bearing: the lead's only duty is \"Brief ... with references/collision-ranking.md\", and the seats (investigator.md:78, implementer.md:46) read the full four-surface ranking. Naming runner/platform/scheduler is true, not a contradiction. No seat or lead acts wrongly; no shipped check reads it."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Gloss names 3 of 4 ranked surfaces dropping worker which outranks the kept scheduler. No save holds release layer not append-only worker rank 3 above scheduler rank 4"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "HIGH",
+   "category": "contradiction",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/implementer.md",
+   "line": 121,
+   "title": "Implementer restates the no-progress detector and anchors limb 2 on the answering record instead of the naming lap",
+   "quote": "since that triple was last answered, and this boundary's own lap\n  records repeating a named gap set or a stuck increment id under the\n  same condition. `references/artifact-layout.md` \u00a74.1-\u00a74.3 is the shape\n  authority \u2014 cite it, never restate it.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:196-199 (and 177-179)",
+   "authority_quote": "The graph's second limb reads this boundary's\n  own lap records (key = the named gap or stuck increment) and anchors\n  on the NAMING LAP, as on the design side and safely so ... The anchor is\npart of the pin \u2014 a consumer that swaps one anchor for the other\ninverts the detector's behavior on exactly the laps it must catch.",
+   "claim": "The contract restates the two-limb detector and then tells the reader to cite \u00a74.1-\u00a74.3 instead of restating it \u2014 but the restatement folds limb 2 onto limb 1's anchor (\"under the same condition\" = \"since that triple was last answered\", the ANSWERING-record anchor) where \u00a74.3 and the graph anchor limb 2 on the NAMING LAP, and it drops limb 2's second conjunct (\"the item's declared acceptance has not advanced\", workflow.pave.yaml:1852). \u00a74.3:177-179 says swapping the anchor inverts the detector on exactly the laps it must catch, so this is a disagreeing restatement, not a lossy paraphrase.",
+   "proposed_repair": "Cut lines 117-122 to a pointer: \"The no-progress detector's two limbs, their keys, and each limb's own anchor are pinned at `references/artifact-layout.md` \u00a74.3 (implement_increments binding) \u2014 read it there before you evaluate the lap; limb 2 anchors on the lap that NAMED the gap or stuck item, not on an answering record.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Quote and authority both verified verbatim. implementer.md's \"under the same condition\" applies limb 1's answering-record anchor to limb 2, contradicting artifact-layout.md's naming-lap anchor for limb 2. One embedded sub-citation (workflow.pave.yaml:1852) is wrong/unrelated, slightly undercutting the write-up but not the core contradiction."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Confirmed. The contract compresses limb 2 as \"under the same condition\" \u2014 the condition just stated is the answering-record anchor \u2014 while the authority binds that anchor to limb 1 alone and anchors limb 2 on the naming lap, and warns that swapping anchors inverts the detector. The same paragraph then forbids restating. Mirrored in codex, so it ships twice."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.72,
+     "reason": "\"Under the same condition\" reconciles to limb 2's own reference (the naming lap), matching the graph's \"since that lap.\" And the authority certifies limb-2 anchor-equivalence (\"no answered-yet-recurring state can exist there\"), so the \":177-179 inversion\" cannot bite limb 2 \u2014 no wrong action, defeating the HIGH contradiction claim."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/skills/vllm-neuron-parity/SKILL.md",
+   "line": 279,
+   "title": "SKILL.md announces the two duties are \"cited never restated\", then restates both",
+   "quote": "**Write for the reader, and keep the caps.** Two duties, each pinned once and\ncited never restated: the prose duty at `references/artifact-layout.md` \u00a74.13\n(concise simple plain english, one lead sentence, an identifier paired with its\nplain name, checker output cited from its own file, working state exempt) and\nthe living-document cap at \u00a74.12 (kept by shrinking \u2014 a landed increment\ncollapses to one ledger row, frozen values stay in the write-once registration\nrecord, count tables are script output, ...",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:92 (and 450, 423-446)",
+   "authority_quote": "## 4. Pinned shapes (single authority; consumers cite, never restate)",
+   "claim": "Both parentheticals are multi-clause restatements of \u00a74.13's bullets and \u00a74.12's shrink rules, in the one file that declares them \"pinned once and cited never restated\" and whose reader is directed to both sections. SKILL.md:286 even copies \u00a74.12:431-432 near-verbatim (\"the P9 digest binds that record only, never a block of the increment plan\"). The restatement is what let the design-lap narrowing (separate finding) drift in.",
+   "proposed_repair": "Cut both parentheticals: \"Two duties, each pinned once: the prose duty at `references/artifact-layout.md` \u00a74.13 and the living-document cap at \u00a74.12. Read both there and carry both into every brief.\" Keep the following sentence about the hook and the reviewer, which is enforcement, not restatement.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.92,
+     "reason": "Quote verified verbatim at SKILL.md:279-286; authority \"single authority... cite, never restate\" verified verbatim at artifact-layout.md:92. The two parentheticals do restate multi-clause bullets from \u00a74.12 (409-441) and \u00a74.13 (448-470), and SKILL.md:286's \"the P9 digest binds that record only, never a block of the increment plan\" matches artifact-layout.md:431-432 near-verbatim, confirming the finding's specific example."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.76,
+     "reason": "Confirmed as a genuine multi-clause duplicate, self-contradicting its own \"cited never restated\" clause. SKILL.md's reader is directed to artifact-layout.md (precedence rank 3, \"every shape the graph pins once\") and every seat contract cites it too, so the restatement carries content to no reader that lacks the authority. Line 286 is near-verbatim from :431-432. Material as duplicate text, not a paraphrase-only nit; LOW severity stands (no wrong action, no failing check)."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "The restatement is real, quotable, and self-contradictory. SKILL.md declares the two duties \"cited never restated\" yet packs multi-clause summaries of \u00a74.13's bullets and \u00a74.12's shrink rules into parentheticals, including a verbatim copy. SKILL.md cites both sections, so its reader loads the authority \u2014 anti-accretion rule says pointer, not restatement. Layer is release; not append-only. No save holds."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/measurer.md",
+   "line": 57,
+   "title": "Measurer restates the durable-host-state definition it says it will only cite, minus the boundary ruling",
+   "quote": "Never\n  mutate durable host state on the baseline \u2014 persistent writes including\n  cache writes, restarts, reboots, resets. The ephemeral lifecycle of a\n  serving process launched for capture is not a durable mutation; the\n  operational definition lives once in\n  `references/artifact-layout.md` \u00a74.10 and you cite it rather than\n  restating it.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:363-373",
+   "authority_quote": "Operational definition, defined once: durable host state = mutations\nthat outlive the session \u2014 persistent writes INCLUDING CACHE WRITES,\nrestarts, reboots, resets. ... **Boundary ruling (where the definition binds)**: a cache write\nperformed BY the capture-launched serving process is still a durable\nmutation when it lands in a persistent cache location",
+   "claim": "The clause copies \u00a74.10's definition and its lifecycle exemption verbatim in the same sentence that says the definition \"lives once\" in \u00a74.10 and \"you cite it rather than restating it\". The copy also stops before \u00a74.10's boundary ruling, i.e. it ships exactly the loose reading \u00a74.10:381-383 says \"permits the inference-time cache write the prohibition was minted to forbid\"; only the later `baseline_unusable` clause (measurer.md:64-65) keeps the seat honest.",
+   "proposed_repair": "Cut to one pointer: \"Never mutate durable host state on the baseline; the operational definition and its cache-write boundary ruling live once at `references/artifact-layout.md` \u00a74.10 \u2014 read it before you launch a capture.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Quote and authority text both verified verbatim (line off-by-one: \"Never\" is line 56, \"mutate...\" starts 57, immaterial). measurer.md restates \u00a74.10's definition/lifecycle-exemption then says \"lives once\" there, and omits the boundary ruling \u2014 matching the finding's claim."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Confirmed. measurer.md:56-62 copies \u00a74.10's definition list and lifecycle exemption inside the same sentence that says the definition \"lives once\" in \u00a74.10 and \"you cite it rather than restating it\" \u2014 a self-refuting multi-clause duplicate in a file whose reader is pointed at the authority, and the same file already models the pointer fix at :107. It also stops before the boundary ruling. LOW, no wrong action."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.83,
+     "reason": "Confirmed. measurer.md:58 restates \u00a74.10's definition and lifecycle exemption near-verbatim in the very sentence that says \"you cite it rather than restating it.\" Reader loads the authority (six \u00a7-cites, incl. line 107 \"Cite that entry; do not restate\"). Layer release, not append-only, authority outranks seat. baseline_unusable only justifies LOW, not a save."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/investigator.md",
+   "line": 154,
+   "title": "Investigator restates the \u00a74.13 prose duty clause by clause",
+   "quote": "Anything you persist that a person will read \u2014 delta reports and route\ncostings \u2014 is written in concise simple plain english: one lead\nsentence per entry saying what happened and why, every identifier\npaired with its plain name at first use, checker output cited from its\nown file rather than inlined. Records written only for the next agent \u2014\nthe delta index, event files, and intake-preflight records \u2014 are exempt.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:450 (bullets 455-458, exempt 468)",
+   "authority_quote": "The prose duty, defined once for every seat and every brief. It covers\nevery document a person will read",
+   "claim": "Three of \u00a74.13's bullets plus its exemption list are restated in a contract whose reader is repeatedly sent to artifact-layout.md (\u00a72 at :138, \u00a74.12 in the very next sentence at :161), and \u00a74.13 says the duty is \"defined once for every seat and every brief\" with SKILL.md:290-291 carrying it into the brief. The role-scoped naming of which artifacts are reader-facing is the part that must stay; the clause list is accretion. Also drops \u00a74.13's \"Every number lives in exactly one file\" and \"Superseded prose is deleted in place\" bullets, so the copy is not even complete.",
+   "proposed_repair": "Keep the role scoping and cut the clauses: \"Anything you persist that a person will read \u2014 delta reports and route costings \u2014 follows the prose duty at `references/artifact-layout.md` \u00a74.13; the delta index, event files, and intake-preflight records are the exempt working state named there.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Quote at investigator.md:154-159 matches verbatim. Authority artifact-layout.md:450-469 confirms three bullets (455-456, 457-458, 460-461) plus the exemption list (468-469) are restated, while \"Every number lives...\" (462) and \"Superseded prose...\" (465) are dropped. Repeated authority pointers at :138 and :161 (very next sentence) also confirmed."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.72,
+     "reason": "The compressed clause list plus role-scoped exemption is the plugin's uniform way of carrying the duty: all six seats and SKILL.md itself use it, and SKILL.md declares the duty \"cited never restated\" while spelling out the same five clauses. It agrees with \u00a74.13, no seat acts wrongly, no check fails. The \"incomplete copy\" sub-claim is consistent compression, not an investigator defect."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "No counter-lens save holds. The lead's own rule pins the duty \"cited never restated\" yet investigator.md restates four \u00a74.13 clauses without a \u00a74.13 pointer, and its reader is repeatedly sent to artifact-layout.md. \u00a74.13 self-declares \"defined once for every seat and every brief.\" Layer=release is correct; not append-only. LOW is right (agrees, no wrong action). Role-scoping stays per the repair."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/investigator.md",
+   "line": 160,
+   "title": "Investigator restates the \u00a74.12 cap rules in the sentence that cites \u00a74.12",
+   "quote": "The delta report and the costing and backlog report are living documents\nunder a declared cap (`references/artifact-layout.md` \u00a74.12): a re-trace\nor re-cost rewrites current state in place, a settled target or route\ncollapses to one row with its evidence pointer, a count table is script\noutput carrying its recompute command, and an over-cap report gets a\ndeletion lap before any new content.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:409-446",
+   "authority_quote": "### 4.12 Living-document caps ... The cap is kept by shrinking, never by an\narchive: ... A count table inside a living document is script output: it carries\n  its recompute command and is never hand-edited. ... over cap is a material finding, and the next lap is a deletion lap\n  before any new content.",
+   "claim": "Four \u00a74.12 clauses are restated immediately after the citation to \u00a74.12, in a file whose reader is told to read that entry. Under the anti-accretion rule this multi-clause restatement should be the pointer it already carries; the only investigator-specific fact is WHICH of its artifacts are capped.",
+   "proposed_repair": "Cut to: \"The delta report and the costing and backlog report are living documents under the cap at `references/artifact-layout.md` \u00a74.12 \u2014 read the shrink rules there before you re-trace or re-cost.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.92,
+     "reason": "Quote and authority text both verified verbatim at cited locations; investigator.md:160-165 cites \u00a74.12 then restates four of its shrink-rule clauses (re-trace-in-place, one-row collapse, count-table-is-script-output, deletion-lap-before-new-content), matching artifact-layout.md:409-446 \u00a74.12 content. Restatement agrees with authority (no contradiction), fits the LOW anti-accretion pattern described."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.68,
+     "reason": "Confirmed as a genuine multi-clause duplicate. Two of the four clauses (count table, deletion lap) repeat \u00a74.12 word-for-meaning in a file whose reader is directed to artifact-layout.md, and the plugin's own lead file declares these duties \"pinned once and cited never restated\". Caveat: the target/route collapse clause is a seat-specific extension (\u00a74.12 covers landed increments only), so the repair must keep it; severity stays LOW."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.6,
+     "reason": "The finding's premise \u2014 reader \"is told to read that entry\" \u2014 is unsupported. The investigator seat (SKILL.md:219) is briefed with collision-ranking.md, not artifact-layout.md; \u00a74.12 appears only as a parenthetical citation. A reader that never loads the authority needs the operative clauses inline (equivalence rule: application stays). Also two clauses are investigator-specific applications (\"re-trace or re-cost\", \"settled target or route\"), not bare restatement. Cutting to a pointer would strand the seat."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/implementer.md",
+   "line": 325,
+   "title": "Implementer restates the \u00a74.13 prose duty clause by clause",
+   "quote": "Anything you persist that a person will read \u2014 design records,\nincrement plans, and PR descriptions \u2014 is written in concise simple\nplain english: one lead sentence per entry saying what happened and\nwhy, every identifier paired with its plain name at first use, checker\noutput cited from its own file rather than inlined. Records written\nonly for the next agent \u2014 attempt, lease, and increment records \u2014 are exempt.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:450",
+   "authority_quote": "The prose duty, defined once for every seat and every brief.",
+   "claim": "Same three-clause copy of \u00a74.13 as the other four seat contracts, in a file that cites artifact-layout.md \u00a74.12 (:51), \u00a74.1-\u00a74.3 (:122), \u00a74.2 pair 5 (:206) and \u00a72 (:299) \u2014 a reader told to read the authority. \u00a74.13 pins the duty once for every seat and the lead carries it into every brief (SKILL.md:290-291).",
+   "proposed_repair": "Cut to a pointer keeping the role scoping: \"Design records, increment plans, and PR descriptions follow the prose duty at `references/artifact-layout.md` \u00a74.13; attempt, lease, and increment records are the exempt working state named there.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.88,
+     "reason": "Quote at implementer.md:325-330 and authority quote at artifact-layout.md:450 both verified verbatim. The three-clause restatement (plain-english/lead-sentence, identifier pairing, checker-output citation) plus a subset exemption clause matches \u00a74.13's content without contradicting it, and implementer.md does cite artifact-layout.md by section elsewhere (:51, :122, :206, :299), supporting the \"reader told to consult authority\" premise. SKILL.md:290-291 \"Carry both duties into every brief\" also confirmed verbatim."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Confirmed as a genuine multi-clause duplicate, near-verbatim on three of \u00a74.13's bullets, with no pointer to \u00a74.13, in a file that cites artifact-layout.md six times. It agrees with the authority (role-scoped exempt list is a correct subset), no ceiling breaks (345/380), so LOW, not HIGH. Release 1.5.2's own stated policy is pointer plus at most one clause."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.75,
+     "reason": "Implementer.md:325 restates \u00a74.13 across 3-4 sub-clauses (concise english, lead sentence, identifier pairing, checker-output citing) plus exempt clause. The authority pins the duty \"once for every seat.\" Implementer's reader is told to read the authority (7 cites, incl. general :323), so per the equivalence rule this multi-clause restatement should become a pointer. It agrees with the authority (LOW, not HIGH); layer release is correct; not append-only. No save holds."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/implementer.md",
+   "line": 50,
+   "title": "Implementer restates the \u00a74.12 cap rules in the sentence that cites \u00a74.12",
+   "quote": "The plan and the design record are living documents\n  under a declared cap (`references/artifact-layout.md` \u00a74.12): a landed\n  increment collapses to one ledger row \u2014 id, plain name, tier, commit,\n  evidence pointer \u2014 with its frozen values in the registration record;\n  a count table is script output carrying its recompute command; a\n  re-entry brief names the blocks to touch and the lap hands back a block\n  diff",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:426-440",
+   "authority_quote": "- A landed increment collapses to one ledger row \u2014 id, plain name, tier,\n  commit, evidence pointer. ... - A count table inside a living document is script output: it carries\n  its recompute command and is never hand-edited. ... - A re-entry brief names the sections the seat may touch",
+   "claim": "The ledger-row field list is copied word for word from \u00a74.12:426-427 and three more cap clauses follow, all inside the sentence that already cites \u00a74.12. The block-diff hand-back mechanics are the lead's routing convention (SKILL.md:221) and belong there; the cap clauses belong to \u00a74.12.",
+   "proposed_repair": "Cut the copied clauses to \"The plan and the design record are living documents under the cap at `references/artifact-layout.md` \u00a74.12 \u2014 collapse and shrink per that entry\", and keep only the block-diff hand-back sentence, which is the brief's own protocol.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.88,
+     "reason": "Quote verified verbatim at implementer.md:50-58; authority quotes verified verbatim at artifact-layout.md:426-427,434,439. The ledger-row clause is copied near-verbatim from \u00a74.12; the block-diff/digest hand-back clause matches SKILL.md:221 (lead routing convention), not \u00a74.12, which never mentions digests/block diffs."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.75,
+     "reason": "Confirmed, LOW. implementer.md:51-58 restates five \u00a74.12 clauses (ledger-row field list verbatim, frozen values, count table, re-entry brief, over-cap deletion lap) inside the sentence citing \u00a74.12. The same file already declares the reference the authority: \"cite it, never restate it\" (:122-123). Genuine multi-clause duplicate; reader loads the authority; no wrong action."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Finding holds. implementer.md:51-58 restates four \u00a74.12 cap clauses verbatim (ledger-row fields, count-table, re-entry brief, deletion lap) inside the sentence citing \u00a74.12, and the file loads that authority (7 references). Multi-clause restatement in a reader-of-authority = accretion. No disagreement, so LOW. Layer \"release\" correct; not append-only."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/adjudicator.md",
+   "line": 115,
+   "title": "Adjudicator restates the \u00a74.13 prose duty clause by clause",
+   "quote": "Anything you persist that a person will read \u2014 your verdict records \u2014\nis written in concise simple plain english: one lead sentence per entry\nsaying what happened and why, every identifier paired with its plain\nname at first use, checker output cited from its own file rather than\ninlined. Nothing you persist is written only for the next agent, so\nnothing of yours is exempt.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:450",
+   "authority_quote": "The prose duty, defined once for every seat and every brief.",
+   "claim": "The same three-clause \u00a74.13 copy, in a contract that cites artifact-layout.md \u00a74.5, \u00a74.6, \u00a74.10 and \u00a72 \u2014 a reader told to read the authority. The adjudicator-specific fact is only that nothing it writes is exempt.",
+   "proposed_repair": "Cut to: \"Your verdict records follow the prose duty at `references/artifact-layout.md` \u00a74.13; nothing you persist is exempt working state.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Quote and authority both verbatim-verified. Adjudicator.md cites artifact-layout.md \u00a74.5/\u00a74.6/\u00a74.10/\u00a72 elsewhere, confirming it's a reader already pointed at that authority, yet restates 3 of \u00a74.13's clauses instead of pointing. SKILL.md:279-280 explicitly says the duty is \"cited never restated,\" supporting LOW-severity restatement classification."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.6,
+     "reason": "Genuine multi-clause duplicate in a file whose reader is sent into the authority four times. It restates only 3 of \u00a74.13's 6 bullets, dropping \"superseded prose is deleted in place\", so it is also incomplete. The proposed pointer keeps both seat-specific facts (scope, no exemption). LOW: no seat acts wrongly, no check fails (132/150 cap)."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.88,
+     "reason": "Lead skill sets the norm \"each pinned once and cited never restated: the prose duty at ... \u00a74.13\"; adjudicator restates \u00a74.13's three clauses verbatim. Reader is directed to artifact-layout.md, agrees with authority (LOW, not contradiction), release layer, not append-only. No save holds."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/rederiver.md",
+   "line": 129,
+   "title": "Rederiver restates the \u00a74.13 prose duty clause by clause",
+   "quote": "Anything you persist that a person will read \u2014 your re-derivation\nrecord \u2014 is written in concise simple plain english: one lead sentence\nper entry saying what happened and why, every identifier paired with\nits plain name at first use, checker output cited from its own file\nrather than inlined. Nothing you persist is written only for the next\nagent, so nothing of yours is exempt.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:450",
+   "authority_quote": "The prose duty, defined once for every seat and every brief.",
+   "claim": "Fifth copy of the same three-clause \u00a74.13 restatement, in a contract that cites artifact-layout.md \u00a74.10 and \u00a72. \u00a74.13 defines the duty once for every seat, and the lead carries it into every brief.",
+   "proposed_repair": "Cut to: \"Your re-derivation record follows the prose duty at `references/artifact-layout.md` \u00a74.13; nothing you persist is exempt working state.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Quote and authority both verified verbatim; restatement is a duplicate (agrees with authority, no contradiction), matching LOW severity and pointer repair per equivalence rule."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Genuine multi-clause duplicate. rederiver.md:129-134 restates three \u00a74.13 clauses (lead sentence, identifier pairing, checker output cited) verbatim in meaning; \u00a74.13 says the duty is \"defined once for every seat and every brief\", and SKILL.md:280 says it is \"cited never restated\" and carried into every brief. Agrees with authority, so LOW, not a contradiction. Only the role-specific \"nothing of yours is exempt\" earns its place."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Genuine three-clause restatement of \u00a74.13. Both saves fail: the \"stays\" branch covers only one-clause applications (this is three), and the reader is sent into artifact-layout.md (\u00a74.10, \u00a72). \u00a74.13 says defined \"once for every seat\" and names rederivation records. Clauses agree, so LOW is right; layer release correct."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/adversarial-reviewer.md",
+   "line": 199,
+   "title": "Adversarial reviewer restates the \u00a74.13 prose duty clause by clause",
+   "quote": "Anything you persist that a person will read \u2014 your findings records,\nincluding a recorded absence of findings \u2014 is written in concise simple\nplain english: one lead sentence per entry saying what happened and\nwhy, every identifier paired with its plain name at first use, checker\noutput cited from its own file rather than inlined. Nothing you persist\nis written only for the next agent, so nothing of yours is exempt.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:450",
+   "authority_quote": "The prose duty, defined once for every seat and every brief.",
+   "claim": "The reviewer's own findings-record legibility criterion may stay, but the three \u00a74.13 clauses are a copy of the authority this contract already cites (\u00a74.1, \u00a74.2 pair 1, \u00a74.12, \u00a74.10, \u00a72). The same clauses are also restated earlier in this file at :21-24, so the duty appears twice inside one contract.",
+   "proposed_repair": "Cut to: \"Your findings records, including a recorded absence of findings, follow the prose duty at `references/artifact-layout.md` \u00a74.13; nothing you persist is exempt working state.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.75,
+     "reason": "Quote at adversarial-reviewer.md:199-204 is verbatim. Authority quote at artifact-layout.md:450 is verbatim. The five \u00a74.13 bullets (plain english, lead sentence, identifier pairing, checker-output citation, exemption) are restated clause-by-clause at :199-204, and the contract already reads/cites artifact-layout.md elsewhere (\u00a74.1:96, \u00a74.2 pair 1:86/99, \u00a74.12:30, \u00a74.10:168, \u00a72:179), so it is a reader of that authority per the equivalence rule."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.68,
+     "reason": "Role-scoped application, not duplication. Lines 20-24 are the reviewer's own materiality criterion for artifacts it REVIEWS (the equivalence rule keeps that); :199-205 governs what the reviewer WRITES and adds a ruling absent from the authority \u2014 none of its records are exempt working state. It agrees with \u00a74.13, matches the identical paragraph in five sibling contracts, and the file is 218/240 lines, so no check fails and no seat acts wrongly."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.6,
+     "reason": "The three :199 clauses map verbatim to \u00a74.13 clauses, and the reviewer is a reader of artifact-layout.md (cites \u00a74.12/\u00a74.1/\u00a74.10/\u00a72) bound by \u00a74.13's \"defined once for every seat.\" The only real save \u2014 the role-specific exemption resolution \u2014 is preserved by the proposed repair, so it does not protect the copied clauses. Valid LOW restatement."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/skills/vllm-neuron-parity/SKILL.md",
+   "line": 225,
+   "title": "SKILL.md stage-8 row restates the \u00a74.5 instrument-liveness pair it cites",
+   "quote": "Instrument liveness is now graph-carried: the registration holds a value-plus-tripwire pair per criterion (`references/artifact-layout.md` \u00a74.5), the smoke record shows each procedure FAILING on its tripwire, and `acceptance_threshold_evaluated` reads each bundle's evaluated-threshold record before adjudication \u2014 an exit status is not an evaluation.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/references/artifact-layout.md:262-268",
+   "authority_quote": "**Instrument-liveness pair**, registered per criterion in this same\nwrite-once record: the VALUE that must appear as evaluated in the\nevidence for that criterion, and the TRIPWIRE input the procedure must\nfail on. ... `procedures_smoke_verified` reads the tripwire result out of the smoke\nrecord; `acceptance_threshold_evaluated` reads the value out of the\nevidence bundle (\u00a74.6).",
+   "claim": "Three clauses of \u00a74.5 plus \u00a74.6's \"An exit status is not an evaluation\" are restated in the stage row that cites \u00a74.5, in the file whose authority list (SKILL.md:75-77) already sends the lead to artifact-layout for every shape the graph pins once. The word \"now\" is release-note voice that dates the contract.",
+   "proposed_repair": "Cut to the check names and the pointer: \"Instrument liveness is graph-carried: `procedures_smoke_verified` and `acceptance_threshold_evaluated` read the registration's value-plus-tripwire pair per `references/artifact-layout.md` \u00a74.5.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Quote and authority both verified verbatim at cited locations; SKILL.md's own authority list (lines 75-77) also confirmed as claimed. The finding's textual claims hold up under lens verification."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.75,
+     "reason": "Both named checks are `evaluated_by: lead`, so SKILL.md's reader is the evaluator, not a bystander. The row states its own two mechanical checks' criteria \u2014 a reader's-own-action application that agrees with \u00a74.5 \u2014 not an accreted shape restatement. No seat or lead acts wrongly; no shipped check fails. \"now\" is stylistic."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Row 225 restates three \u00a74.5 clauses (value-plus-tripwire pair, smoke reads tripwire, acceptance_threshold_evaluated reads value) while also citing \u00a74.5, in a file whose lead is told to load artifact-layout (75-77). Texts agree, authority is correct-rank, layer is release, \"now\" is release-note voice. No save holds; genuine LOW restatement."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "README.md",
+   "line": 483,
+   "title": "README revision-record count is stale by one entry",
+   "quote": "`workflow.pave.yaml` plus `revisions.yaml` (entries 0-4) and their patches under",
+   "authority": "revisions.yaml:2, 231",
+   "authority_quote": "- revision: 0 ... - revision: 5",
+   "claim": "README.md claims the packaged evolution root's revisions.yaml contains entries 0-4 (5 entries).",
+   "proposed_repair": "Change 'entries 0-4' to 'entries 0-5' to match the packaged ledger's actual 6 entries (revisions 0 through 5), consistent with VERSION's own statement that 'the graph, the ledger at revision 5 ... are unchanged' and with the 5 history/v1.patch-v5.patch files present (one per landed entry after the seed).",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.95,
+     "reason": "Quote and authority both verified verbatim. README understates the ledger by one entry; revisions.yaml actually has revisions 0-5 (6 entries), and history/ holds v1-v5.patch (5 files), matching the proposed repair exactly."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.87,
+     "reason": "Verified stale: ledger holds revisions 0-5 (6 entries, 5 patches), README says \"entries 0-4\". It also survives 1.5.0's own declared cleanup, which dropped \"every hard-coded ledger-head number\" from README because such numbers \"were stale the moment a revision landed\". Real drift, LOW. Better repair: cut the parenthetical, not renumber it."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "README's \"entries 0-4\" describes the packaged ledger, which actually holds revisions 0-5 (6 entries). VERSION says head is revision 5; 5 history patches (v1-v5) confirm. README is a release-layer rendered view, not an append-only record, so no save applies. Genuine drift, correctly LOW."
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "generated-plugins/vllm-neuron-parity/workflow.pave.yaml",
+   "line": 2161,
+   "title": "Graph restates the two-tier repair-budget magnitudes the reference pins as a single definition",
+   "quote": "two predicates per the consolidated artifact-layout entry; tier 1 (suggested\n        three repair passes per declared measurement without new evidence - novelty\n        is the record's NEW-relative-to-prior file-list field, recomputable by\n        any reader) counts the subset whose novelty field is false, and tier 2\n        (suggested nine total passes per measurement, the backstop) counts all\n        defect-record files.",
+   "authority": "generated-plugins/vllm-neuron-parity/references/artifact-layout.md:245-247",
+   "authority_quote": "SINGLE-DEFINITION rule: both contract-text budget readers\n(run_candidate_measurements and stabilize_and_package_evidence) cite\nTHIS definition; two readers can never normalize the bound differently.",
+   "claim": "\u00a74.4 declares itself the single definition and names these two nodes as its citers; agents/measurer.md:106-108 tells the seat \"Cite that entry; do not restate the numbers as if you owned them.\" The graph carries the pointer three times (:2160-2161, :2250-2251, :2278) and still restates three-and-nine plus the novelty derivation four times (:2161-2165, :2255-2256, :2277-2280, and the tier text at :2170-2172). Two copies of one bound in one graph are the divergent-normalization failure \u00a74.4's rule exists to prevent.",
+   "proposed_repair": "Cut the magnitudes to the pointer already present: \"...derivable by counting defect-record files by path - one instrument, two predicates, both tiers and the novelty derivation per the consolidated artifact-layout entry\", and drop the parenthetical numbers at :2255-2256 and :2277-2280.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.78,
+     "reason": "Core quote and authority both verified verbatim; the restatement pattern (magnitudes + novelty derivation duplicated alongside pointer text) is real. Minor flaw: claim's line-2278 citation as a third \"pointer\" occurrence is wrong (2278 is mid-restatement, not pointer text), but this doesn't undercut the core finding."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Authority declares itself the sole definition and names these exact two graph nodes as citers; the graph cites it three times yet still restates three/nine plus the novelty derivation four times. The seat reading this text is ordered not to restate. Genuine multi-clause duplicate; numbers agree, so LOW is correct."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Core defect holds: the graph restates the three/nine magnitudes and novelty derivation at :2161-2165, :2256, :2279-2280 while \u00a74.4 declares itself the single definition and measurer.md tells the seat to cite, not restate. No save applies (graph layer is fixable, \u00a74.4 outranks). Finding's \":2170-2172\" cite and \"four\" count are slightly off but do not refute."
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "generated-plugins/vllm-neuron-parity/workflow.pave.yaml",
+   "line": 2093,
+   "title": "capture_baseline_reference restates the durable-host-state definition beside its own \"lives once\" pointer",
+   "quote": "Out of scope - any durable host-state mutation on the baseline,\n        ever (persistent writes including cache writes, restarts, reboots, resets);\n        the ephemeral lifecycle of a serving process launched for capture is not\n        a durable mutation - the operational definition of durable host state\n        lives once in the consolidated artifact-layout entry and is cited here.",
+   "authority": "generated-plugins/vllm-neuron-parity/references/artifact-layout.md:363-366",
+   "authority_quote": "Operational definition, defined once: durable host state = mutations\nthat outlive the session \u2014 persistent writes INCLUDING CACHE WRITES,\nrestarts, reboots, resets. The ephemeral lifecycle of a serving process\nlaunched for capture or smoke is NOT a durable mutation.",
+   "claim": "The purpose asserts the definition \"lives once\" in the reference and then reproduces both of its clauses verbatim in the same sentence, so the definition now lives twice and the graph copy is the one a seat reads first. It also drops the reference's \"or smoke\" scope. The reference already carries the graph door this node needs (baseline_unusable's unredirectable-cache-write disjunct at :2122-2128 cites it), so the pointer alone is sufficient.",
+   "proposed_repair": "Cut to the pointer: \"Out of scope - any durable host-state mutation on the baseline, ever; the operational definition and its capture-launch boundary ruling live once in the consolidated artifact-layout entry (\u00a74.10) and are cited here.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Quote, authority text, and the \"or smoke\" drop and baseline_unusable cite-back all verify exactly as claimed; this is a genuine restatement-beside-pointer with a dropped scope clause."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.72,
+     "reason": "Confirmed as a genuine multi-clause duplicate. The purpose reproduces both clauses of the \u00a74.10 definition and then asserts the definition \"lives once ... and is cited here\" \u2014 self-defeating. The graph's reader is told to load artifact-layout as the authority for \"every shape the graph pins once,\" and the plugin's own norm is \"pinned once and cited never restated.\" LOW is correct; no wrong action. The \"drops or smoke\" sub-claim is overreach (this node is capture-only)."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.6,
+     "reason": "Verified: the purpose restates both durable-state clauses (enumeration + capture-launch exemption) while asserting \"lives once\" and citing the authority. That is exactly the equivalence rule's multi-clause-restatement-citing-authority = become-pointer case. Layer graph and authority (artifact-layout \u00a74.10) are correct; not append-only. No full save holds; secondary claims are weak but the core defect stands."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "generated-plugins/vllm-neuron-parity/agents/measurer.md",
+   "line": 57,
+   "title": "Measurer contract restates \u00a74.10 in the same breath as telling the seat not to restate it",
+   "quote": "Never\n  mutate durable host state on the baseline \u2014 persistent writes including\n  cache writes, restarts, reboots, resets. The ephemeral lifecycle of a\n  serving process launched for capture is not a durable mutation; the\n  operational definition lives once in\n  `references/artifact-layout.md` \u00a74.10 and you cite it rather than\n  restating it.",
+   "authority": "generated-plugins/vllm-neuron-parity/references/artifact-layout.md:363-366",
+   "authority_quote": "Operational definition, defined once: durable host state = mutations\nthat outlive the session \u2014 persistent writes INCLUDING CACHE WRITES,\nrestarts, reboots, resets. The ephemeral lifecycle of a serving process\nlaunched for capture or smoke is NOT a durable mutation.",
+   "claim": "Release 1.5.2 collapsed five such glosses to pointers but left this one, which is self-refuting: it reproduces both clauses of the \u00a74.10 definition and then instructs the reader to cite rather than restate. The measurer is told to read the authority, so under the equivalence rule this multi-clause copy should be a pointer. The same text is mirrored in codex/agents/vllm_neuron_parity_measurer.toml, so the repair must land in both harness ports.",
+   "proposed_repair": "Reduce to one clause plus the pointer: \"Never mutate durable host state on the baseline; the operational definition and its capture-launch boundary ruling live once in `references/artifact-layout.md` \u00a74.10.\" Mirror the cut in the measurer TOML.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.82,
+     "reason": "Both quotes verify verbatim. The measurer text does restate both clauses of \u00a74.10 (durable-state definition + capture-lifecycle exemption) then instructs \"cite it rather than restating it\" \u2014 self-refuting, matching the finding's claim exactly."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.63,
+     "reason": "Both clauses are action-changing forbidden-effect applications the contract must distill from the graph, which carries the identical two clauses and the same \"is cited here\" wording \u2014 so the text is not self-refuting and the pointer is present. No seat acts wrongly, no check fails, and the proposed cut would strip the authority's capitalized cache-write trap while desynchronizing release text from untouchable graph text."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Text is verifiably self-refuting: measurer.md:57-61 reproduces both \u00a74.10 clauses (cache-writes list + ephemeral-lifecycle exemption) then says \"cite it rather than restating it.\" Reader is pointed to the authority, so the multi-clause copy must become a pointer. Sibling clause (adversarial-reviewer.md:100) shows the clean pointer form. No reading, rank, layer, or append-only save applies. LOW correct."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "skills/vllm-neuron-parity/SKILL.md",
+   "line": 225,
+   "title": "Stage-8 lead row restates two measurement-pitfalls traps beside its own pointer",
+   "quote": "Brief every measurer seat with `references/measurement-pitfalls.md` \u2014 the chunk-counting throughput undercount (any harness, stock or custom) and the decode-only connector trap are known and non-obvious, and a number produced through one of them is worse than no number.",
+   "authority": "references/measurement-pitfalls.md:46 and 54",
+   "authority_quote": "Do not adjudicate spec-decode comparisons from chunk-derived throughput \u2014 any harness, stock or custom [:46] / Decode-bench connector output is throughput evidence only \u2014 never correctness [:54]",
+   "claim": "This row carries the pointer to references/measurement-pitfalls.md AND restates two of that reference's rules \u2014 the chunk-derived spec-decode undercount (measurement-pitfalls.md:46 'Do not adjudicate spec-decode comparisons from chunk-derived throughput \u2014 any harness, stock or custom') and the decode-bench connector rule (measurement-pitfalls.md:54 'Decode-bench connector output is throughput evidence only \u2014 never correctness'). The lead loads that reference as an authority (SKILL.md:78 lists references/measurement-pitfalls.md), and the row itself briefs the measurer seats with the reference, so the two restated trap clauses are redundant accretion. This is the exact parallel of the recorded stage-7 gloss at SKILL.md:224, and it exceeds this release's own stated standard (VERSION:18 'Each site keeps its pointer plus at most one clause that changes what its reader does').",
+   "proposed_repair": "Cut the two restated trap clauses to the pointer alone, or keep at most one clause per the release's own 'at most one clause' standard.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Quote at SKILL.md:225 matches verbatim; SKILL.md:78 lists measurement-pitfalls.md as a loaded authority; both cited authority headings (measurement-pitfalls.md:46 and :54) match what the finding claims. VERSION:18 confirms only the stage-7 row (SKILL.md:224) was pointer-collapsed in 1.5.2, leaving stage-8 (225) with two named traps beside its pointer, consistent with the finding."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.72,
+     "reason": "The row restates no rule text: it names two traps as signposts and adds the lead's own severity criterion (\"worse than no number\"), which the equivalence rule protects. Neither of the authority's prescriptions (fixed-N streaming latency; never cite connector output as correctness) is repeated, nothing contradicts the reference, and no shipped check fails (SKILL.md 460 lines vs cap 500)."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Stage-8 row carries its pointer plus two traps; the chunk-counting one copies verbatim \"(any harness, stock or custom)\" from authority :46 \u2014 authority text, not the lead's severity criterion. Sibling stage-7 (:224) keeps one clause and VERSION:14-20 states the \"at most one clause\" standard and records repairing stage-7. Save (severity-criterion reading) fails on the verbatim parenthetical. Live release text, not append-only."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "HIGH",
+   "category": "contradiction",
+   "file": "skills/vllm-neuron-parity/hooks/compile-cache-guard.sh",
+   "line": 118,
+   "title": "Compile-cache hook prescribes rename-aside on the shared kernel cache, which the authority scopes to a root you own",
+   "quote": "                    \"(%s); rename it aside instead\"",
+   "authority": "references/measurement-pitfalls.md:66",
+   "authority_quote": "The kernel toolchain writes its own intermediate cache outside the run root and outside any variable you set; that directory is shared state too, and a delete there destroys a co-tenant's artifacts. Inside a root you own, rename a partition aside rather than deleting it, so every new artifact is provably post-change",
+   "claim": "The hook's denial message for /var/tmp/nki-intermediate-cache tells the agent to rename the SHARED kernel intermediate cache aside, and the code comment at :61-63 exempts `mv` there on purpose (`IRREVERSIBLE = {k: v for k, v in DESTRUCTIVE.items() if k != \"mv\"}`, :65). The authority permits rename-aside only INSIDE A ROOT YOU OWN, and describes the kernel cache as the opposite case: outside the run root, outside any variable you set, holding a co-tenant's artifacts. references/artifact-layout.md:394 states the same duty and asserts the hook already enforces it: \"rename a cache partition aside inside a root you own and never delete a shared one (P2's hook refuses both shared roots)\". A seat obeying the hook's own remedy renames a co-tenant's shared cache partition aside, which destroys that co-tenant's warm state exactly as a delete would; and the hook lets `mv` through, so nothing stops it.",
+   "proposed_repair": "Match the authority's scope: refuse every DESTRUCTIVE verb (including `mv`) on the kernel-cache pattern and change the message at :117-119 to name no remedy on that shared root (e.g. \"...the shared Neuron kernel intermediate cache (%s); leave it alone and rename aside only inside a root you own\"). Delete the `IRREVERSIBLE` set and its :61-63 comment, or keep `mv` allowed only for run-owned roots.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.82,
+     "reason": "All quotes verify verbatim. Authority scopes rename-aside strictly to \"a root you own\" and separately describes the kernel cache as outside the run root and outside any variable you set (i.e. not owned, shared, possibly a co-tenant's). The hook's own code and comment apply that rename-aside remedy to that same shared kernel cache and structurally exempt `mv` there, contradicting the scoping and artifact-layout.md:394's claim that \"P2's hook refuses both shared roots.\""
+    },
+    {
+     "refuted": true,
+     "confidence": 0.86,
+     "reason": "No contradiction: both authorities forbid DELETING a shared cache, not renaming. Rename-aside on the kernel cache is a deliberate, uniformly documented release decision (hook header, SKILL.md, six seat contracts, VERSION rationale) and is pinned by a shipped test. The proposed repair would break that test. The finder's \"rename destroys warm state like a delete\" is its own risk opinion."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.83,
+     "reason": "Hook's remedy \"rename it aside instead\" targets the shared kernel intermediate cache and allows mv there, but both authorities scope rename-aside to \"inside a root you own\" and class the kernel cache as shared/co-tenant state you never touch. No reading reconciles them; layer=release is correct; hook is live code, not append-only. Genuine HIGH contradiction."
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "severity": "HIGH",
+   "category": "contradiction",
+   "file": "workflow.pave.yaml",
+   "line": 334,
+   "title": "acceptance_threshold_evaluated gates on \"at least one\" threshold where the pinned record shape requires one per criterion",
+   "quote": "      question: Does every evidence bundle under verdict record at least one pre-registered",
+   "authority": "references/artifact-layout.md:302-306",
+   "authority_quote": "- **Evaluated-threshold record** (every evidence bundle, per criterion it\n  realizes): the value read, the threshold it was compared against, the\n  result of that comparison, and the negative-control result from that\n  procedure's smoke record (\u00a74.5). An exit status is not an evaluation,\n  and an empty record makes the bundle incomplete.",
+   "claim": "The shipped mechanical check accepts a bundle that evaluates ONE pre-registered threshold. Its authority pins the record per criterion the bundle realizes and declares a bundle incomplete otherwise, and the graph's own stabilize_and_package_evidence purpose at :2227 states the per-criterion duty (\"Each bundle also records, per criterion it realizes, the threshold that was evaluated\"). A lead evaluating this check on a bundle that realizes three criteria with one evaluated threshold routes it forward as passing; adjudicate_results is then told to take each measured value from the bundle's own evaluated-threshold record (agents/adjudicator.md:36-38) and has no record for two of the three values, with no gate left to catch it. The check as worded catches only the wholly empty record.",
+   "proposed_repair": "Reword the question to match the pinned shape: \"Does every evidence bundle under verdict record, for every criterion it realizes, a pre-registered threshold actually evaluated - the value read, the threshold it was compared against, and the result of that comparison - together with the negative-control result from the procedure's smoke record?\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Quote and authority both verified verbatim, and the mismatch is real: the check asks for \"at least one\" evaluated threshold per bundle, while the authority and the same file's own node purpose require one per criterion the bundle realizes."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Not a paraphrase: the shipped mechanical gate's floor (\"at least one\") is weaker than the shape its authority and the graph's own node purpose pin (\"per criterion it realizes\"), and weaker than the gate's own rationale (\"the criterion it needed was never recorded\"). A lead passes a 3-criteria bundle carrying one evaluated threshold. Only overclaim: adjudicator.md's evidence_unstable is a later backstop."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.7,
+     "reason": "Line-334 gate is the narrow empty-list/exit-code guard; its rationale (:341) and the authority's explicit trigger \"an empty record makes the bundle incomplete\" (artifact-layout.md:306) agree. Per-criterion completeness is caught by stabilize_and_package's completeness check (:2245, collection_defect_found :2271) and the adjudicator's evidence_unstable on incomplete artifacts (:38-40), so no seat reaches a wrong verdict. \"No gate catches it\" premise fails; HIGH wrong-action unsupported."
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "generated-plugins/vllm-neuron-parity/workflow.pave.yaml",
+   "line": 1671,
+   "title": "record_changeset purpose restates the \u00a74.6 scan-completeness three-item census list it already cites",
+   "quote": "Both transcripts meet the scan-completeness discipline\n        pinned at references/artifact-layout.md section 4.6 - the commit scanned,\n        the tree state it was scanned in, and the scan tool''s own completion signal\n        - because a search over a dirty or partly written tree reports a zero it\n        never established, and a zero nobody can show complete is not evidence.",
+   "authority": "generated-plugins/vllm-neuron-parity/references/artifact-layout.md:289",
+   "authority_quote": "**Scan-completeness discipline** (all census-bearing artifacts,\n  run-wide, beside the exit-code discipline): a reported hit count \u2014 a\n  zero above all \u2014 carries the commit scanned, the tree state it was\n  scanned in (clean, or the untracked and modified paths), and the scan\n  tool's own completion signal.",
+   "claim": "The record_changeset node purpose already names references/artifact-layout.md \u00a74.6 as the pin for the scan-completeness discipline, then re-enumerates that reference's three-item census list (commit scanned / tree state scanned in / scan tool's own completion signal) plus its rationale. This is the same list \u00a74.6 pins as its single authority (\"a reported hit count ... carries the commit scanned, the tree state it was scanned in ..., and the scan tool's own completion signal\"), and the same list already restated at references/measurement-pitfalls.md:32 (recorded). The implementer reads this node and is pointed at \u00a74.6, so the multi-clause enumeration is redundant accretion that must collapse to the pointer it already contains. It agrees with the authority (not a contradiction), so severity is LOW: a reader following it acts correctly, but the graph carries a third copy of a list whose single authority is \u00a74.6.",
+   "proposed_repair": "Cut the enumeration and rationale to the pointer already present: end the sentence at \"Both transcripts meet the scan-completeness discipline pinned at references/artifact-layout.md section 4.6.\" Delete \"- the commit scanned, the tree state it was scanned in, and the scan tool's own completion signal - because a search over a dirty or partly written tree reports a zero it never established, and a zero nobody can show complete is not evidence.\"",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Quote, authority, and third-restatement claim all verify. workflow.pave.yaml's record_changeset purpose names \u00a74.6 then re-enumerates its exact three-item list; \u00a74.6 (artifact-layout.md:289) is the pinned authority; measurement-pitfalls.md:32 already restates the same list. Agrees with authority (not a contradiction) \u2192 LOW is correct."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.72,
+     "reason": "Confirmed as a genuine multi-clause duplicate. The same sentence names the authority, then re-enumerates \u00a74.6's three-item census list plus its rationale near-verbatim (\"a zero nobody can show complete is not evidence\"). The ledger's own design says the graph \"states the duty and cites the shape\", with the shape landing in the reference. Agrees with authority, so LOW, not a contradiction."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Save attempts all fail: layer \"graph\" is correct and this is live editable node text, not append-only VERSION/ledger history; \u00a74.6 is the explicitly-pinned authority (not lower-rank); the enumeration is multi-clause and points to \u00a74.6, so anti-accretion says collapse to pointer. It agrees with the authority, so LOW is right. Genuine third copy."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "HIGH",
+   "category": "drift",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/README.md",
+   "line": 110,
+   "title": "README's delegate install list omits the benchmark skill the graph and P6 require",
+   "quote": "Campaign stages additionally delegate to six Neuron skills that are NOT",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/workflow.pave.yaml:88",
+   "authority_quote": "stack, scope the benchmark skill away from self-provisioning.",
+   "claim": "README:110-116 is the only place in the package that names the un-shipped delegate skills an operator must install, and it names six: vllm-neuron-feature-port, neuron-framework-equivalence, neuron-nki-profile-querying, experimental-neuron-framework-profiling-vllm-neuron, experimental-neuron-framework-profile-analysis-vllm-neuron, experimental-neuron-autoport-compiler-debugging-vllm-neuron. The graph declares a SEVENTH, distinct delegate: the delegate_dispatcher role's purpose at workflow.pave.yaml:88 says \"scope the benchmark skill away from self-provisioning\", execute_attempt_loop at workflow.pave.yaml:1873 says \"the benchmark delegate is scoped to already-standing hosts only, away from its self-provisioning branch\", and P6 (skills/vllm-neuron-parity/SKILL.md:427) is a run-wide prohibition about \"The benchmark skill's provisioning STOP gate\". `grep -rn 'benchmark skill'` hits SKILL.md, README.md and all six agents/*.md; the skill is never NAMED anywhere in the tree (zero hits for experimental-neuron-framework-benchmark-vllm). An operator who preflights from README:110 installs six skills, the benchmark delegate is missing, and the campaign pauses at stage 7 or 8 exactly as README:118-119 promises (\"a campaign whose delegate skill is unavailable pauses and reports\").",
+   "proposed_repair": "Change \"six Neuron skills\" to \"seven Neuron skills\" and add the benchmark delegate's real skill name to the list (the one whose provisioning STOP gate P6 protects). Same edit resolves the unnamed referent behind P6 at SKILL.md:427 and behind agents/implementer.md's \"the benchmark delegate\".",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.93,
+     "reason": "Every cited quote verified verbatim at its file:line, and the six named skills in README:110-116 confirmed to exclude the benchmark skill. The un-shipped skill is never named anywhere in the plugin tree."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.72,
+     "reason": "The count gap may be real, but it is not HIGH: no shipped check enumerates delegates, no seat text is wrong, and the graph's only preflight clause is generic (\"delegate skills available\"). README itself makes the miss graceful \u2014 the run \"pauses and reports\". The finding also cannot name the seventh skill from the tree, so the repair is unverifiable here."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.77,
+     "reason": "No save holds. The graph names seven distinct external delegates; README lists six. workflow.pave.yaml:1873 lists the \"benchmark delegate\" alongside the profiling and compiler-debugging delegates (both in README's six), treating benchmark as distinct. It maps to the unshipped, never-named experimental-neuron-framework-benchmark-vllm. README is the sole operator install enumeration and undercounts."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "validator",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/skills/vllm-neuron-parity/SKILL.md",
+   "line": 177,
+   "title": "SKILL.md cites the investigator's Codex contract at a path that does not exist",
+   "quote": "`agents/vllm_neuron_parity_investigator.toml` disclaims it. Never dispatch this node to",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/codex/agents/vllm_neuron_parity_investigator.toml:6",
+   "authority_quote": "`rederive_approach` is not yours: the run binds it to the dedicated\\nrederiver seat.",
+   "claim": "There is no agents/vllm_neuron_parity_investigator.toml. agents/ holds the six Claude contracts as investigator.md, implementer.md, measurer.md, adjudicator.md, adversarial-reviewer.md, rederiver.md; the TOML mirrors live under codex/agents/. The disclaimer the sentence points at is real but sits in codex/agents/vllm_neuron_parity_investigator.toml (developer_instructions, decoded line 103-104). A lead verifying the rederiver agent-binding exception at the cited path finds nothing.",
+   "proposed_repair": "Fix the path to `codex/agents/vllm_neuron_parity_investigator.toml` (or, since the same disclaimer is in the Claude contract, cite both as `agents/investigator.md` / `codex/agents/vllm_neuron_parity_investigator.toml`).",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.95,
+     "reason": "Quote exists verbatim at SKILL.md:177. Path agents/vllm_neuron_parity_investigator.toml does not exist (grep no match); only codex/agents/vllm_neuron_parity_investigator.toml exists, and its line 6 does contain the disclaimer text the finding cites."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.72,
+     "reason": "Path is verifiably wrong. agents/ holds only six .md contracts; the TOML mirrors live in codex/agents/. The same SKILL.md uses the correct convention twice (:40, :82), so :177 is an internal inconsistency, not a paraphrase. A lead checking the cited artifact for the rederiver exception finds nothing. Stale metadata, LOW \u2014 dispatch guidance itself stays correct."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Path agents/vllm_neuron_parity_investigator.toml does not exist: agents/ holds only .md files, .toml mirrors live in codex/agents/. Broken citation confirmed. Disclaimer is real in both codex/agents/...toml and agents/investigator.md:102. Layer=release and LOW severity both hold. No reconciling reading."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/README.md",
+   "line": 564,
+   "title": "README's agent Model column gives only the Codex binding for four of six seats",
+   "quote": "| rederiver | red | approach re-derivation after breakers | gpt-5.6-sol, xhigh | read-only inputs; its output re-enters design, it never implements.",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/rederiver.md:4",
+   "authority_quote": "model: \"fable\"",
+   "claim": "README:556 sources the table from BOTH harnesses (\"the agent contracts (`agents/*.md` on Claude Code, `codex/agents/*.toml` on Codex)\"), and rows 562-563 do disclose both bindings (\"gpt-5.6-sol (Codex); fable (Claude, `agents/adjudicator.md`)\"). Rows 559, 560, 561 and 564 give the Codex model alone, so the table reads as if those four seats bind gpt-5.6-sol on Claude too. The Claude contracts disagree: agents/rederiver.md:4 `model: \"fable\"` (and :67 \"You are pinned to `fable` at `xhigh` effort\"), agents/investigator.md:4, agents/implementer.md:4, agents/measurer.md:4 all `model: \"opus\"`. README:571-573 compounds it by presenting fable as what \"the two Claude judges bind\", which by exclusion denies the rederiver's fable pin.",
+   "proposed_repair": "Add the Claude binding to the four bare rows the way rows 562-563 already do \u2014 rederiver: \"gpt-5.6-sol, xhigh (Codex); fable, xhigh (Claude, `agents/rederiver.md`)\"; investigator/implementer/measurer: \"\u2026 (Codex); opus (Claude, `agents/<role>.md`)\" \u2014 or cut the column to a pointer at agents/*.md frontmatter and codex/agents/*.toml.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Quote and authority both verified verbatim; the four bare rows do omit the Claude binding disclosed for the other two rows, and README:568-569's \"the two Claude judges bind fable\" by exclusion misstates the rederiver (fable) and investigator/implementer/measurer (opus) Claude bindings."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Verified verbatim: README's Model column for rederiver names only gpt-5.6-sol while the Claude authority pins fable at xhigh; rows 562-563 prove the table's convention is to name both harnesses when they differ, and 559-561 differ too (opus). No caveat scopes the column to Codex, no shipped check covers it. Stale/wrong doc text, no wrong seat action \u2014 LOW, not refuted. The \"by exclusion denies\" sub-claim about :570 is overreach; the four bare rows carry the finding."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.78,
+     "reason": "Every claim verifies and no save holds. The two judge rows set a both-bindings convention; the four bare rows break it by showing only the Codex model. rederiver binds fable on Claude (same as the judges) yet appears as gpt-5.6-sol only, so the table and the \"two Claude judges bind fable\" line drift from the contracts. Release layer, not history. LOW is right."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "validator",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/scripts/validate_pave.py",
+   "line": 49,
+   "title": "validate_pave.py requires a composition schema the package does not ship",
+   "quote": "COMPOSITION_SCHEMA_PATH = SCHEMA_PATH.parent / \"pave-composition.schema.json\"",
+   "authority": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/README.md:466",
+   "authority_quote": "    pave.schema.json                   # PAVE graph schema (validator input)",
+   "claim": "references/ ships exactly one schema, pave.schema.json; references/pave-composition.schema.json does not exist. validate_composition() (line 333-334) calls validate_schema(composition, COMPOSITION_SCHEMA_PATH, \"composition-schema\"), whose OSError arm (line 68-69) returns the error string \"composition-schema: validation unavailable: [Errno 2] \u2026\" into the errors list, so validation fails closed. It passes today only because the shipped graph has zero `composition` keys, so the branch is never reached. The moment a landed successor adds a `pave.extensions.composition` sub-graph, `scripts/validate_pave.py` \u2014 the mechanism P12 rests on (SKILL.md:433) \u2014 refuses every run with a missing-file message that reads like a dependency problem rather than a packaging gap.",
+   "proposed_repair": "Ship references/pave-composition.schema.json alongside pave.schema.json (and list it in README's file-structure tree next to line 466), or, if composed graphs are out of scope for this package, delete COMPOSITION_SCHEMA_PATH and the validate_composition schema call so the failure mode cannot appear.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.93,
+     "reason": "Every cited fact verifies exactly against the tree: the quote, the missing schema file, the README line, and the dormant code path."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Reproduced empirically: the schema file is absent, and validate_schema returns the exact predicted \"validation unavailable\" error. validate_pave.py is byte-identical to upstream pave-init, which ships pave-composition.schema.json, so this is a real generation/packaging omission (a dangling references/pave-composition.md at line 6 too). Dormant, not currently failing \u2014 LOW is correctly graded. Only defect: authority line is 463, not 466."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.75,
+     "reason": "Every factual claim verified: COMPOSITION_SCHEMA_PATH points to a file that does not ship, and its own docstring's pave-composition.md is also absent. validate_composition is a LIVE branch (line 304-312) reached on any extensions.composition; its OSError arm (68-69) then fails the run closed. Passes today only because the graph has zero composition keys. A real latent defect; the \"dormant scaffolding\" save lowers impact but does not negate it."
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "generated-plugins/vllm-neuron-parity/workflow.pave.yaml",
+   "line": 2256,
+   "title": "stabilize_and_package_evidence restates the shared-repair-budget magnitudes the reference pins as the single definition",
+   "quote": "three repair passes without new evidence, or suggested nine total - and\n        still defective is declared unproducible; never route it backward.",
+   "authority": "generated-plugins/vllm-neuron-parity/references/artifact-layout.md:245",
+   "authority_quote": "SINGLE-DEFINITION rule: both contract-text budget readers (run_candidate_measurements and stabilize_and_package_evidence) cite THIS definition; two readers can never normalize the bound differently.",
+   "claim": "The stabilize_and_package_evidence node restates the tier-1/tier-2 magnitudes (three passes, nine total) in its 'Settle exhaustion' activity (line 2255-2256) and again in its declared_measurement_unproducible outcome (line 2279-2280), even though the same node at line 2250-2251 already points to 'the consolidated artifact-layout entry' where 'the magnitudes and the novelty derivation are pinned once'. references/artifact-layout.md:245-247 names this exact node as one of the two 'contract-text budget readers' that 'cite THIS definition; two readers can never normalize the bound differently'. This is the same over-accretion recorded for the sibling node run_candidate_measurements at line 2161, but the stabilize node's copies are a distinct, unrecorded site.",
+   "proposed_repair": "Cut the magnitude clauses at 2255-2256 and 2279-2280 to the existing pointer (the consolidated artifact-layout \u00a74.4 entry), leaving only the at-either-tier / never-route-backward behavior the node owns.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Both quotes verified verbatim at cited locations. Node already has a pointer (line 2250-2251) to the consolidated artifact-layout entry, yet restates the same magnitudes twice more (2254-2257, 2276-2280) in the same node. Authority explicitly names stabilize_and_package_evidence as one of two readers that must cite the single definition without re-deriving it, supporting the accretion claim."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Confirmed. The node carries its own pointer saying the magnitudes are \"pinned once\" elsewhere, then restates them twice. The reader is the measurer, whose contract explicitly says cite \u00a74.4 and do not restate the numbers. Genuine multi-clause duplicate; numbers agree with the authority, so LOW is correct, not HIGH."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Restatement is real and violates the single-definition contract. The measurer seat that runs this node is told to cite the authority and NOT restate the numbers, so the \"reader never loads authority\" save fails. Node even carries its own pointer at 2250 then restates the magnitudes twice. Layer=graph and severity=LOW are both correct; distinct unrepaired site."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "generated-plugins/vllm-neuron-parity/README.md",
+   "line": 559,
+   "title": "README role table states Codex model gpt-5.6-sol for investigator, omitting the Claude model opus",
+   "quote": "| investigator | blue | intake, delta scan, costing, design screen | gpt-5.6-sol | read-only on the fork; cannot approve its own verdicts |",
+   "authority": "generated-plugins/vllm-neuron-parity/agents/investigator.md:4",
+   "authority_quote": "model: \"opus\"",
+   "claim": "The \u00a74 role table's Model column shows only the Codex model (gpt-5.6-sol) for investigator, but the Claude agent contract runs opus. The same table annotates the Codex/Claude split for adjudicator (562) and adversarial-reviewer (563), so a reader is led to believe investigator runs gpt-5.6-sol on Claude too, which contradicts agents/investigator.md:4. Dispatch reads the frontmatter, not the README, so no seat acts wrongly.",
+   "proposed_repair": "Annotate the Claude model as the two rows below do: \"gpt-5.6-sol (Codex); opus (Claude, `agents/investigator.md`)\".",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.93,
+     "reason": "Quote at README.md:559 matches exactly; agents/investigator.md:4 confirms model: \"opus\". Adjacent rows (562,563) do show the Codex/Claude split format that investigator's row lacks, supporting the claimed inconsistency."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.8,
+     "reason": "Row 559 agrees with its Codex authority and omits nothing that misleads action: the Model column is Codex-oriented table-wide (README never says \"opus\" anywhere), and implementer/measurer/rederiver omit their Claude models identically. The \u00a74 header already points readers to agents/*.md. No seat acts wrongly; no shipped check reads the column. Completeness preference, not drift."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.68,
+     "reason": "Facts hold: README:559 gives investigator \"gpt-5.6-sol\"; agents/investigator.md:4 is model:\"opus\". The \"Codex-only column\" save fails because rows 562-563 explicitly annotate the Codex/Claude split, establishing a convention that un-split rows share one model \u2014 and the 565-571 paragraph only scopes fable to the two judges, never stating workers run opus. Real LOW drift."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "HIGH",
+   "category": "contradiction",
+   "file": "skills/vllm-neuron-parity/SKILL.md",
+   "line": 228,
+   "title": "Stage-11 note and the dispatch table give close_campaign's execution to the lead alone, dropping the implementer",
+   "quote": "| 11 Gate 3 and closure | `close_campaign`, `verify_run_closure` | Yours plus the adjudicator. Present the closure candidate and its evidence, record the verbatim decision, execute exactly ONE closure type, then apply the serialized single-writer updates to the scorecard, backlog, debt ledger, and fingerprint file. `closure_evidence_settled`: the PR URL must resolve ON THE FORK. |",
+   "authority": "workflow.pave.yaml:852",
+   "authority_quote": "close_campaign:\n      intent: execute\n      instance_per: approved_campaigns\n      purpose: Present gate 3 with the closure candidate and its evidence, record\n        the verbatim user decision, execute exactly one approved closure - push\n        the branch and open the PR on the fork...\n      roles:\n      - lead\n      - user\n      - implementer",
+   "claim": "This row says close_campaign's whole job -- present gate 3, record the decision, AND execute the approved closure (push the branch, open the PR on the fork) -- is \"Yours [the lead] plus the adjudicator.\" It never names the implementer. The roles-and-dispatch table's implementer row at SKILL.md:102 lists draft_increment_plan ... prepare_pr but omits close_campaign entirely, even though the lead's own row at SKILL.md:107 flags close_campaign as split (\"close_campaign (gate halves)\"), implying a second seat owns the other half. No row names that second seat. A lead that follows this table literally either tries to push the branch and open the PR itself -- violating its own stated rule two paragraphs earlier, \"you do not measure, adjudicate, review, or implement\" -- or never dispatches anyone to do it, and the closure never executes.",
+   "proposed_repair": "Add `close_campaign` to the implementer row's node list at SKILL.md:102, and reword the stage-11 note at SKILL.md:228 to split the duty explicitly: the lead presents gate 3 and records the verbatim decision, then the implementer executes the one approved closure (branch push / PR open on the fork per agents/implementer.md's close_campaign bullet), after which the lead applies the serialized cross-run artifact updates.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.93,
+     "reason": "All cited quotes verified verbatim in the tree; the contradiction is real: SKILL.md excludes the implementer from close_campaign while the graph and implementer's own contract include it."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.82,
+     "reason": "Confirmed. The graph and the implementer contract both put closure execution on the implementer; SKILL.md's stage-11 note gives the whole node to the lead (\"Yours plus the adjudicator ... execute exactly ONE closure type\"), and no dispatch row names close_campaign for the implementer. A lead following SKILL.md pushes the branch itself, breaking its own \"you do not ... implement\" rule, or dispatches nobody."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.8,
+     "reason": "Authority names implementer for close_campaign execution; SKILL stage-11 note attributes \"execute exactly ONE closure type\" to the lead (\"Yours plus the adjudicator\") and never names the implementer, and the implementer dispatch row omits close_campaign. The lead's own rule forbids implementing. Real contradiction; the \"gate halves\" hint mitigates but leaves the second seat unnamed."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "drift",
+   "file": "agents/implementer.md",
+   "line": 256,
+   "title": "Implementer's effort-pin paragraph names \"the capture-class nodes,\" a term with no matching implementer node",
+   "quote": "`execute_attempt_loop` at xhigh, and the capture-class nodes plus\n`record_changeset`, `acquire_hardware_lease`, and\n`preregister_acceptance` at medium.",
+   "authority": "workflow.pave.yaml:2079",
+   "authority_quote": "capture_baseline_reference:\n      intent: execute\n      instance_per: approved_campaigns\n      roles:\n      - measurer",
+   "claim": "The implementer's full node list (Design/Implementation/Hardware/Closure sections above) is draft_increment_plan, assemble_regression_matrix, preregister_acceptance, assemble_design_record, scope_next_increment, realize_increment, record_changeset, acquire_hardware_lease, replicate_campaign_venv, execute_attempt_loop, recover_leased_host, prepare_pr, close_campaign -- none named \"capture\" anything. The graph's only capture-named node, capture_baseline_reference (workflow.pave.yaml:2079), carries role measurer, not implementer. \"The capture-class nodes\" therefore names no node the implementer actually owns, so a lead trying to apply this medium-effort clause cannot resolve which node it means. The identical orphaned phrase is repeated verbatim in the dispatch table at skills/vllm-neuron-parity/SKILL.md:102 (\"medium at record_changeset, acquire_hardware_lease, preregister_acceptance and the capture-class activities\").",
+   "proposed_repair": "Replace \"the capture-class nodes\" with the actual node name it was meant to cover (most likely `replicate_campaign_venv`, the implementer's only unassigned hardware node) in both agents/implementer.md:256 and skills/vllm-neuron-parity/SKILL.md:102, or delete the phrase if no such node was intended.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Quote and authority both verified verbatim. Implementer's node list (from its own headings and SKILL.md's dispatch row) has no \"capture\" node; capture_baseline_reference is a measurer-only node per workflow.pave.yaml. \"Capture-class nodes\" names nothing an implementer owns."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Verified dangling term: no implementer node is named capture*, \"capture-class\" is defined nowhere in the plugin, and the only capture node is measurer-owned. Effort pins exist only in SKILL.md/agent contracts (workflow.pave.yaml has zero \"effort\" hits), so the phrase is unresolvable stale text. No wrong action follows, so LOW stands, not refuted."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.58,
+     "reason": "The term genuinely has no referent in the implementer's roster. No implementer node is named or described as \"capture\"; the graph's only capture-named node is the measurer's capture_baseline_reference. The descriptive-class save fails: the candidate hardware nodes say \"freeze/replicate/checkpoint,\" never \"capture,\" so a lead cannot cleanly resolve the medium pin. Real low-severity release-layer drift."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "severity": "LOW",
+   "category": "contradiction",
+   "file": "references/collision-ranking.md",
+   "line": 90,
+   "title": "collision-ranking says the scheduler grew least, its own numbers say platform did",
+   "quote": "scheduling-class. Growth across the pin was the smallest of the four\n   (+59 lines).",
+   "authority": "references/collision-ranking.md:12",
+   "authority_quote": "measure 9086 / 938 / 2225 / 1084 lines \u2014 all grew, none moved rank.",
+   "claim": "The rank-4 rationale claims scheduler.py had the smallest 0.21\u21920.24 growth at +59 lines, but the file's own measured pair for platform.py is 922 (table :20) to 938 (:12) = +16 lines, which is smaller. The doc's other growth claims check out (runner +808, worker +316 = \"second-fastest-growing surface\" at :21), so this one clause is the only one that disagrees with the measurement line it rests on. A reader ranking surfaces by activity would wrongly treat platform.py as the more active surface of the two.",
+   "proposed_repair": "Reword :89-90 to the fact the numbers support: \"Growth across the pin was +59 lines \u2014 small, though platform.py grew less (+16).\" Or cut the growth clause entirely and keep the compactness rationale, which does not depend on it.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.93,
+     "reason": "Quote verified at collision-ranking.md:89-90. Doc's own numbers (line 12: 9086/938/2225/1084; table lines 19-22 current: 8278/922/1909/1025) give growths 808/16/316/59 \u2014 platform's +16 is smallest, not scheduler's +59."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.85,
+     "reason": "Confirmed self-contradiction, not paraphrase. The file's own pin pair maps runner/platform/worker/scheduler to 9086/938/2225/1084 (mapping proven by the two explicit deltas +316 worker and +59 scheduler), so platform grew +16 \u2014 smaller than scheduler's +59. Costing seats are briefed with this authority, so the false \"smallest of the four\" clause misstates surface activity. Severity LOW: rank order and mitigations are unaffected."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Numbers are internal and unambiguous: platform 922\u2192938 = +16, scheduler 1025\u21921084 = +59. \"All grew\" forces 938=platform, so scheduler's +59 is NOT the smallest. The clause disagrees with its own file's measured pair. References file is release layer, not append-only. Contradiction stands."
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "severity": "LOW",
+   "category": "restatement",
+   "file": "workflow.pave.yaml",
+   "line": 2279,
+   "title": "Third graph copy of \u00a74.4's repair-budget magnitudes, against its SINGLE-DEFINITION rule",
+   "quote": "1 suggested three repair passes without new evidence, tier 2 suggested\n            nine total - is spent at either tier; routed to re-derivation with",
+   "authority": "references/artifact-layout.md:245",
+   "authority_quote": "SINGLE-DEFINITION rule: both contract-text budget readers\n(run_candidate_measurements and stabilize_and_package_evidence) cite\nTHIS definition; two readers can never normalize the bound differently.",
+   "claim": "\u00a74.4 names exactly TWO budget readers and requires each to cite the definition rather than carry the numbers. The graph carries the three/nine magnitudes at three sites \u2014 :2162/:2165, :2256, and this outcome `meaning` at :2279-2280 \u2014 and :2250-2251 already points at \"the consolidated artifact-layout entry\", so this is a third normalizing copy beside its own pointer. The numbers currently agree, so nothing acts wrongly today; the defect is that a \u00a74.4 amendment now has to find three graph sites, which is the drift \u00a74.4 was minted to prevent.",
+   "proposed_repair": "Cut the parenthetical to a pointer in the outcome meaning: \"...after its shared repair budget - derived by counting its defect-record files, magnitudes pinned once at references/artifact-layout.md section 4.4 - is spent at either tier...\". Owed as a graph revision, since a release cannot touch the graph.",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "Both quotes verify verbatim at cited locations, and the surrounding context confirms the claim: three/nine magnitudes appear at :2161/:2165, :2255-2256, and :2279-2280, with a pointer already present at :2250-2251."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.75,
+     "reason": "Confirmed as a genuine multi-clause duplicate. The authority's own section-4 heading says consumers cite, never restate; \u00a74.4 adds the SINGLE-DEFINITION rule; measurer.md:107 tells the seat not to restate the numbers; and the same node already points at the consolidated entry at :2250-2251 yet restates both magnitudes at :2256 and again at :2279-2280. Numbers agree, so LOW is right."
+    },
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "Confirmed a third literal magnitude copy. Stabilize node holds pointer (2250-2251) plus two literal copies (2255-2256 activity, 2278-2280 outcome), beside run_candidate (2161-2166). Authority 245-247 pins one definition. Layer=graph correct, LOW correct. No append-only save; anti-accretion rule squarely applies."
+    }
+   ]
+  }
+ ],
+ "rejected": [
+  {
+   "layer": "release",
+   "file": "references/artifact-layout.md",
+   "line": 0,
+   "title": "Census three-item list duplicated in artifact-layout \u00a74.6 and measurement-pitfalls",
+   "votes": [
+    {
+     "refuted": true,
+     "reason": "Quote is an unfilled seed placeholder, absent verbatim from the cited file (grep confirms no match); line:0 is not a real line. \u00a74.6 is a 5-item list, not a 3-item \"census\" list, and measurement-pitfa"
+    },
+    {
+     "refuted": true,
+     "reason": "The measurement-pitfalls copy is a single clause that already carries the pointer to the authority, and the two sections cross-cite for the halves each owns (shape vs. firing controls). They agree ver"
+    },
+    {
+     "refuted": true,
+     "reason": "The proposed repair is already done. The measurement-pitfalls.md census sentence is a single-clause application that already ends with a pointer to the \u00a74.6 authority. Each file owns a distinct Why an"
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "file": "workflow.pave.yaml",
+   "line": 2049,
+   "title": "Graph activity duplicates the decode-connector guard",
+   "votes": [
+    {
+     "refuted": true,
+     "reason": "The cited quote is not verbatim text in the file (it's a placeholder note, not file content), the authority line range is off (the decode-connector trap is at measurement-pitfalls.md:56-61, not 52-56)"
+    },
+    {
+     "refuted": true,
+     "reason": "The graph text is a single clause that AGREES with its authority, and workflow.pave.yaml never cites measurement-pitfalls.md (0 grep hits), so its reader is never told to load the authority \u2014 the equi"
+    },
+    {
+     "refuted": true,
+     "reason": "The graph text is a single-clause operational reminder inside the node's activities, not a multi-clause Trap/Rule/Evidence restatement. It AGREES with the authority (throughput-only, never correctness"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/measurement-pitfalls.md",
+   "line": 32,
+   "title": "measurement-pitfalls.md restates the artifact-layout \u00a74.6 census three-item list instead of pointing to it",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority both verified verbatim, and the restatement claim holds: measurement-pitfalls.md fully re-lists the three-item record before citing \u00a74.6, matching artifact-layout's own itemized du"
+    },
+    {
+     "refuted": true,
+     "reason": "It is a single-sentence application that agrees with \u00a74.6 and already cites it; it omits the worktree rule and the Why that \u00a74.6 owns. Its readers (measurer, implementer) are briefed on measurement-pi"
+    },
+    {
+     "refuted": true,
+     "reason": "A save holds: the two docs intentionally split ownership, each citing the other for the half it doesn't own. The measurement-pitfalls line is a one-sentence contextual application within its own zero-"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "codex/agents/vllm_neuron_parity_investigator.toml",
+   "line": 6,
+   "title": "Codex investigator mirror carries a dispatch Re-entry instrument absent from investigator.md",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "All four cited facts check out verbatim: TOML clause exists, MD twin stops one sentence earlier with no such clause, graph carries the duty at the cited lines, and VERSION:19-20 states the mirror-pari"
+    },
+    {
+     "refuted": true,
+     "reason": "Deliberate design, not stale copy. The TOML declares itself the complete contract and forbids loading the Markdown, so byte-parity is not the invariant. The clause agrees with its graph authority, the"
+    },
+    {
+     "refuted": true,
+     "reason": "Divergence is real but not a defect. The systematic pattern (implementer.toml carries two re-entry clauses its md lacks) shows intent, not stale drift. The audit's own equivalence rule lets a one-clau"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "agents/implementer.md",
+   "line": 30,
+   "title": "Dangling clause left by the venue-gloss cut in implementer.md",
+   "votes": [
+    {
+     "refuted": true,
+     "reason": "Quote is split across two lines (29-30, not just 30), and the authority citation the finding picks (line 136) is not the one implementer.md actually points to (it cites the \"Import time pins the venue"
+    },
+    {
+     "refuted": true,
+     "reason": "Stylistic readability nit, not materiality. The clause is a one-clause application plus a pointer to the exact authority section; both readings (\"venue graded beside the deployed values\" / \"graded aga"
+    },
+    {
+     "refuted": true,
+     "reason": "Finding's core premise is false: VERSION:24-26 says the cut gloss named three of five venue components (construction device/parallel degree/dtype); \"deployed values\" is no venue component, so \"beside "
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "skills/vllm-neuron-parity/SKILL.md",
+   "line": 224,
+   "title": "Two surviving glosses of one late-bound authority clause now name different mechanisms",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Every quote checks out verbatim at its cited line, and the authority does say what the finding claims: the fired bound names the waiter, not the failed component."
+    },
+    {
+     "refuted": true,
+     "reason": "The lead row is a pointer plus one clause with the same meaning as the authority: a fired bound points at its own wait/stage, not the failing thing. \"Stage where it ran\" = \"waiter that gave up\" in thi"
+    },
+    {
+     "refuted": true,
+     "reason": "Both glosses keep the authority's two-part contrast pointing the same way: the fired watchdog names the waiting stage, not the failing one. \"stage where it ran\" == the waiter's stage; \"stage that fail"
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "file": "revisions.yaml",
+   "line": 323,
+   "title": "Ledger's greppable basis for 29 rules no longer greps after 1.5.1 split the patch-mechanism section",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote at revisions.yaml:323 is verbatim. Authority section now contains 6 bold items, not 3, confirmed by direct count. The 1.5.1 patch confirms the prior single item was removed/split into the curren"
+    },
+    {
+     "refuted": true,
+     "reason": "The count is a dated snapshot inside revision 5's semantic_diff, framed as additions (\"the new section\", \"8 added Rule lines (12 to 20)\"). The package's own policy keeps historical numbers, the ledger"
+    },
+    {
+     "refuted": true,
+     "reason": "Line 323 sits inside the revision-5 ledger block (starts :231), an append-only record of release 1.5.0's state. \"3 items\" was true then. The audit's own rule refutes findings that target revisions.yam"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "skills/vllm-neuron-parity/SKILL.md",
+   "line": 422,
+   "title": "SKILL prohibition P1 cites a guard path that does not resolve",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote at SKILL.md:422 verified verbatim; the guard script actually lives at skills/vllm-neuron-parity/hooks/protected-branch-guard.sh (confirmed by find), not at plugin-root hooks/ (which only holds d"
+    },
+    {
+     "refuted": true,
+     "reason": "Cosmetic path-precision nit, not a dangling citation. `hooks/` does exist at plugin root (hooks.json, pre_tool_use_router.py), contradicting the claim. P1-P3 all use the same bare shorthand for the th"
+    },
+    {
+     "refuted": true,
+     "reason": "Bare `hooks/` is a consistent table-wide shorthand: P1/P2/P3 all use it (hooks/protected-branch-guard.sh, hooks/compile-cache-guard.sh, hooks/venv-opt-guard.sh), unlike the one-off \"dangling\" the find"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "skills/vllm-neuron-parity/SKILL.md",
+   "line": 423,
+   "title": "SKILL prohibition P2 cites a guard path that does not resolve",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority line verified verbatim, and the underlying file-location claim checks out against the actual tree: compile-cache-guard.sh exists only under skills/vllm-neuron-parity/hooks/, not at"
+    },
+    {
+     "refuted": true,
+     "reason": "Path is a cosmetic \"where it lives\" label, not an executed reference. The shipped router hardcodes the real location, so no check fails and no seat or lead acts wrongly; the P2 prohibition itself is u"
+    },
+    {
+     "refuted": true,
+     "reason": "P1 (`hooks/protected-branch-guard.sh`) and P3 (`hooks/venv-opt-guard.sh`) in the same table use the identical `hooks/` prefix, and both guards also live only in skills/vllm-neuron-parity/hooks/. So `h"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "skills/vllm-neuron-parity/SKILL.md",
+   "line": 424,
+   "title": "SKILL prohibition P3 cites a guard path that does not resolve",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote matches verbatim at SKILL.md:424. hooks/venv-opt-guard.sh exists only at skills/vllm-neuron-parity/hooks/venv-opt-guard.sh, not at plugin-root hooks/. The doc's own convention treats bare \"hooks"
+    },
+    {
+     "refuted": true,
+     "reason": "The `hooks/` path is relative to SKILL.md's own directory, where venv-opt-guard.sh does exist. P1 and P2 use the identical convention with guards in the same directory, so the citation resolves and is"
+    },
+    {
+     "refuted": true,
+     "reason": "P3's `hooks/venv-opt-guard.sh` uses the same skill-relative `hooks/` shorthand as P1 and P2 in the same table. All three guards exist only under skills/vllm-neuron-parity/hooks/, none at plugin root. "
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/toolchain-evidence-pitfalls.md",
+   "line": 73,
+   "title": "Toolchain reference turns one documentation sweep (L-101) into a universal ban on doc-evidenced steps",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Cited quotes all verified verbatim in the tree. references/toolchain-evidence-pitfalls.md:73 exactly reads the cited clause; :71-72 exactly matches the L-101 evidence text the finding relies on; the h"
+    },
+    {
+     "refuted": true,
+     "reason": "The clause is scoped by its own section heading (compiler-flag docs) and by the file's read trigger (flags, compiles, failures, wedges) \u2014 not a global ban. No collision: the graph and the investigator"
+    },
+    {
+     "refuted": true,
+     "reason": "A reconciling reading holds. The clause sits in a section titled about the compiler (\"...not in its name or its docs\") and the file header scopes \"the docs\" to vendor toolchain documentation (:20 \"Not"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "agents/adversarial-reviewer.md",
+   "line": 74,
+   "title": "Claude seat contracts are missing four re-entry-instrument blocks their codex mirrors carry",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Every quoted anchor and authority text in the finding verifies verbatim in the tree, and the grep for the missing terms in agents/ returns zero hits as claimed, confirming the asymmetry."
+    },
+    {
+     "refuted": true,
+     "reason": "The absence is real but not a defect. The graph \u2014 the declared authority the md reader is told governs \u2014 carries all four instruments, so the codex copies are the multi-clause restatement and the md o"
+    },
+    {
+     "refuted": true,
+     "reason": "The cited authority is misattributed. VERSION:195-196 (a 1.5.0 entry) pins the venue/toolchain/costing/second-hand/liveness pointer clauses \"identical in both ports\" \u2014 and those ARE present in both (g"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/toolchain-evidence-pitfalls.md",
+   "line": 250,
+   "title": "Kernel rule generalizes \"at least two paths\" into every flag-naming raise",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "All three quotes verify verbatim at the cited lines, and the authority text (the trap) does say what the finding claims: a bounded \"at least two paths\" observation, generalized by the Rule into an unc"
+    },
+    {
+     "refuted": true,
+     "reason": "The clause is a one-clause application sitting in the same paragraph chain as its own trap, and it agrees with it: the trap says the flag's paths \"raise an error naming the flag instead of falling bac"
+    },
+    {
+     "refuted": true,
+     "reason": "The clause is scoped by its preamble (\"Before you read a kernels-off run as a clean fallback comparison\") and gated by the adjacent step \"confirm that the specific operation's gate consults the flag\" "
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/patch-mechanism-inventory.md",
+   "line": 140,
+   "title": "Two 1.5.1 probe remedies sit above the evidence line that says it covers what is \"below\", leaving them uncited",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "All cited quotes verify verbatim at the stated locations, and no id list covers :136 or :138. The only inaccuracy is a citation off-by-one (VERSION:56-57 vs actual 55-56), too minor to refute the find"
+    },
+    {
+     "refuted": true,
+     "reason": "Editorial placement, not a defect. Both rules are complete and actionable as written; no seat acts wrongly, and no shipped check tests id coverage (tests pin line caps only). :136-:138 read as continu"
+    },
+    {
+     "refuted": true,
+     "reason": "The cited authority VERSION:93-94 lives inside the 1.5.0 changelog entry (:72-248), an append-only history count describing the pre-1.5.1 state; the probe remedies were added at 1.5.1 (:46,:56-57), so"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "agents/investigator.md",
+   "line": 125,
+   "title": "Investigator's P2 asserts three named vLLM compile-cache roots where its own cited authority pins exactly one",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote verbatim at agents/investigator.md:125-127; authority verbatim at references/measurement-pitfalls.md:66 pins one root via VLLM_CACHE_ROOT and says \"do not rely on any other variable.\" The extra "
+    },
+    {
+     "refuted": true,
+     "reason": "The two \"unsourced\" paths are sourced: the shipped blocking hook enumerates exactly these three vLLM roots plus the kernel cache, and refuses on them. Measurement-pitfalls' rule pins which root YOUR r"
+    },
+    {
+     "refuted": true,
+     "reason": "Finding's premise is false: the three-root enumeration is not investigator-only nor unsourced. The lead SKILL.md and the BLOCKING enforcement hook assert the identical set; investigator matches them v"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/codex/agents/vllm_neuron_parity_implementer.toml",
+   "line": 6,
+   "title": "Codex implementer mirror carries the same wrong detector anchor",
+   "votes": [
+    {
+     "refuted": true,
+     "reason": "The quoted text exists verbatim in the mirror, but identical text already exists in agents/implementer.md:117-122 - the two are NOT out of sync. The premise that the source was 'already repaired' whil"
+    },
+    {
+     "refuted": true,
+     "reason": "The mirror is a faithful copy of agents/implementer.md:120-121, so no divergence defect exists, and the underlying compression is not a contradiction: the authority itself certifies the two anchors co"
+    },
+    {
+     "refuted": true,
+     "reason": "Mirror is faithful to source and text agrees with authority."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/skills/vllm-neuron-parity/SKILL.md",
+   "line": 285,
+   "title": "SKILL.md narrows the over-cap deletion duty to design laps",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority both verified verbatim; SKILL.md narrows \"next lap\" to \"next design lap,\" but the graph shows delta/costing reports are produced under trace_target_delta (instance_per: requested_t"
+    },
+    {
+     "refuted": true,
+     "reason": "Narrowing is an imprecise one-clause summary, not a disagreement, and no actor loses the duty: the stage-2 row points the lead at \u00a74.12 for exactly those reports, the seats and the shipped hook state "
+    },
+    {
+     "refuted": true,
+     "reason": "The named harm cannot occur. The delta/costing reports are produced by the investigator, whose own contract carries the unnarrowed rule; the reviewer that flags over-cap also carries it unnarrowed. So"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/agents/adversarial-reviewer.md",
+   "line": 24,
+   "title": "Adversarial reviewer points at the lead skill's restatement instead of \u00a74.13, and drops run state from the exempt list",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Both quotes verified verbatim at cited lines; reviewer's exempt list omits \"and run state itself\" present in authority; reviewer's pointer names the lead skill's paragraph, not \u00a74.13 directly."
+    },
+    {
+     "refuted": true,
+     "reason": "Both halves are immaterial. The pointer resolves in one hop: SKILL.md:280 names the authority explicitly. And run state can never enter the prose-duty surface \u2014 \u00a74.13 scopes it to reader-facing `.md`,"
+    },
+    {
+     "refuted": true,
+     "reason": "Both harm claims dissolve. The pointer is not a dead end: SKILL.md:280 explicitly forwards to \u00a74.13, so the two-hop chain resolves to the authority. And the reviewer's umbrella \"working state written "
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "file": "generated-plugins/vllm-neuron-parity/workflow.pave.yaml",
+   "line": 1748,
+   "title": "acquire_hardware_lease activity writes the lease record its own forbidden_effects reserve for the lead",
+   "votes": [
+    {
+     "refuted": true,
+     "reason": "Quotes are verbatim, but the finding conflates two distinct artifacts. Line 1748-1749 has the implementer append to \"the attempt log\" (its own produced artifact, per line 1737/1765 `hardware_attempt_l"
+    },
+    {
+     "refuted": true,
+     "reason": "The write-ownership authority names this node a lease-record writer in its own attempts/ dir, and P10 permits writes there. \"Lease record directly (lead-only)\" means the queue/holder state the lead ow"
+    },
+    {
+     "refuted": true,
+     "reason": "A save holds on target. Activity 3 writes \"to the attempt log\" (hardware_attempt_log, the node's OWN produced artifact), which P10 explicitly permits (\"Write only inside your node's own artifact direc"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/references/artifact-layout.md",
+   "line": 96,
+   "title": "Findings-record shape declares five fields \"exactly\", but impl_commit_is_reviewed reads a sixth",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority both verified verbatim at cited lines. \u00a74.1 (lines 94-109) closes the finding-record shape at exactly 5 fields with no commit-stamp field, and \u00a74.2 pair 1 (lines 116-133) restates "
+    },
+    {
+     "refuted": true,
+     "reason": "No seat acts wrongly and no check fails: the sole producer of the record is told outright to stamp the commit, and \u00a74.1's \"exactly\" enumerates per-finding field vocabulary, not exhaustive record conte"
+    },
+    {
+     "refuted": true,
+     "reason": "\u00a74.1 enumerates PER-FINDING fields (\"each finding is one line carrying these fields\", :107-108), not record-level metadata. The reviewed-commit stamp is an outcome/record-level marker on the section g"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/references/artifact-layout.md",
+   "line": 66,
+   "title": "Write-ownership table names acquire_hardware_lease a lease-record writer against the graph's lead-only rule",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Primary quote and authority both verify verbatim. \u00a72 row and \u00a74.2 pair 7 do list acquire_hardware_lease as a lease-record writer, while workflow.pave.yaml forbids that node from writing lease records "
+    },
+    {
+     "refuted": true,
+     "reason": "The finder quoted only the forbidden_effect and omitted the same node's own activity, which orders acquire_hardware_lease to append a lease record to the attempt log. artifact-layout \u00a72/\u00a74.2 agrees wi"
+    },
+    {
+     "refuted": true,
+     "reason": "A reconciling reading holds: the same node's activities explicitly authorize acquire_hardware_lease to append a lease-record event to the attempt log. The forbidden/single-writer lines target the auth"
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "file": "generated-plugins/vllm-neuron-parity/workflow.pave.yaml",
+   "line": 2252,
+   "title": "Stabilize activity reads only the stability count and drops the minimum re-read spacing",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Primary quote and authority quote both verified verbatim at cited lines; activity node genuinely omits spacing while authority mandates it. Minor flaw: cited skills/vllm-neuron-parity/SKILL.md:233 is "
+    },
+    {
+     "refuted": true,
+     "reason": "The graph activity abbreviates but does not contradict the authority: the same node's purpose says stability is settled \"over time, never a first sighting\", it consumes campaign_design_record, and the"
+    },
+    {
+     "refuted": true,
+     "reason": "The measurer never works \"from the graph activity alone.\" Its seat contract carries both values verbatim, and the lead briefs it with the pitfalls reference that pins both and forbids defaults. The ac"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/references/artifact-layout.md",
+   "line": 118,
+   "title": "\u00a74.2 pair 1 names only review_implementation as the fingerprint-triple emitter",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote at artifact-layout.md:118 matches verbatim, and both cited authority sites (workflow.pave.yaml:661-664, adversarial-reviewer.md:86) verbatim cite pair 1 (\"impl/review\"/\"\u00a74.2 pair 1\") as the shap"
+    },
+    {
+     "refuted": true,
+     "reason": "Immaterial. The same section already generalizes to every producer, and pair 1 states the triple in full, so a batch reviewer citing it gets the complete shape. No seat acts wrongly, no shipped check "
+    },
+    {
+     "refuted": true,
+     "reason": "Pair 1 is declared a SHAPE authority, not a producer registry (\u00a74.1: \"All fingerprint-pair producers and consumers cite this entry\"). Both nodes cite it for shape only; the triple shape is identical f"
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "file": "workflow.pave.yaml",
+   "line": 1670,
+   "title": "Changeset-recording activity restates section 4.6 scan-completeness but drops the firing/bogus controls that section 4.6 assigns to the implementer",
+   "votes": [
+    {
+     "refuted": true,
+     "reason": "Quotes are verbatim, but the contradiction claim doesn't hold: workflow.pave.yaml:1671 points to the FULL 'references/artifact-layout.md section 4.6', not just the 3-item sub-clause. That same bullet "
+    },
+    {
+     "refuted": true,
+     "reason": "No contradiction: the graph's three-item gloss is verbatim the authority's scan-completeness triple and cites section 4.6 in the same sentence, so the implementer following the text reads 4.6 and gets"
+    },
+    {
+     "refuted": true,
+     "reason": "The graph does not disagree with 4.6; it explicitly pins the whole discipline (\"scan-completeness discipline pinned at references/artifact-layout.md section 4.6\"). The three dash-set items are an accu"
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "file": "workflow.pave.yaml",
+   "line": 1298,
+   "title": "Frozen comparator-set activity omits the mandatory unchanged no-change baseline",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote at workflow.pave.yaml:1298 is verbatim exact; the authority quote at references/measurement-pitfalls.md:14 is verbatim exact and does mandate the no-change baseline as claimed. Purpose text at :"
+    },
+    {
+     "refuted": true,
+     "reason": "The seat running this node is pointed at the authority whose first heading is the mandatory-baseline rule, so it acquires the duty; no shipped check enumerates comparator elements; and the graph alrea"
+    },
+    {
+     "refuted": true,
+     "reason": "The node already carries the duty via a pointer, not omission: its own activity list has \"Per-procedure measurement-pitfall pre-emptions recorded\" and the implementer reader is directed to references/"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "skills/vllm-neuron-parity/hooks/compile-cache-guard.sh",
+   "line": 58,
+   "title": "Compile-cache hook blocks `mv` inside the run-owned compile-cache root, the exact remedy its own denial text prescribes",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote at hook :58 and authority quote at measurement-pitfalls.md:66 both verified verbatim. Code confirms mv is in DESTRUCTIVE and cache_toks (CACHE_PATTERNS incl. VLLM_CACHE_ROOT/neuron/compile_cache"
+    },
+    {
+     "refuted": true,
+     "reason": "Blocking `mv` on all compile-cache-shaped paths is disclosed intent (header :2-10, SKILL.md:423), and the shape pattern cannot tell an owned root from a shared one, so refusing is fail-safe. The claim"
+    },
+    {
+     "refuted": true,
+     "reason": "The finding's pivotal claim \u2014 that the only unblocked path leaves stale graph text \u2014 is false. The same message prescribes pointing VLLM_CACHE_ROOT at a fresh private root, an unblocked route giving p"
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "file": "workflow.pave.yaml",
+   "line": 1893,
+   "title": "execute_attempt_loop tells the implementer seat to increment a run-state counter that only the lead may write and that must be derived",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Core claim holds: quote verbatim at :1893, node roles are only implementer+delegate_dispatcher (no lead, :1877-1879), hardware_attempt_counts is a confirmed run-state key (schema + :2742/:2782), P10 c"
+    },
+    {
+     "refuted": true,
+     "reason": "The phrase is bookkeeping semantics, not a state-write order; the same idiom appears unflagged at :1820 for the same seat. The implementer's own contract forbids writing run state. The cited authority"
+    },
+    {
+     "refuted": true,
+     "reason": "P10 STRUCTURE (\"no other role holds those write paths...derived counters are counted from event files so no child ever needs a state write\") bars the seat from any run-state write, so the claimed P10 "
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "schemas/run-state.schema.json",
+   "line": 149,
+   "title": "run-state schema declares hardware_attempt_counts a stored budget integer while its sibling counters disclaim stored integers",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "All cited quotes verify verbatim at their exact lines, and the authority text supports the claim rather than contradicting it."
+    },
+    {
+     "refuted": true,
+     "reason": "The schema line is silent on source of truth, not in disagreement: it names the field's meaning (\"shared budget... the tier-2 breaker reads it\") without claiming the integer is authoritative. Its deri"
+    },
+    {
+     "refuted": true,
+     "reason": "The schema at :149 faithfully mirrors its true authority, the graph field-meaning at workflow.pave.yaml:2782 (\"Per-target shared budget across all routes... the tier-2 breaker reads it at every 10\"), "
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/references/measurement-pitfalls.md",
+   "line": 3,
+   "title": "measurement-pitfalls.md's pointer to the toolchain reference restates an incomplete, out-of-sync clause list",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Both quotes verified verbatim at cited lines. measurement-pitfalls.md:3 restates only 3 of the 4 clauses in toolchain-evidence-pitfalls.md:8, dropping \"attribute a compile or serve failure.\" Claim of "
+    },
+    {
+     "refuted": true,
+     "reason": "The sentence is a scoped routing pointer, not a restated rule; a shorter trigger subset is not a disagreement. No seat depends on it for failure attribution \u2014 implementer, investigator, and every atte"
+    },
+    {
+     "refuted": true,
+     "reason": "The measurement-pitfalls line is a routing pointer that names the sibling file and says \"read that one\"; its example triggers are illustrative, not a normative or complete contract. A subset of exampl"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "/tmp/sweep-152/tree/generated-plugins/vllm-neuron-parity/README.md",
+   "line": 608,
+   "title": "README claims 6 transition guards; SKILL.md declares three",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quotes verified verbatim at cited lines. SKILL.md:436-440 names exactly 3 guards (repair budget, scan re-trace bound, hardware breaker); README.md:608 claims 6. Grep confirms no other \"transition guar"
+    },
+    {
+     "refuted": true,
+     "reason": "Non-normative summary count in a human-facing README paragraph that explicitly says the table \"shows the strongest rows\"; no seat or lead routes on it and no shipped test pins it (tests/ only cap line"
+    },
+    {
+     "refuted": true,
+     "reason": "A reading reconciles the texts: SKILL.md frames the guards as \"blocking routing preconditions,\" and its parentheticals decompose into exactly six atomic preconditions (repair budget at either of 2 tie"
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "file": "generated-plugins/vllm-neuron-parity/workflow.pave.yaml",
+   "line": 709,
+   "title": "Graph binds rederive_approach to the investigator role, but the contracts bind it to a dedicated rederiver seat",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "All cited quotes exist and say what the finding claims; the contradiction between graph roles and seat contract is real. Not fully refuted, but confidence capped because SKILL.md:174-176 explicitly fr"
+    },
+    {
+     "refuted": true,
+     "reason": "Not stale: the design deliberately separates graph roles from agent seat bindings. README calls the rederiver \"an agent binding, not a graph role\"; SKILL.md calls it a \"deliberate agent-binding except"
+    },
+    {
+     "refuted": true,
+     "reason": "Documented deliberate design decision, not stale text."
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/measurement-pitfalls.md",
+   "line": 14,
+   "title": "Baseline-comparator rule stated as an unconditional 'Always' but evidenced by one campaign incident",
+   "votes": [
+    {
+     "refuted": true,
+     "reason": "Quote and authority text are verbatim accurate, but the critique is not a distinct defect: the doc's own convention is single-incident-backed absolute rules with no L-id set (e.g. :54-60, :72-78, :104"
+    },
+    {
+     "refuted": true,
+     "reason": "The file's own citation class says rules stand without their artifact (\"provenance, not a file you must have\"), so instance count does not bound imperative strength. Single-artifact evidence is normal"
+    },
+    {
+     "refuted": true,
+     "reason": "The file's own convention decouples rule force from evidence count: rules are imperatives that \"stand on their own,\" with citations as provenance. Single-incident imperatives are the file norm. Line 1"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/measurement-pitfalls.md",
+   "line": 76,
+   "title": "'Never default' re-read parameters rule rests on one GLM-5.2 artifact, not a re-checked or multi-instance evidence set",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Both quotes verify verbatim at the cited lines, and the authority citation matches the finding's characterization: a single-campaign, single-artifact evidence line for an absolute \"never default them\""
+    },
+    {
+     "refuted": true,
+     "reason": "Immaterial provenance quibble. The rule is operational and matches the shipped graph, which mandates the design record declare exactly those two values, so \"never default them\" causes no wrong action "
+    },
+    {
+     "refuted": true,
+     "reason": "The rule and its \"Evidence\" line sit in the same authority; they agree, not contradict. N/spacing are campaign-design values, not stack facts, so there is nothing to \"re-check at the pin.\" The clause "
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/measurement-pitfalls.md",
+   "line": 148,
+   "title": "'Never promote a semantic pass to token-exact' rule generalized from a single GLM-5.2 closure record",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority both verified verbatim at cited locations. The rule is a flat \"never,\" and its only cited evidence is one campaign's one closure artifact \u2014 matches the claim's characterization exa"
+    },
+    {
+     "refuted": true,
+     "reason": "The clause is definitionally sound, not an over-generalization: a run scoring 143/320 token-exact is not token-exact by definition. No seat acts wrongly by obeying it, no shipped check fails, and it i"
+    },
+    {
+     "refuted": true,
+     "reason": "The doc's Trap/Rule/Evidence structure records incident provenance, not rule scope; every entry backs a general rule with one/few evidence cites, so this is the intended authority design, not accretio"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "skills/vllm-neuron-parity/SKILL.md",
+   "line": 173,
+   "title": "Lead skill states the rederiver's model as gpt-5.6-sol; the Claude binding is fable",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Primary quote and authority verified verbatim; secondary line refs (106, 114, 178) check out (178 off-by-one from 179). Framing is slightly overstated since SKILL.md:142-146 already states Claude pull"
+    },
+    {
+     "refuted": true,
+     "reason": "SKILL.md's Harness paragraph already resolves the mapping: on Claude Code pins come from agents/*.md, and fable is the top tier that Codex's gpt-5.6-sol names. So \"gpt-5.6-sol at xhigh\" agrees with re"
+    },
+    {
+     "refuted": true,
+     "reason": "SKILL.md:141-147 (Harness) globally maps the file's Codex `gpt-5.6-sol` to Claude's top tier `fable` and makes `agents/*.md` frontmatter authoritative, so :173 does not contradict rederiver.md \u2014 it re"
+    }
+   ]
+  },
+  {
+   "layer": "graph",
+   "file": "revisions.yaml",
+   "line": 279,
+   "title": "revisions.yaml restates the census three-item list while claiming it is 'pinned once'",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority both verified verbatim at cited locations; section 4.6 correctly contains the Scan-completeness discipline bullet, and revisions.yaml does restate the full three-item list right af"
+    },
+    {
+     "refuted": true,
+     "reason": "The text is rationale in an append-only, hook-guarded ledger entry, not duty text any seat loads, and its three items agree exactly with the authority (no contradiction). No seat acts wrongly, no ship"
+    },
+    {
+     "refuted": true,
+     "reason": "Line 279 lives inside revision 5's semantic_diff, a LANDED ledger entry (landed_at 2026-09-05, approval \"release 1.5.0\"). The ledger is an append-only record that must NOT be edited; the repair cuts t"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/VERSION",
+   "line": 115,
+   "title": "VERSION 1.5.0 still names two toolchain rules by titles 1.5.1 replaced",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Both cited quotes and the authority quote are verbatim and accurate, and the disclaimer's scope is narrower than the finding needs, so the claim holds."
+    },
+    {
+     "refuted": true,
+     "reason": "Immaterial. VERSION is a changelog; the 1.5.0 entry describes 1.5.0's state and is disclaimed at VERSION:69 (\"Historical entries below describe their own releases\"). No seat or lead is directed to VER"
+    },
+    {
+     "refuted": true,
+     "reason": "The quoted phrases sit in VERSION's 1.5.0 changelog entry (starts :72), a released-history record older than 1.5.2. The task rule explicitly refutes stale-copy findings that target such append-only en"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/VERSION",
+   "line": 202,
+   "title": "VERSION 1.5.0 claims no contract restates duty text; 1.5.2 removed five such restatements",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Both quotes verified verbatim at cited lines in the same VERSION file. The 1.5.0 \"four seat contracts gain one pointer clause each\" paragraph (ending in the quoted claim) is the same set of clauses la"
+    },
+    {
+     "refuted": true,
+     "reason": "Immaterial under the lens: VERSION is a dated changelog no seat or check consumes (tests read only the newest entry), 1.5.1 disclaims historical entries generally, and the newest entry at the top of t"
+    },
+    {
+     "refuted": true,
+     "reason": "Line 202 sits in the dated 1.5.0 changelog entry (starts :72), an append-only historical record. The task and VERSION:71 rule these entries \"describe their own releases,\" not current policy. The propo"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/VERSION",
+   "line": 37,
+   "title": "VERSION 1.5.2 says seats are unchanged while the same entry rewrites three seat contracts",
+   "votes": [
+    {
+     "refuted": true,
+     "reason": "Quotes are verbatim, but \"seats...unchanged\" at VERSION:37-38 sits in a sentence about what needs a ledger revision, and VERSION:306-311 defines \"model bindings\" as the model: field in agents/*.md fro"
+    },
+    {
+     "refuted": true,
+     "reason": "\"seats\" in that enumeration is the roster/binding sense \u2014 its own clause ties it to \"adds no ledger revision\", and 1.5.1's parallel sentences use \"model bindings\" and \"adds no seat\" the same way. The "
+    },
+    {
+     "refuted": true,
+     "reason": "A reconciling reading holds. Line 37's clause is scoped to \"so this release adds no ledger revision\" and enumerates graph-layer bindings (graph, ledger, state, hooks, seats, models, efforts); \"seats\" "
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/README.md",
+   "line": 570,
+   "title": "README copies VERSION 1.4.0's \"this release\" verbatim, so the referent now resolves to 1.5.2",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Both the README quote and the VERSION authority quote are verified verbatim at the cited lines, and the VERSION entry containing line 309 falls under the dated ## 1.4.0 \u2014 2026-09-03 header (confirmed "
+    },
+    {
+     "refuted": true,
+     "reason": "Immaterial. No seat reads README (only SKILL.md:411 mentions it, as a migration note); README:9-13 declares itself \"never an authority\", so rendering VERSION prose is its job, not accretion. The actio"
+    },
+    {
+     "refuted": true,
+     "reason": "Two of three sub-claims fail. README:571 states the date \"2026-09-03\" verbatim, so no approval is misdated. \"the tool\" is the README's own established shorthand for record_revision.py (defined 468/485"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/README.md",
+   "line": 622,
+   "title": "README appendix still hard-codes four ledger-head counts that 1.5.0 says it dropped",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority both verified verbatim in the tree. README still hard-codes the four ledger-head numbers VERSION 1.5.0 says were dropped, and the same sentence's self-refuting \"which is why no num"
+    },
+    {
+     "refuted": true,
+     "reason": "Immaterial. The four counts are correct, are frozen topology (not the volatile revision/check numbers 1.5.0 targeted), and a shipped test pins every \"N nodes ... M edges\" phrase in README to the valid"
+    },
+    {
+     "refuted": true,
+     "reason": "The cited authority is an append-only 1.5.0 changelog entry the file itself declares \"not current policy\" (1.5.1:70), not a live spec that owns README content. The counts describe the \"immutable packa"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/README.md",
+   "line": 559,
+   "title": "README seat table names only the Codex model for three of the seven seats",
+   "votes": [
+    {
+     "refuted": true,
+     "reason": "README quote at :559 verifies exactly, but the cited authority line is wrong: investigator.md:5 is 'effort: \"high\"', not the quoted 'model: \"opus\"' \u2014 that text is at line 4, one line above the citatio"
+    },
+    {
+     "refuted": true,
+     "reason": "No seat or lead reads README, no shipped check reads the Model column, and this is no multi-clause restatement. Claude pins load automatically from agents/*.md (README:15, SKILL.md:145-146), so no ope"
+    },
+    {
+     "refuted": true,
+     "reason": "The two-harness annotation is a deliberate convention reserved for the fable judge-elevation, which README:566-573 explicitly justifies (\"so the two Claude judges bind fable ... the Codex binding alre"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/README.md",
+   "line": 560,
+   "title": "README role table states Codex model gpt-5.6-sol for implementer, omitting the Claude model opus",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority both verified verbatim. README.md:560 implementer row lists only gpt-5.6-sol; agents/implementer.md:4 shows model: \"opus\". Adjacent rows (adjudicator/adversarial-reviewer) do discl"
+    },
+    {
+     "refuted": true,
+     "reason": "README's Model column follows the plugin's declared Codex-first convention (SKILL.md's identical table plus its \"Harness\" paragraph: Claude pins come from agents/*.md frontmatter). Investigator and re"
+    },
+    {
+     "refuted": true,
+     "reason": "The Model column follows a consistent convention: all four worker seats (investigator, measurer, rederiver, implementer) show only the Codex model; only the two judges disclose the Claude split, becau"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "generated-plugins/vllm-neuron-parity/README.md",
+   "line": 561,
+   "title": "README role table states Codex model gpt-5.6-sol for measurer, omitting the Claude model opus",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Both quotes verified verbatim. README.md:561 lists only gpt-5.6-sol/gpt-5.6-terra for measurer, omitting the Claude model. agents/measurer.md:4 confirms model: \"opus\", and line 113 confirms sonnet at "
+    },
+    {
+     "refuted": true,
+     "reason": "The Model column is Codex-first for every doer row (investigator, implementer, measurer, rederiver all list only gpt-5.6-*), and the row is accurate for Codex. Only the two judge rows annotate Claude "
+    },
+    {
+     "refuted": true,
+     "reason": "The Model column is Codex-primary: 4 of 6 rows (investigator:559, implementer:560, measurer:561, rederiver:564) list only Codex models. rederiver is Claude=fable yet also omits the Claude model, so no"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/collision-ranking.md",
+   "line": 19,
+   "title": "execute_model's declared span 4956\u20136984 is the core-execution cluster, not the method",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Both quotes verified verbatim; the same file's own method index contradicts the line-19/98 label. execute_model, sample_tokens, execute_dummy_batch are three sibling methods (can't nest), so 4956-6984"
+    },
+    {
+     "refuted": true,
+     "reason": "The mislabel is real (sibling methods cannot nest) but operationally inert: both sites state the range 4956-6984 explicitly, so any edit at sample_tokens 5355 or execute_dummy_batch 6984 falls inside "
+    },
+    {
+     "refuted": true,
+     "reason": "The label is cosmetic, not action-affecting. Rule 1 (:47) lists execute_model/sample_tokens/execute_dummy_batch as ONE \"core execution\" cluster, and :98 says treat the whole 4956\u20136984 as single-writer"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/toolchain-evidence-pitfalls.md",
+   "line": 21,
+   "title": "Toolchain header inflates one undocumented error code into a whole error-code family",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Both the header quote and the sole authority (L-101) verify verbatim exactly as cited. L-101's evidence is explicitly singular (\"an internal compiler error code\"), yet the header generalizes to \"one w"
+    },
+    {
+     "refuted": true,
+     "reason": "The clause is a provenance note, not a remedy, and it agrees in direction with L-101: both tell the seat to distrust vendor docs. Widening \"one error code\" to \"one error-code family\" cannot make a sea"
+    },
+    {
+     "refuted": true,
+     "reason": "The file does carry a family of undocumented internal error codes/ids (the :146-176 section: \":148 ships no named roster for them\"; plus driver error code :126, L-101 :71, unrecoverable-execution-unit"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/measurement-pitfalls.md",
+   "line": 92,
+   "title": "Five-second host-memory sampling period is an unconditional recipe from one campaign",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority both verified verbatim; the file itself shows the correct pattern at :76 (\"Take N and the minimum re-read spacing from the campaign design record; never default them\") but :92 hard"
+    },
+    {
+     "refuted": true,
+     "reason": "Not an equivalence/accretion case: the \"authority\" cited is the same section's own Evidence line, and `/usr/bin/grep -rn \"five-second\"` over the plugin returns exactly one hit \u2014 no restatement, no shi"
+    },
+    {
+     "refuted": true,
+     "reason": "Save holds: the quote reads \"five-second spacing or faster to catch the transient peak\" \u2014 a floor plus explicit objective, not a fixed universal. A measurer with a shorter peak is already told to go f"
+    }
+   ]
+  },
+  {
+   "layer": "release",
+   "file": "references/toolchain-evidence-pitfalls.md",
+   "line": 194,
+   "title": "\"Collect the censuses on every compile \u2014 they cost nothing\" is an unmeasured universal",
+   "votes": [
+    {
+     "refuted": false,
+     "reason": "Quote and authority both exist verbatim; the \"Why\" and Evidence lines only support survival/scatter claims, not a cost/free claim, so the finding's core point (unsupported \"cost nothing\" universal) ho"
+    },
+    {
+     "refuted": true,
+     "reason": "\"Free\"/\"cost nothing\" is this file's established idiom for \"does not perturb the artifact\" (:238 \"not a free A/B: it re-keys the cache\"), so the adjective already scopes the clause exactly as the prop"
+    },
+    {
+     "refuted": true,
+     "reason": "The finding demands \"a cited measurement\" for the cost claim, but the file's own citation-class text disclaims exactly that for the campaign-history rule this trap is: it \"was measured on a prior port"
+    }
+   ]
+  }
+ ]
+}

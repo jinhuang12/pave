@@ -1,0 +1,132 @@
+{
+ "source": "Workflow wf_1a091ebb-4d7: 6 dimensions (envelope, predicate, generalize, copies, changelog, semantics), 3-lens refute majority; 21 agents; reviewed the diff tail sha256:90464386\u2026 which is byte-identical in the landed patch",
+ "counts": {
+  "finders": 6,
+  "raw": 5,
+  "confirmed": 0,
+  "rejected": 5
+ },
+ "rejected": [
+  {
+   "title": "Strengthened acceptance gate now contradicts its own producing node and its cited authority on the denominator",
+   "severity": "HIGH",
+   "file": "/tmp/rev6/result/workflow.pave.yaml",
+   "line": 334,
+   "dim": "envelope",
+   "votes": [
+    {
+     "refuted": true,
+     "confidence": 0.62,
+     "reason": "Quotes are verbatim and accurately located (with one minor line-citation slip), but the inferred \"disagreement\" is unsupported: \"it realizes\" in the producing node/authority is registration-bound, not producer-narrowable, so no real contradiction exists."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.8,
+     "reason": "No contradiction: artifact-layout 4.5 already registers the criteria set and names this check as its reader, so \"per criterion it realizes\" is registration-bound, not producer-chosen. The gate only tightens the declared envelope item; failure route unchanged and collection_defect_found already absorbs partial bundles. The remainder is wording preference."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.72,
+     "reason": "The gate's denominator authority is \u00a74.5, not \u00a74.6. \u00a74.5 pins \"the VALUE that must appear as evaluated in the evidence for that criterion,\" registered per criterion, and names this check as reader \u2014 the registration denominator exactly. \u00a74.6 is cited only for record shape, which does match. The changelog explicitly separates them (\"record shape pinned at 4.6... with the denominator taken from the registration\"), so no false claim; \u00a74.6's \"per criterion it realizes\" is shape, and \u00a74.5 forbids the narrowing. No contradiction with authority."
+    }
+   ]
+  },
+  {
+   "title": "Repair-budget magnitudes that select between two declared outcomes now live outside the digest the graph verifies",
+   "severity": "LOW",
+   "file": "/tmp/rev6/result/workflow.pave.yaml",
+   "line": 2270,
+   "dim": "envelope",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.72,
+     "reason": "Every quote checks out verbatim at (or within one line of) the cited locations: the result-tree meaning field, the record_revision.py glob, both artifact-layout.md tier magnitudes, pave-revisions.md rule 1 and rule 6 (\"approved budgets\"), and the patch's own trade-off prose. Base tree confirms magnitudes were literal inline text in workflow.pave.yaml pre-patch, now a pointer, so the underlying claim holds."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.85,
+     "reason": "The approved budget value is unchanged (3/9 still pinned, references file untouched); only a duplicate restatement moved, which rule 6 does not cover as a change. envelope_check is already changed_with_approval, so the user gate fires anyway, and the patch discloses the move in the semantic diff. The ask is envelope-prose wording \u2014 a preference, not a routing/authority/envelope change."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.8,
+     "reason": "The updater already answered this in the same approved preamble, and envelope_check is a single-token field per rule 6, not a prose rationale. The disclosure lives in semantic_diff, which the user approves together with envelope_check. The finding is a placement preference, not a material defect."
+    }
+   ]
+  },
+  {
+   "title": "Third citation to \u00a74.10 in the same node stays vague after the patch numbers the other two",
+   "severity": "LOW",
+   "file": "/tmp/rev6/result/workflow.pave.yaml",
+   "line": 2125,
+   "dim": "copies",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.7,
+     "reason": "All quoted text verified verbatim in result/base files and in artifact-layout.md; the outcome's unnumbered pointer is confirmed unchanged and coexists with the newly-numbered purpose pointer in the same node. Only flaw: the base line-range citation (2124-2126) is off by two lines (actual text sits at 2126-2128), but the quoted text itself is accurate."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.93,
+     "reason": "Pure wording preference. The cited text is unchanged base text, the target section exists and names the exact disjunct, so no authority, routing, evidence, acceptance, or envelope effect. The finding itself concedes \"no authority is lost and no reader is misrouted.\" Style/consistency nits are refuted under the materiality rule."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.85,
+     "reason": "Patch scoped its claim to the literal phrase \"the consolidated artifact-layout entry\" (two instances), both correctly numbered. The :2125 citation uses different words (\"the layout entry's durable-host-state refusal ground\"), was never in the claimed set, and is unchanged base text \u2014 no contradiction, no regression. Finding itself concedes no authority lost, no misrouting, non-blocking; below the material-defect bar."
+    }
+   ]
+  },
+  {
+   "title": "Item 4 claims stabilize lost \"the same numbers at both its sites\" but the completeness site held no magnitudes",
+   "severity": "LOW",
+   "file": "/tmp/rev6/v6.patch",
+   "line": 95,
+   "dim": "changelog",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.9,
+     "reason": "All cited quotes verified verbatim. Base :2245-2251 has no \"three\"/\"nine\" digits (only a pointer to artifact-layout for \"the magnitudes\"); base :2255-2256 has the literal digits. The patch's own ledger (line 158) lists only 4 digit-copies (2162,2165,2256,2279), excluding 2245-2251 - contradicting the narrative's \"same numbers at both its sites\" claim at line 96."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.85,
+     "reason": "Factually the completeness site held no digits, but this is a rationale-prose wording nit. The patch's authoritative ledger is exact, the \"four copies\" count is right, and nothing changes routing, authority, evidence, acceptance, or the envelope. Both stabilize sites do lose their magnitude clause (digits at one, pointer at the other), so the sentence is loose, not misleading. Immaterial."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.6,
+     "reason": "Finding's literal point is true, but a node-level reading saves it: both named sites carried magnitude-topic text the patch changed (completeness: \"the magnitudes...pinned once\"\u2192numbered pointer; exhaustion: three/nine removed). The authoritative EVERY COPY ledger (v6.patch:158) already excludes the completeness site and counts are correct, so no material defect."
+    }
+   ]
+  },
+  {
+   "title": "record_changeset's \u00a74.6 scan-completeness duty has no redundant citer, unlike the other four (4)-collapses",
+   "severity": "HIGH",
+   "file": "result/workflow.pave.yaml",
+   "line": 1674,
+   "dim": "semantics",
+   "votes": [
+    {
+     "refuted": false,
+     "confidence": 0.82,
+     "reason": "All quotes verify. record_changeset's cut text and role, and agents/measurer.md's \u00a74.4/\u00a74.10 citer language, match exactly. grep confirms agents/implementer.md and SKILL.md have zero mentions of \u00a74.6/scan-completeness/tree-state/completion-signal for record_changeset, unlike measurer.md's explicit pointers for the other two sites. The changelog itself (v6.patch cross-layer section, item b) concedes measurement-pitfalls.md:32 is \"the last copy\" of the \u00a74.6 census after this revision \u2014 an acknowledged gap, not a resolved one."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.87,
+     "reason": "The node itself still carries the \u00a74.6 pointer, and the authority names the three fields and explicitly assigns them to the implementer. No redundant citer is needed; demanding a second restatement is a belt-and-suspenders preference, not lost authority, evidence, or routing. Same cite-once pattern the skill mandates."
+    },
+    {
+     "refuted": true,
+     "confidence": 0.85,
+     "reason": "The node's \u00a74.6 pointer survives, and its target defines all three fields and names the implementer as actor, so nothing is lost. The redundant seat-citer the finding demands is reinforcement, not the load-bearing instrument; the \"reading only node + own contract\" framing wrongly excludes following the pointer."
+    }
+   ]
+  }
+ ],
+ "confirmed": []
+}
