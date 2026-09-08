@@ -1,0 +1,357 @@
+kind: graph
+semantic_diff: >-
+  Ten recorded graph-layer defects in one revision, every one of them prose
+  inside existing structure: two checks asked the wrong question, and five node
+  bodies restated duties their references pin once - one of those restatements
+  carrying the wrong remedy. Counts: 32 nodes / 95 edges / 16 checks / 24
+  evidence definitions / 5 control endpoints, all unchanged. Every node id,
+  outcome set, role list, allowed and forbidden effect, consumes and produces
+  list, required_evidence list, check style, evaluator and failure route is
+  byte-identical, proved by parsing both graphs and comparing them field by
+  field, not by reading the diff. No node, outcome, edge, check or evidence
+  definition is added, removed or re-scoped. 28 added lines against 36 removed in
+  9 hunks, a net cut of 8 lines.
+
+  (1) THE MEASUREMENT-TRAP ACTIVITY NO LONGER PRESCRIBES THE INSTRUMENT THAT
+  FAILED. realize_measurement_procedures told the measurer "the stock
+  serving-benchmark path undercounts speculative-decode configurations (use a
+  streaming harness for those); the decode-only bench connector produces no
+  correctness signal" (:2047-2050). Its authority says the opposite about the
+  remedy: the undercount comes from deriving throughput out of stream chunks in
+  ANY harness, a campaign's own streaming harness reproduced it, and whether the
+  stock tool shares the failure is unverified at this pin
+  (references/measurement-pitfalls.md:46-50). A measurer following the activity
+  builds the anti-pattern. Both clauses are now one pointer plus the clause that
+  changes what the node does: realize no procedure that reproduces a trap
+  recorded in references/measurement-pitfalls.md, and where a trap is in what
+  the procedure counts, swapping the instrument that exposed it is not the
+  remedy. WHY, generally: it names no tool, no model and no metric, and it
+  corrects the reasoning error rather than the example - the graph told a seat to
+  fix a mismeasurement by changing instruments, which is how the field defect
+  happened. This is the acceptance ladder's own anti-backfire guard (pave-spec
+  5.3.1: a metric that does not measure the acceptance property is as much a
+  defect as missing evidence). Both readers of this node resolve the reference -
+  the seat contract agents/measurer.md:33-37 cites it by name and the lead brief
+  at SKILL.md:225 orders it read - so a multi-clause restatement here is a
+  pointer under the equivalence rule. The wrong remedy is delivered revision-0
+  text: it appears in no ledger patch. The release layer corrected its own copies
+  at 1.5.2 and disclosed this graph copy as owed (VERSION:29, 1.5.2
+  review-record residual 1, which also names the decode-connector clause cut
+  here).
+
+  (2) THE KICKOFF GATE ASKS FOR THE CONTRACT FIELD ITS DEFINER DEFINES.
+  kickoff_contract_approved required a "deepseek carry-over decision" (:256).
+  The node that assembles the contract calls the same field "prior-run carry-over
+  decisions" (:512) and the node that surfaces it says the same (:436), and the
+  check now uses that term. WHY, generally: a gate that names one campaign's
+  target asks every other campaign to approve a field that does not exist for
+  it, so a lead reads the clause as inapplicable and the field goes unchecked at
+  the one gate that owns it - the model name made a live check unfireable on
+  every run but one. No strength moves: the same artifact field is required, of
+  every campaign instead of one.
+
+  (3) THE ACCEPTANCE GATE COUNTS PER CRITERION, AGAINST THE REGISTRATION.
+  acceptance_threshold_evaluated accepted a bundle recording "at least one
+  pre-registered threshold actually evaluated" (:334). Its authority pins the
+  record per criterion the bundle realizes and calls a bundle with an empty
+  record incomplete (references/artifact-layout.md:302-306), and the graph's own
+  producing node states the per-criterion duty (:2226-2229). The question now
+  asks for one evaluated threshold for every criterion the acceptance
+  registration records for that measurement. The denominator comes from the
+  registration, never from the bundle's own list, because a producer that
+  supplies its own denominator passes by naming fewer criteria - pave-spec
+  9.14.1's evidence-gameability judgment, answered at its hardening rung 2, a
+  check the doer does not run over evidence the doer cannot narrow. The
+  registration already carries that list per criterion and already names this
+  check as its reader (artifact-layout 4.5). The rationale gains one sentence
+  saying so. WHY, generally: under an at-least-one floor a bundle realizing
+  three criteria and evaluating one reads as a pass, and the adjudicator is then
+  told to take each measured value from that bundle's evaluated-threshold record
+  (agents/adjudicator.md:36) with no record for two of the three.
+
+  THE CLAIM IN (3) MOST WORTH ATTACKING. One of the three sweep lenses refuted
+  this finding: the gate is deliberately the narrow empty-record guard, and
+  per-criterion completeness is caught later. Read from disk, that save fails
+  three ways. stabilize_and_package_evidence's completeness activity (:2245)
+  checks the bundle set against the route-scoped declared measurement list -
+  per measurement, not per criterion. collection_defect_found (:2271) is settled
+  by the seat that produced the bundles, which pave-spec 5.3.1 puts below the
+  ladder as doer self-report; this check exists to be the read that seat does
+  not perform. And the adjudicator's evidence_unstable sits after this gate, on
+  the seat that has already been handed the incomplete record as its source of
+  values. So this is the only independent per-criterion read on the path into the verdict.
+  Provenance sharpens it: the at-least-one wording landed with revision 5
+  (history/v5.patch:164), whose stated reason was that the graph had believed an
+  instrument nobody had ever seen fail. An at-least-one floor leaves that same
+  blind spot over the criteria a bundle silently skips, so this hunk finishes
+  revision 5's own item rather than reopening it.
+
+  (4) FIVE RESTATEMENTS COLLAPSE TO POINTERS THEY ALREADY CARRIED. In each case
+  the clause that changes what the node does stays and the reference's shape
+  goes. run_candidate_measurements' defect-record activity (:2158-2166) keeps
+  "write every defect finding as its own event file, so the budget stays
+  derivable by counting defect-record files by path - one instrument, two
+  predicates" and loses the three-and-nine magnitudes and the novelty
+  derivation. stabilize_and_package_evidence loses the same numbers at both its
+  sites - the completeness activity (:2245-2251) and the exhaustion activity
+  (:2254-2257) - and its declared_measurement_unproducible meaning (:2277-2282)
+  keeps the derivation and loses the magnitudes; the outcome means exactly what
+  it meant. capture_baseline_reference's purpose (:2093-2097) keeps "out of scope
+  - any durable host-state mutation on the baseline, ever" and loses the
+  enumeration and the lifecycle clause it reproduced in the same sentence that
+  claimed the definition "lives once" elsewhere. record_changeset's purpose
+  (:1670-1674) keeps "both transcripts meet the scan-completeness discipline
+  pinned at references/artifact-layout.md section 4.6" and loses that section's
+  three-item census and its rationale. Two vague pointers ("the consolidated
+  artifact-layout entry") become numbered ones, section 4.4 and section 4.10,
+  matching the style the graph already uses at :1304 and :1671; the 4.10 pointer
+  also names the capture-launch boundary ruling that the deleted copy omitted, so
+  the pointer is more complete than the text it replaces. WHY, generally:
+  pave-spec 4.11 says remove any element whose absence does not change required
+  routing, authority, evidence, recovery, or acceptance, and every clause cut
+  here passes that test - a reader of these nodes now gets the one authority the
+  reference itself declares single, instead of a copy that can drift from it. Two of these sites are revision 5's own text (v5.patch:235) against
+  revision 5's own stated pattern, "the graph states the duty and cites the
+  shape".
+
+  THE TRADE-OFF IN (4), STATED SO IT CAN BE ATTACKED. The magnitudes and the
+  census items now live only in the release layer, outside the pinned graph
+  bundle, so a release can move a suggested bound without a graph revision. I
+  judge that right. references/artifact-layout.md:245-247 already declares itself
+  the single definition and names these two nodes as its citers, and
+  agents/measurer.md:106-108 already orders the seat to cite it and not restate
+  the numbers. Four graph copies did not protect the bound - they created the
+  divergent normalization that rule was minted to prevent, and an amendment to
+  4.4 had to find four graph sites to stay consistent. Both magnitudes are
+  advisory ("suggested"), the release layer is line-ratcheted and tested, and it
+  lands under the same user gate as the graph. If the lead would rather have the
+  numbers inside the digest, the coherent move is the opposite one - delete them
+  from 4.4 and pin them in the graph - never two homes for one bound.
+
+  PRICE PER RUN: no new seat, node, edge, outcome, check, artifact or lap. Item 3
+  changes what the lead counts at a gate it already runs: instead of finding one
+  evaluated-threshold record per bundle it counts them against the criteria the
+  registration already lists, a read of two persisted artifacts, on the lead
+  mechanical rung. Items 1, 2 and 4 cost nothing - they remove text or correct a
+  term. Against that, item 3 closes the only path by which a bundle realizing
+  several criteria reaches a parity verdict with one of them evaluated, and item
+  1 stops the graph from telling a measurer to build the harness that produced
+  the worst measurement defect in this domain's recorded history.
+
+  WHAT GREW AND WHAT WAS CUT. The only addition is item 3's question and
+  rationale, +4 lines. Everything else is a cut: -11 lines over the six
+  restatement hunks and -1 at the trap activity, for 28 added against 36 removed
+  and a net -8 on a 2811-line graph. Nothing new is pinned. One note for the
+  release layer, not this patch: tests/test_document_ceilings.py pins every
+  README, reference, seat contract and SKILL.md, but not workflow.pave.yaml, so
+  the graph is the one prose file in this package that can grow silently.
+
+  EVERY COPY OF EVERY CLAUSE THIS PATCH TOUCHES, AND ITS DISPOSITION.
+  "streaming harness": measurement-pitfalls.md:48 is the authority narrative and
+  stands; workflow.pave.yaml:2048 is cut here; VERSION:29 is the append-only
+  disclosure of this very defect and stands. "stock serving-benchmark": graph
+  only, cut. Decode-connector clause: cut here; the one-clause applications in
+  agents/measurer.md:36, its codex mirror and SKILL.md:225 stand, each already
+  naming the reference. "at least one pre-registered": graph only, reworded.
+  Three-and-nine magnitudes: artifact-layout.md:234 and :241 are the authority;
+  all four graph copies (:2162, :2165, :2256, :2279) are cut. Durable-host-state
+  enumeration: graph :2094 is cut; agents/measurer.md:57-59 and its codex mirror
+  still carry it - release layer, named below. Census three-item list:
+  artifact-layout.md:289 is the authority, graph :1672 is cut,
+  measurement-pitfalls.md:32 still carries it - release layer, named below.
+  "deepseek": graph :256 only, outside the append-only records
+  (revisions.yaml:243 and history/v5.patch:10 are provenance citations and are
+  never edited).
+
+  CROSS-LAYER COUNTERPARTS FOR THE LEAD TO ROUTE, deliberately not in this
+  patch because a blended patch is unreviewable. (a) agents/measurer.md:57-59
+  and codex/agents/vllm_neuron_parity_measurer.toml restate the section 4.10
+  durable-host-state enumeration beside their own "lives once in 4.10" pointer -
+  the same defect this patch cuts from the graph, one layer over. (b)
+  references/measurement-pitfalls.md:32 restates the section 4.6 census list
+  (1.5.2 review-record residual 2); after this revision that pair is the last
+  copy of it. (c) tests/test_document_ceilings.py could pin workflow.pave.yaml.
+  None of the three blocks this revision.
+
+  USAGE EVIDENCE (evolution contract rule 8). No usage record exists for this
+  workflow: no parity run has executed against it, the root holds no usage
+  ledger, and usage_evidence is therefore none, not the field this root's
+  revision 5 could claim from a sibling campaign's verified learnings. What I
+  read in its place: the five semantic diffs in revisions.yaml and the 1.5.2
+  review record. They changed this proposal twice. Revisions 1 through 4 each cut
+  priced judgment that never fired, and the one revision that added a seat added
+  twenty to fifty-five dispatches per campaign, so this proposal adds no seat and
+  no lap and puts its single strengthening on the lead-mechanical rung. And
+  revision 5's own diff states the pattern this patch applies - the graph states
+  the duty and cites the shape - which is why three sites are collapsed to
+  pointers rather than reworded. Nothing in the ledger shows a measurement
+  boundary seat whose priced judgment never fired, so nothing here retires one.
+
+  DEFECT EVIDENCE, DISPOSED IN FULL. All nine graph-layer findings of the 1.5.2
+  consolidation sweep are fixed and none is declined: :2047 and :2048 in item 1,
+  :256 in item 2, :334 in item 3, :1671, :2093, :2161, :2256 and :2279 in item 4.
+  The tenth site, :2049-2050, comes from 1.5.2 review-record residual 1 rather
+  than the sweep and is fixed in item 1. Mechanical checks on the patched graph:
+  validate_pave PASS at 32 nodes, 95 edges, 5 control endpoints; 42 pytest; 31
+  hook checks.
+envelope_check: changed_with_approval
+plan_evidence: verified
+usage_evidence: none
+changelog_entry: >-
+  Revision 6 (graph): two checks stop asking the wrong question and five node
+  bodies stop restating their references. Counts are unchanged at 32 nodes, 95
+  edges, 16 checks, 24 evidence definitions and 5 control endpoints; 28 added
+  lines against 36 removed. realize_measurement_procedures no longer prescribes a
+  streaming harness for speculative decode - the trap is chunk-derived counting in
+  any harness, so the activity points at references/measurement-pitfalls.md and
+  says that swapping the instrument that exposed a counting trap is not the
+  remedy. kickoff_contract_approved asks for the "prior-run carry-over decisions"
+  its own contract definer names, not a "deepseek carry-over decision" - the model
+  name leaked in from the DeepSeek-V4-Flash sibling campaign cited as revision 5's
+  provenance and made the clause unfireable on every other campaign.
+  acceptance_threshold_evaluated moves from "at least one pre-registered
+  threshold" to one per criterion the acceptance registration records for that
+  measurement, matching the record shape pinned at artifact-layout 4.6 and the
+  producing node's own text, with the denominator taken from the registration so
+  the producing seat cannot narrow it. The repair-budget magnitudes (four copies),
+  the durable-host-state definition and the scan-completeness census list collapse
+  to numbered pointers at artifact-layout 4.4, 4.10 and 4.6, which those entries
+  already declare as their single definitions. Field evidence: the 1.5.2
+  consolidation sweep confirmed nine graph-layer findings with three-lens
+  refutation, and the 1.5.2 release record deferred the streaming-harness and
+  decode-connector clauses to this revision because a release patch cannot legally
+  touch the live graph.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index beb00ed..0ca2357 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -253,8 +253,8 @@ pave:
+       question: Does every campaign entering execution carry a complete kickoff
+         contract (targets, routes, sources, thresholds, methods, models, hosts,
+         test layout, spend notes, delegate/venv/weights/ GPU-baseline preflights,
+-        pinned-release-branch-present-on-fork and SDK-uniformity preflight, deepseek
+-        carry-over decision, and for upgrade-route campaigns the upgrade base
++        pinned-release-branch-present-on-fork and SDK-uniformity preflight, prior-run
++        carry-over decisions, and for upgrade-route campaigns the upgrade base
+         recorded to campaign_target_pins plus the regression-matrix criteria)
+         approved verbatim by the user at gate 1?
+       evaluated_by: user
+@@ -331,7 +331,8 @@ pave:
+       on_failure_route: stabilize_and_package_evidence
+     acceptance_threshold_evaluated:
+       style: mechanical
+-      question: Does every evidence bundle under verdict record at least one pre-registered
++      question: Does every evidence bundle under verdict record, for every criterion
++        the acceptance registration records for that measurement, a pre-registered
+         threshold actually evaluated - the value read, the threshold it was compared
+         against, and the result of that comparison - together with the negative-control
+         result from the procedure's smoke record?
+@@ -341,7 +342,10 @@ pave:
+         exit zero with an empty evaluated-threshold list when the criterion it needed
+         was never recorded, so a gate that reads the exit code passes silently on
+         the one case that matters, and the artifact reads like a pass, which is why
+-        prose and review are not enough. The lead reads the bundle's own evaluated-threshold
++        prose and review are not enough. A bundle that realizes several criteria and
++        evaluates one of them fails the same way, so the count runs against the
++        criteria the registration names, never against the list the producing seat
++        supplies. The lead reads the bundle's own evaluated-threshold
+         record and the smoke negative control, so this costs no seat and no new
+         measurement.
+     measurer_not_adjudicator:
+@@ -1668,10 +1672,7 @@ pave:
+         (zero NKI usage in a declared-NKI increment is a recorded contradiction;
+         the predicate never asks what any torch code is doing, so boundary plumbing
+         cannot false-fire it). Both transcripts meet the scan-completeness discipline
+-        pinned at references/artifact-layout.md section 4.6 - the commit scanned,
+-        the tree state it was scanned in, and the scan tool''s own completion signal
+-        - because a search over a dirty or partly written tree reports a zero it
+-        never established, and a zero nobody can show complete is not evidence.
++        pinned at references/artifact-layout.md section 4.6.
+         Out of scope - any new code change; a gap found here routes back to scoping.
+ 
+         '
+@@ -2044,10 +2045,9 @@ pave:
+       - Realize each declared measurement as a runnable procedure with a fixed
+         invocation, reusing verified in-repo primitives where they match the declared
+         method and building thin harnesses where no repeatable procedure exists.
+-      - Avoid the known tool traps - the stock serving-benchmark path undercounts
+-        speculative-decode configurations (use a streaming harness for those);
+-        the decode-only bench connector produces no correctness signal and is
+-        never a correctness procedure.
++      - Realize no procedure that reproduces a trap recorded in
++        references/measurement-pitfalls.md; where a trap is in what the procedure
++        counts, swapping the instrument that exposed it is not the remedy.
+       - Smoke-verify every procedure end-to-end on scratch inputs and record the
+         smoke evidence and the fixed invocation per procedure. The same smoke run
+         feeds the registered tripwire input and records the procedure failing on
+@@ -2091,10 +2091,9 @@ pave:
+         justified skip and pass through. On re-entry after a procedure revision,
+         re-capture only the comparisons whose procedure changed; unchanged captures
+         stand. Out of scope - any durable host-state mutation on the baseline,
+-        ever (persistent writes including cache writes, restarts, reboots, resets);
+-        the ephemeral lifecycle of a serving process launched for capture is not
+-        a durable mutation - the operational definition of durable host state
+-        lives once in the consolidated artifact-layout entry and is cited here.
++        ever; the operational definition of durable host state and its
++        capture-launch boundary ruling live once at references/artifact-layout.md
++        section 4.10 and are cited here.
+       consumes:
+       - campaign_design_record
+       - measurement_procedure_record
+@@ -2157,13 +2156,9 @@ pave:
+         and environment.
+       - Write every defect finding (procedure or reference) as its own event file
+         under the runs directory, so the shared per-measurement repair budget
+-        is derivable by counting defect-record files by path - one instrument,
+-        two predicates per the consolidated artifact-layout entry; tier 1 (suggested
+-        three repair passes per declared measurement without new evidence - novelty
+-        is the record's NEW-relative-to-prior file-list field, recomputable by
+-        any reader) counts the subset whose novelty field is false, and tier 2
+-        (suggested nine total passes per measurement, the backstop) counts all
+-        defect-record files.
++        stays derivable by counting defect-record files by path - one instrument,
++        two predicates, both magnitudes and the novelty derivation pinned once
++        at references/artifact-layout.md section 4.4.
+       - On a lost serving state, re-establish serving from the recorded attempt
+         recipe within the declared retry bound, re-verify the checked-out revision,
+         then resume.
+@@ -2244,17 +2239,14 @@ pave:
+         with the procedure's negative-control result.
+       - Check bundle completeness against the route-scoped declared measurement
+         list; record any gap or instability as its own defect-record event file,
+-        so the shared per-measurement repair count is derivable by counting defect-record
+-        files by path - tier 2 counts all files for the measurement, tier 1 the
+-        subset whose novelty field is false (one instrument, two predicates; the
+-        magnitudes and the novelty derivation are pinned once in the consolidated
+-        artifact-layout entry).
++        so the shared per-measurement repair count stays derivable by counting
++        defect-record files by path - one instrument, two predicates, pinned once
++        at references/artifact-layout.md section 4.4.
+       - Re-read every bundle until the declared count of consecutive matching
+         reads passes; record the stability trace.
+       - Settle exhaustion - a measurement whose shared repair budget (derived
+-        from its on-disk defect-record files) is spent at either tier - suggested
+-        three repair passes without new evidence, or suggested nine total - and
+-        still defective is declared unproducible; never route it backward.
++        from its on-disk defect-record files) is spent at either tier and still
++        defective is declared unproducible; never route it backward.
+       allowed_effects:
+       - Writes under this campaign's measurements artifact directory only.
+       forbidden_effects:
+@@ -2275,11 +2267,11 @@ pave:
+             any declared measurement retains repair budget.
+         declared_measurement_unproducible:
+           meaning: A declared measurement cannot be produced after its shared
+-            repair budget - derived by counting its defect-record files; tier
+-            1 suggested three repair passes without new evidence, tier 2 suggested
+-            nine total - is spent at either tier; routed to re-derivation with
+-            the evidence. Settles only when NO declared measurement retains repair
+-            budget; while any does, collection_defect_found settles.
++            repair budget - derived by counting its defect-record files, magnitudes
++            pinned once at references/artifact-layout.md section 4.4 - is spent
++            at either tier; routed to re-derivation with the evidence. Settles
++            only when NO declared measurement retains repair budget; while any
++            does, collection_defect_found settles.
+   edges:
+   - id: preconditions_to_delta_scan
+     from: verify_run_preconditions.preconditions_met

@@ -253,8 +253,8 @@ pave:
       question: Does every campaign entering execution carry a complete kickoff
         contract (targets, routes, sources, thresholds, methods, models, hosts,
         test layout, spend notes, delegate/venv/weights/ GPU-baseline preflights,
-        pinned-release-branch-present-on-fork and SDK-uniformity preflight, deepseek
-        carry-over decision, and for upgrade-route campaigns the upgrade base
+        pinned-release-branch-present-on-fork and SDK-uniformity preflight, prior-run
+        carry-over decisions, and for upgrade-route campaigns the upgrade base
         recorded to campaign_target_pins plus the regression-matrix criteria)
         approved verbatim by the user at gate 1?
       evaluated_by: user
@@ -331,7 +331,8 @@ pave:
       on_failure_route: stabilize_and_package_evidence
     acceptance_threshold_evaluated:
       style: mechanical
-      question: Does every evidence bundle under verdict record at least one pre-registered
+      question: Does every evidence bundle under verdict record, for every criterion
+        the acceptance registration records for that measurement, a pre-registered
         threshold actually evaluated - the value read, the threshold it was compared
         against, and the result of that comparison - together with the negative-control
         result from the procedure's smoke record?
@@ -341,7 +342,10 @@ pave:
         exit zero with an empty evaluated-threshold list when the criterion it needed
         was never recorded, so a gate that reads the exit code passes silently on
         the one case that matters, and the artifact reads like a pass, which is why
-        prose and review are not enough. The lead reads the bundle's own evaluated-threshold
+        prose and review are not enough. A bundle that realizes several criteria and
+        evaluates one of them fails the same way, so the count runs against the
+        criteria the registration names, never against the list the producing seat
+        supplies. The lead reads the bundle's own evaluated-threshold
         record and the smoke negative control, so this costs no seat and no new
         measurement.
     measurer_not_adjudicator:
@@ -1668,10 +1672,7 @@ pave:
         (zero NKI usage in a declared-NKI increment is a recorded contradiction;
         the predicate never asks what any torch code is doing, so boundary plumbing
         cannot false-fire it). Both transcripts meet the scan-completeness discipline
-        pinned at references/artifact-layout.md section 4.6 - the commit scanned,
-        the tree state it was scanned in, and the scan tool''s own completion signal
-        - because a search over a dirty or partly written tree reports a zero it
-        never established, and a zero nobody can show complete is not evidence.
+        pinned at references/artifact-layout.md section 4.6.
         Out of scope - any new code change; a gap found here routes back to scoping.
 
         '
@@ -2044,10 +2045,9 @@ pave:
       - Realize each declared measurement as a runnable procedure with a fixed
         invocation, reusing verified in-repo primitives where they match the declared
         method and building thin harnesses where no repeatable procedure exists.
-      - Avoid the known tool traps - the stock serving-benchmark path undercounts
-        speculative-decode configurations (use a streaming harness for those);
-        the decode-only bench connector produces no correctness signal and is
-        never a correctness procedure.
+      - Realize no procedure that reproduces a trap recorded in
+        references/measurement-pitfalls.md; where a trap is in what the procedure
+        counts, swapping the instrument that exposed it is not the remedy.
       - Smoke-verify every procedure end-to-end on scratch inputs and record the
         smoke evidence and the fixed invocation per procedure. The same smoke run
         feeds the registered tripwire input and records the procedure failing on
@@ -2091,10 +2091,9 @@ pave:
         justified skip and pass through. On re-entry after a procedure revision,
         re-capture only the comparisons whose procedure changed; unchanged captures
         stand. Out of scope - any durable host-state mutation on the baseline,
-        ever (persistent writes including cache writes, restarts, reboots, resets);
-        the ephemeral lifecycle of a serving process launched for capture is not
-        a durable mutation - the operational definition of durable host state
-        lives once in the consolidated artifact-layout entry and is cited here.
+        ever; the operational definition of durable host state and its
+        capture-launch boundary ruling live once at references/artifact-layout.md
+        section 4.10 and are cited here.
       consumes:
       - campaign_design_record
       - measurement_procedure_record
@@ -2157,13 +2156,9 @@ pave:
         and environment.
       - Write every defect finding (procedure or reference) as its own event file
         under the runs directory, so the shared per-measurement repair budget
-        is derivable by counting defect-record files by path - one instrument,
-        two predicates per the consolidated artifact-layout entry; tier 1 (suggested
-        three repair passes per declared measurement without new evidence - novelty
-        is the record's NEW-relative-to-prior file-list field, recomputable by
-        any reader) counts the subset whose novelty field is false, and tier 2
-        (suggested nine total passes per measurement, the backstop) counts all
-        defect-record files.
+        stays derivable by counting defect-record files by path - one instrument,
+        two predicates, both magnitudes and the novelty derivation pinned once
+        at references/artifact-layout.md section 4.4.
       - On a lost serving state, re-establish serving from the recorded attempt
         recipe within the declared retry bound, re-verify the checked-out revision,
         then resume.
@@ -2244,17 +2239,14 @@ pave:
         with the procedure's negative-control result.
       - Check bundle completeness against the route-scoped declared measurement
         list; record any gap or instability as its own defect-record event file,
-        so the shared per-measurement repair count is derivable by counting defect-record
-        files by path - tier 2 counts all files for the measurement, tier 1 the
-        subset whose novelty field is false (one instrument, two predicates; the
-        magnitudes and the novelty derivation are pinned once in the consolidated
-        artifact-layout entry).
+        so the shared per-measurement repair count stays derivable by counting
+        defect-record files by path - one instrument, two predicates, pinned once
+        at references/artifact-layout.md section 4.4.
       - Re-read every bundle until the declared count of consecutive matching
         reads passes; record the stability trace.
       - Settle exhaustion - a measurement whose shared repair budget (derived
-        from its on-disk defect-record files) is spent at either tier - suggested
-        three repair passes without new evidence, or suggested nine total - and
-        still defective is declared unproducible; never route it backward.
+        from its on-disk defect-record files) is spent at either tier and still
+        defective is declared unproducible; never route it backward.
       allowed_effects:
       - Writes under this campaign's measurements artifact directory only.
       forbidden_effects:
@@ -2275,11 +2267,11 @@ pave:
             any declared measurement retains repair budget.
         declared_measurement_unproducible:
           meaning: A declared measurement cannot be produced after its shared
-            repair budget - derived by counting its defect-record files; tier
-            1 suggested three repair passes without new evidence, tier 2 suggested
-            nine total - is spent at either tier; routed to re-derivation with
-            the evidence. Settles only when NO declared measurement retains repair
-            budget; while any does, collection_defect_found settles.
+            repair budget - derived by counting its defect-record files, magnitudes
+            pinned once at references/artifact-layout.md section 4.4 - is spent
+            at either tier; routed to re-derivation with the evidence. Settles
+            only when NO declared measurement retains repair budget; while any
+            does, collection_defect_found settles.
   edges:
   - id: preconditions_to_delta_scan
     from: verify_run_preconditions.preconditions_met
