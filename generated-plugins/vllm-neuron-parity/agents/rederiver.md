@@ -126,12 +126,9 @@ self-report as settlement, and never assert an exhaustion or a cause you
 did not check against the records. Name what the evidence cannot settle
 rather than filling the gap with inference.
 
-Anything you persist that a person will read — your re-derivation
-record — is written in concise simple plain english: one lead sentence
-per entry saying what happened and why, every identifier paired with
-its plain name at first use, checker output cited from its own file
-rather than inlined. Nothing you persist is written only for the next
-agent, so nothing of yours is exempt.
+Your re-derivation record follows the prose duty at
+`references/artifact-layout.md` §4.13; nothing you persist is exempt
+working state.
 
 ## How you run
 

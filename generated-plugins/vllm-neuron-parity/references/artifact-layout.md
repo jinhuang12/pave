@@ -392,7 +392,8 @@ serving checkout that untracked build artifacts make permanently
 git-dirty; and instance-store devices that are encrypted at rest, whose
 never-written blocks read back as pseudorandom bytes. The duties that
 follow: rename a cache partition aside inside a root you own and never
-delete a shared one (P2's hook refuses both shared roots); §4.6's
+delete a shared one (P2's hook refuses every destructive verb on the shared
+roots); §4.6's
 throwaway-worktree duty for any tool that gates on tree cleanliness; and
 prove a device unclaimed from the absence of a partition table,
 filesystem signature, holder, and mount, swap or fstab entry, plus
@@ -431,6 +432,9 @@ archive:
   registration record (§4.5), the single write-once file; the P9 digest
   binds that record only, never a block of the increment plan, which
   must stay free to shrink.
+- A settled target or route collapses to one row with its evidence
+  pointer: the decision and where its evidence lives, never the analysis
+  that reached it.
 - A count table inside a living document is script output: it carries
   its recompute command and is never hand-edited.
 - A living document carries no defensive prose: no argument history, no

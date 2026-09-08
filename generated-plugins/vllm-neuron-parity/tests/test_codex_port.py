@@ -275,20 +275,20 @@ class HookSmokeTests(unittest.TestCase):
     def test_compile_cache_guard_covers_the_shared_kernel_cache(self) -> None:
         # The kernel toolchain writes /var/tmp/nki-intermediate-cache outside
         # every cache root the run can set, and it can hold another tenant's
-        # artifacts: a delete is refused, a rename aside is not.
-        blocked = self._run_guard(
-            "compile-cache",
+        # artifacts, so it is never a root you own: every destructive verb is
+        # refused there, the otherwise-sanctioned rename aside included.
+        for command in (
             "rm -rf /var/tmp/nki-intermediate-cache",
-            dict(ACTIVE_STATE),
-        )
-        self.assertEqual(blocked.returncode, 2, blocked.stderr)
-        self.assertIn("rename it aside", blocked.stderr)
-        allowed = self._run_guard(
-            "compile-cache",
             "mv /var/tmp/nki-intermediate-cache /var/tmp/nki-cache.aside",
-            dict(ACTIVE_STATE),
-        )
-        self.assertEqual(allowed.returncode, 0, allowed.stderr)
+        ):
+            with self.subTest(command=command):
+                blocked = self._run_guard(
+                    "compile-cache", command, dict(ACTIVE_STATE)
+                )
+                self.assertEqual(blocked.returncode, 2, blocked.stderr)
+                self.assertIn(
+                    "which can hold kernels of another tenant", blocked.stderr
+                )
 
     def test_blocking_guards_allow_inactive_and_terminal_runs(self) -> None:
         cases = {

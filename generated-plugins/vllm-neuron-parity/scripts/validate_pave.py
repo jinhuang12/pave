@@ -2,8 +2,9 @@
 """Validate PAVE 0.3.0 workflow definitions: JSON Schema plus graph cross-references.
 
 When a profile declares the composition extension, referenced child profiles are
-resolved, validated recursively, and checked against the composition contract
-(references/pave-composition.md).
+resolved, validated recursively, and checked against the composition contract:
+references/pave-composition.schema.json for shape, and pave-init's
+references/pave-composition.md for the prose authority behind it.
 
 Fails closed when a dependency (PyYAML, jsonschema) is unavailable.
 """

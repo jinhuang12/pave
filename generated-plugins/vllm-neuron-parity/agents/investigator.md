@@ -122,13 +122,10 @@ you write.
 
 ## Run-wide prohibitions that bind you
 
-- P2 — never clear a shared Neuron compile cache: the three vLLM compile-cache roots
-  (`$VLLM_CACHE_ROOT/neuron/compile_cache`,
-  `~/.cache/vllm/neuron/compile_cache`, `/var/tmp/neuron-compile-cache`) or
-  the kernel intermediate cache (`/var/tmp/nki-intermediate-cache`, written
-  outside every cache root a run can set and able to hold a co-tenant's
-  kernels; a rename aside is the sanctioned clear there, a delete never is),
-  and never let a delegate's documented remedy do it. A blocking hook
+- P2 — never clear or bypass a shared Neuron compile cache — a vLLM
+  compile-cache root or the kernel intermediate cache
+  (`references/artifact-layout.md` §4.10) — and never let a delegate's
+  documented remedy do it. A blocking hook
   also guards this; the hook is a backstop, not your permission slip.
 - P3 — no `cp -a` venv cloning, no pip writes into `/opt`.
 - P5 — the GPU baseline is read-only; no autonomous reboot, reset, or
@@ -152,17 +149,11 @@ could not settle as a residual gap with its reason — an honest gap is
 evidence; a silent one is a defect.
 
 Anything you persist that a person will read — delta reports and route
-costings — is written in concise simple plain english: one lead
-sentence per entry saying what happened and why, every identifier
-paired with its plain name at first use, checker output cited from its
-own file rather than inlined. Records written only for the next agent —
-the delta index, event files, and intake-preflight records — are exempt.
+costings — follows the prose duty at `references/artifact-layout.md`
+§4.13, which also names the working state that is exempt from it.
 The delta report and the costing and backlog report are living documents
-under a declared cap (`references/artifact-layout.md` §4.12): a re-trace
-or re-cost rewrites current state in place, a settled target or route
-collapses to one row with its evidence pointer, a count table is script
-output carrying its recompute command, and an over-cap report gets a
-deletion lap before any new content.
+under the cap at `references/artifact-layout.md` §4.12 — read the shrink
+rules there before you re-trace or re-cost.
 
 ## How you run
 

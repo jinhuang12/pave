@@ -10,9 +10,12 @@ same change, with the reason in the VERSION entry.
 
 Two duties:
   1. No listed document exceeds its ceiling.
-  2. Every prose document in the package is listed. A new reference or a new
-     seat contract is unpinned until someone chooses its ceiling, and an
-     unpinned document is a test failure, not a silent addition.
+  2. Every prose document in the package is listed, the graph included: its
+     node purposes, activity prose, and check rationale are the largest prose
+     surface here, so leaving it unpinned let it accrete with a green suite.
+     A new reference or a new seat contract is unpinned until someone chooses
+     its ceiling, and an unpinned document is a test failure, not a silent
+     addition.
 
 Run: python3 -m pytest tests/test_document_ceilings.py -q
 """
@@ -28,6 +31,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # path relative to the package root -> ceiling in lines.
 CEILINGS: dict[str, int] = {
     "README.md": 700,
+    "workflow.pave.yaml": 3100,
     "skills/vllm-neuron-parity/SKILL.md": 500,
     "references/artifact-layout.md": 500,
     "references/collision-ranking.md": 160,
@@ -43,7 +47,13 @@ CEILINGS: dict[str, int] = {
 }
 
 # Globs that must be fully covered by CEILINGS.
-COVERED = ("README.md", "references/*.md", "agents/*.md", "skills/*/SKILL.md")
+COVERED = (
+    "README.md",
+    "workflow.pave.yaml",
+    "references/*.md",
+    "agents/*.md",
+    "skills/*/SKILL.md",
+)
 
 
 def lines(path: Path) -> int:

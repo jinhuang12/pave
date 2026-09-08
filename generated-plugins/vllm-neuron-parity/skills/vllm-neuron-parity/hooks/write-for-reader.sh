@@ -3,7 +3,7 @@
 # Registered in hooks/hooks.json. Advisory only: it always exits 0, it never
 # makes a permission decision, and it speaks only through additionalContext.
 #
-# Why: the lead skill's "Write for the reader" paragraph is followed only
+# Why: the prose duty at references/artifact-layout.md §4.13 is followed only
 # while its text is still in the context window. After that, agents drift
 # back to identifier chains, pasted checker output, and short notes no
 # stranger can read. This hook repeats the duty at the moment it applies:
@@ -211,7 +211,7 @@ text = (
     "digests, counts, and checker output belong in run state or the check's "
     "own log, cited in one line, never mixed into the narrative. A reader "
     "must learn what happened, what changed, and what is still open in one "
-    "pass (the lead skill's 'Write for the reader' paragraph)."
+    "pass (references/artifact-layout.md section 4.13)."
 )
 if over_cap:
     text += (

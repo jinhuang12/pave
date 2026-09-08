@@ -3,20 +3,19 @@ name: vllm-neuron-parity
 description: >-
   Bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM:
   scan the upstream delta, cost each requested target's closing route, rank the
-  backlog, then execute user-gated campaigns through a correctness gate and a
-  performance gate against a GPU baseline into evidence-backed fork PRs.
+  backlog, then execute user-gated campaigns through correctness and
+  performance gates against a GPU baseline into evidence-backed fork PRs.
   Manual-only: use only when the user explicitly invokes
   $vllm-neuron-parity:vllm-neuron-parity.
-  This is a long, multi-session, multi-agent orchestration -- it dispatches
-  vllm-neuron-parity:* native custom agents and stops for the user at three
-  gates. It registers eight disclosed plugin-level hooks: three blocking
-  guards (protected base branches, the shared Neuron compile caches, venv
-  cloning and /opt writes) armed only by an active-run marker, a blocking
-  graph edit guard (no direct edit of the live graph or revision ledger
-  outside a landing), a stale run-state reminder, an advisory re-entry
-  dispatch nudge, a write-for-the-reader reminder on run-workspace document
-  writes, and a stop-alignment check that BLOCKS AT MOST ONE STOP IN THREE
-  while a run is active. Nothing registers silently.
+  It is a long multi-session orchestration that dispatches
+  vllm-neuron-parity:* agents and stops for the user at three gates. It
+  registers eight disclosed hooks: three blocking guards (protected base
+  branches, the shared Neuron compile caches, venv cloning and /opt writes)
+  armed only by an active-run marker, a blocking graph edit guard (no
+  live-graph or ledger edit outside a landing), a stale run-state reminder,
+  an advisory re-entry dispatch nudge, a write-for-the-reader reminder on
+  document writes, and a stop-alignment check that BLOCKS AT MOST ONE STOP IN
+  THREE while a run is active. Nothing registers silently.
 metadata:
   compatibility: >-
     Requires the harness's plugin hooks (hooks/hooks.json on Claude Code;
@@ -99,20 +98,21 @@ contract".
 | Node group | Agent type | Model | Effort |
 |---|---|---|---|
 | verify_run_preconditions, trace_target_delta, assemble_delta_report, cost_routes_and_rank_backlog, screen_pin_and_progress | `vllm-neuron-parity:investigator` | gpt-5.6-sol | high; medium at verify_run_preconditions and assemble_delta_report |
-| draft_increment_plan, assemble_regression_matrix, preregister_acceptance, assemble_design_record, scope_next_increment (judgment laps only — see the lead row), realize_increment, record_changeset, acquire_hardware_lease, replicate_campaign_venv, execute_attempt_loop, recover_leased_host, prepare_pr | `vllm-neuron-parity:implementer` | gpt-5.6-sol | high; **xhigh at execute_attempt_loop**; medium at record_changeset, acquire_hardware_lease, preregister_acceptance and the capture-class activities |
+| draft_increment_plan, assemble_regression_matrix, preregister_acceptance, assemble_design_record, scope_next_increment (judgment laps only — see the lead row), realize_increment, record_changeset, acquire_hardware_lease, replicate_campaign_venv, execute_attempt_loop, recover_leased_host, prepare_pr, close_campaign (execution half) | `vllm-neuron-parity:implementer` | gpt-5.6-sol | high; **xhigh at execute_attempt_loop**; medium at record_changeset, acquire_hardware_lease, preregister_acceptance |
 | realize_measurement_procedures, capture_baseline_reference, run_candidate_measurements, stabilize_and_package_evidence | `vllm-neuron-parity:measurer` | gpt-5.6-sol (gpt-5.6-terra at stabilize_and_package_evidence) | medium |
 | adjudicate_results, verify_run_closure | `vllm-neuron-parity:adjudicator` | gpt-5.6-sol | high |
 | review_route_verdicts, review_campaign_design, review_increment_batch, review_implementation, review_measurement_verdict, review_pr_evidence | `vllm-neuron-parity:adversarial-reviewer` | gpt-5.6-sol | high |
 | rederive_approach | `vllm-neuron-parity:rederiver` — NEVER `investigator` | **gpt-5.6-sol** | **xhigh** |
-| assemble_kickoff_contracts, close_campaign (gate halves), all checks, all state writes, every lead-mechanical lap the graph declares (scope_next_increment by default; screen, preregistration, and record delta on unchanged inputs or a verified block diff), bookkeeping edits at gate 2 | you (the lead) | session | — |
+| assemble_kickoff_contracts, close_campaign (the gate half only — the implementer executes the approved closure), all checks, all state writes, every lead-mechanical lap the graph declares (scope_next_increment by default; screen, preregistration, and record delta on unchanged inputs or a verified block diff), bookkeeping edits at gate 2 | you (the lead) | session | — |
 
 Do not reassign these. The model and effort pins are approved settings, carried
 in each agent's TOML; pass the per-node effort where a node departs from its
 agent default. A reviewer or adjudicator seat binds at or above the producer
 whose artifact it judges: a judge below its producer misses the findings that
 need the producer's whole reasoning. The Claude contracts
-`agents/adversarial-reviewer.md` and `agents/adjudicator.md` bind fable under
-this rule; the Codex table above already satisfies it.
+`agents/adversarial-reviewer.md` and `agents/adjudicator.md` bind the top
+Claude model under this rule, as `agents/rederiver.md` does; the Codex table
+above already satisfies it.
 
 **Dispatch mechanics.** Start one retained custom-agent thread per node instance
 with `spawn_agent`, the exact `agent_type` above, a unique `task_name`, and
@@ -174,7 +174,8 @@ model gpt-5.6-sol at xhigh effort — the breaker's landing node redirects a cam
 remaining spend, so it gets the top model at top effort. This is a deliberate
 agent-binding exception: the graph lists the node's roles as investigator plus
 lead, but the approved plan binds the node to the dedicated rederiver seat, and
-`agents/vllm_neuron_parity_investigator.toml` disclaims it. Never dispatch this node to
+the investigator's own contract (`agents/investigator.md`, mirrored in
+`codex/agents/vllm_neuron_parity_investigator.toml`) disclaims it. Never dispatch this node to
 `vllm-neuron-parity:investigator`. If a gpt-5.6-sol spawn fails
 with an intermittent 400, RETRY THE SPAWN IDENTICALLY. After three identical
 failures, pause the run for the operator. Never downgrade the seat: an
@@ -216,16 +217,16 @@ this file:
 | Stage | Nodes | Notes for you |
 |---|---|---|
 | 1 Intake | `verify_run_preconditions` | Freeze the run inputs (base version, release branch, SDK and compiler versions) into `pinned_release`. Load the four cross-run artifacts per `references/artifact-layout.md` §1; an absent fingerprint file is a legitimate empty set. `preflight_record_complete` is yours: one transcript per precondition. |
-| 2 Delta scan and costing | `trace_target_delta` (per requested target), `assemble_delta_report`, `cost_routes_and_rank_backlog`, `review_route_verdicts` | Mint a `scan_entry_id` at every entry into the scan boundary; grants and report metadata carry it, and re-trace grants are counted from grant files under scan-entry ids, never a stored integer. Brief the scan and costing seats with `references/collision-ranking.md` — the runner, platform, and scheduler surfaces where ports collide are what makes a route expensive. The per-target delta report and the costing report are living documents under `references/artifact-layout.md` §4.12; a re-entry brief into either carries the report's size line from `scripts/measure_artifact.py`. |
+| 2 Delta scan and costing | `trace_target_delta` (per requested target), `assemble_delta_report`, `cost_routes_and_rank_backlog`, `review_route_verdicts` | Mint a `scan_entry_id` at every entry into the scan boundary; grants and report metadata carry it, and re-trace grants are counted from grant files under scan-entry ids, never a stored integer. Brief the scan and costing seats with `references/collision-ranking.md` — the ranked file surfaces where ports collide are what makes a route expensive. The per-target delta report and the costing report are living documents under `references/artifact-layout.md` §4.12; a re-entry brief into either carries the report's size line from `scripts/measure_artifact.py`. |
 | 3 Gate 1 | `assemble_kickoff_contracts` | Yours. Present the reviewed backlog, take the user's campaign selection, record the decision VERBATIM, and refuse to start any campaign whose kickoff contract is incomplete. Derive `scheduling_holds` before instances dispatch (`scheduling_holds_recorded`): overlapping predicted file surfaces serialize, and an upgrade-route campaign holds all others while it runs exclusively. |
 | 4 Campaign design (per approved campaign) | `screen_pin_and_progress`, `draft_increment_plan`, `assemble_regression_matrix` (upgrade route only), `preregister_acceptance`, `assemble_design_record` | Mint a `design_entry_id` at every entry into the design boundary; every design-lap artifact carries it and superseded lap artifacts are deleted from the read path - history is the record's revision log plus run state. Brief the design seats with `references/patch-mechanism-inventory.md` — the route a design picks has to be a mechanism the plugin actually has. `pin_infeasibility_socratic_guard` is evaluated by you and never by the note's author. `comparators_preregistered` is a timestamp comparison against the registration record. Re-entry instruments: unchanged inputs settle lead-mechanically with NO seat - screen (pin digest + standing note), preregistration (four-slice check on the byte-unchanged registration); the record delta-updates in place and superseded lap banners are deleted. Any registered-value touch keeps the full value-level seat. The drafter authors against the target artifacts on disk, never from memory of them. A re-entry brief into `draft_increment_plan` names the blocks to touch and the finding each answers, and carries the plan's size line from `scripts/measure_artifact.py`; the lap hands back a block diff (touched blocks with their new digests, must-hold digests for every other block) - never a whole-plan rewrite; a whole-plan lap is its own briefed lap. When the only changed input is a block diff whose must-hold digests verify, the record delta is yours with no seat. An over-cap plan (`references/artifact-layout.md` §4.12) gets a deletion lap before new content. |
 | 5 Gate 2 | `review_campaign_design` | Reviewer seat first (one seat per design entry, retained across its rounds; after a block-scoped repair it reads the touched blocks and their cascade while you byte-check the untouched blocks against the must-hold digests), then you present the reviewed design and record the user decision verbatim - or, on a re-entry where `design_approved_by_user` says the recorded approval stands, apply it and record that basis. Material means the consuming nodes would build the wrong thing or a frozen or registered value would move; every other finding is bookkeeping you apply as a direct edit (one revision-log line, the new digest in run state) before any repair seat is briefed. Any change to kickoff-declared criteria needs its own explicit recorded user decision. Narrow triage: when every standing material finding names only increment-plan text, design-record, or registration surfaces, evaluate `narrow_delta_scoped` yourself and take the matching narrow repair edge - block-scoped repair, continued doer thread, re-enter this gate; recurrence of a finding fingerprint or any ambiguity fails closed into the full lap. `design_loop_within_bound` rides every repair edge; when it trips, re-enter with no reviewer seat and present the standing findings to the user with a close-anyway recommendation - the verbatim decision selects the outcome, and a P9 finding is never disposed that way. |
 | 6 Implementation (CPU-first) | `scope_next_increment`, `realize_increment`, `review_increment_batch`, `record_changeset`, `review_implementation` | No hardware before this stage closes. `scope_next_increment` is yours by default: settle the lap from the persisted inputs with a lap record that carries the commands and outputs it derived from, and dispatch the implementer only for a judgment the rule does not settle (a contradiction candidate no realizer record holds, or a findings-history versus lap-record disagreement). A lap selects one item, or a set sized by the same complexity call as the batch (up to three low-complexity items); a set with pairwise-disjoint surfaces is concurrent-eligible - serial on the retained thread by default, one seat per item only when each has its own checkout (detached at the branch head - git refuses a second worktree on one branch; each seat commits there and you land the commits onto the campaign branch at the join). A landed item's plan block collapses to its ledger row. Every 1-3 landed commits form a batch (your complexity call, recorded in the lap record: 1 for a kernel, runner, scheduler, or loader change; up to 3 when low in aggregate); `batch_review_current` fails the next scope lap into `review_increment_batch` (fresh reviewer seat per batch, read-only) until the batch has its findings section (`references/artifact-layout.md` §4.1). Material findings route to scoping as repair items. `impl_commit_is_reviewed` is a commit-equality test against the findings record. The changeset scan carries P4 (zero NxDI imports over added/modified lines) and P13's substrate-fidelity half. |
 | 7 Hardware bring-up | `acquire_hardware_lease`, `replicate_campaign_venv`, `execute_attempt_loop`, `recover_leased_host` | Lease records are lead-written. P8: no identical hardware retry — the tier-1 gate reads the repo fingerprint file against this run's attempt log. Attempts are counted from attempt-record files; host faults are recorded, never charged. The breaker routes out to `rederive_approach`. Brief every attempt and triage seat with `references/toolchain-evidence-pitfalls.md` — a late watchdog names the stage where it ran and not the stage that failed. |
-| 8 Measurement | `realize_measurement_procedures`, `capture_baseline_reference`, `run_candidate_measurements`, `stabilize_and_package_evidence` | Brief every measurer seat with `references/measurement-pitfalls.md` — the chunk-counting throughput undercount (any harness, stock or custom) and the decode-only connector trap are known and non-obvious, and a number produced through one of them is worse than no number. Instrument liveness is now graph-carried: the registration holds a value-plus-tripwire pair per criterion (`references/artifact-layout.md` §4.5), the smoke record shows each procedure FAILING on its tripwire, and `acceptance_threshold_evaluated` reads each bundle's evaluated-threshold record before adjudication — an exit status is not an evaluation. GPU baseline is READ-ONLY (P5): no autonomous reboot or reset; capture refuses on a kickoff-record contradiction. `procedures_smoke_verified` and `revision_stamped` (P11: a git-issued identifier at measurement time, never a branch name) are yours. |
+| 8 Measurement | `realize_measurement_procedures`, `capture_baseline_reference`, `run_candidate_measurements`, `stabilize_and_package_evidence` | Brief every measurer seat with `references/measurement-pitfalls.md` — its traps are known and non-obvious, and a number produced through one of them is worse than no number. Instrument liveness is graph-carried: `procedures_smoke_verified` reads the tripwire result out of the smoke record and `acceptance_threshold_evaluated` reads each bundle's evaluated-threshold record plus the smoke negative control (`references/artifact-layout.md` §4.5 registers the pair, §4.6 shapes the record) — an exit status is not an evaluation. GPU baseline is READ-ONLY (P5): no autonomous reboot or reset; capture refuses on a kickoff-record contradiction. `procedures_smoke_verified` and `revision_stamped` (P11: a git-issued identifier at measurement time, never a branch name) are yours. |
 | 9 Adjudication and review | `adjudicate_results`, `review_measurement_verdict` | `measurer_not_adjudicator` and `evidence_stable_before_verdict` are yours and are hard: the seat that produced a number never judges it, and a verdict reads re-read stable artifacts at the design record's count and spacing, never a first-sighting signal. |
 | 10 PR package | `prepare_pr`, `review_pr_evidence` | PRs go to the jinhuang12/vllm-neuron fork only. Merge is the human's; you hold no merge authority (P7). |
-| 11 Gate 3 and closure | `close_campaign`, `verify_run_closure` | Yours plus the adjudicator. Present the closure candidate and its evidence, record the verbatim decision, execute exactly ONE closure type, then apply the serialized single-writer updates to the scorecard, backlog, debt ledger, and fingerprint file. `closure_evidence_settled`: the PR URL must resolve ON THE FORK. |
+| 11 Gate 3 and closure | `close_campaign`, `verify_run_closure` | Yours plus the implementer and the adjudicator. Present the closure candidate and its evidence and record the verbatim decision; the implementer executes the one approved closure, because executing is a role's work and not yours; then apply the serialized single-writer updates to the scorecard, backlog, debt ledger, and fingerprint file. `closure_evidence_settled`: the PR URL must resolve ON THE FORK. |
 | — Recovery | `rederive_approach` | The landing node for every breaker and exhaustion route. It re-enters design through `revised_approach` or recommends close-out. It never implements. |
 
 Fan-out and join:
@@ -278,17 +279,11 @@ walked-away run must never stay "active" forever.
 
 **Write for the reader, and keep the caps.** Two duties, each pinned once and
 cited never restated: the prose duty at `references/artifact-layout.md` §4.13
-(concise simple plain english, one lead sentence, an identifier paired with its
-plain name, checker output cited from its own file, working state exempt) and
-the living-document cap at §4.12 (kept by shrinking — a landed increment
-collapses to one ledger row, frozen values stay in the write-once registration
-record, count tables are script output, and an over-cap document makes the next
-design lap a deletion lap; the P9 digest binds that record only, never a block
-of the increment plan). The write-for-reader hook re-presents the prose duty on
-document writes and names an over-cap document with its size; the adversarial
-reviewer reports each living document's lines and bytes every round and treats a
-reader-facing artifact that fails either duty as a material finding. Carry both
-duties into every brief.
+and the living-document cap at §4.12. Read both there and carry both into every
+brief. The write-for-reader hook re-presents the prose duty on document writes
+and names an over-cap document with its size; the adversarial reviewer reports
+each living document's lines and bytes every round and treats a reader-facing
+artifact that fails either duty as a material finding.
 
 **Checkpoint** after every consequential transition: the declared outcome, the
 declared edge, the evidence references at their declared paths, and the verbatim
@@ -420,7 +415,7 @@ reinjection < reviewed/socratic < mechanical < blocking hook.
 | # | Prohibition | Rung and where it lives |
 |---|---|---|
 | P1 | Never mutate protected base branches (release-0.24.0.1.1.0, release-0.21.0.1.0.0, main, mainline) on the fork or upstream | BLOCKING `hooks/protected-branch-guard.sh` |
-| P2 | Never clear a shared Neuron compile cache — the prohibition is the class, and four roots are in it. The three vLLM compile-cache roots ($VLLM_CACHE_ROOT/neuron/compile_cache, ~/.cache/vllm/neuron/compile_cache, /var/tmp/neuron-compile-cache) and the kernel intermediate cache (/var/tmp/nki-intermediate-cache — the kernel toolchain writes it outside every cache root a run can set, and it can hold a co-tenant's kernel artifacts). Instances and the rename-aside duty: `references/artifact-layout.md` §4.10 | BLOCKING `hooks/compile-cache-guard.sh` + delegate guardrail wrapper (a documented remedy that says "clear the cache" is intercepted, never followed). On the kernel cache the guard refuses the irreversible verbs and allows `mv`, because renaming aside is the sanctioned clear there |
+| P2 | Never clear a shared Neuron compile cache — the prohibition is the class, and four roots are in it. The three vLLM compile-cache roots ($VLLM_CACHE_ROOT/neuron/compile_cache, ~/.cache/vllm/neuron/compile_cache, /var/tmp/neuron-compile-cache) and the kernel intermediate cache (/var/tmp/nki-intermediate-cache — the kernel toolchain writes it outside every cache root a run can set, and it can hold a co-tenant's kernel artifacts). Instances and the rename-aside duty: `references/artifact-layout.md` §4.10 | BLOCKING `hooks/compile-cache-guard.sh` + delegate guardrail wrapper (a documented remedy that says "clear the cache" is intercepted, never followed). The guard refuses every destructive verb on all four roots, `mv` included — it cannot tell a root you own from a shared one, and rename-aside is sanctioned only inside one you own (`references/artifact-layout.md` §4.10) |
 | P3 | No `cp -a` venv cloning; no pip writes into /opt | BLOCKING `hooks/venv-opt-guard.sh` |
 | P4 | Zero `neuronx_distributed*` (NxDI) imports in ported code | MECHANICAL import scan over added/modified lines at `record_changeset` and re-checked at `review_implementation` |
 | P5 | GPU baseline read-only; no autonomous reboot or reset; durable-host-state scoping | Contract text + reinjection + mechanical skew and identity probes; `capture_baseline_reference` refuses on a kickoff-record contradiction |

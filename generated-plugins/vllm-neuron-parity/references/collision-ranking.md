@@ -86,8 +86,7 @@ converts a rank-1 collision into a low-risk isolated edit.
   `vllm.v1.core.sched.scheduler.Scheduler` and `async_scheduler.AsyncScheduler`.
 - It ranks last because the hierarchy is compact and edits localize to
   overridden methods; it collides only when two increments are both
-  scheduling-class. Growth across the pin was the smallest of the four
-  (+59 lines).
+  scheduling-class. Growth across the pin was +59 lines.
 - No test coverage exists for this file in the repo.
 
 ## Operational rules

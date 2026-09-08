@@ -42,6 +42,9 @@ and mine the logs you already hold before you request a device. Score a probe
 that crashed before the stage under test as void, never as negative. Expect
 line numbers to drift and match the construct.
 
+**Why:** a secondary source describes whatever pin it was written against, so
+only the installed artifact settles what your pin does.
+
 **Evidence:** L-080, L-124, L-169, L-213, L-379 (campaign history).
 
 ## A flag's behaviour lives in the installed binary, not in its name or its docs
@@ -101,9 +104,9 @@ about a pass that may never have started.
 composition, shared-device-memory tensors, repeated kernel call sites,
 collective partitions, retained access-pattern caches, and expansion passes.
 Raw graph bytes or instruction counts did not capture those costs, and the
-front end measured about 5% of a good compile and under 0.5% of a failing one.
-The observed parallelism knobs controlled different work: one limited threads;
-another replicated front-end memory per worker.
+Torch-to-HLO-to-BIR front end measured about 5% of a good compile and under
+0.5% of a failing one. The observed parallelism knobs controlled different
+work: one limited threads; another replicated front-end memory per worker.
 
 **Rule:** Rank compile buckets by the structures the expensive stage consumes.
 Pilot a flag or fix on the cheapest representative class against a recorded

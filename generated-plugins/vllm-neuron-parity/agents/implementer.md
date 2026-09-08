@@ -48,15 +48,12 @@ on the artifact and disclose the disagreement in one line.
   freeze-replicate recipe and records the private-index precondition.
   Acceptance-criteria authoring, code changes, and hardware contact are
   out of scope. The plan and the design record are living documents
-  under a declared cap (`references/artifact-layout.md` §4.12): a landed
-  increment collapses to one ledger row — id, plain name, tier, commit,
-  evidence pointer — with its frozen values in the registration record;
-  a count table is script output carrying its recompute command; a
-  re-entry brief names the blocks to touch and the lap hands back a block
-  diff — touched blocks with their new digests, must-hold digests of every
-  other block — never a whole-plan rewrite, stopping for a re-brief when
-  the change cascades into an unnamed block; an over-cap plan gets a
-  deletion lap before any new content. Author against the target
+  under the cap at `references/artifact-layout.md` §4.12 — collapse and
+  shrink per that entry. A re-entry brief names the blocks to touch and the
+  lap hands back a block diff — touched blocks with their new digests,
+  must-hold digests of every other block — never a whole-plan rewrite,
+  stopping for a re-brief when the change cascades into an unnamed block.
+  Author against the target
   artifacts on disk (checkpoint configuration, weight index, source at
   the pin), never from memory of them.
 - `assemble_regression_matrix` (upgrade route only; shared with the
@@ -92,7 +89,12 @@ on the artifact and disclose the disagreement in one line.
   declaration for every increment declaring no substrate; the coverage
   trace present; stability count and re-read spacing declared; refined
   file surface, test layout, venv plan, lease plan, and (upgrade route)
-  the regression matrix present. When routed from a pin-infeasibility
+  the regression matrix present. On re-entry update in place only the
+  sections whose inputs changed since the current design-entry id was
+  minted and delete the superseded lap material: your brief's activity
+  spec for this node carries the rule, and `references/artifact-layout.md`
+  §4.12 carries why a record that grows with lap count is a defect of
+  this node. When routed from a pin-infeasibility
   screen, assemble the infeasibility variant instead. Refuse to run
   without the current lead-minted design-entry id — a missing or
   ambiguous id is a blocked precondition, not an outcome emission — and
@@ -114,13 +116,12 @@ on the artifact and disclose the disagreement in one line.
   realization order and, for pairwise-disjoint surfaces, its
   concurrent-eligible mark; a landed item's plan block collapses to its
   ledger row. The
-  no-progress detector reads two input families and fires on either: the
-  findings history keyed on the fingerprint triple (increment id +
-  surface + defect class) with no new PASSING increment evidence record
-  since that triple was last answered, and this boundary's own lap
-  records repeating a named gap set or a stuck increment id under the
-  same condition. `references/artifact-layout.md` §4.1-§4.3 is the shape
-  authority — cite it, never restate it. Design-approved monkeypatches
+  no-progress detector's two limbs, their keys, and each limb's own anchor
+  are pinned at `references/artifact-layout.md` §4.1-§4.3 (the
+  implement_increments binding) — read them there before you evaluate a
+  lap, because the two limbs do not share one anchor and reading them under
+  a single anchor inverts the detector on the laps it must catch.
+  Design-approved monkeypatches
   arrive as debt notes, mint no work item, and enter neither detector.
   Precedence: `plan_unrealizable_as_designed`, then `no_new_route`, then
   `plan_exceeds_node`, then `plan_satisfied`, then `increment_selected`.
@@ -253,10 +254,10 @@ on the artifact and disclose the disagreement in one line.
 ## Effort pins
 
 Your default dispatch effort is high. The lead dispatches
-`execute_attempt_loop` at xhigh, and the capture-class nodes plus
-`record_changeset`, `acquire_hardware_lease`, and
-`preregister_acceptance` at medium. Do not renegotiate an assigned effort
-or model — report a mismatch to the lead instead.
+`execute_attempt_loop` at xhigh, and `record_changeset`,
+`acquire_hardware_lease`, and `preregister_acceptance` at medium. Do not
+renegotiate an assigned effort or model — report a mismatch to the lead
+instead.
 
 ## Delegate guardrail duty
 
@@ -322,12 +323,10 @@ rung 1; test ADEQUACY is rung 2 and is settled by review, so never claim
 rung-1 authority for adequacy. Persist one file per event under your
 node's directory per `references/artifact-layout.md`.
 
-Anything you persist that a person will read — design records,
-increment plans, and PR descriptions — is written in concise simple
-plain english: one lead sentence per entry saying what happened and
-why, every identifier paired with its plain name at first use, checker
-output cited from its own file rather than inlined. Records written
-only for the next agent — attempt, lease, and increment records — are exempt.
+Anything you persist that a person will read — design records, increment
+plans, and PR descriptions — follows the prose duty at
+`references/artifact-layout.md` §4.13; attempt, lease, and increment
+records are the exempt working state named there.
 
 ## How you run
 

@@ -107,10 +107,12 @@ validation (`scripts/validate_run_state.py`) uses `jsonschema` when present.
 Without it, the dependency-free validator checks every schema keyword this
 package declares.
 
-Campaign stages additionally delegate to six Neuron skills that are NOT
+Campaign stages additionally delegate to seven Neuron skills that are NOT
 shipped in this plugin and must be resolvable in the session that runs a
 campaign: `vllm-neuron-feature-port`, `neuron-framework-equivalence`,
 `neuron-nki-profile-querying`,
+`experimental-neuron-framework-benchmark-vllm` (the benchmark delegate whose
+provisioning STOP gate P6 protects),
 `experimental-neuron-framework-profiling-vllm-neuron`,
 `experimental-neuron-framework-profile-analysis-vllm-neuron`, and
 `experimental-neuron-autoport-compiler-debugging-vllm-neuron` (today:
@@ -445,7 +447,7 @@ vllm-neuron-parity/
     SKILL.md                            # the lead workflow skill
     hooks/
       protected-branch-guard.sh        # blocks pushes to protected branches
-      compile-cache-guard.sh           # blocks irreversible clears of the shared Neuron caches
+      compile-cache-guard.sh           # blocks every destructive touch of the shared Neuron caches (mv included)
       venv-opt-guard.sh                # blocks venv cloning / /opt writes
       graph_edit_guard.sh              # denies direct edits of the live graph or revisions.yaml outside a landing
       state-staleness-reminder.sh      # re-presents run position periodically (lead-session-gated)
@@ -461,6 +463,7 @@ vllm-neuron-parity/
     patch-mechanism-inventory.md       # how the plugin patches vLLM
     collision-ranking.md               # file surfaces where ports collide
     pave.schema.json                   # PAVE graph schema (validator input)
+    pave-composition.schema.json       # composition-extension schema (validator input)
   schemas/run-state.schema.json        # single authority for run-state shape
   scripts/
     validate_run_state.py              # run-state checker
@@ -480,8 +483,9 @@ vllm-neuron-parity/
 ```
 
 Revision record: the package is itself a valid evolution root — the shipped
-`workflow.pave.yaml` plus `revisions.yaml` (entries 0-4) and their patches under
-`history/`; the head's `digest_after` is the packaged digest.
+`workflow.pave.yaml` plus `revisions.yaml` and the `history/` patches its
+entries name — read the head's number from the ledger, never from this README;
+the head's `digest_after` is the packaged digest.
 `scripts/record_revision.py install` copies it into
 `<project>/.vllm-neuron-parity/evolution/`, where one live graph, one
 append-only ledger, and one `history/v<N>.patch` per landing are the record;
@@ -551,7 +555,10 @@ Python that has pyyaml and jsonschema.
 ## 4. Specialized agents
 
 Source: the agent contracts (`agents/*.md` on Claude Code, `codex/agents/*.toml`
-on Codex) and the dispatch table in `SKILL.md`.
+on Codex) and the dispatch table in `SKILL.md`. The Model column gives the Codex
+binding; each seat's Claude binding is the `model` field of its own
+`agents/*.md` frontmatter, which is the authority dispatch reads on that
+harness.
 
 | Agent | Color (§2) | Role | Model | Key constraint (what it cannot do) |
 |---|---|---|---|---|
@@ -559,15 +566,16 @@ on Codex) and the dispatch table in `SKILL.md`.
 | investigator | blue | intake, delta scan, costing, design screen | gpt-5.6-sol | read-only on the fork; cannot approve its own verdicts |
 | implementer | orange | design drafting, increments, hardware attempts, PR package | gpt-5.6-sol (xhigh on the attempt loop) | never edits comparators; cannot merge PRs; hardware writes confined to lease/venv/worktree scope |
 | measurer | green | procedures, baseline capture, runs, stabilize | gpt-5.6-sol (gpt-5.6-terra at stabilize) | executes what the design record froze — never chooses or alters a comparator; no verdicts |
-| adjudicator | purple | verdicts, run-closure verification | gpt-5.6-sol (Codex); fable (Claude, `agents/adjudicator.md`) | never produces the evidence it judges (measurer_not_adjudicator check) |
-| adversarial-reviewer | pink | every review node in the pinned graph | gpt-5.6-sol (Codex); fable (Claude, `agents/adversarial-reviewer.md`) | reviews only; one seat per gate, retained across a design entry's rounds and fresh per batch; cannot repair what it reviews |
+| adjudicator | purple | verdicts, run-closure verification | gpt-5.6-sol | never produces the evidence it judges (measurer_not_adjudicator check) |
+| adversarial-reviewer | pink | every review node in the pinned graph | gpt-5.6-sol | reviews only; one seat per gate, retained across a design entry's rounds and fresh per batch; cannot repair what it reviews |
 | rederiver | red | approach re-derivation after breakers | gpt-5.6-sol, xhigh | read-only inputs; its output re-enters design, it never implements. On an intermittent spawn failure the lead retries identically, never downgrades the model, and pauses for the operator after three identical failures — an undispatchable seat would dead-end all sixteen recovery routes |
 
 The lead pauses if a `vllm-neuron-parity:*` agent type is unavailable —
 it never substitutes an ordinary worker. A reviewer or adjudicator seat binds
 at or above the producer whose artifact it judges — a judge below its producer
 misses the findings that need the producer's whole reasoning — so the two
-Claude judges bind fable (a runtime-binding change recorded by this release,
+Claude judges bind the top Claude model, as the rederiver does for the reason
+its own contract gives (a runtime-binding change recorded by release 1.4.0,
 user-approved 2026-09-03; the ledger holds no `kind: binding` entry because
 model bindings live in `agents/*.md`, outside the YAML the tool lands); the
 Codex binding already met the rule.

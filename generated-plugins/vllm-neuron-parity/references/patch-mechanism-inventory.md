@@ -83,7 +83,7 @@ Not a monkeypatch. vLLM calls `NeuronPlatform` classmethod hooks; the plugin fil
 
 ## Ad hoc monkeypatches
 
-Current verified count: **8 distinct vLLM-internal patch targets** across 6 patch sites, plus 4 torch-level patch sites.
+Current verified count: **8 distinct vLLM-internal patch targets** across 8 patch sites — 6 named patch functions plus the two inline rebinding sites for `in_the_same_node_as` — plus 4 torch-level patch sites.
 
 | Patch site | Patched target | When it runs |
 |---|---|---|

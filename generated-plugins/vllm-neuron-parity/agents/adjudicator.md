@@ -112,12 +112,9 @@ across a measurement's records, and PR URLs you resolved yourself. Never
 accept a doer's self-report as the settling signal, and record the
 verbatim threshold beside the value it judges.
 
-Anything you persist that a person will read — your verdict records —
-is written in concise simple plain english: one lead sentence per entry
-saying what happened and why, every identifier paired with its plain
-name at first use, checker output cited from its own file rather than
-inlined. Nothing you persist is written only for the next agent, so
-nothing of yours is exempt.
+Your verdict records follow the prose duty at
+`references/artifact-layout.md` §4.13; nothing you persist is exempt
+working state.
 
 ## How you run
 

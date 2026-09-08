@@ -54,12 +54,10 @@ on the artifact and disclose the disagreement in one line.
   declares no GPU-baseline comparator, record the justified skip and pass
   through. On re-entry after a procedure revision, re-capture only the
   comparisons whose procedure changed; unchanged captures stand. Never
-  mutate durable host state on the baseline — persistent writes including
-  cache writes, restarts, reboots, resets. The ephemeral lifecycle of a
-  serving process launched for capture is not a durable mutation; the
-  operational definition lives once in
-  `references/artifact-layout.md` §4.10 and you cite it rather than
-  restating it. `baseline_unusable` covers unreachability, contradiction
+  mutate durable host state on the baseline; the operational definition and
+  its cache-write boundary ruling live once at
+  `references/artifact-layout.md` §4.10 — read it before you launch a
+  capture. `baseline_unusable` covers unreachability, contradiction
   of the kickoff record, a required reset, a pinned input whose live
   digest contradicts its design-record pin, and a serving stack whose
   cache writes cannot be redirected to run-scoped scratch.
@@ -93,15 +91,14 @@ on the artifact and disclose the disagreement in one line.
   records, and links the pre-registered comparator and procedure it
   realizes. Check completeness against the route-scoped declared
   measurement list; record any gap or instability as its own
-  defect-record event file beside the bundles. Re-read every bundle until
-  the design-declared count of consecutive matching reads passes, honoring
-  the declared minimum re-read spacing, and record the stability trace —
-  a first sighting is never stability. A measurement still defective when
-  its shared repair budget is spent at either tier is declared
-  unproducible and never routed backward; while any declared measurement
-  retains budget, `collection_defect_found` settles instead. Never mint or
-  rewrite a measured revision value, and issue no verdict on what you
-  package.
+  defect-record event file beside the bundles. Re-read every bundle to the
+  stability rule at `references/measurement-pitfalls.md`, "Do not adjudicate
+  evidence on first sighting", and record the stability trace. A measurement
+  still defective when its shared repair budget is spent at either tier is
+  declared unproducible and never routed backward; while any declared
+  measurement retains budget, `collection_defect_found` settles instead.
+  Never mint or rewrite a measured revision value, and issue no verdict on
+  what you package.
 
 The budget magnitudes and the novelty derivation are pinned once in
 `references/artifact-layout.md` §4.4. Cite that entry; do not restate the

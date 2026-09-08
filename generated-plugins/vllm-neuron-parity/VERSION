@@ -1,45 +1,152 @@
 version: 1.5.2
 
-## 1.5.2 — 2026-09-05
+## 1.5.2 — 2026-09-08
 
-Restore two measured facts release 1.5.1 dropped, fix the dangling referent in
-the toolchain header, and collapse release 1.5.0's restatements to pointers at
-their authority.
+Close every release-layer defect this package's reviews found — the 35 a
+four-round adversarial sweep confirmed, the 7 two review rounds raised against
+the fix itself, and the 16 a second adversarial workflow raised on top — and
+restore two measured facts release 1.5.1 dropped, so a first field run reads
+one authority per duty and no guard hands a seat a remedy that destroys a
+neighbour's cache.
+
+The behaviour change to know about is the P2 compile-cache guard. It told a
+seat to rename the shared kernel intermediate cache aside, and let `mv` through
+so the seat could do it. Rename-aside is the authority's remedy only inside a
+root you own, and that cache is never one: it is written outside every cache
+root a run can set and can hold another tenant's kernels, so moving it aside
+costs that tenant the same warm state a delete would. The guard now refuses
+every destructive verb on all four cache roots, `mv` included, because it
+cannot prove which root you own, and it tells the seat to report the case to
+the lead rather than work around the guard. The lead skill's P2 row and the
+investigator contract promised the same allowance; the row now carries the
+rule, and the investigator points at §4.10, where the rule lives. The coverage
+in `tests/test_codex_port.py` asserted the defective behaviour, so it moved
+with the guard and now checks both verbs on that cache.
+
+Three more findings were consequential. The lead skill description measured
+1096 characters against the 1024-character skill limit, so the packaged skill
+failed validation and would not load; it is 1007 characters now, with every
+trigger phrase and the whole eight-hook disclosure intact. The implementer's
+copy of the no-progress detector put both limbs on one anchor, which the shape
+authority says inverts the detector on exactly the laps it must catch; the copy
+is gone and the contract sends the seat to `references/artifact-layout.md`
+§4.1-§4.3 with the reason it matters. The lead skill gave `close_campaign`
+entirely to the lead, including the closure execution the graph assigns to the
+implementer; both the dispatch table and the stage note now name the split.
+
+Ten statements disagreed with the artifact they cite, and a wrong statement is
+worse than a missing one because a seat that trusts it acts wrongly. The
+delegate install list named six external Neuron skills and omitted the
+benchmark delegate that a campaign stage dispatches and prohibition P6 protects
+— an operator following the README would provision a session that cannot run a
+campaign. The patch-site count said 6 where its own table lists 8, so a reader
+budgeting a port undercounted the surface by two inline rebinding sites. The
+collision file called the rank-4 surface the smallest grower while its own
+measured numbers say another surface grew less. The lead skill's collision
+brief named three of four ranked surfaces and dropped one that outranks a
+surface it kept. A citation pointed at a Codex contract path that does not
+exist. The README restated the ledger's entry count, which drifts at every
+landing, and its agent table mixed harnesses in one Model column — four rows
+gave the Codex binding alone, two annotated a Claude binding as well — so the
+column now declares once, above the table, that it carries the Codex binding
+and sends each seat's Claude binding to the `model` field of its own contract,
+which is the authority dispatch reads there; and the prose below that table,
+with the lead skill's copy of the same rule, named only the two judges as
+binding the top Claude model, which denies the rederiver's identical pin by
+exclusion and dated the pin to "this release" rather than to release 1.4.0,
+where it was recorded. `scripts/validate_pave.py` required a composition schema
+this package does not ship, so the checker it advertises never ran; the schema
+is vendored from pave-init now and the check runs, because dropping the call
+instead would have left the composition block with no structural check at all —
+a misspelled key or a missing `version` would pass. The implementer's effort
+pins named a "capture-class" node this seat does not own. Each is now either
+correct or a pointer at the file that owns the fact, and the compile-cost rule
+names the measured stage — the Torch-to-HLO-to-BIR front end — rather than "the
+front end" in a paragraph that uses that phrase for a different sense. Six more
+citations named something that does not carry what they promise: three blocking
+guards cited an enforcement record this package never shipped, one of them also
+cited a pave-init reference as if it were local, and a hook message and a seat
+contract sent their reader to a lead-skill paragraph that is itself now a
+pointer. Each now names the prohibition row, the owning package, or the
+reference entry that holds the duty.
+
+The rest of the sweep was one accretion defect repeated: a duty restated where
+its authority is already cited. Fourteen sites collapse to pointers, the
+detector copy above included, across the six seat contracts, the lead skill,
+and one reference — the prose duty (§4.13), the living-document cap (§4.12),
+the durable-host-state definition and its cache-write boundary ruling (§4.10),
+the scan-completeness census (§4.6), the instrument-liveness pair (§4.5), and
+the stable-reads rule in `references/measurement-pitfalls.md`. The lead skill's
+instrument-liveness row was also wrong about what its two checks read, so it
+now names the smoke record and the bundle's evaluated-threshold record, with
+§4.5 for the registration and §4.6 for the record shape. A site keeps a clause
+only where it changes what its reader does, or where it is a role's own
+severity criterion — which is why the adversarial reviewer keeps its
+illegibility criterion and loses its copy of the prose duty. Four clauses lived
+only in the Codex mirrors. Three tell a seat when the lead will dispatch it — a
+decision the seat cannot act on, held by the lead, declared in the graph, and
+already in the lead skill — and are cut; the one cut from the reviewer ends
+with a surface-naming duty its Markdown twin already carries, so nothing goes
+with it. The fourth carried a real duty and is moved rather than cut:
+`agents/implementer.md` now says at `assemble_design_record` that a re-entry
+updates only the sections whose inputs changed and deletes the superseded lap
+material, pointing at the node's activity spec, which carries the rule
+verbatim, and at §4.12 for why a record that grows with lap count is a defect
+of that node. The Markdown contract is the authority for seat text, so the six
+mirrors are regenerated from their twins.
 
 Restored at the cited pin, not new campaign evidence: the compile-cost trap
 again carries the measured front-end share (about 5% of a good compile and
 under 0.5% of a failing one, L-036), and the import-order duty again carries
 its consequence — a late override freezes a platform constant at the wrong
-value and corrupts numerics with no error (L-341).
+value and corrupts numerics with no error (L-341). The toolchain file's first
+rule gained the reason line that file's own instrument requires.
 
-Removed: §4.10's copy of the throwaway-worktree duty that §4.6 states with its
-reason, and five glosses that restated the toolchain, measurement, and
-patch-mechanism references beside their own pointers — four in seat contracts,
-one in the lead's stage-7 row. Each site keeps its pointer plus at most one
-clause that changes what its reader does, and the three codex mirrors carry the
-same text. References, seats, and lead lose 7 lines and 89 words; no pinned
-ceiling is raised and every pinned file stays under its cap.
+One pointer needed its authority completed: the living-document cap (§4.12)
+listed how a landed increment collapses but not how a settled target or route
+does, so the investigator's pointer at it had nothing to land on. The bullet is
+added there, where every seat reads it, instead of restored in the one contract
+that had it.
 
-Two clauses had drifted from the reference they cite, so this release is also a
-correctness fix. The venue gloss named three of that reference's five venue
-components and misnamed one ("construction device" for "construction context"),
-so a seat that trusted it would declare an incomplete venue; it is gone and the
-pointer names the section. The measurer's spec-decode clause blamed the stock
-benchmark path, which the reference records as unverified at this pin, and
-prescribed the streaming harness that had itself reproduced the undercount, so
-a measurer that trusted it built the anti-pattern. It now carries the
-reference's own mechanism instead: chunk-derived throughput undercounts
-speculative decode in any harness. The same wrong guidance survives in one more
-place, an activity of `realize_measurement_procedures` in the graph; a release
-cannot touch the graph, so that copy is owed a graph revision and is recorded
-here until it lands.
+Sizes: the 13 touched pinned documents lose 13 lines and 250 words, and no
+existing ceiling is raised — every pinned file stays under its cap. One file is
+new and uncapped: the vendored `references/pave-composition.schema.json` is
+machine input for the validator, not prose a reader works from. One ceiling is
+added. `tests/test_document_ceilings.py` caps the documents a reader works from
+— the README, the references, the seat contracts, the lead skill — and leaves
+the append-only records (`VERSION`, `revisions.yaml`) uncapped, because a
+record that must not be rewritten cannot shrink to a cap; that is the same
+reason §4.12 leaves the run's append-only records outside its caps. The graph
+belongs to the capped class and was the one member with no pin, and it carries
+the largest prose surface in the package, so it was the one document that could
+accrete with a green suite. It is pinned at 3100 lines: 2803 at the current
+ledger head plus the headroom the other pins carry. A graph revision that needs
+more raises the pin in its own change and says why here, which is the
+discipline every other document already follows.
 
-Nothing else moves: the graph, the ledger at revision 5, state authority,
-hooks, seats, models, and efforts are unchanged, so this release adds no ledger
-revision. Test logic is unchanged — only the expected version pin in
-`tests/test_codex_port.py` moves. Both plugin manifests and the marketplace
-entry declare 1.5.2. Usage summaries in releases 1.2.0–1.5.1 and ledger
-revisions 1–5 record no new field evidence for this layer to answer.
+Nothing else moves in this release. The graph and its ledger — at revision 6,
+`sha256:d00e951b0e874ef88edbeae69798f1fcf5ff8694713212c99b21654806e35f12` —
+state authority, seats, models, and efforts are untouched here, so this release
+adds no ledger revision of its own. Two test files move: the guard coverage
+above, and the ratchet's new graph entry with the reason it exists. Counts hold
+at 42 pytest cases and 31 hook checks. Both plugin manifests and the
+marketplace entry declare 1.5.2.
+
+The graph carried its own copies of these facts, and a release cannot legally
+touch the graph, so they landed as ledger revision 6
+(`sha256:d00e951b0e874ef88edbeae69798f1fcf5ff8694713212c99b21654806e35f12`)
+beside this release: the spec-decode guidance and the decode-connector guard in
+`realize_measurement_procedures`, and the restatements of the budget magnitudes
+(§4.4), the scan-completeness census (§4.6), and durable host state (§4.10).
+The graph now points at the references instead of restating them, and this
+release layer holds exactly one definition of each for those pointers to land
+on.
+
+No usage record exists for this plugin. No field campaign has run it, so no
+seat's priced judgment is yet shown live or dead, and no seat can be retired to
+a lead-run instrument on evidence. Every fix in this release rests on review
+evidence — the sweep above and the residual list in the 1.5.2 review record —
+and the first run's usage summary is what the next release must answer.
 
 ## 1.5.1 — 2026-09-05
 

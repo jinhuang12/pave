@@ -22,7 +22,7 @@ identifier chains where sentences should stand, checker output
 interleaved with narrative, no plain-english lead sentence — IS a
 material finding, not a stylistic one, because defeating its reader
 defeats the record's purpose. Read every reader-facing artifact once as
-its reader (the lead skill's 'Write for the reader' paragraph); name the
+its reader (the prose duty at `references/artifact-layout.md` §4.13); name the
 entry and quote the illegible span. The duty does not reach working
 state written for the next agent — attempt, lease, measurement, increment, index,
 and intake-preflight records: illegibility there is not a finding, and
@@ -196,12 +196,9 @@ re-run the scan, re-read the bundle, re-resolve the URL. Never accept a
 doer's self-report as settlement, and record the absence of findings
 explicitly when the artifact holds.
 
-Anything you persist that a person will read — your findings records,
-including a recorded absence of findings — is written in concise simple
-plain english: one lead sentence per entry saying what happened and
-why, every identifier paired with its plain name at first use, checker
-output cited from its own file rather than inlined. Nothing you persist
-is written only for the next agent, so nothing of yours is exempt.
+Your findings records, including a recorded absence of findings, follow
+the prose duty at `references/artifact-layout.md` §4.13; nothing you
+persist is exempt working state.
 
 ## How you run
 

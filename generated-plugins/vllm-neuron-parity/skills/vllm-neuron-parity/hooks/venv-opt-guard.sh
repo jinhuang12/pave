@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # P3 -- No `cp -a` venv cloning; no pip writes into /opt.
 #
-# Enforcement rung: BLOCKING PreToolUse hook (enforcement-record.md §1, P3).
+# Enforcement rung: BLOCKING PreToolUse hook (P3 in the prohibitions table
+# of skills/vllm-neuron-parity/SKILL.md).
 # Same shape as P2: the venv-replication dead-end pressure makes the shortcut
 # likely (the run-wide reflection of realize_increment's addition), /opt damage
 # breaks co-tenants, and both patterns are precise.
