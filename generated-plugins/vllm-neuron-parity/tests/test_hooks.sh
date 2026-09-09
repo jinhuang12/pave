@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Invariant tests for two vllm-neuron-parity hooks:
+# Invariant tests for three vllm-neuron-parity hooks:
 #   - skills/vllm-neuron-parity/hooks/write-for-reader.sh
 #   - skills/vllm-neuron-parity/hooks/graph_edit_guard.sh
+#   - skills/vllm-neuron-parity/hooks/goal-restate.sh
 #
 # What is tested for write-for-reader (behavior, not wording):
 #   - a markdown write under the run workspace (parent of the run-state
@@ -22,6 +23,13 @@
 # sits beside the target and no .landing marker does; it fails open on every
 # input it cannot read; it has no subagent exemption; and hooks/hooks.json
 # registers it, so subagent edits are seen too.
+#
+# What is tested for goal-restate: SessionStart resume and compact ask, startup
+# is silent; SubagentStart asks about the brief; the active campaign's
+# DECISIONS.md is named when present; a sidecar naming another session
+# silences it while a lead-spawned seat is asked; terminal runs, a missing
+# marker, unrelated events, and garbage stdin are silent; hooks/hooks.json
+# registers both events.
 #
 # Self-contained: everything runs inside a mktemp sandbox with its own
 # TMPDIR, so throttle counters start clean on every run. No real run state,
@@ -64,7 +72,7 @@ import json, sys
 path, status = sys.argv[1], sys.argv[2]
 state = {
     "workflow_identity": {"run_id": "test-run"},
-    "active_node_runs": [{"node": "scan_upstream_delta", "instance": "run"}],
+    "active_node_runs": [{"node": "scan_upstream_delta", "campaign": "run"}],
     "completed_outcomes": [],
     "terminal_classification": None,
 }
@@ -317,6 +325,116 @@ assert any("graph_edit_guard.sh" in c for c in commands), commands
 PY
 ok=0; [ "$?" = "0" ] && ok=1
 report "guard: registered in hooks/hooks.json under PreToolUse Edit|Write|MultiEdit" "$ok" "see hooks/hooks.json"
+
+# --- goal-restate ------------------------------------------------------------
+# Asks the lead (SessionStart resume|compact) and every seat (SubagentStart) to
+# state the goal from the record and the fewest steps before acting. Advisory
+# only; marker- and lead-session-gated; silent on terminal runs.
+
+RESTATE_HOOK="$PLUGIN/skills/vllm-neuron-parity/hooks/goal-restate.sh"
+write_state ""
+write_marker
+rm -f "$STATE.lead-session"
+
+restate_payload() { # $1 = hook_event_name, $2 = source ("" to omit), $3 = session, $4 = agent_id ("" for lead)
+  python3 - "$1" "${2:-}" "${3:-r1}" "${4:-}" <<'PY'
+import json, sys
+event, source, session, agent = sys.argv[1:5]
+payload = {"hook_event_name": event, "session_id": session, "cwd": "/tmp"}
+if source:
+    payload["source"] = source
+if agent:
+    payload["agent_id"] = agent
+    payload["agent_type"] = "vllm-neuron-parity:investigator"
+print(json.dumps(payload))
+PY
+}
+
+restates() { # $1 = hook stdout, $2 = expected hookEventName, $3 = substring the text must carry
+  printf '%s' "$1" | python3 -c '
+import json, sys
+doc = json.load(sys.stdin)
+assert set(doc) == {"hookSpecificOutput"}, doc
+hook = doc["hookSpecificOutput"]
+assert hook["hookEventName"] == sys.argv[1], hook
+assert "goal" in hook["additionalContext"] and sys.argv[2] in hook["additionalContext"], hook
+' "$2" "$3" 2>/dev/null
+}
+
+# R1. resume with a marker and no sidecar names run state
+OUT="$(restate_payload SessionStart resume | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && restates "$OUT" SessionStart "$STATE" && ok=1
+report "restate: SessionStart resume asks for the goal from run state" "$ok" "rc=$RC out=$OUT"
+
+# R2. compact fires too
+OUT="$(restate_payload SessionStart compact | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && restates "$OUT" SessionStart "compact" && ok=1
+report "restate: SessionStart compact asks" "$ok" "rc=$RC out=$OUT"
+
+# R3. startup is silent (no goal exists yet)
+OUT="$(restate_payload SessionStart startup | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: SessionStart startup is silent" "$ok" "rc=$RC out=$OUT"
+
+# R4. SubagentStart asks the seat about its brief
+OUT="$(restate_payload SubagentStart "" r1 seat-1 | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && restates "$OUT" SubagentStart "brief" && ok=1
+report "restate: SubagentStart asks the seat for its brief's goal" "$ok" "rc=$RC out=$OUT"
+
+# R5. the active campaign's DECISIONS.md is named when it exists (active_node_runs[].campaign)
+mkdir -p "$ARTIFACTS/campaigns/run/approvals"
+: > "$ARTIFACTS/campaigns/run/approvals/DECISIONS.md"
+OUT="$(restate_payload SessionStart resume | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && restates "$OUT" SessionStart "campaigns/run/approvals/DECISIONS.md" && ok=1
+report "restate: names the active campaign's DECISIONS.md" "$ok" "rc=$RC out=$OUT"
+rm -rf "$ARTIFACTS/campaigns/run"
+
+# R6. sidecar naming another session => silent; the lead's own session => asks
+printf 'lead-session\n' > "$STATE.lead-session"
+OUT="$(restate_payload SessionStart resume "" other | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: another session is silent when the sidecar names the lead" "$ok" "rc=$RC out=$OUT"
+OUT="$(restate_payload SubagentStart "" lead-session seat-2 | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && restates "$OUT" SubagentStart "brief" && ok=1
+report "restate: a lead-spawned seat (lead session id) is asked" "$ok" "rc=$RC out=$OUT"
+rm -f "$STATE.lead-session"
+
+# R7. terminal run => silent
+write_state accepted
+OUT="$(restate_payload SessionStart resume | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: terminal run is silent" "$ok" "rc=$RC out=$OUT"
+write_state ""
+
+# R8. no marker => silent
+rm -f "$MARKER"
+OUT="$(restate_payload SessionStart resume | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: no marker is silent" "$ok" "rc=$RC out=$OUT"
+write_marker
+
+# R9. an unrelated event => silent
+OUT="$(restate_payload PostToolUse | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: unrelated event is silent" "$ok" "rc=$RC out=$OUT"
+
+# R10. garbage stdin => exit 0, empty stdout
+OUT="$(printf 'not json' | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: unparsable payload fails open" "$ok" "rc=$RC out=$OUT"
+
+# R11. registered at plugin level for both events
+python3 - "$PLUGIN" <<'PY' 2>/dev/null
+import json, sys
+from pathlib import Path
+hooks = json.loads((Path(sys.argv[1]) / "hooks" / "hooks.json").read_text())["hooks"]
+ss = [h["command"] for e in hooks["SessionStart"] if e.get("matcher") == "resume|compact" for h in e["hooks"]]
+sa = [h["command"] for e in hooks["SubagentStart"] for h in e["hooks"]]
+assert any("goal-restate.sh" in c for c in ss), ss
+assert any("goal-restate.sh" in c for c in sa), sa
+PY
+ok=0; [ "$?" = "0" ] && ok=1
+report "restate: registered in hooks/hooks.json (SessionStart resume|compact, SubagentStart)" "$ok" "see hooks/hooks.json"
 
 echo
 echo "$PASS passed, $FAIL failed"

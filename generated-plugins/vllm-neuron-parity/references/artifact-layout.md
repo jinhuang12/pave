@@ -454,7 +454,8 @@ archive:
 The prose duty, defined once for every seat and every brief. It covers
 every document a person will read: delta reports and the backlog, design
 records and increment plans, verdicts, review and decision records,
-rederivation records, PR packages, closure records.
+rederivation records, PR packages, closure records — and every message to
+the user, read by the same stranger.
 
 - Concise simple plain english. Each entry leads with one sentence saying
   what happened and why.
@@ -472,8 +473,8 @@ rederivation records, PR packages, closure records.
 Exempt: working state written for the next agent — attempt, lease,
 measurement, increment, index, and intake-preflight records, and run
 state itself. The cap in §4.12 is a separate duty with a separate scope:
-this one covers every reader-facing `.md`, the cap covers living
-documents only.
+this one covers every reader-facing `.md` and every message to the
+user, the cap covers living documents only.
 
 Enforcement: `write-for-reader.sh` re-presents this duty on document
 writes (advisory, never blocking) and names an over-cap document with its

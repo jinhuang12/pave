@@ -2,20 +2,19 @@
 name: vllm-neuron-parity
 description: >-
   Bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM:
-  scan the upstream delta, cost each requested target's closing route, rank the
-  backlog, then execute user-gated campaigns through correctness and
-  performance gates against a GPU baseline into evidence-backed fork PRs.
-  Manual-only: use only when the user explicitly invokes
-  $vllm-neuron-parity:vllm-neuron-parity.
-  It is a long multi-session orchestration that dispatches
-  vllm-neuron-parity:* agents and stops for the user at three gates. It
-  registers eight disclosed hooks: three blocking guards (protected base
-  branches, the shared Neuron compile caches, venv cloning and /opt writes)
-  armed only by an active-run marker, a blocking graph edit guard (no
-  live-graph or ledger edit outside a landing), a stale run-state reminder,
-  an advisory re-entry dispatch nudge, a write-for-the-reader reminder on
-  document writes, and a stop-alignment check that BLOCKS AT MOST ONE STOP IN
-  THREE while a run is active. Nothing registers silently.
+  scan the upstream delta, cost each target's closing route, rank the backlog,
+  then execute user-gated campaigns through correctness and performance gates
+  against a GPU baseline into evidence-backed fork PRs. Manual-only: use only
+  when the user explicitly invokes $vllm-neuron-parity:vllm-neuron-parity. A
+  long multi-session orchestration that dispatches vllm-neuron-parity:* agents
+  and stops for the user at three gates. It registers nine disclosed hooks:
+  three blocking guards (protected base branches, the shared Neuron compile
+  caches, venv cloning and /opt writes) armed only by an active-run marker, a
+  blocking graph edit guard (no live-graph or ledger edit outside a landing),
+  a stale run-state reminder, a re-entry dispatch nudge, a
+  write-for-the-reader reminder, a goal restatement at resume, compaction, and
+  seat start, and a stop-alignment check that BLOCKS AT MOST ONE STOP IN THREE
+  while a run is active. Nothing registers silently.
 metadata:
   compatibility: >-
     Requires the harness's plugin hooks (hooks/hooks.json on Claude Code;
@@ -434,7 +433,7 @@ tier's threshold), the scan re-trace bound before a grant is issued, and the
 hardware breaker (tenth budget-counted attempt, tier-1 fingerprint, or venv dead
 end). Counts come from the event files per `references/artifact-layout.md` §4.
 
-The eight hooks register in the plugin-level `hooks/hooks.json`. Review and trust
+The nine hooks register in the plugin-level `hooks/hooks.json`. Review and trust
 them through `/hooks` before a run. The P1-P3 PreToolUse adapter fails open
 unless the project marker `.vllm-neuron-parity-run` resolves to an active,
 nonterminal run state; unrelated Codex work stays outside their authority. The
@@ -446,10 +445,18 @@ write-for-reader reminder (`skills/vllm-neuron-parity/hooks/write-for-reader.sh`
 PostToolUse Write|Edit) is advisory only: on the first `.md` write under
 `artifacts/` and every third after it per session, it re-presents the
 write-for-the-reader duty; working-state paths and non-marker sessions stay
-silent. No settings fragment is needed. Decline paths if the hook runtime is
+silent. The goal restatement (`skills/vllm-neuron-parity/hooks/goal-restate.sh`,
+SessionStart resume|compact and SubagentStart) is advisory only: when your
+context is rebuilt it asks you for the goal and its reason from run state and
+the active campaign's `approvals/DECISIONS.md` and for the fewest steps toward
+it; at each seat's start it asks the seat for its brief's goal and why it serves
+the run's. Marker- and lead-session-gated like the pair. On Codex the lead is
+asked at resume only (no compact source) and seats are not asked (SubagentStart
+has no Codex dispatch): record that degradation there. No settings fragment is needed. Decline paths if the hook runtime is
 unavailable: P1-P3 degrade to contract text you must carry into every brief and
 to review at the next gate, the graph edit guard degrades to `verify` at every
 resume (evolution contract rule 1), the stop guard degrades to the resume duty above, the
-staleness reminder degrades to the checkpoint duty above, and the reader reminder
-degrades to the write-for-the-reader duty above. Record the degradation in run
+staleness reminder degrades to the checkpoint duty above, the reader reminder
+degrades to the write-for-the-reader duty above, and the goal restatement degrades
+to the resume duty above and, for seats, to the brief in each role contract. Record the degradation in run
 state; do not proceed as if the guards were still armed.

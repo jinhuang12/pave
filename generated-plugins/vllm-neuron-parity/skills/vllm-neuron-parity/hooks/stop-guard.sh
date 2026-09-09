@@ -197,5 +197,10 @@ The next $((STOP_EVERY - 1)) stops pass before this fires again.
   5. Anything routing depends on that lives only in your context, not in run
      state? You are the single writer (P10) -- write it now.
   6. Idle custom-agent threads or sub-agents? Retire the seat now.
+  7. Your last reply to the user: any codename -- id, round number, control
+     letter, lease or seat name, section number, hash -- without its plain
+     meaning beside it, or prose a stranger could not follow? Restate it in
+     ordinary words now (the write-for-the-reader duty, SKILL.md "Run state
+     and resume").
 EOF
 exit 2

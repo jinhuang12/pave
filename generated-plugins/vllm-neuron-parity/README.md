@@ -40,7 +40,7 @@ The plugin is the directory containing this README. It runs on either
 harness.
 
 **Claude Code.** Add the marketplace that lists this package and install
-it; the six role agents (`agents/*.md`) and the eight hooks
+it; the six role agents (`agents/*.md`) and the nine hooks
 (`hooks/hooks.json`) register with the plugin, and `/hooks` lists them:
 
 ```text
@@ -86,7 +86,7 @@ max_concurrent_threads_per_session = 6
 python3 /path/to/vllm-neuron-parity/codex/install_agents.py --project /path/to/target --check
 ```
 
-6. Open `/hooks`, review the eight registered controls, and trust them when
+6. Open `/hooks`, review the nine registered controls, and trust them when
    their paths match this package.
 
 7. Both harnesses: seed the project's evolution root from the package before
@@ -428,7 +428,7 @@ vllm-neuron-parity/
   .codex-plugin/plugin.json            # Codex plugin manifest
   .claude-plugin/plugin.json           # Claude Code plugin manifest
   hooks/
-    hooks.json                         # registers the eight controls for both
+    hooks.json                         # registers the nine controls for both
                                        #   harnesses (restored in 1.3.0; Codex
                                        #   asks you to trust it once)
     pre_tool_use_router.py             # active-run scope adapter for P1-P3
@@ -453,6 +453,7 @@ vllm-neuron-parity/
       state-staleness-reminder.sh      # re-presents run position periodically (lead-session-gated)
       stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active (lead-session-gated)
       write-for-reader.sh              # reminds any actor to write documents for the reader (advisory, throttled); names an over-cap document with its size
+      goal-restate.sh                  # SessionStart resume|compact + SubagentStart: goal and fewest steps before acting
   agents/*.md                          # role contracts registered on Claude Code
   workflow.pave.yaml                   # immutable packaged graph seed (the ledger head; its revision number is revisions.yaml's, not this README's)
   revisions.yaml                       # immutable packaged ledger seed (entry 0 is the delivered graph; one history/v<N>.patch per later entry)
@@ -471,9 +472,9 @@ vllm-neuron-parity/
     record_revision.py                 # revision record tool: init, install, propose, land, pin, verify, rollback
     measure_artifact.py                # living-document size vs its cap (references/artifact-layout.md §4.12)
   tests/
-    test_codex_port.py                 # Codex port: version pin, eight hook controls, TOML fields, legacy-token absence, harness tool map
+    test_codex_port.py                 # Codex port: version pin, nine hook controls, TOML fields, legacy-token absence, harness tool map
     test_document_ceilings.py          # every prose document under its pinned line ceiling, and none unpinned
-    test_hooks.sh                      # hook behaviour: marker gating, guards, reader reminder, cap notice
+    test_hooks.sh                      # hook behaviour: marker gating, guards, reader reminder, cap notice, goal restatement
     test_measure_artifact.py           # size instrument tests
     test_run_state_schema.py           # schema accept/reject tests
     test_validate_run_state_caps.py    # validate_run_state.py length caps and path checks, stdlib and jsonschema paths
@@ -588,7 +589,7 @@ are in the lead skill's "Roles and dispatch"; this README does not restate them.
 ## 5. Hooks and enforcement
 
 Source: the native `SKILL.md` (prohibitions P1–P13 and transition guards), the
-active-run adapter and the re-entry dispatch advisory under `hooks/`, and the seven policy scripts under
+active-run adapter and the re-entry dispatch advisory under `hooks/`, and the eight policy scripts under
 `skills/vllm-neuron-parity/hooks/`. Rungs,
 weakest to strongest: prose < reinjection < reviewed < mechanical
 < blocking hook.
@@ -608,7 +609,8 @@ weakest to strongest: prose < reinjection < reviewed < mechanical
 | Lead single-writer for run state, cross-run artifacts, leases | STRUCTURE + schema validation | ownership-by-structure beats detection; budgets are derived from files, never stored |
 | Measured revision = git-issued id, never a branch name | MECHANICAL check | exact string-shape + agreement test |
 | Two-tier repair budgets and breakers (measure three/nine; hardware ten + one recovery) | BLOCKING routing preconditions | counts derived from event files; runaway loops are the costliest failure |
-| Lead-alignment hook pair (staleness reminder + stop guard) | reinjection | long-horizon, session-crossing workflow — the pair's target case; the stop guard **blocks at most one stop in three** while a run is active, disclosed in the skill description; its six-question socratic check is answered only where the lead finds an issue, else `lgtm`. Both hooks gate on the lead session id in `<run-state>.lead-session` and stay silent in every other session; without the sidecar they fail open |
+| Lead-alignment hook pair (staleness reminder + stop guard) | reinjection | long-horizon, session-crossing workflow — the pair's target case; the stop guard **blocks at most one stop in three** while a run is active, disclosed in the skill description; its seven-question socratic check is answered only where the lead finds an issue, else `lgtm`. Both hooks gate on the lead session id in `<run-state>.lead-session` and stay silent in every other session; without the sidecar they fail open |
+| Goal restatement at every context rebuild (`skills/vllm-neuron-parity/hooks/goal-restate.sh`) | reinjection (advisory `additionalContext`, never blocks) | a compaction summary or a fresh seat brief loses the goal and, with it, the sunk cost of the process — the cheapest moment to reconcile the one and cut the other. SessionStart resume\|compact asks the lead for the goal from run state and the active campaign's `approvals/DECISIONS.md` and for the fewest steps toward it (what breaks if you skip it); SubagentStart asks each seat for its brief's goal and why it serves the run's. Lead-session-gated like the pair; silent without the marker or on a terminal run |
 | Re-entry dispatch advisory (`hooks/dispatch_advisory.py`) | reinjection (advisory `additionalContext`, never blocks) | edge-triggered: fires only when a dispatch names an instrumented design node that already completed a traversal this run, and asks whether the graph's cheaper re-entry instrument settles it without a seat; lead-session-gated, throttled per node via its own counter file |
 | Documents are written for the reader (`skills/vllm-neuron-parity/hooks/write-for-reader.sh`) | prose + reinjection (advisory `additionalContext`, never blocks) + REVIEWED | agents drift back to identifier chains and inlined checker output the moment the prose duty leaves context; the hook fires on the first `.md` write under `artifacts/` and every third after it per session, for any actor, marker-gated and terminal-silent, and skips working state (attempts, measurements, increments, index, intake-preflight); the adversarial reviewer treats an illegible reader-facing artifact as a material finding; the hook also names an over-cap document with its size (`references/artifact-layout.md` §4.12) once per session and file, past the throttle, and the reviewer records each living document's lines and bytes every round |
 | New kernel-class functionality must be NKI, never torch fallback (kernel-substrate rule) | MECHANICAL (every increment must declare kernel-class or not — no silent omission; a declared-NKI increment with zero NKI usage in its diff is an exact contradiction caught at the changeset scan) + REVIEWED (both gates challenge the classification itself) | "what is kernel-class" is judgment no scan decides, and absence-of-torch scans false-fire on kernels' legitimate torch boundaries — so the mechanical half checks presence against the doer's own declaration, and review owns only the classification |
@@ -616,10 +618,13 @@ weakest to strongest: prose < reinjection < reviewed < mechanical
 `SKILL.md` carries 13 run-wide prohibitions and 6 transition guards in
 total; this table shows the strongest rows, and every rule not shown
 sits at a weaker rung with its rationale in the skill and agent
-contracts. `hooks/hooks.json` registers the eight controls at plugin scope (the
+contracts. `hooks/hooks.json` registers the nine controls at plugin scope (the
 three P1-P3 guards, the graph edit guard, the lead-alignment pair, the re-entry
-dispatch advisory, and the write-for-the-reader reminder); a fresh install on
-either harness registers the same eight, and Codex asks you to trust it once.
+dispatch advisory, the write-for-the-reader reminder, and the goal restatement);
+a fresh install on either harness registers the same nine, and Codex asks you to
+trust it once. On Codex, SessionStart fires at startup and resume (no compact
+source) and SubagentStart has no dispatch, so the lead is asked at resume and
+seats are not — a recorded degradation there.
 P1-P3 fail open unless `.vllm-neuron-parity-run` points to active nonterminal
 state, so they do not block unrelated Codex work.
 Nothing registers silently.

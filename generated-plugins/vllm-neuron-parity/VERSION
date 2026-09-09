@@ -1,493 +1,259 @@
-version: 1.5.2
+version: 1.5.3
+
+## 1.5.3 — 2026-09-09
+
+Two lead-alignment additions mirrored from pave-init 2.5.3. Graph untouched,
+no ledger revision.
+
+- New — goal restatement hook (`skills/vllm-neuron-parity/hooks/goal-restate.sh`,
+  registered in `hooks/hooks.json` at SessionStart resume|compact and
+  SubagentStart). At every context rebuild the lead is asked to state the goal
+  and its reason from run state and the active campaign's `approvals/DECISIONS.md`
+  and the fewest steps toward it — for each, what breaks if you skip it; a cut the
+  graph forbids is a graph defect for the pave-evolve seats. Every seat is asked
+  at its start for its brief's goal, why it serves the run's goal, and the fewest
+  steps that produce the evidence. Advisory only, marker- and lead-session-gated
+  like the pair, silent on terminal runs. Nine hooks now, disclosed in the skill
+  description and the plugin compatibility text; tests in `tests/test_hooks.sh`.
+  - Codex 0.144.0: SessionStart fires at startup and resume (no compact source),
+    so the lead is asked at resume; SubagentStart is parsed but has no Codex
+    dispatch, so seats are not asked there — a recorded degradation. The shared
+    hooks.json still loads: Codex records each handler separately.
+- Improved — stop guard question 7: the lead's last reply to the user is checked
+  for codenames without their plain meaning and for prose a stranger could not
+  follow, and restated in ordinary words. The write-for-the-reader duty binds
+  messages to the user, not only documents.
+  - Field evidence 2026-09-09: the run lead's messages to the user were written in
+    campaign vocabulary; the user's directive is recorded in the project memory.
+- Changed — this changelog: entries 1.4.0 through 1.5.2 rewritten fact for fact
+  at about half their size (592 → 329 lines before this entry); 1.3.1 and older
+  are byte-identical.
 
 ## 1.5.2 — 2026-09-08
 
-Close every release-layer defect this package's reviews found — the 35 a
-four-round adversarial sweep confirmed, the 7 two review rounds raised against
-the fix itself, and the 16 a second adversarial workflow raised on top — and
-restore two measured facts release 1.5.1 dropped, so a first field run reads
-one authority per duty and no guard hands a seat a remedy that destroys a
-neighbour's cache.
+Release-layer fixes from three review passes (35 + 7 + 16 findings), plus two
+measured facts 1.5.1 dropped. Graph untouched here and no ledger revision of
+its own; the graph's copies of the same facts landed as ledger revision 6
+(`sha256:d00e951b0e874ef88edbeae69798f1fcf5ff8694713212c99b21654806e35f12`).
 
-The behaviour change to know about is the P2 compile-cache guard. It told a
-seat to rename the shared kernel intermediate cache aside, and let `mv` through
-so the seat could do it. Rename-aside is the authority's remedy only inside a
-root you own, and that cache is never one: it is written outside every cache
-root a run can set and can hold another tenant's kernels, so moving it aside
-costs that tenant the same warm state a delete would. The guard now refuses
-every destructive verb on all four cache roots, `mv` included, because it
-cannot prove which root you own, and it tells the seat to report the case to
-the lead rather than work around the guard. The lead skill's P2 row and the
-investigator contract promised the same allowance; the row now carries the
-rule, and the investigator points at §4.10, where the rule lives. The coverage
-in `tests/test_codex_port.py` asserted the defective behaviour, so it moved
-with the guard and now checks both verbs on that cache.
-
-Three more findings were consequential. The lead skill description measured
-1096 characters against the 1024-character skill limit, so the packaged skill
-failed validation and would not load; it is 1007 characters now, with every
-trigger phrase and the whole eight-hook disclosure intact. The implementer's
-copy of the no-progress detector put both limbs on one anchor, which the shape
-authority says inverts the detector on exactly the laps it must catch; the copy
-is gone and the contract sends the seat to `references/artifact-layout.md`
-§4.1-§4.3 with the reason it matters. The lead skill gave `close_campaign`
-entirely to the lead, including the closure execution the graph assigns to the
-implementer; both the dispatch table and the stage note now name the split.
-
-Ten statements disagreed with the artifact they cite, and a wrong statement is
-worse than a missing one because a seat that trusts it acts wrongly. The
-delegate install list named six external Neuron skills and omitted the
-benchmark delegate that a campaign stage dispatches and prohibition P6 protects
-— an operator following the README would provision a session that cannot run a
-campaign. The patch-site count said 6 where its own table lists 8, so a reader
-budgeting a port undercounted the surface by two inline rebinding sites. The
-collision file called the rank-4 surface the smallest grower while its own
-measured numbers say another surface grew less. The lead skill's collision
-brief named three of four ranked surfaces and dropped one that outranks a
-surface it kept. A citation pointed at a Codex contract path that does not
-exist. The README restated the ledger's entry count, which drifts at every
-landing, and its agent table mixed harnesses in one Model column — four rows
-gave the Codex binding alone, two annotated a Claude binding as well — so the
-column now declares once, above the table, that it carries the Codex binding
-and sends each seat's Claude binding to the `model` field of its own contract,
-which is the authority dispatch reads there; and the prose below that table,
-with the lead skill's copy of the same rule, named only the two judges as
-binding the top Claude model, which denies the rederiver's identical pin by
-exclusion and dated the pin to "this release" rather than to release 1.4.0,
-where it was recorded. `scripts/validate_pave.py` required a composition schema
-this package does not ship, so the checker it advertises never ran; the schema
-is vendored from pave-init now and the check runs, because dropping the call
-instead would have left the composition block with no structural check at all —
-a misspelled key or a missing `version` would pass. The implementer's effort
-pins named a "capture-class" node this seat does not own. Each is now either
-correct or a pointer at the file that owns the fact, and the compile-cost rule
-names the measured stage — the Torch-to-HLO-to-BIR front end — rather than "the
-front end" in a paragraph that uses that phrase for a different sense. Six more
-citations named something that does not carry what they promise: three blocking
-guards cited an enforcement record this package never shipped, one of them also
-cited a pave-init reference as if it were local, and a hook message and a seat
-contract sent their reader to a lead-skill paragraph that is itself now a
-pointer. Each now names the prohibition row, the owning package, or the
-reference entry that holds the duty.
-
-The rest of the sweep was one accretion defect repeated: a duty restated where
-its authority is already cited. Fourteen sites collapse to pointers, the
-detector copy above included, across the six seat contracts, the lead skill,
-and one reference — the prose duty (§4.13), the living-document cap (§4.12),
-the durable-host-state definition and its cache-write boundary ruling (§4.10),
-the scan-completeness census (§4.6), the instrument-liveness pair (§4.5), and
-the stable-reads rule in `references/measurement-pitfalls.md`. The lead skill's
-instrument-liveness row was also wrong about what its two checks read, so it
-now names the smoke record and the bundle's evaluated-threshold record, with
-§4.5 for the registration and §4.6 for the record shape. A site keeps a clause
-only where it changes what its reader does, or where it is a role's own
-severity criterion — which is why the adversarial reviewer keeps its
-illegibility criterion and loses its copy of the prose duty. Four clauses lived
-only in the Codex mirrors. Three tell a seat when the lead will dispatch it — a
-decision the seat cannot act on, held by the lead, declared in the graph, and
-already in the lead skill — and are cut; the one cut from the reviewer ends
-with a surface-naming duty its Markdown twin already carries, so nothing goes
-with it. The fourth carried a real duty and is moved rather than cut:
-`agents/implementer.md` now says at `assemble_design_record` that a re-entry
-updates only the sections whose inputs changed and deletes the superseded lap
-material, pointing at the node's activity spec, which carries the rule
-verbatim, and at §4.12 for why a record that grows with lap count is a defect
-of that node. The Markdown contract is the authority for seat text, so the six
-mirrors are regenerated from their twins.
-
-Restored at the cited pin, not new campaign evidence: the compile-cost trap
-again carries the measured front-end share (about 5% of a good compile and
-under 0.5% of a failing one, L-036), and the import-order duty again carries
-its consequence — a late override freezes a platform constant at the wrong
-value and corrupts numerics with no error (L-341). The toolchain file's first
-rule gained the reason line that file's own instrument requires.
-
-One pointer needed its authority completed: the living-document cap (§4.12)
-listed how a landed increment collapses but not how a settled target or route
-does, so the investigator's pointer at it had nothing to land on. The bullet is
-added there, where every seat reads it, instead of restored in the one contract
-that had it.
-
-Sizes: the 13 touched pinned documents lose 13 lines and 250 words, and no
-existing ceiling is raised — every pinned file stays under its cap. One file is
-new and uncapped: the vendored `references/pave-composition.schema.json` is
-machine input for the validator, not prose a reader works from. One ceiling is
-added. `tests/test_document_ceilings.py` caps the documents a reader works from
-— the README, the references, the seat contracts, the lead skill — and leaves
-the append-only records (`VERSION`, `revisions.yaml`) uncapped, because a
-record that must not be rewritten cannot shrink to a cap; that is the same
-reason §4.12 leaves the run's append-only records outside its caps. The graph
-belongs to the capped class and was the one member with no pin, and it carries
-the largest prose surface in the package, so it was the one document that could
-accrete with a green suite. It is pinned at 3100 lines: 2803 at the current
-ledger head plus the headroom the other pins carry. A graph revision that needs
-more raises the pin in its own change and says why here, which is the
-discipline every other document already follows.
-
-Nothing else moves in this release. The graph and its ledger — at revision 6,
-`sha256:d00e951b0e874ef88edbeae69798f1fcf5ff8694713212c99b21654806e35f12` —
-state authority, seats, models, and efforts are untouched here, so this release
-adds no ledger revision of its own. Two test files move: the guard coverage
-above, and the ratchet's new graph entry with the reason it exists. Counts hold
-at 42 pytest cases and 31 hook checks. Both plugin manifests and the
-marketplace entry declare 1.5.2.
-
-The graph carried its own copies of these facts, and a release cannot legally
-touch the graph, so they landed as ledger revision 6
-(`sha256:d00e951b0e874ef88edbeae69798f1fcf5ff8694713212c99b21654806e35f12`)
-beside this release: the spec-decode guidance and the decode-connector guard in
-`realize_measurement_procedures`, and the restatements of the budget magnitudes
-(§4.4), the scan-completeness census (§4.6), and durable host state (§4.10).
-The graph now points at the references instead of restating them, and this
-release layer holds exactly one definition of each for those pointers to land
-on.
-
-No usage record exists for this plugin. No field campaign has run it, so no
-seat's priced judgment is yet shown live or dead, and no seat can be retired to
-a lead-run instrument on evidence. Every fix in this release rests on review
-evidence — the sweep above and the residual list in the 1.5.2 review record —
-and the first run's usage summary is what the next release must answer.
+- Behaviour change — P2 compile-cache guard: refuses every destructive verb,
+  `mv` included, on all four cache roots (the kernel intermediate cache
+  `/var/tmp/nki-intermediate-cache` joined the class in 1.5.0). That cache can
+  hold a co-tenant's kernels, so moving it aside costs that tenant the same
+  warm state a delete would; the guard cannot prove which root a seat owns, so
+  the seat reports the case to the lead instead of renaming a shared cache
+  aside. The guard test moved with it. The lead skill's P2 row carries the
+  rule; the investigator points at `references/artifact-layout.md` §4.10.
+- Lead skill: description 1096 → 1007 chars (1024-char skill limit), every
+  trigger phrase and the eight-hook disclosure kept. `close_campaign` split
+  named: the lead presents the gate, the implementer executes the approved
+  closure.
+- Ten wrong statements corrected: README delegate list names seven Neuron
+  skills (the P6-protected benchmark delegate was missing); patch-site count 8
+  (was 6); collision-ranking "smallest grower" superlative; the stage-2 brief
+  points at the ranking instead of naming three of four surfaces; a citation
+  to a Codex contract path that does not exist; the README's restated ledger
+  entry count removed (it drifts at every landing); the README agent table
+  declares its Model column as the Codex binding and sends Claude pins to each
+  contract's `model` field; the top-Claude-model rule now includes the
+  rederiver and is dated to 1.4.0; `scripts/validate_pave.py` ships
+  `references/pave-composition.schema.json` (vendored from pave-init) so its
+  composition check runs; the implementer's effort pins drop a capture-class
+  node it does not own. The compile-cost rule now names the Torch-to-HLO-to-BIR
+  front end. Six more dead citations repointed: three guards cited an
+  `enforcement-record.md` never shipped (one also cited a pave-init reference
+  as local); a hook message and a seat contract sent readers to a lead-skill
+  paragraph that is now a pointer.
+- Fourteen restatements collapse to pointers (§4.13 prose duty, §4.12 cap,
+  §4.10 durable host state and capture-launch ruling, §4.6 scan census, §4.5
+  instrument-liveness pair, measurement-pitfalls stable-reads). The lead
+  skill's instrument-liveness row now names the smoke record and the bundle's
+  evaluated-threshold record. The implementer's no-progress detector copy is
+  gone (→ §4.1–§4.3). §4.12 gains the settled-target/route collapse rule.
+  Three Codex-only dispatch clauses are cut; the one Codex-only clause with a
+  real duty moves into `agents/implementer.md` at `assemble_design_record` (a
+  re-entry updates only the changed sections and deletes superseded lap
+  material); the six mirrors are regenerated from the Markdown contracts.
+- Restored at the cited pin: the front-end compile share (≈5% of a good
+  compile, <0.5% of a failing one, L-036) and the import-order consequence
+  (L-341). The toolchain file's first rule gains its reason line.
+- Sizes: the 13 touched pinned documents lose 13 lines and 250 words; no pin
+  raised. `workflow.pave.yaml` newly pinned at 3100 lines (2803 at head plus
+  headroom) — the one capped-class document that had no pin; `VERSION` and
+  `revisions.yaml` stay uncapped as append-only records; the vendored schema
+  is machine input and uncapped. 42 pytest cases, 31 hook checks. Manifests
+  and marketplace at 1.5.2.
+- No usage record exists yet, so no seat can be retired to a lead-run
+  instrument on evidence; every fix rests on review evidence
+  (`planning-records/vllm-neuron-parity/reviews/1.5.2-consolidation/`).
 
 ## 1.5.1 — 2026-09-05
 
-Scope the 1.5.0 reference remedies to the decisions their evidence supports,
-so a future campaign can choose a valid experiment or representation.
+Scopes the 1.5.0 reference remedies to the decisions their evidence supports;
+review found two remedies from a sibling campaign had become universal
+instructions. No graph, ledger, state-authority, hook, or binding change.
+Manifests at 1.5.1.
 
-Compile-cost guidance now asks which work a change removes and what a
-parallelism knob controls. Flag syntax probes and kernel lowering probes can
-reuse matching evidence. Counts keep their emitter, stage, and normalizer;
-an arithmetic cross-check now needs a known relation. Timeout budgets follow
-the actual waits and clock origins instead of a fixed ordering.
-
-Device-free probes match production context when they claim production
-compatibility. Isolated probes state their narrower claim. Clamp and sentinel
-remedies preserve the producer's range and bit meaning. Low-bit scale rounding
-follows the format, and the boundary-count lookup remedy applies to ordered
-boundaries. These replace unconditional recipes in the existing references.
-
-The defect review found that two remedies from a sibling port campaign had
-become universal instructions. It did not refute the compiler observations or
-supply new campaign measurements. Prior usage summaries in releases 1.2.0–1.5.0
-and ledger revisions 1–5 argue against repeat work on settled inputs. This
-release adds no seat, lap, artifact, or recurring gate. It preserves revision
-5's acceptance controls, scan evidence, and measured hardware refusals.
-
-The graph, ledger, state authority, hooks, and model bindings do not change.
-Both plugin manifests declare 1.5.1. Historical entries below describe their
-own releases; their remedy and learning counts are not current policy.
+- Compile-cost guidance asks which work a change removes and what a
+  parallelism knob controls; flag-syntax and kernel-lowering probes reuse
+  matching evidence; counts keep emitter, stage, and normalizer, and an
+  arithmetic cross-check needs a known relation; timeout budgets follow the
+  actual waits and clock origins.
+- Device-free probes match production context when they claim production
+  compatibility; isolated probes state their narrower claim; clamp and
+  sentinel remedies preserve the producer's range and bit meaning; low-bit
+  scale rounding follows the format; the boundary-count lookup remedy applies
+  to ordered boundaries.
+- Adds no seat, lap, artifact, or recurring gate; refutes no 1.5.0 compiler
+  observation and adds no campaign measurement; revision 5's acceptance
+  controls, scan evidence, and measured hardware refusals stand. Prior usage
+  summaries (releases 1.2.0–1.5.0, revisions 1–5) argue against repeat work on
+  settled inputs. Historical entries describe their own releases; their counts
+  are not current policy.
 
 ## 1.5.0 — 2026-09-04
 
-Field learnings from a finished port campaign of the retiring sibling workflow
-(`vllm-neuron-model-port`, one model family on trn2 at Neuron SDK 2.32 and
-vllm-neuron 0.24) land in the reference layer. Read them for what they are: the
-same hardware class and the same stack as a parity run, measured on a different
-workflow's campaign, so each rule is a fact about the toolchain and the fork at
-that pin and none of them is parity evidence. The graph's meaning does not move
-in this release. The three acceptance-instrument duties that DO need the graph
-land separately as ledger revision 5 (32 nodes and 95 edges unchanged, checks 15
-to 16); this release carries the shapes that revision cites, so the two belong
-to one landing.
+Field learnings from the retiring sibling `vllm-neuron-model-port` campaign
+(one model family, trn2, Neuron SDK 2.32, vllm-neuron 0.24) land in the
+reference layer — same stack, not parity evidence. Graph meaning unchanged
+here; the three acceptance-instrument duties land as ledger revision 5
+(32 nodes and 95 edges unchanged, checks 15 → 16), whose shapes this release
+carries, so the two are one landing.
 
-Provenance of every rule below: 713 raw candidates from that campaign,
-consolidated to 342, then three filters (drop what public documentation already
-states with a quotable URL, drop what an installed Neuron skill already states,
-drop what is not still true at SDK 2.32 / vllm-neuron 0.24) and two refuters
-(truth, value). 172 survived. 42 more were not verifiable at this pin and 66
-stayed contested; both sets are deliberately absent — an unproven rule in a
-package whose whole discipline is provenance is worse than no rule.
-
-Every carried learning is cited where its mechanism landed: all 172, none
-uncited — 171 by id in the four references below, 6 in ledger revision 5's
-semantic diff, union 172. They collapse to 29 rules in this release layer,
-beside the 3 duties in ledger revision 5 — 32 across both layers. The basis for
-29, each component greppable: 13 `**Rule:**` blocks in
-`references/toolchain-evidence-pitfalls.md`, 8 added `**Rule` lines in
-`references/measurement-pitfalls.md` (12 to 20), 4 named duty blocks in
-`references/artifact-layout.md` (instrument-liveness pair, scan-completeness
-discipline, evaluated-threshold record, instances on this hardware class), 3
-items in the new section of `references/patch-mechanism-inventory.md`, and 1 new
-refusal class in the compile-cache guard. §4.13 is excluded: it is a move, not a
-new rule. Clustering by mechanism is the point — one mechanism, one rule, every
-id that found it. Read the 172 as CITATION coverage, not duty coverage: review sampled five landed ids and found
-two whose duty was partial or missing behind a correct citation (a one-sided
-clamp bound, and a segmented-prefill precondition cited but never stated), both
-repaired before landing. A citation proves provenance; only reading the rule
-proves the duty arrived.
-
-New — `references/toolchain-evidence-pitfalls.md` (372 lines, ceiling 400): 13
-rules for reading what the Neuron compiler and runtime say about themselves.
-Re-derive every second-hand claim at the pin; a flag's behaviour lives in the
-installed binary; credit a flag only after you prove delivery and that the pass
-ran; compile cost is composition, not graph size; price a device-memory
-overflow from the graph's own deduplicated resident I/O; a compiler-internal
-name or id is an anonymous version-minted lead, never a join key; each compiler
-artifact owns a disjoint field set and its own survival rule; per-core artifacts
-are legitimately asymmetric at two logical cores per device; a kernel is opaque
-to every graph-level channel; every bound in the stack is late and bounds a
-different wait; a runtime knob is delivered only when the runtime's own render
-changes; live wedge state is per-core and reachable only through the driver; the
-pipeline aborts at its first unmet precondition, so a cleared wall buys the next
-stage and nothing more.
-  - Why a new file: about 94 of the carried learnings had no home. The existing
-    four references are the instruments that produce a number for a verdict
-    (`measurement-pitfalls.md`), the fork's patch surfaces
-    (`patch-mechanism-inventory.md`), the file surfaces where ports collide
-    (`collision-ranking.md`), and the run's own artifact tree
-    (`artifact-layout.md`). A reader of all four would still credit a compiler
-    flag from its name, join compiler artifacts by an internal id, read a field
-    from the wrong compiler file, and reset a shared device on a late watchdog
-    status.
-  - Why one file and not two: the compiler half and the device half are read by
-    the same two seats (implementer at an attempt, investigator at costing and
-    triage) at overlapping moments, and they share one mechanism — the channel
-    reports a position, a name, or a count for its own purposes. Two authorities
-    for one duty drift apart.
-  - Each rule carries a one-sentence reason beside the trap, so a reader can
-    judge a case the rule did not foresee. That is the anti-patch instrument: it
-    is what keeps a rule from becoming a fix shaped to one incident.
-
-Changed — `references/measurement-pitfalls.md` (104 to 158 lines, ceiling 200):
-three new rules and two extensions. Prove the instrument before its verdict
-counts (a known-positive and a known-negative per criterion; an exit status is
-not an evaluation; a criterion whose instrument cannot be made to fail is
-unadjudicable). A zero is evidence only with a firing control and a bogus
-control on the same artifact type at the same verbosity. Record the emitter, the
-stage, and the divisor with every count, and confirm a count's role against a
-second independently printed quantity. A completion signal reports a position,
-not completion. Size host memory in the deployed multi-rank context, never from
-a proxy. Capture the stream the component actually writes. The compile-cache
-rule gains which fix site to pick: the key hashes graph structure, so a
-producer-side fix keeps the warm cache and a zero compiled-graph count on an
-expected-warm start proves it — with the pin caveat that the 0.24 key list drops
-the fork's port-added FX-pass fingerprint and the compile path moved into
-`libtorch_neuronx_lite`, so re-derive both the component list and the counter
-name at your own pin.
-
-Changed — `references/artifact-layout.md` (399 to 477 lines, ceiling 500). §4.5
-gains the instrument-liveness pair the graph now registers per criterion (the
-value that must appear as evaluated, and the tripwire input the procedure must
-fail on). §4.6 gains the scan-completeness discipline (a reported count carries
-the commit scanned, the tree state, and the tool's own completion signal; a tool
-that gates on a clean tree runs in a fresh throwaway worktree) and the
-evaluated-threshold record every evidence bundle carries. §4.10 gains the four
-measured instances of durable host state. §4.13 is new: the write-for-reader
-duty, defined once for every seat.
-
-Changed — `references/patch-mechanism-inventory.md` (138 to 148 lines, ceiling
-180): one new section for the 0.24 line and SDK 2.32, with its own pin note
-because every section above it is the 0.21 checkout. Upstream decides at a
-consumer you did not patch. Import time pins the venue before your code runs —
-so a device-free probe is constructed the way the runner constructs the model,
-or it grades a configuration the port never runs. The front end's authoring
-constraints: an in-range clamp maximum, a signed sentinel, an exactly floored
-low-bit scale, no literal constant tensor inside a traced forward pass, and a
-checkpoint resolved from its files rather than its names.
-
-Changed — `skills/vllm-neuron-parity/SKILL.md` (472 to 460 lines, ceiling 500).
-The 25-line write-for-reader restatement becomes a 13-line pointer at
-`references/artifact-layout.md` §4.13 and §4.12, which is where the duty and the
-cap now live once. The brief list gains the new reference; the stage-7 row briefs
-attempt and triage seats with it; the stage-8 row states the instrument-liveness
-duty the graph carries.
-
-Changed — `README.md` (642 to 652 lines, ceiling 700) and the lead skill drop
-every hard-coded ledger-head number. The appendix, the file tree, the migration
-steps, and the skill's evolution-root paragraph now name "the ledger head" and
-send the reader to `revisions.yaml` and the validator. Reason: those numbers
-were stale the moment a revision landed, and a rendered view that states a fact
-the authority owns is a second authority. Dated changelog entries keep their
-numbers — 1.4.0 shipped revision 4 with 15 checks, and that stays true of 1.4.0.
-
-Changed — four seat contracts gain one pointer clause each, identical in both
-harness ports (`agents/*.md` and `codex/agents/*.toml`). The implementer's
-increment plan declares the venue its CPU-mode acceptance grades, and its
-attempt loop reads the toolchain reference before attributing a failure. The
-investigator gets compile costing and the second-hand-claim duty. The measurer
-gets instrument liveness and the firing control. The adjudicator takes each
-measured value from the bundle's own evaluated-threshold record and never from a
-comparator's exit status. No duty text is restated in a contract: every clause
-points at the one authority.
-
-Changed — `skills/vllm-neuron-parity/hooks/compile-cache-guard.sh` refuses
-irreversible verbs (`rm`, `rmdir`, `unlink`, `shred`, `truncate`, `trash`,
-`find -delete`, `git clean`, `rsync --delete`) against
-`/var/tmp/nki-intermediate-cache`, where the kernel toolchain writes its
-compiled kernel artifacts — outside every cache root a run can set, and possibly
-holding a co-tenant's. `mv` stays allowed there on purpose: renaming aside is
-the sanctioned clear, and a delete is the irreversible act. The guard still
-registers as one of eight controls.
-  - What the prohibition always said, and what the prose got wrong: the graph
-    declares this forbidden effect as a CLASS — "clearing the shared compile
-    cache", at `realize_increment`, `execute_attempt_loop`, and
-    `recover_leased_host` — enumerating no paths and carrying no `P2` label. The
-    enumeration lived only in package prose, and it named three of the four
-    roots in that class. This release corrects an incomplete enumeration; it
-    does not widen a prohibition, and no graph text moves. The fourth root is in
-    the class on the facts: the kernel toolchain compiles into it, it is shared
-    between tenants, and the same measured remedy ("clear the cache") aims at
-    it.
-  - Every copy of the enumeration is corrected: the P2 row and the hook
-    disclosure in `skills/vllm-neuron-parity/SKILL.md`, the prohibition row in
-    `README.md`, the P2 clause in all six seat contracts, their six codex
-    mirrors, and the guard's own header and refusal text.
-    `references/artifact-layout.md` §4.10 holds the instances and the
-    rename-aside duty once.
-  - Field evidence: that directory holds the real kernel artifacts and can hold
-    a co-tenant's, so a documented "clear the cache" remedy followed there
-    destroys another tenant's work.
-
-New — `tests/test_document_ceilings.py`: every prose document in the package
-sits under a pinned line ceiling, and every prose document is pinned. A release
-that grows a document past its ceiling raises the ceiling in the same change,
-with the reason here. This is the ratchet the package did not have; the prose
-budget was a promise before it.
-
-Not landed, deliberately. The digest's second proposed new reference (a separate
-runtime-hang-triage file) — folded into the one file above, same reason as
-"why one file". `references/collision-ranking.md` untouched: the seven rows
-mapped to it are compile-cost and upstream-gating facts, and its subject is
-file-surface collision order, which none of them changes. A named census for one
-dtype hazard as a graph or lead-skill rule: a rule that names today's hazard is a
-patch, so the mechanism landed in the reference where a reader can re-derive it
-at the next pin. The 42 unverified and 66 contested learnings: no rule ships
-without a verified mechanism.
+- Provenance: 713 candidates → 342 consolidated → 172 carried. Filters (drop):
+  stated in public documentation with a quotable URL, stated by an installed
+  Neuron skill, not still true at SDK 2.32 / vllm-neuron 0.24; refuters:
+  truth, value. 42 unverifiable and 66 contested are deliberately absent. All
+  172 cited (171 by id in the references, 6 in revision 5), collapsing to 29
+  rules here (13 + 8 (12 → 20 Rule lines) + 4 + 3 + 1; §4.13 is a move, not
+  counted) plus 3 duties in revision 5 — 32 across both layers. Citation
+  coverage is not duty coverage: review sampled five ids and repaired two
+  partial duties.
+- New `references/toolchain-evidence-pitfalls.md` (372 lines, ceiling 400),
+  because about 94 carried learnings had no home in the four existing
+  references: 13 rules for reading the Neuron compiler and runtime — re-derive
+  claims at the pin; flag behaviour lives in the binary; credit a flag only
+  after proving delivery and that the pass ran; compile cost is composition,
+  not graph size; device-memory overflow priced from deduplicated resident
+  I/O; internal ids are leads, never join keys; per-artifact field ownership;
+  per-core asymmetry at two logical cores; kernel opacity; deadlines per wait;
+  knob delivery by render; wedge state via the driver; a cleared wall buys one
+  stage.
+- `references/measurement-pitfalls.md` (104 → 158, ceiling 200): prove the
+  instrument before its verdict counts; a zero needs a firing and a bogus
+  control; record emitter, stage, and divisor per count; a completion signal is
+  a position; size host memory in the deployed multi-rank context; capture the
+  stream the component writes; compile-cache fix-site rule (producer-side fix
+  keeps the warm cache) with the 0.24 key-list and `libtorch_neuronx_lite`
+  caveat.
+- `references/artifact-layout.md` (399 → 477, ceiling 500): §4.5
+  instrument-liveness pair; §4.6 scan-completeness discipline and the
+  evaluated-threshold record; §4.10 four durable-host-state instances; §4.13
+  write-for-reader duty, defined once.
+- `references/patch-mechanism-inventory.md` (138 → 148, ceiling 180): new
+  0.24 / SDK 2.32 section with its own pin note (every section above it is
+  the 0.21 checkout) — upstream decides at an unpatched consumer; import time
+  pins the venue; front-end authoring constraints (in-range clamp maximum,
+  signed sentinel, exactly floored low-bit scale, no literal constant tensor in
+  a traced forward, checkpoint resolved from files not names).
+- Lead skill (472 → 460, ceiling 500): the 25-line write-for-reader
+  restatement becomes a 13-line pointer at §4.13/§4.12; stage-7 row briefs the
+  toolchain file; stage-8 row states instrument liveness. README (642 → 652,
+  ceiling 700) and skill drop hard-coded ledger-head numbers; dated changelog
+  entries keep theirs.
+- Four seat contracts gain one pointer clause each: implementer declares the
+  venue its CPU-mode acceptance grades and reads the toolchain file before
+  attributing a failure; investigator gets compile costing and the
+  second-hand-claim duty; measurer gets instrument liveness and the firing
+  control; adjudicator reads values from the evaluated-threshold record, never
+  a comparator exit status.
+- `compile-cache-guard.sh` refuses irreversible verbs (`rm`, `rmdir`,
+  `unlink`, `shred`, `truncate`, `trash`, `find -delete`, `git clean`, `rsync
+  --delete`) on `/var/tmp/nki-intermediate-cache`, the fourth root of the P2
+  class the graph declares; `mv` left allowed as the sanctioned clear
+  (reversed in 1.5.2). This corrects an incomplete enumeration, widens no
+  prohibition, and moves no graph text; every copy of the root enumeration is
+  corrected. Field evidence: the directory holds the real kernel artifacts and
+  can hold a co-tenant's, so a documented "clear the cache" remedy followed
+  there destroys another tenant's work.
+- New `tests/test_document_ceilings.py`: every prose document pinned; a
+  release that exceeds a ceiling raises it in the same change with the reason
+  here.
+- Not landed: a separate hang-triage reference (folded into the toolchain
+  file); `collision-ranking.md` changes (not its subject); a named dtype census
+  as a graph rule (a patch); the 42 + 66 unverified and contested learnings.
 
 ## 1.4.0 — 2026-09-03
 
-pave-init 2.4.4, 2.4.5, and 2.5.0 alignment. Lead-behavior and revision-record
-changes; the packaged graph's meaning does not move.
+pave-init 2.4.4 / 2.4.5 / 2.5.0 alignment. Lead behaviour and the revision
+record change; graph meaning does not move.
 
-Evolution contract rule 7 is inverted. A run paused on a defect in its own
-graph now continues on the reviewed, landed successor from its last satisfied
-gate: the lead re-pins run state to the new revision and bundle digest, records
-the authorizing approval verbatim, and landed work stays landed. A gate the
-successor adds becomes a backfill duty per landed item, discharged before those
-items are promoted and never marked passed for them. Closing the run and
-starting a linked successor run is now the narrow exception: only a successor
-that changes what a recorded outcome meant. Rule 1, resume step 1, and the
-run-state schema's `workflow_identity` description now say a landing mid-run
-does not move a running instance by itself, and the run-time bar reads
-"never change the pinned graph's meaning in place" instead of a blanket "never
-at run time". The binding-revision lane is stated as never changing graph
-meaning, so never moving node, edge, or check counts, in the lead skill and the
-README appendix.
-  - Field evidence, this plugin's own run: it needed one review node added
-    mid-run and the contract's only path was close-the-run-and-start-a-
-    successor, so the v1 revision was amended in place instead.
-
-Changed — the revision record moves from `workflow-manifest.yaml` plus full
-`history/vN/` copies to one live `workflow.pave.yaml`, one append-only
-`revisions.yaml`, and one `history/v<N>.patch` per landing, managed only by
-`scripts/record_revision.py` (`init`, `install`, `propose`, `land`, `pin`,
-`verify`, `rollback`). The package ships `revisions.yaml` (entries 0-4, patches
-under `history/`) and is itself a valid root; `install` seeds a project's
-evolution root from it.
-`scripts/freeze_revision.py`, `codex/init_evolution_workspace.py`, and the
-packaged `workflow-manifest.yaml` are removed. An existing root created by the
-1.3.x manifest scheme migrates once per README "Migrating an existing
-evolution root". "Freeze" is now "land".
-
-New — `skills/vllm-neuron-parity/hooks/graph_edit_guard.sh`, registered in
-`hooks/hooks.json` (PreToolUse Edit|Write|MultiEdit): denies a direct edit of a live
-`*.pave.yaml` or `revisions.yaml` when `revisions.yaml` sits beside it and no
-`.landing` marker exists. Eight controls register, disclosed in the skill
-description.
-
-Changed — successors are drafted and reviewed by pave-init's pave-evolve seats
-(`pave-init:workflow-updater`, `pave-init:update-reviewer`), a run-time
-dependency on pave-init 2.5.0 or later, disclosed in the skill's compatibility
-field and the README. The lead never drafts its own successor. The Evolution
-contract section shrinks from nine restated rules to one-clause applications
-of rules 1, 2, 3, 6, 7, 8, and 9 with pointers to pave-init's
-`references/pave-revisions.md`, records the plan fields `landing: user` and
-`usage_ledger: kept`, and replaces the v1 freeze how-to with install, verify,
-and pin. Run start and every resume run `record_revision.py verify
---pinned-revision --pinned-digest`: exit 3 routes per rule 7, exit 4 per
-rule 9.
-
-Changed — the run-state schema's `active_revision` minimum moves from 1 to 0,
-so a ledger seeded at entry 0 pins cleanly; a fresh install pins the ledger
-head.
-
-Changed — the Claude agents `agents/adversarial-reviewer.md` and
-`agents/adjudicator.md` move from opus to fable under the reviewer-tier rule (a
-reviewer or adjudicator seat binds at or above the producer whose artifact it
-judges). A runtime-binding change recorded by this release, user-approved
-2026-09-03; the ledger holds no `kind: binding` entry because model bindings
-live in `agents/*.md`, outside the YAML that `record_revision.py` lands. The
-Codex binding stays gpt-5.6-sol.
-
-Changed — lead dispatch, from the first run's corrections. The lead skill
-gains a "Harness" paragraph: the package runs on Claude Code as well as Codex,
-and the Codex tool names map to `Agent`, `SendMessage`, `TaskStop`, and
-`ListAgents`, with pins from `agents/*.md` frontmatter; the README installs on
-either harness. The stage-6 loop nodes (`scope_next_increment`,
-`realize_increment`, `record_changeset`) run on one retained doer thread per
-campaign instead of one thread per item (revision 4 binds it); a seat is retired in the same turn as
-the state write that closes it, then the live-agent list is checked; a change
-to an open seat's inputs is relayed before its result is read; internal fan-out
-tiers per task (top tier for judgment, middle for medium work, low for
-mechanical evidence) instead of one tier for all; a recorded gate-2 approval
-stands across re-entries under the conditions the graph's
-`design_approved_by_user` check states from revision 3, and the lead skill
-points at that check instead of restating it. The investigator
-and implementer contracts take public facts from web search or a fetch, cited
-by URL. `references/artifact-layout.md` pins one `approvals/DECISIONS.md` per
-campaign and one findings record per review node (a dated section per round,
-one line per finding); the reviewer contract points at it.
-`tests/test_workflow_pave.py` now fails when a README or newest-VERSION count
-phrase disagrees with the validator, and `tests/test_codex_port.py` requires
-the Claude Code tool names beside the Codex ones.
-  - Field evidence, this plugin's own run: the lead spawned a seat per
-    one-line increment, retired none of twenty finished seats, ran every
-    fan-out on the top tier, and re-presented gate 2 after bookkeeping
-    re-entries.
-
-The stop guard asks six questions instead of four, answered only where the lead
-finds an issue, else "lgtm": the next practical step toward the approved goal
-(a declared outcome and edge, or a graph change to propose), ceremony since the
-last check, landed work no review has seen, re-gating a recorded approval or
-usurping a user decision, routing state that lives only in context, idle seats.
-A recurring ceremony is a graph defect: the lead pauses, records the evidence
-in run state and the standing review record, and routes it to the pave-evolve
-seats; the updater drafts, the reviewer passes, the lead lands it under
-`landing: user` and continues on it. Never a draft by the lead, never an edit
-of the live graph outside a landing.
-  - Field evidence: 55 increments (57 commits) landed with zero implementation
-    review, each building on the last, under a check whose only alignment
-    question was which DECLARED action comes next -- every wasted lap was a
-    declared edge.
-
-Hook mechanics are byte-unchanged: the cooldown breaker (at most one stop in
-three), marker-authoritative discovery, the two-half lead-session identity
-gate, fail-open, and the stop_hook_active short-circuit. "Socratic check"
-remains the anchor phrase.
-
-The packaged graph is the ledger head, revision 4 (32 nodes, 95 edges, 15
-checks). Revision 1 (`kind: graph`) lands the field root's gate-2 narrow
-triage, deletion instead of archiving at design re-entry, and the per-batch
-implementation review node with its check; revision 2 (`kind: binding`) lands
-its lead-mechanical re-entry instruments. Both landed under the user's verbatim
-"approve revision 1" (2026-09-03) after a rule-5 review. Revision 3
-(`kind: graph`) lands the gate-2 material definition with bookkeeping findings
-as lead edits, the standing-approval conditions on `design_approved_by_user`,
-the `design_loop_within_bound` check on the four repair edges (eight rounds
-without `design_sound`, or two consecutive rounds at least half
-repair-introduced, route back to `review_campaign_design` for the user's
-disposition), block-scoped design re-entry, set scoping of up to three
-low-complexity items, and one checkout per item for a concurrent-eligible set.
-Revision 4 (`kind: binding`) lands the instruments: one reviewer seat retained
-across a design entry's rounds with a delta-scoped read after a block repair
-and no seat at the bound re-entry, the lead settling `scope_next_increment`
-and the record delta on a verified block diff, and serial-by-default
-realization of a set with opt-in one seat per item. Both landed under the
-user's "Approve revisions 3 + 4" (2026-09-03) after a rule-5 review (round 1
-REVISE, round 2 PASS). A fresh install seeds the head, and a 1.3.x root
-migrates per README.
-Manifests, the marketplace pin, and the package tests align at 1.4.0. A run in
-progress keeps its installed 1.3.1 until its session restarts on the re-synced
-plugin.
+- Evolution rule 7 inverted: a run paused on a defect in its own graph
+  continues on the landed successor from its last satisfied gate (re-pin
+  revision and digest, record the approval verbatim, landed work stays landed;
+  a gate the successor adds becomes a backfill duty). Close-and-start-successor
+  is now the exception, for a successor that changes what a recorded outcome
+  meant. Rule 1, resume step 1, and the run-state schema's `workflow_identity`
+  say a mid-run landing does not move a running instance by itself; the
+  run-time bar reads "never change the pinned graph's meaning in place"; the
+  binding-revision lane never changes graph meaning or counts. Field evidence:
+  this plugin's own run needed one review node mid-run and amended v1 in
+  place.
+- Revision record: one live `workflow.pave.yaml`, one append-only
+  `revisions.yaml`, one `history/v<N>.patch` per landing, managed only by
+  `scripts/record_revision.py` (`init`, `install`, `propose`, `land`, `pin`,
+  `verify`, `rollback`). The package ships `revisions.yaml` (entries 0–4) and
+  is itself a valid root; `install` seeds a project root from it.
+  `freeze_revision.py`, `init_evolution_workspace.py`, and
+  `workflow-manifest.yaml` removed; a 1.3.x root migrates per README. "Freeze"
+  is now "land".
+- New hook `graph_edit_guard.sh` (PreToolUse Edit|Write|MultiEdit): denies a
+  direct edit of a live `*.pave.yaml` or `revisions.yaml` without a `.landing`
+  marker. Eight controls register.
+- Successors are drafted and reviewed by pave-init's pave-evolve seats
+  (dependency: pave-init ≥ 2.5.0); the lead never drafts its own. The
+  Evolution contract section shrinks to one-clause applications of rules 1,
+  2, 3, 6, 7, 8, and 9 with pointers to pave-init's
+  `references/pave-revisions.md`, and records the plan fields `landing: user`
+  and `usage_ledger: kept`. Run start and every resume run
+  `record_revision.py verify --pinned-revision --pinned-digest` (exit 3 →
+  rule 7, exit 4 → rule 9). Run-state `active_revision` minimum 1 → 0.
+- `adversarial-reviewer` and `adjudicator` Claude agents move opus → fable
+  (reviewer binds at or above the producer it judges; user-approved
+  2026-09-03; Codex stays gpt-5.6-sol; no `kind: binding` entry because model
+  pins live in `agents/*.md`).
+- Lead dispatch fixes from the first run: Harness paragraph (Claude Code tool
+  names beside Codex); one retained doer thread per campaign for the stage-6
+  loop; retire a seat in the same turn as the state write that closes it; a
+  change to an open seat's inputs is relayed before its result is read; model
+  tiering per fan-out; a recorded gate-2 approval stands across re-entries;
+  public facts cited by URL; one `approvals/DECISIONS.md` per campaign and one
+  findings record per review node. `tests/test_workflow_pave.py` fails when a
+  README or newest-VERSION count phrase disagrees with the validator;
+  `tests/test_codex_port.py` requires the Claude Code tool names beside the
+  Codex ones. Field evidence: a seat per one-line increment, none of twenty
+  retired, every fan-out on the top tier, gate 2 re-presented after
+  bookkeeping re-entries.
+- Stop guard asks six questions (next declared step, ceremony, unreviewed
+  landed work, re-gating or usurping a user decision, routing state only in
+  context, idle seats), answered only where the lead finds an issue, else
+  "lgtm"; a recurring ceremony routes to pave-evolve — never a lead draft,
+  never a live-graph edit outside a landing. Field evidence: 55 increments (57
+  commits) landed with zero implementation review. Hook mechanics
+  byte-unchanged; "Socratic check" stays the anchor phrase.
+- Packaged graph is ledger head revision 4 (32 nodes, 95 edges, 15 checks).
+  Rev 1 (graph): gate-2 narrow triage, deletion at design re-entry, per-batch
+  implementation review; rev 2 (binding): lead-mechanical re-entry
+  instruments — both under "approve revision 1" (2026-09-03, rule-5 review).
+  Rev 3 (graph): gate-2
+  material definition, standing-approval conditions on
+  `design_approved_by_user`, `design_loop_within_bound`, block-scoped
+  re-entry, set scoping of up to three items, one checkout per item; rev 4
+  (binding): one retained reviewer per design entry, lead settles
+  `scope_next_increment` on a verified diff, serial-by-default realization —
+  both under "Approve revisions 3 + 4" (2026-09-03, rule-5 review: round 1
+  REVISE, round 2 PASS). Manifests, the marketplace pin, and the package tests
+  align at 1.4.0; a run in progress keeps 1.3.1 until restart.
 
 ## 1.3.1 — 2026-09-02
 
