@@ -24,7 +24,11 @@
 #              the lead; a landing in progress, a .pave.yaml with no ledger
 #              beside it, a non-graph path in the root, a payload with no
 #              file_path, and an unparsable payload all pass silently
-#   registration: the two subagent-facing hooks are in the plugin's
+#   restate:   SessionStart resume|compact and SubagentStart inject one
+#              additionalContext naming the goal record; startup, a terminal
+#              run, scan-discovered state, an unrelated event, and an
+#              unparsable payload stay silent
+#   registration: the three plugin-level hooks are in the plugin's
 #              hooks/hooks.json (a skill-frontmatter hook never sees a
 #              subagent's write); the frontmatter keeps only the lead-only pair
 # Also: validate_run_state.py passes a well-formed instance and fails a
@@ -42,6 +46,7 @@ STALE_HOOK="$SKILL/hooks/state_staleness_reminder.sh"
 LAYOUT_HOOK="$SKILL/hooks/planning-layout-warn.sh"
 READER_HOOK="$SKILL/hooks/write_for_reader.sh"
 GUARD_HOOK="$SKILL/hooks/graph_edit_guard.sh"
+RESTATE_HOOK="$SKILL/hooks/goal_restate.sh"
 VALIDATOR="$SKILL/scripts/validate_run_state.py"
 
 PASS=0
@@ -427,11 +432,78 @@ ERR="$(printf 'not json' | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
 report "guard: unparsable payload fails open" "$ok" "rc=$RC err=$ERR"
 
+# --- goal_restate --------------------------------------------------------------
+# Goal restatement at context rebuild: SessionStart resume|compact (lead) and
+# SubagentStart (every seat) inject one additionalContext that points at the
+# run's goal record; startup, terminal runs, scan-discovered state, unrelated
+# events, and unparsable payloads stay silent.
+
+write_state "" complete
+WORKSPACE="$(dirname "$STATE")"
+printf 'goal: demo\n' > "$WORKSPACE/run-contract.md"
+
+restate_payload() { # $1 = hook_event_name, $2 = source ("" to omit), $3 = agent_type ("" to omit)
+  python3 - "$1" "$2" "$3" <<'PY'
+import json, sys
+event, source, agent = sys.argv[1], sys.argv[2], sys.argv[3]
+payload = {"session_id": "gr1", "hook_event_name": event}
+if source:
+    payload["source"] = source
+if agent:
+    payload["agent_type"] = agent
+    payload["agent_id"] = "seat-1"
+print(json.dumps(payload))
+PY
+}
+
+OUT="$(restate_payload SessionStart resume "" | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q '"hookEventName": "SessionStart"' \
+  && printf '%s' "$OUT" | grep -q "run-contract.md" && ok=1
+report "restate: session resume asks for the goal from the record" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(restate_payload SessionStart compact "" | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "what breaks if you skip it" && ok=1
+report "restate: post-compaction asks for the goal and the fewest steps" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(restate_payload SessionStart startup "" | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: session startup is silent (no goal exists yet)" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(restate_payload SubagentStart "" node-planner | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q '"hookEventName": "SubagentStart"' \
+  && printf '%s' "$OUT" | grep -q "your brief" && printf '%s' "$OUT" | grep -q "run-contract.md" && ok=1
+report "restate: a seat's start asks for the brief's goal against the run's" "$ok" "rc=$RC out=$OUT"
+
+rm -f "$WORKSPACE/run-contract.md"
+OUT="$(restate_payload SessionStart resume "" | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "run-state.json" && ok=1
+report "restate: without run-contract.md the record is run state" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(restate_payload Stop "" "" | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: an unrelated event is silent" "$ok" "rc=$RC out=$OUT"
+
+write_state abandoned complete
+OUT="$(restate_payload SessionStart resume "" | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: terminal run is silent" "$ok" "rc=$RC out=$OUT"
+write_state "" complete
+
+rm -f "$RUN_MARKER"
+OUT="$(restate_payload SessionStart resume "" | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: scan-discovered state without marker is silent" "$ok" "rc=$RC out=$OUT"
+write_state "" complete
+
+OUT="$(printf 'not json' | bash "$RESTATE_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "restate: unparsable payload fails open" "$ok" "rc=$RC out=$OUT"
+
 # --- registration ------------------------------------------------------------
 # A skill-frontmatter hook fires only for the agent that invoked the skill
-# (measured on Claude Code 2.1.258), so the two hooks that watch subagent
-# writes must be registered in the plugin's hooks/hooks.json, and the
-# frontmatter must keep only the lead-only pair.
+# (measured on Claude Code 2.1.258), so the hooks that must reach subagents
+# or survive compaction are registered in the plugin's hooks/hooks.json, and
+# the frontmatter must keep only the lead-only pair.
 PLUGIN_ROOT="$(cd "$SKILL/../.." && pwd)"
 REG="$(python3 - "$PLUGIN_ROOT" <<'PY' 2>/dev/null
 import json, sys
@@ -442,15 +514,17 @@ try:
     cmds = [h["command"] for groups in data["hooks"].values() for g in groups for h in g["hooks"]]
 except Exception:
     cmds = []
-plugin_ok = any("planning-layout-warn.sh" in c for c in cmds) and any("write_for_reader.sh" in c for c in cmds)
+plugin_ok = (any("planning-layout-warn.sh" in c for c in cmds) and any("write_for_reader.sh" in c for c in cmds)
+             and any("goal_restate.sh" in c for c in cmds)
+             and "SessionStart" in data["hooks"] and "SubagentStart" in data["hooks"])
 fm = (root / "skills" / "pave-init" / "SKILL.md").read_text(encoding="utf-8").split("\n---", 1)[0]
-fm_ok = ("planning-layout-warn.sh" not in fm and "write_for_reader.sh" not in fm
+fm_ok = ("planning-layout-warn.sh" not in fm and "write_for_reader.sh" not in fm and "goal_restate.sh" not in fm
          and "stop_alignment_check.sh" in fm and "state_staleness_reminder.sh" in fm)
 print(int(plugin_ok), int(fm_ok))
 PY
 )"
 ok=0; [ "${REG%% *}" = "1" ] && ok=1
-report "registration: subagent-facing hooks are in plugin hooks.json" "$ok" "reg=$REG"
+report "registration: plugin-level hooks (layout, reader, restate) are in hooks.json" "$ok" "reg=$REG"
 ok=0; [ "${REG##* }" = "1" ] && ok=1
 report "registration: frontmatter keeps only the lead-only pair" "$ok" "reg=$REG"
 

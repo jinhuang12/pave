@@ -1,6 +1,6 @@
 # PAVE Init
 
-Version: `2.5.2`
+Version: `2.5.3`
 
 Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. A second skill, `pave-evolve`, revises a delivered workflow from recorded evidence through two dedicated seats. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
 
@@ -330,6 +330,7 @@ check in the recorded traversal history. Both are declared in
     │   ├── state_staleness_reminder.sh   # PostToolUse: throttled observing staleness nudge
     │   ├── planning-layout-warn.sh       # PostToolUse: non-blocking planning-layout warning
     │   ├── write_for_reader.sh           # PostToolUse: §8.5 reader reminder; sizes an over-cap document past its throttle
+    │   ├── goal_restate.sh               # SessionStart resume|compact + SubagentStart: state the goal from the record and the fewest steps before acting
     │   └── graph_edit_guard.sh           # PreToolUse template for generated multi-run workflows: denies a direct edit of a live graph or its ledger outside a landing (not registered for pave-init itself)
     └── tests/
         ├── test_hooks.sh                 # invariant tests for every shipped hook and its registration
@@ -366,8 +367,9 @@ the lead-alignment hook pair when a lead routes a long-horizon run, one
 machine-checkable schema when state must survive a session boundary, and a
 layout reference when more than one role writes artifacts.
 `pave-init` applies all of this to itself: it registers the lead-only hook
-pair in its own frontmatter, its two subagent-facing hooks (planning layout,
-write-for-the-reader) in the plugin's `hooks/hooks.json`, and persists its own
+pair in its own frontmatter, its three plugin-level hooks (planning layout,
+write-for-the-reader, goal restatement at resume, compaction, and each seat's
+start) in the plugin's `hooks/hooks.json`, and persists its own
 run state (`run-state.json`, validated by `schemas/run-state.schema.json`).
 Generated workflows that run more than once also ship a pre-write guard on
 their live graph and its ledger (`hooks/graph_edit_guard.sh`): the graph is

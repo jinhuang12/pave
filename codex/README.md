@@ -139,6 +139,10 @@ differences are:
   `gpt-5.6-sol`; Claude `sonnet` maps to `gpt-5.6-terra`.
 - Nested dispatch uses Codex V2 with 16 child slots and 17 total slots.
 - Plugin-level `hooks/hooks.json` replaces skill-frontmatter hook registration.
+- The goal-restatement hook (`SessionStart` resume|compact, `SubagentStart`)
+  is not registered for Codex: its event coverage there is unverified. This is
+  the recorded omission; the Resume duty in SKILL.md carries the goal
+  reconciliation as prose.
 - `apply_patch` needs a path/content adapter for the planning-layout hook.
 - Direct Codex caller identity is preserved so the canonical hooks remain the
   only authority for lead-versus-worker policy.

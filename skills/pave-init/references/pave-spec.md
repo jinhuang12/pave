@@ -809,8 +809,7 @@ purpose; both are the same defect.
 Four duties, for every entry a person will read, written in concise simple
 plain english:
 
-- Lead with one sentence saying what happened and why — readable with no
-  lookup table.
+- Lead with one sentence saying what happened and why.
 - An identifier is a pointer, never a noun. Pair each id with its plain
   name at first use in the entry — "the rotary increment (`inc-025`)" —
   and never chain bare ids where a sentence should stand.
@@ -821,13 +820,13 @@ plain english:
   changed, and what stays open. An entry that needs the run's id table to
   parse fails, whatever else it satisfies.
 
-The duty binds documents a person reads: the standing documents, review and
-decision records, delivered docs, and anything a user gate renders. Working
-state written for the next agent and deleted or ignored at close — a
-planning queue, a scratch draft, structured run state — is exempt, because
-plain-english ceremony with no reader is cost without a return. When in
-doubt, ask who reads it after the run; "a person might" means the duty
-applies.
+The duty binds documents a person reads — the standing documents, review and
+decision records, delivered docs, anything a user gate renders — and every
+message to the user, read by the same stranger. Working state written for
+the next agent and deleted or ignored at close — a planning queue, a scratch
+draft, structured run state — is exempt, because plain-english ceremony with
+no reader is cost without a return. When in doubt, ask who reads it after the
+run; "a person might" means the duty applies.
 
 ## 9. Reusable graph patterns
  

@@ -1,6 +1,29 @@
 {
-  "description": "pave-init hooks that must see subagent tool calls. A skill-frontmatter hook fires only for the agent that invoked the skill, so the planning-layout warning (node planners write planning/) and the write-for-the-reader reminder register here. Both are armed by the .pave-init-run marker and stay silent outside an active run. The stop check and the staleness reminder are lead-only and stay in the skill's frontmatter.",
+  "description": "pave-init hooks that must reach subagents or survive compaction. A skill-frontmatter hook fires only for the agent that invoked the skill, so the planning-layout warning (node planners write planning/), the write-for-the-reader reminder, and the goal restatement (SessionStart resume|compact for the lead, SubagentStart for every seat) register here. All are armed by the .pave-init-run marker and stay silent outside an active run. The stop check and the staleness reminder are lead-only and stay in the skill's frontmatter.",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/pave-init/hooks/goal_restate.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/pave-init/hooks/goal_restate.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",

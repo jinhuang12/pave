@@ -6,7 +6,7 @@ Read this when a plan chooses a hook as its enforcement mechanism, and when plan
 
 - Hook doctrine
 - Why this pair exists
-- The two hooks
+- The hooks
 - Invariants any adaptation must preserve
 - Registration and disclosure
 - Legitimate omission conditions
@@ -41,21 +41,22 @@ Register by native placement first. Prefer a scope that cleans up automatically 
 
 ## Why this pair exists
 
-The recorded failure cause of long-horizon leads is context decay, not disobedience: the lead follows the routing contract until the prose that states it leaves the context window, then invents outcomes and edges the graph never declared. Role reinjection on user events (UserPromptSubmit, SessionStart — including its compact matcher; PreCompact cannot inject, its output is discarded) covers most of a run. Two windows stay dark:
+The recorded failure cause of long-horizon leads is context decay, not disobedience: the lead follows the routing contract until the prose that states it leaves the context window, then invents outcomes and edges the graph never declared. Role reinjection on user events (UserPromptSubmit, SessionStart — including its compact matcher; PreCompact and PostCompact cannot inject, their output is discarded) covers most of a run. `hooks/goal_restate.sh` (template below) is that reinjection's shipped form for the moments a context is rebuilt — session resume, compaction, and every seat's start: it asks the agent to state the goal from the record and the fewest steps toward it, so the fresh context reconciles the goal and prunes ceremony in the same breath. Two windows stay dark:
 
 1. **The decision to stop.** A Stop with an active, non-terminal run is the highest-risk decay moment: the campaign silently stalls at its resume point, and no user event fires to re-inject anything.
 2. **Long autonomous stretches.** Many tool calls with no user prompt and no compaction means zero reinjection; outcomes happen and never reach run state.
 
-The pair covers exactly these two windows, socratically. It asks, never commands, because valid stops and mid-node quiet stretches are common. The stop check also carries the lead duties no other moment re-asks — is the next step the practical one toward the goal, was anything since the last check ceremony — because a check whose only alignment question is the next declared action reinforces a wasteful graph: every wasted lap in the field was a declared edge.
+The pair covers exactly these two windows, socratically. It asks, never commands, because valid stops and mid-node quiet stretches are common. The stop check also carries the lead duties no other moment re-asks — is the next step the practical one toward the goal, was anything since the last check ceremony, did the last reply reach the user in plain words (no write hook sees a chat reply; `pave-spec.md` §8.5) — because a check whose only alignment question is the next declared action reinforces a wasteful graph: every wasted lap in the field was a declared edge.
 
 This pair is one pre-derived answer to one universal failure mode. No two workflows share a failure surface: derive any further enforcement from the workflow's own evidence the same way, and size it on the same spectrum (`references/pave-spec.md` §9.14). A cwd-drift warning or a budget-burn alert may be justified by one workflow's field evidence — and neither belongs in a workflow whose evidence does not name the failure.
 
-## The two hooks
+## The hooks
 
 | hook | event | rung | shape |
 |---|---|---|---|
-| stop-alignment check | Stop | socratic reinjection | Blocks a stop ONCE with the six-question socratic check (template below), answered only where the lead finds an issue, else `lgtm`; then a cooldown counter lets the next N−1 stops pass silently (default N=3: at most one nudge per 3 stops). |
+| stop-alignment check | Stop | socratic reinjection | Blocks a stop ONCE with the socratic check (template below), answered only where the lead finds an issue, else `lgtm`; then a cooldown counter lets the next N−1 stops pass silently (default N=3: at most one nudge per 3 stops). |
 | state-staleness reminder | PostToolUse (`Bash\|Write\|Edit`) | observing / socratic | When the run-state file's mtime exceeds a threshold while tools keep running, injects one throttled `additionalContext` question: which node are you actually in, and has an outcome occurred that is not recorded? |
+| goal restatement | SessionStart (`resume\|compact`), SubagentStart | socratic reinjection | At a context rebuild, injects one `additionalContext` question: state the goal and its reason from the record (the file wins over memory) and the fewest steps toward it — what breaks if each is skipped? A seat states its brief's goal against the run's. Never throttled: each rebuild is one firing. |
 
 ## Invariants any adaptation must preserve
 
@@ -72,7 +73,7 @@ What must be re-derived per workflow: the run-state discovery (marker file name,
 
 ## Registration and disclosure
 
-Register the pair in the generated skill's frontmatter — both are lead-only (Stop never fires in a subagent; the staleness reminder skips subagent payloads), invoking the skill is the opt-in, and the hooks live and die with it. A hook that must see subagent writes — a layout warning, a write-for-the-reader reminder — is not this pair and registers at plugin level (Scoping, above). The generated `description` must disclose the blocks-a-stop behavior and its cadence (at most one block per N stops) — nothing registers silently — and `description` has a 1024-character budget, so disclose compactly. Each hook records its decline path (hook runtime unavailable): the stop check degrades to the lead's resume duty; the staleness reminder degrades to the checkpoint duty in the state-write protocol.
+Register the pair in the generated skill's frontmatter — both are lead-only (Stop never fires in a subagent; the staleness reminder skips subagent payloads), invoking the skill is the opt-in, and the hooks live and die with it. A hook that must see subagent writes — a layout warning, a write-for-the-reader reminder — is not this pair and registers at plugin level (Scoping, above). The goal restatement registers at plugin level too: SubagentStart must reach every seat, and one registration serves both events. The generated `description` must disclose the blocks-a-stop behavior and its cadence (at most one block per N stops) — nothing registers silently — and `description` has a 1024-character budget, so disclose compactly. Each hook records its decline path (hook runtime unavailable): the stop check degrades to the lead's resume duty; the staleness reminder degrades to the checkpoint duty in the state-write protocol; the goal restatement degrades to the lead's resume reconciliation duty and, for seats, the brief-reading duty in each role contract.
 
 ## Legitimate omission conditions
 
@@ -82,11 +83,12 @@ Record ONE of these in the enforcement record instead of the pair. Silent omissi
 - **Single-session, short-horizon.** The run cannot cross a compaction or session boundary; the decay window the pair covers does not exist.
 - **Every node is a user gate.** Stopping is almost always correct, so the one bounce is pure friction with nothing to catch.
 - **No lead orchestrator.** Nothing long-horizon exists to align.
+- **No seats** (goal restatement only). The SubagentStart half has no receiver; keep the SessionStart half whenever the run can resume or compact.
 - **Hooks runtime unavailable** in the target environment — record the degradation, not just the omission.
 
 ## Templates
 
-Adapt these three files into the generated skill's `hooks/`. `ADAPT:` marks every workflow-specific point. Test the invariants, not the wording: a nudge is followed by N−1 silent passes and the stop after that nudges again, `stop_hook_active` short-circuits, terminal runs are silent, staleness fires once then throttles, subagent payloads are skipped, unparsable payloads and empty stdin fail open, and state discovered without the ownership marker leaves both hooks silent.
+Adapt these files into the generated skill's `hooks/` (the dispatch advisory only where a plan adopts it). `ADAPT:` marks every workflow-specific point. Test the invariants, not the wording: a nudge is followed by N−1 silent passes and the stop after that nudges again, `stop_hook_active` short-circuits, terminal runs are silent, staleness fires once then throttles, subagent payloads are skipped, a context rebuild fires the restatement once while startup and clear stay silent, unparsable payloads and empty stdin fail open, and state discovered without the ownership marker leaves the hooks silent.
 
 ### `hooks/_find_run_state.sh` (shared discovery)
 
@@ -223,6 +225,10 @@ $((STOP_EVERY - 1)) stops pass before this fires again.
   5. Anything routing depends on that lives only in your context, not in run
      state?
   6. Idle subagents or teammates? Retire them now.
+  7. Your last reply to the user: any codename -- id, round number, control
+     letter, lease or seat name, section number, hash -- without its plain
+     meaning beside it, or prose a stranger could not follow? Restate it in
+     ordinary words now (ADAPT: cite this skill's write-for-the-reader section).
 EOF
 exit 2
 ```
@@ -296,7 +302,7 @@ last = history[-1] if history else {}
 text = (
     "%s run state last written %d min ago (run %s, %s; state %s). It says "
     "restart_from=%s; last traversal %s.%s. Socratic check: which node are you "
-    "ACTUALLY in right now, and has any outcome occurred since that entry that is "
+    "actually in right now, and has any outcome occurred since that entry that is "
     "not recorded? If yes, record the traversal now per the state-write protocol "
     "and index any evidence artifacts at their declared paths. If you are mid-node "
     "with nothing to record, continue; this fires at most once per %d min."
@@ -306,6 +312,62 @@ text = (
 )
 print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse",
                                          "additionalContext": text}}))
+PYEOF
+exit 0
+```
+
+### `hooks/goal_restate.sh` (SessionStart `resume|compact`, SubagentStart)
+
+Register at plugin level, not skill frontmatter. Observing: always exit 0; silent without the marker, on a terminal run, on an unrelated event, and on `startup`/`clear` (no goal exists yet). Never throttled — each context rebuild is one firing.
+
+```bash
+#!/usr/bin/env bash
+# Goal restatement at context rebuild. Asks; never injects the goal text --
+# the record wins over any hook.
+set -uo pipefail
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+PY="${<PREFIX>_PYTHON:-python3}"; PY="${PY/#\~\//$HOME/}"   # ADAPT: env-var prefix
+TAG="[goal_restate]"
+PAYLOAD="$(cat 2>/dev/null || true)"
+command -v "$PY" >/dev/null 2>&1 || exit 0
+. "$HOOK_DIR/_find_run_state.sh"
+find_run_state
+[ -n "$FOUND_STATE" ] && [ -f "$FOUND_STATE" ] || exit 0
+[ "${FOUND_STATE_VIA:-}" = "marker" ] || exit 0   # scan hit is not ownership; stay silent
+PAYLOAD_FILE="$(mktemp "${TMPDIR:-/tmp}/<workflow-name>-restate.XXXXXX" 2>/dev/null)" || exit 0   # ADAPT
+trap 'rm -f "$PAYLOAD_FILE"' EXIT
+printf '%s' "$PAYLOAD" > "$PAYLOAD_FILE" 2>/dev/null || exit 0
+"$PY" - "$FOUND_STATE" "$TAG" "$PAYLOAD_FILE" <<'PYEOF' 2>/dev/null || exit 0
+import json, os, sys
+state_path, tag, payload_file = sys.argv[1:4]
+try:
+    payload = json.load(open(payload_file, encoding="utf-8"))
+    state = json.load(open(state_path, encoding="utf-8")) or {}
+except Exception:
+    sys.exit(0)                                   # fail open
+terminal = state.get("terminal_classification")   # ADAPT: terminal field
+if isinstance(terminal, dict) and terminal.get("status"):
+    sys.exit(0)
+contract = os.path.join(os.path.dirname(state_path), "run-contract.md")   # ADAPT: where the goal is recorded
+record = contract if os.path.isfile(contract) else state_path               # not written yet: run state
+event = str(payload.get("hook_event_name") or "")
+if event == "SessionStart":
+    if str(payload.get("source") or "") not in ("resume", "compact"):
+        sys.exit(0)                               # startup/clear: no goal exists yet
+    text = (f"{tag} Your context was just rebuilt. Before acting, in a few lines: (1) the goal "
+            f"and its reason as recorded in {record} -- the file wins over memory; (2) the "
+            "declared next step and the fewest after it; for each, what breaks if you skip it -- "
+            "cut any with no answer (a seat for a fact knowable from disk, a re-gate of a recorded "
+            "approval, a lap with no new evidence). A needed cut the graph forbids is a graph "
+            "defect: record it and route it to pave-evolve.")   # ADAPT: this workflow's evolution route
+elif event == "SubagentStart":
+    text = (f"{tag} Before acting, in a few lines: the goal of your brief, why it serves the run's "
+            f"goal (recorded in {record}), and the fewest steps that produce the evidence the brief "
+            "asks for. Add none the brief does not need; if the brief gives no reason, say so in "
+            "your report.")
+else:
+    sys.exit(0)
+print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}))
 PYEOF
 exit 0
 ```

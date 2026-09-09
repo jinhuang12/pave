@@ -1,4 +1,4 @@
-version: 2.5.2
+version: 2.5.3
 
 ## How changelog entries are written
 
@@ -17,6 +17,30 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.5.3 (2026-09-09)
+
+New — goal restatement at every context rebuild. A plugin-level hook
+(`hooks/goal_restate.sh`, SessionStart resume|compact and SubagentStart) asks
+the lead, after a resume or a compaction, to state the goal and its reason from
+`run-contract.md` and the fewest steps toward it — for each, what breaks if you
+skip it — and asks every seat at its start for its brief's goal, why it serves
+the run's goal, and the fewest steps that produce the evidence. Advisory only,
+marker-gated, silent on terminal runs. Generated workflows carry it by default
+through the enforcement record (`references/lead-alignment-hooks.md` template);
+a single-session workflow with no seats records the omission.
+  - Why: a rebuilt context has lost the goal and the sunk cost of its process
+    alike — the cheapest moment to reconcile the one and cut the other.
+  - Not registered for Codex; the omission is recorded in `codex/README.md`.
+
+Improved — plain words to the user. `references/pave-spec.md` section 8.5 now
+binds every message to the user, and stop-hook question 7 asks the lead to
+restate any codename or hard-to-follow prose in ordinary words before stopping.
+
+Improved — role and orchestration prose trimmed of emphasis and threats current
+models do not need: the research-delegate contract, the review classification
+rule, the staleness reminder wording; the approval brief's "one to three pages"
+target became "every material fact, nothing more".
 
 ### 2.5.2 (2026-09-04)
 

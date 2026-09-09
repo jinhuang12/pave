@@ -29,16 +29,23 @@ import measure_artifact as ma  # noqa: E402
 # path (repo-relative) -> (max lines, max bytes). Pinned 2026-09-03 (2.5.0):
 # deliberate growth for the update path (four nodes, ten edges, two seats) and
 # the ledger contract; pave-material-reviewer shrank through the shared fragment.
+# 2026-09-09: stop-hook question 7 (plain words to the user) grows the hooks
+# reference by one template question; the spec grows 24 bytes for the same rule.
+# 2026-09-09: the goal-restatement hook (SessionStart resume|compact +
+# SubagentStart) adds one template and one table row to the hooks reference,
+# one enforcement-record sentence and one mapping bullet to SKILL.md, and one
+# tree line to the README; review then added the template's run-state fallback
+# line and the restatement's decline path and test invariant to the reference.
 CEILINGS = {
-    "skills/pave-init/SKILL.md": (264, 35148),
-    "skills/pave-init/README.md": (446, 25911),
+    "skills/pave-init/SKILL.md": (266, 36051),
+    "skills/pave-init/README.md": (448, 26136),
     "skills/pave-evolve/SKILL.md": (69, 7897),
     "skills/pave-init/references/approval-briefs.md": (71, 9273),
-    "skills/pave-init/references/lead-alignment-hooks.md": (372, 28669),
+    "skills/pave-init/references/lead-alignment-hooks.md": (434, 33510),
     "skills/pave-init/references/pave-composition.md": (186, 10814),
     "skills/pave-init/references/pave-init-traceability.md": (169, 21886),
     "skills/pave-init/references/pave-revisions.md": (80, 14083),
-    "skills/pave-init/references/pave-spec.md": (1705, 75261),
+    "skills/pave-init/references/pave-spec.md": (1704, 75285),
     "skills/pave-init/references/pave-yaml.md": (431, 17816),
     "skills/pave-init/references/planning-layout.md": (52, 4116),
     "skills/pave-init/references/technique-selection.md": (202, 9954),

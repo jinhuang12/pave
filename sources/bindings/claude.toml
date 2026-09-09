@@ -13,12 +13,13 @@ description: >-
   Create a PAVE-based Claude Code workflow plugin from a goal the user states.
   Manual-only: use only when the user explicitly invokes /pave-init. This long
   campaign clarifies the goal, explores the system, designs and reviews a PAVE
-  graph, and builds and tests the plugin. It registers four disclosed hooks:
+  graph, and builds and tests the plugin. It registers five disclosed hooks:
   stop alignment and a stale run-state reminder live in this skill's
-  frontmatter (lead-only); the planning layout warning and the
-  write-for-the-reader reminder live in the plugin's hooks.json so they also
-  see subagent writes. While a run is active, the stop check blocks at most
-  one stop in three; nothing registers silently.
+  frontmatter (lead-only); the planning layout warning, the
+  write-for-the-reader reminder, and a goal-restatement prompt (at session
+  resume, after compaction, and at each seat's start) live in the plugin's
+  hooks.json so they also reach subagents. While a run is active, the stop
+  check blocks at most one stop in three; nothing registers silently.
 compatibility: >-
   Requires Claude Code skill-frontmatter hooks and plugin-level hooks
   (hooks/hooks.json), registered pave-init agent types, bash, and Python 3.

@@ -34,7 +34,7 @@ No reviewer exists yet at this gate, so the lead self-checks the brief against `
 
 Rendered when the approval bundle is assembled, and submitted **with** the bundle to the whole-bundle review round — the reviewer verifies the brief as part of the gate, so the summary the user reads has survived the same adversary as the plan. Persist to `reviews/plan-brief.md`, then render in full in the conversation after review passes.
 
-Compact and scaled to the graph: target one to three pages. Sections, in order:
+Compact and scaled to the graph: every material fact, nothing more. Sections, in order:
 
 1. **Intro** — the goal, the fitness verdict, and two or three sentences on what the generated workflow does end to end. State plainly what approving here authorizes: building this package against this graph.
 2. **Workflow summary and visual** — first, one small at-a-glance diagram: a Mermaid `flowchart LR` of the happy path as a handful of plain-language stage groupings (labels a stranger can read, stated explicitly as stage groupings and **not** graph node ids), so the reader holds the workflow's shape before any detail; loops and recovery routes stay out of it. Then one faithful Mermaid `flowchart TD` per profile, rendered from the draft YAML (see conventions below). A composed plan gets the root diagram first, then one per child profile.

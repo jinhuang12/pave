@@ -126,7 +126,7 @@ window_min = int(window) // 60
 text = (
     "%s run-state.json last written %d min ago (run %s, %s; state %s). "
     "Last recorded traversal: %s.%s. "
-    "Socratic check: which node are you ACTUALLY in right now, and has any "
+    "Socratic check: which node are you actually in right now, and has any "
     "outcome occurred since that entry that is not recorded? If yes, append "
     "the traversal entry now, update the affected state fields, validate with "
     "scripts/validate_run_state.py, and persist any due artifacts at their "

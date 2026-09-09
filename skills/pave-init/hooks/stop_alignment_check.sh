@@ -148,5 +148,9 @@ lgtm. The next $((STOP_EVERY - 1)) stops pass before this fires again.
   5. Anything routing depends on that lives only in your context, not in run
      state?
   6. Idle subagents or teammates? Retire them now.
+  7. Your last reply to the user: any codename -- id, round number, control
+     letter, lease or seat name, section number, hash -- without its plain
+     meaning beside it, or prose a stranger could not follow? Restate it in
+     ordinary words now (references/pave-spec.md section 8.5).
 EOF
 exit 2

@@ -47,7 +47,7 @@ Final-review scope:
 
 The lead reads every cited location and applies the same goal test the reviewer was given: does this finding prevent or materially impair the approved goal? Classify each finding:
 
-- `FIX`: verified, and it prevents or materially impairs the approved goal. Inconvenience is not a reason to defer a goal-impacting finding.
+- `FIX`: verified, and it prevents or materially impairs the approved goal.
 - `DEFER`: verified but orthogonal to the goal or outside the approved package.
 - `FALSE_POSITIVE`: unsupported, preference-only, speculative, or based on an unapproved requirement.
 
