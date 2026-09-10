@@ -13,6 +13,7 @@ A brief (and the delivered `README.md`) is a **rendered view, never an authority
 - The brief states nothing the underlying artifacts do not support. No new policy. No requirement that appears only in the brief.
 - Every section links the raw artifact it renders, so the user can drill down.
 - Drift is a review finding: the gate's material reviewer verifies the brief against the bundle. A brief claim the bundle does not support is a defect with the same severity logic as any other. The user approves knowing an adversary checked the summary they read.
+- A brief never pins a file the seat is still writing. Cite path plus anchor and let the artifact win; a digest in a brief for a mutable artifact converts every later fix into a re-issued brief (`references/pave-spec.md` §9.14.3).
 
 ## Write for the reader
 

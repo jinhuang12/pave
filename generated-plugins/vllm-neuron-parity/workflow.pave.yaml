@@ -197,8 +197,7 @@ pave:
       produced_by: draft_increment_plan
       subject: increment plan, test layout, venv and lease plan, and refined predicted
         file surface - feeds scheduling_holds re-derivation; on a block-scoped
-        re-entry, the block diff (touched blocks with their new digests, must-hold
-        digests of every other block)
+        re-entry, the block diff (the touched blocks, nothing else)
       artifact: artifacts/campaigns/<campaign>/design/
     regression_matrix_draft:
       kind: derivation
@@ -218,8 +217,8 @@ pave:
       produced_by: scope_next_increment
       subject: per-lap reconciliation - selected work item or set with its realization
         order, declared CPU-mode acceptance per item, findings answered, stuck and
-        gap identities, the open review batch with the lead's size call, the plan
-        digest after landed-block collapse, and any join conflict of a concurrent-eligible
+        gap identities, the open review batch with the lead's size call, the plan's
+        revision-log line after landed-block collapse, and any join conflict of a concurrent-eligible
         set recorded as a scheduling defect
       artifact: artifacts/campaigns/<campaign>/increments/
     increment_evidence_records:
@@ -556,10 +555,10 @@ pave:
         in the same findings record, marked as such with the surface it names;
         bookkeeping never selects an outcome. The lead applies each bookkeeping
         finding as a direct edit to the plan or the record (one revision-log line
-        in the edited document, the edit and the new digest in run state) - no
+        in the edited document, the edit and its revision-log line in run state) - no
         seat and no lap, whichever outcome the material findings select; lead
-        edits land before any repair seat is briefed, and the brief carries the
-        post-edit digest. For each material finding the reviewer labels the defect
+        edits land before any repair seat is briefed, and the brief names the
+        post-edit revision-log line. For each material finding the reviewer labels the defect
         class - including repair-introduced, when the finding sits on a block the
         previous lap's block diff touched and no earlier round named that surface
         (a whole-plan lap resets the class for the next round) - and names the
@@ -573,8 +572,8 @@ pave:
         no reviewer seat is dispatched. After a block-scoped
         repair it reads the touched blocks the block diff names, their cascade
         (blocks that cite or depend on them), and one scripted whole-plan census;
-        the lead byte-checks every untouched block against the must-hold digests
-        before briefing the seat and records that check in run state. A diff that
+        the lead reads the diff to confirm no unnamed block moved before briefing
+        the seat and records that check in run state. A diff that
         touches blocks the brief did not name, or a whole-plan lap, gets the whole
         read. The challenger is retained across the rounds of one design entry
         - a fresh seat opens with each new design entry, never per round (spec
@@ -1079,7 +1078,8 @@ pave:
         feasibility-questioning evidence (a finding or defect naming the pin,
         a missing surface, or a capability doubt) or new findings-history entries
         since the last screen. Every other re-entry the lead settles mechanically
-        with no seat - pin digest compared byte-identical against pinned_release,
+        with no seat - the campaign's campaign_target_pins entry compared equal to
+        its source (pinned_release, or the kickoff-declared upgrade base),
         the standing pin_feasibility_note cited, and the named viable lever confirmed
         current - recorded in run state without re-authoring the note. An unchanged,
         already-verified fact settles mechanically; a changed input to a judgment
@@ -1099,8 +1099,8 @@ pave:
       - The note records the detector basis - the compared findings entry references
         and the design-evidence-movement comparison - even though the frozen outcome
         declares no required_evidence.
-      - On a lead-settled re-entry the run-state entry records the pin digest
-        compared, the prior note cited, and the progress-facts basis; no fresh
+      - On a lead-settled re-entry the run-state entry records the target-pin
+        compare, the prior note cited, and the progress-facts basis; no fresh
         note artifact is authored.
       forbidden_effects:
       - Code changes to the target repo.
@@ -1157,11 +1157,10 @@ pave:
         draft is authored against the target artifacts on disk - checkpoint configuration,
         weight index, source at the pin - never from memory of them; a plan that
         cites an artifact the lap did not read is a defect of this node. The plan
-        is a living document under the layout reference's cap, every block addressable
-        by a stable id and digest. On re-entry the brief names the blocks to touch
+        is a living document under the layout reference's cap, every block
+        addressable by a stable id. On re-entry the brief names the blocks to touch
         and the finding or contradiction each answers; the lap hands back a block
-        diff - the touched blocks with their new digests and the must-hold digests
-        of every other block - never a whole-plan rewrite, and a lap that finds
+        diff - the touched blocks, nothing else - never a whole-plan rewrite, and a lap that finds
         it must touch a block the brief did not name stops and reports the cascade
         for a re-brief instead of editing it. A whole-plan lap (a deletion or
         reconciliation under the cap) is its own briefed lap and gets a whole-plan
@@ -1195,8 +1194,8 @@ pave:
         plan_drafted:
           meaning: Increment plan, test layout, venv plan, lease plan, and refined
             predicted file surface drafted; every increment carries its full per-increment
-            contract. On a block-scoped re-entry the block diff, with its touched
-            and must-hold digests, is the lap's evidence.
+            contract. On a block-scoped re-entry the block diff is the lap's
+            evidence.
           required_evidence:
           - increment_plan_draft
         scope_exceeded:
@@ -1364,9 +1363,9 @@ pave:
         An artifact no lap re-produced is not superseded - it stays in the read
         path stamped forward. A record that grows monotonically with lap count
         is a defect of this node. When the only input changed since the current
-        design_entry_id is a block diff whose must-hold digests verify and whose
-        touched blocks keep their per-increment contracts complete, the lead performs
-        the delta - pointer and digest lines updated, the completeness self-check
+        design_entry_id is a block diff the lead has read, touching no unnamed
+        block, whose touched blocks keep their per-increment contracts complete, the lead performs
+        the delta - pointer lines updated, the completeness self-check
         re-run from the declared checklist - and records it in run state with no
         seat; any other changed input (registration, matrix, note, kickoff contract),
         a self-check gap, or ambiguity runs the assembler seat.
@@ -1472,7 +1471,7 @@ pave:
         (4) plan_satisfied when nothing is pending; (5) increment_selected otherwise.
         A landed item''s plan block collapses to its ledger row at the lap that
         first reads its passing record (the layout reference''s cap rule), and
-        the lap record carries the plan digest after the collapse. Instrument
+        the lap record names the plan''s revision-log line after the collapse. Instrument
         - every lap the lead settles mechanically from the persisted inputs with
         no seat: the landed set from the passing records, the gate table and milestone
         order from the plan, the ascending increment id within the released items,
@@ -2083,8 +2082,8 @@ pave:
       - measurer
       purpose: Produce the GPU-baseline side of every declared comparison for
         this campaign's route, strictly read-only on the named GPU baseline over
-        in-band SSH - reference outputs captured against hash-pinned inputs using
-        the fixed procedures, with the baseline-skew record (the GPU-side vLLM
+        in-band SSH - reference outputs captured against the inputs the registration
+        record names, using the fixed procedures, with the baseline-skew record (the GPU-side vLLM
         version read live from the baseline environment plus the kickoff-recorded
         known cross-version behavior differences) written into the capture. When
         this campaign's route declares no GPU-baseline comparator, record the
@@ -2102,7 +2101,8 @@ pave:
       activities:
       - Verify the baseline instance identity and read its live vLLM version;
         refuse to capture if it contradicts the kickoff record.
-      - Run the fixed reference-capture procedures against hash-pinned inputs;
+      - Run the fixed reference-capture procedures against the inputs the
+        registration record names, each confirmed against the identity it declares;
         record outputs one file per event.
       - Write the baseline-skew record into the capture.
       allowed_effects:
@@ -2119,8 +2119,8 @@ pave:
           - baseline_reference_capture
         baseline_unusable:
           meaning: The named baseline is unreachable, contradicts the kickoff
-            record, would require a reset to proceed, a pinned capture input's
-            live digest contradicts its design-record pin, or the serving stack
+            record, would require a reset to proceed, a named capture input whose
+            live identity contradicts the registration record, or the serving stack
             the capture must launch would write a cache to a persistent location
             that cannot be redirected to run-scoped scratch (the layout entry's
             durable-host-state refusal ground); routed to re-derivation with the

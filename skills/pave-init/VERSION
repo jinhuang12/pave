@@ -1,4 +1,4 @@
-version: 2.5.3
+version: 2.5.4
 
 ## How changelog entries are written
 
@@ -17,6 +17,41 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.5.4 (2026-09-09)
+
+Changed — a digest may pin only what never changes again. New
+`references/pave-spec.md` section 9.14.3: content-address a write-once value
+file, a ledger entry, a build stamp, or world state no repository holds; never a
+file still being edited, because the pin makes every fix a new file plus a
+re-pin of all that named it, and the writer of the bytes also wrote the number.
+Section 9.10 registers a measurement instrument by path and commit, not by
+content digest. The revisions contract, the approval-brief rule, the material
+reviewer, and the workflow updater each carry one clause of the same rule, and
+the build-stage mapping tells a generated workflow to prove file identity by
+commit and test. `scripts/measure_artifact.py` drops its unconsumed `sha256`
+field.
+  - Why: the GLM 5.3 campaign audit of 2026-09-09 found 4 real catches by any
+    hash check, none a wrong measurement or wrong shipped code; 13 benign fires
+    that each cost a re-cut lap; 27 blocks that re-pinned and proceeded
+    unchanged; at least 7 typed-digest defects introduced by the protocol; and
+    the section 9.10 sentence "content digest" as the licence for pinning a
+    script still under revision.
+
+Changed — evidence is demanded where a claim bears on acceptance, and working
+state is edited in place. Section 8.4 now says the script that produced world
+evidence, and any builder, self-test, or control for it, is working state under
+a per-file cap: one current revision, edited in place, the superseded copy
+deleted in the same lap, never re-cut under a new name. The build stage writes
+the section 5.3 evidence bound into every generated role contract (a
+control-flow outcome needs no instrument; the declared acceptance is the
+instrument and gets no second instrument), and the write-for-the-reader
+advisory sizes any file written under a working-state path, whatever its
+extension. The node planner's effort rule adds: effort sets how much a seat
+thinks, not how much it writes.
+  - Why: the same campaign wrote 10,844 files under one working directory with
+    no cap; two thirds were re-cuts of scripts under new lap names, and about
+    half of all characters the agents wrote went there.
 
 ### 2.5.3 (2026-09-09)
 

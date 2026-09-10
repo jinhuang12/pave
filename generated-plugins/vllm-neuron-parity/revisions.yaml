@@ -562,3 +562,82 @@ entries:
   commit: f2e428df43cec16697ac69961bc96ace720e0ad9
   derived_from: null
   run_id: null
+- revision: 7
+  kind: graph
+  landed_at: '2026-09-09T22:11:52Z'
+  digest_before: sha256:d00e951b0e874ef88edbeae69798f1fcf5ff8694713212c99b21654806e35f12
+  digest_after: sha256:7122658f420f313cba40f50163cd9c7df11dc2f618ef4666e3e534fbc82b3163
+  semantic_diff: 'No digest of a living document or of a run input anywhere in the
+    graph. 13 hunks, 27 added lines against 27 removed, every one prose inside existing
+    structure: node ids, outcome sets, roles, effects, consumes and produces lists,
+    required_evidence lists, check styles, evaluators, failure routes, edges and control
+    endpoints are equal between the two graphs, proved by parsing both and comparing
+    the skeletons field by field (32 nodes / 95 edges / 5 control endpoints unchanged).
+
+    (1) BLOCK-SCOPED PLAN LAPS HAND BACK THE TOUCHED BLOCKS ONLY. Five sites (increment_plan_draft
+    subject, review_campaign_design, draft_increment_plan body and plan_drafted outcome,
+    assemble_design_record) said the lap returns "touched blocks with their new digests,
+    must-hold digests of every other block" and the lead "byte-checks every untouched
+    block". The plan is a living document that must shrink (references/artifact-layout.md
+    section 4.12: "nothing binds a block of the increment plan"), so every legitimate
+    deletion lap moved every block digest, and the lead''s read of the diff was already
+    the instrument. Now: the touched blocks, nothing else; the lead reads the diff
+    to confirm no unnamed block moved.
+
+    (2) RUN STATE POINTS AT THE PLAN''S REVISION-LOG LINE, NOT A PER-EDIT DIGEST.
+    Four sites (increment_lap_record subject, review_campaign_design bookkeeping edits
+    and re-entry brief, scope_next_increment lap record) recorded "the plan digest"
+    after each edit or collapse. A digest of a document that changes on every bookkeeping
+    edit is a change detector the revision log already is; the campaign re-derived
+    block pins at 23 plan revisions and every one reproduced.
+
+    (3) THE PIN SCREEN COMPARES THE CAMPAIGN''S TARGET PIN TO ITS SOURCE. Two sites
+    in screen_pin_and_progress said "pin digest compared byte-identical against pinned_release";
+    no digest of pinned_release ever existed, and the value the screen actually holds
+    is the campaign''s campaign_target_pins entry, whose declared source is pinned_release
+    for a backport route and the kickoff-declared upgrade base for an upgrade route
+    (state contract). The text now names that compare.
+
+    (4) THE MEASURER CONFIRMS INPUTS AGAINST THE REGISTRATION RECORD. Three sites
+    in capture_baseline_reference (purpose, activity, baseline_unusable) said "hash-pinned
+    inputs" and "a pinned input whose live digest contradicts its design-record pin";
+    the plugin ships no script that computes or compares such a digest, and the design
+    record declares no such field. The registration record does declare the comparator
+    set''s "identity, config, versions" (preregister_acceptance), so the inputs are
+    now the ones the registration record names, each confirmed against the identity
+    it declares, and baseline_unusable names an input whose live identity contradicts
+    the registration record.
+
+    WHY, GENERALLY: pave-spec 9.14.3 (pave-init 2.5.4) - content-address only what
+    never changes again; a pin on a file still being edited makes every fix a new
+    file plus a re-pin of all that named it, and the writer of the bytes also wrote
+    the number. The kept digests are the ones a tool computes on a write-once subject:
+    the ledger chain in revisions.yaml, the kickoff-criteria digest in narrow_delta_scoped
+    (:286) and the registration re-entry digest (:1288) - both write-once subjects
+    - the registration record''s timestamp check (comparators_preregistered, :320-325),
+    and measurement captures. Nothing here names a tool, a model or a metric, and
+    it removes text rather than adding it.
+
+    FIELD EVIDENCE: GLM 5.3 Flash campaign audit of 2026-09-09 (eight-agent workflow,
+    34 claims confirmed / 9 weakened / 0 refuted): 4 real catches by any hash check,
+    none a wrong measurement or wrong shipped code; 13 fires on benign differences
+    that each cost a re-cut lap; 27 blocks that re-pinned and proceeded unchanged;
+    at least 7 typed-digest defects introduced by the protocol; 1,437 of 8,662 increments
+    files (16.6%) in pinning-only name families. Release-layer copies of the same
+    sentences (agents, SKILL.md, references, Codex agents) are corrected in 1.5.4;
+    this revision is the graph copy. Reviewed by an independent adversarial reviewer
+    (fable) as part of the 1.5.4 batch; its HIGH finding on the pin-screen wording
+    is applied in (3) before landing.'
+  approval: 'user, 2026-09-09: ''ultracode this investigation as well to see if we
+    should cut it and bundle into these changes as well'' then ''1. delete 2. relax
+    3. land prose first'''
+  envelope_check: changed_with_approval
+  plan_evidence: verified
+  usage_evidence: field
+  review: 'adversarial-investigator (fable) a7dee763eb15575bd: round 1 REVISE (H1-H4),
+    round 2 PASS on the re-proposed patch (13 hunks, 27/27); one LOW label fix applied
+    in the semantic diff before landing'
+  patch: history/v7.patch
+  commit: null
+  derived_from: null
+  run_id: null

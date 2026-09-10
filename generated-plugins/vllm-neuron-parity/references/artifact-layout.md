@@ -61,7 +61,7 @@ artifacts/
 | run/delta/<target>/ | that target's trace_target_delta instance (report landing paths: §4.7) |
 | run/delta/index/ | assemble_delta_report |
 | campaigns/*/kickoff, approvals | assemble_kickoff_contracts (+ gate records by review_campaign_design, close_campaign) — write-once per decision: a later user decision lands as a new dated section or addendum beside the recorded one, never as an edit of it |
-| campaigns/*/design/ | the design sibling that produces each artifact; assemble_design_record writes the record and performs superseded-artifact deletions; the lead writes the bookkeeping edits recorded at review_campaign_design (one revision-log line in the document; the edit summary and the new digest ride the gate traversal's `completed_outcomes[].note` in run state, 500 characters — longer content stays in the document's revision log), the landed-block collapse at scope_next_increment (digest in the lap record), and the record delta on a verified block diff (digest in the record's revision log and the traversal note) |
+| campaigns/*/design/ | the design sibling that produces each artifact; assemble_design_record writes the record and performs superseded-artifact deletions; the lead writes the bookkeeping edits recorded at review_campaign_design (one revision-log line in the document; the edit summary and that line's reference ride the gate traversal's `completed_outcomes[].note` in run state, 500 characters — longer content stays in the document's revision log), the landed-block collapse at scope_next_increment (the plan's revision-log line named in the lap record), and the record delta on a read block diff (one line in the record's revision log, named in the traversal note) |
 | campaigns/*/increments/ | scope_next_increment (lap records — the lead's on lead-settled laps), realize_increment (evidence records), record_changeset (changeset) |
 | campaigns/*/attempts/ | acquire_hardware_lease + lead (lease records), replicate_campaign_venv, execute_attempt_loop, recover_leased_host — one file per event, append-only |
 | campaigns/*/measurements/procedures | realize_measurement_procedures |
@@ -262,7 +262,9 @@ commitment timestamp against every measurement artifact.
 **Instrument-liveness pair**, registered per criterion in this same
 write-once record: the VALUE that must appear as evaluated in the
 evidence for that criterion, and the TRIPWIRE input the procedure must
-fail on. Both are adjudicable values, so the P9 digest fixes both.
+fail on. Both are adjudicable values, so the write-once registration
+record fixes both; `comparators_preregistered` compares that record's
+timestamp against every measurement artifact, which is the check that runs.
 `procedures_smoke_verified` reads the tripwire result out of the smoke
 record; `acceptance_threshold_evaluated` reads the value out of the
 evidence bundle (§4.6). A criterion for which no tripwire exists is
@@ -316,13 +318,10 @@ increment id -> evidence file(s) -> acceptance command + exit code.
   per-target event files under a scan-entry id — never a stored integer.
 - Assembly record homes: coverage-diff, per-target verdicts, grants,
   index (current only) as laid out in §1.
-- **Report-hash scope + write ownership live in THIS entry together**:
-  the hash covers the report file and its cited transcripts; report
-  content originates only from trace_target_delta instances — so "hash
-  changed => a tracer produced new content" reads directly off this
-  entry (the bound-exhaustion guard's soundness rests on that
-  implication; drift between hash scope and ownership silently unbacks
-  the guard). Two first-class landing paths carry that content: the
+- **Write ownership lives in THIS entry**: report content originates
+  only from trace_target_delta instances, so a changed report means a
+  tracer produced new content (the bound-exhaustion guard counts grant
+  files, never a report hash). Two first-class landing paths carry that content: the
   seat writes its report file itself, or — when the harness refuses a
   seat's report write (observed: the harness's subagent report-file
   guard) — the LEAD transcribes the seat's handed-back report text
@@ -331,7 +330,7 @@ increment id -> evidence file(s) -> acceptance command + exit code.
   transcript reference — one citation per transcribed report, the
   preflight precedent), and records the transcription per target under
   run state's `notes` (the schema's free-form home). Either way the
-  content author is the tracer, never the lead; a report-hash change
+  content author is the tracer, never the lead; a report change
   with neither a seat write nor a recorded transcription behind it is
   a violation.
 
@@ -416,7 +415,7 @@ the costing and backlog report (`run/backlog/`), and the PR evidence
 package (`pr/`). Each has a cap of 400 lines AND 60 KB; one that needs
 more declares its own cap here, with the reason. Three classes sit
 outside the cap and are never shrunk: the write-once registration record
-(§4.5 — the P9 digest fixes it), append-only records (`kickoff/` and
+(§4.5 — write-once by construction, timestamp-checked), append-only records (`kickoff/` and
 `approvals/` per §2, the reviewer stream under `reviews/` that the §4.3
 detector reads across rounds), and
 world-produced evidence (transcripts and probe records at their evidence
@@ -429,9 +428,9 @@ archive:
   contract by that pointer (§4.6: acceptance command and exit code at
   the evidence record) and by the registration record; a planned
   increment's contract stays inline. Its frozen values stay in the
-  registration record (§4.5), the single write-once file; the P9 digest
-  binds that record only, never a block of the increment plan, which
-  must stay free to shrink.
+  registration record (§4.5), the single write-once file. Nothing binds a
+  block of the increment plan, which must stay free to shrink; a
+  block-scoped lap is checked by reading its diff.
 - A settled target or route collapses to one row with its evidence
   pointer: the decision and where its evidence lives, never the analysis
   that reached it.
@@ -448,6 +447,19 @@ archive:
   before any new content. `write-for-reader.sh` names an over-cap
   document with its size at the write; the writer classifies it, and a
   record or transcript is left alone.
+- `campaigns/*/increments/` working files (the increments row): an
+  evidence record 200 lines; a lap record 100 lines; a script header —
+  shebang, comments, module docstring before the first code line — 20
+  lines. World-produced evidence is the bytes a command printed; it is
+  kept whole. The script that ran it, and any builder, self-test, or
+  control for that script, is working state: one current revision,
+  edited in place, the superseded copy deleted in the same lap — never
+  renamed with a lap suffix (`-rN`). `write-for-reader.sh` names an
+  over-cap file, an over-cap header, or a lap-suffixed name at the
+  write (the 200-line and 20-line caps; the lap-record cap is the
+  reviewer's); the batch review records `measure_artifact.py --tree` and
+  `--classify` for the batch; over cap is a narrow finding whose repair
+  is a deletion lap.
 
 ### 4.13 Write for the reader
 
@@ -471,10 +483,12 @@ the user, read by the same stranger.
   archived.
 
 Exempt: working state written for the next agent — attempt, lease,
-measurement, increment, index, and intake-preflight records, and run
-state itself. The cap in §4.12 is a separate duty with a separate scope:
-this one covers every reader-facing `.md` and every message to the
-user, the cap covers living documents only.
+measurement, index, and intake-preflight records, and run state itself.
+Increment evidence and lap records are read by the reviewer and by the
+next scoper, so the duty reaches them. The cap in §4.12 is a separate
+duty with a separate scope: this one covers every reader-facing `.md`
+and every message to the user; the cap covers living documents and, by
+its increments row, everything under `increments/`.
 
 Enforcement: `write-for-reader.sh` re-presents this duty on document
 writes (advisory, never blocking) and names an over-cap document with its

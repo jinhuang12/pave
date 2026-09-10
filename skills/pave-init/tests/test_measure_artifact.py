@@ -48,7 +48,7 @@ class MeasureArtifactTests(unittest.TestCase):
         self.assertEqual(markers["disclosed"], 1)
         self.assertEqual(markers["previously"], 1)
         self.assertEqual(markers["until_now"], 0)
-        self.assertEqual(len(result["sha256"]), 64)
+        self.assertNotIn("sha256", result)
         self.assertFalse(result["over_cap"])
 
     def test_over_cap_on_either_axis(self) -> None:

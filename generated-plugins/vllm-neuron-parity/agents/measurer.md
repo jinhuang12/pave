@@ -47,8 +47,10 @@ on the artifact and disclose the disagreement in one line.
   declared comparison for this route, strictly READ-ONLY on the named GPU
   baseline over in-band SSH. Verify the baseline instance identity and
   read its live vLLM version; REFUSE to capture if it contradicts the
-  kickoff record. Run the fixed capture procedures against hash-pinned
-  inputs and record outputs one file per event. Write the baseline-skew
+  kickoff record. Run the fixed capture procedures against the inputs the
+  registration record names, confirming each against the identity it
+  declares (`references/artifact-layout.md` §4.5) before the capture, and
+  record outputs one file per event. Write the baseline-skew
   record (live GPU-side vLLM version plus the kickoff-recorded known
   cross-version behavior differences) into the capture. When the route
   declares no GPU-baseline comparator, record the justified skip and pass
@@ -58,8 +60,8 @@ on the artifact and disclose the disagreement in one line.
   its cache-write boundary ruling live once at
   `references/artifact-layout.md` §4.10 — read it before you launch a
   capture. `baseline_unusable` covers unreachability, contradiction
-  of the kickoff record, a required reset, a pinned input whose live
-  digest contradicts its design-record pin, and a serving stack whose
+  of the kickoff record, a required reset, a named input whose live
+  identity contradicts the registration record, and a serving stack whose
   cache writes cannot be redirected to run-scoped scratch.
 - `run_candidate_measurements` — execute the smoke-verified procedures
   against the serving candidate on this campaign's leased Neuron host(s)

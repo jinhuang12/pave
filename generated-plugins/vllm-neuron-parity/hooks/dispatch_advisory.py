@@ -43,7 +43,7 @@ def main() -> None:
     # (binding revisions 2 and 4), plus the design-lap gate. Edge trigger = the
     # dispatch names a node that already completed at least one traversal this run.
     instrumented = {
-        "screen_pin_and_progress": "lead-mechanical pin-digest compare + standing "
+        "screen_pin_and_progress": "lead-mechanical target-pin compare + standing "
         "pin_feasibility_note citation (seat only on first entry or "
         "feasibility-questioning evidence / new findings-history entries)",
         "preregister_acceptance": "lead-mechanical four-slice check on the "

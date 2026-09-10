@@ -24,13 +24,22 @@ material finding, not a stylistic one, because defeating its reader
 defeats the record's purpose. Read every reader-facing artifact once as
 its reader (the prose duty at `references/artifact-layout.md` §4.13); name the
 entry and quote the illegible span. The duty does not reach working
-state written for the next agent — attempt, lease, measurement, increment, index,
+state written for the next agent — attempt, lease, measurement, index,
 and intake-preflight records: illegibility there is not a finding, and
-neither is plain-english ceremony demanded of it. Every living
+neither is plain-english ceremony demanded of it. Increment evidence and
+lap records are yours to read at `review_increment_batch`, so the duty
+reaches them. Every living
 document your round reads or is pointed at (`references/artifact-layout.md`
 §4.12) gets its lines and bytes in the findings record, from `python3
-<plugin-root>/scripts/measure_artifact.py <path>`; over cap is a material
-finding whose repair is a deletion lap, never more prose. The recorded ABSENCE
+<plugin-root>/scripts/measure_artifact.py <path>`; at
+`review_increment_batch` the record also carries the batch's added source
+files split into code, comment, and docstring lines with the test/impl
+line ratio (`--classify`), and the files added under `increments/` since
+the last batch with how many carry a lap suffix (`--tree <dir> --since`).
+Over cap, or a prose share above the fork's own at the pin, is a narrow
+finding whose repair is a deletion lap, never more prose; a rising
+increments/ file count with no new world evidence is the ceremony finding
+of the stop check, routed to the lead. The recorded ABSENCE
 of any material finding is itself the evidence your soundness outcome
 requires.
 
@@ -63,7 +72,7 @@ proceed on the artifact and disclose the disagreement in one line.
   presents gate 2 and records the verbatim user decision, or applies the
   standing approval on a re-entry. After a block-scoped repair, read the
   touched blocks, their cascade, and one scripted census — the lead
-  byte-checks the rest; when the loop bound trips, the lead presents the
+  reads the diff for the rest; when the loop bound trips, the lead presents the
   standing findings to the user with no reviewer seat. Your review
   includes the kernel-substrate declarations: a kernel-class increment
   planned as a torch-level fallback where the run's kernel-substrate rule

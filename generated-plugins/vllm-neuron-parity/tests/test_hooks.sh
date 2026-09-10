@@ -17,6 +17,10 @@
 #     the workspace stay silent
 #   - garbage stdin exits 0 with empty stdout
 #   - Edit payloads (file_path + old_string/new_string) count like Write
+#   - increments/ is not exempt: .py/.sh/.md/.txt writes there get the
+#     increments sentence (cap, edit in place, delete superseded); a lap
+#     suffix, over-cap file, or over-cap header bypasses the throttle once
+#     per file; .out there and .py outside increments/ stay silent
 #
 # What is tested for graph_edit_guard: it denies (exit 2) a direct Edit or
 # Write of a live *.pave.yaml or of revisions.yaml only when a revisions.yaml
@@ -227,6 +231,61 @@ OUT="$(payload "$PLAN" s12 | VLLM_NEURON_PARITY_CAP_LINES=1000 bash "$READER_HOO
 ok=0; [ "$RC" = "0" ] && reminds "$OUT" && ! printf '%s' "$OUT" | grep -q "over its cap" && ok=1
 report "reader: cap follows VLLM_NEURON_PARITY_CAP_LINES" "$ok" "rc=$RC out=$OUT"
 rm -f "$PLAN"
+
+# 19-25. increments/ (references/artifact-layout.md section 4.12, parity 1.5.4):
+# .py/.sh/.md/.txt writes there get the increments sentence; a lap suffix, an
+# over-cap file, or an over-cap header bypasses the throttle once per file;
+# world-produced output (.out) and non-.md writes elsewhere stay silent.
+INC="$ARTIFACTS/campaigns/c1/increments"
+mkdir -p "$INC"
+incr_reminds() { # $1 = hook stdout, $2 = substring the sentence must carry
+  printf '%s' "$1" | python3 -c '
+import json, sys
+doc = json.load(sys.stdin)
+assert set(doc) == {"hookSpecificOutput"}, doc
+hook = doc["hookSpecificOutput"]
+assert hook["hookEventName"] == "PostToolUse", hook
+assert "increments" in hook["additionalContext"] and sys.argv[1] in hook["additionalContext"], hook
+' "$2" 2>/dev/null
+}
+
+printf '#!/bin/bash\n# one line\necho hi\n' > "$INC/accept-001-host.sh"
+OUT="$(run_hook "$INC/accept-001-host.sh" s13)"; RC=$?
+ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "edited in place" && ! printf '%s' "$OUT" | grep -q "lap suffix (-rN)" && ok=1
+report "reader: increments/ .sh write gets the increments sentence" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(run_hook "$INC/accept-001-host.sh" s13)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: 2nd clean increments/ write rides the throttle" "$ok" "rc=$RC out=$OUT"
+
+printf '#!/bin/bash\necho hi\n' > "$INC/accept-001-host-r3.sh"
+OUT="$(run_hook "$INC/accept-001-host-r3.sh" s13)"; RC=$?
+ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "lap suffix (-rN)" && ok=1
+report "reader: a lap-suffixed increments/ name is named past the throttle" "$ok" "rc=$RC out=$OUT"
+
+python3 -c 'import sys; open(sys.argv[1], "w").write("#!/usr/bin/env python3\n" + "# why this exists\n" * 30 + "print(1)\n")' "$INC/build-002.py"
+OUT="$(run_hook "$INC/build-002.py" s13)"; RC=$?
+ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "31 lines against a cap of 20" && ok=1
+report "reader: a 31-line increments/ header is named past the throttle" "$ok" "rc=$RC out=$OUT"
+
+python3 -c 'import sys; open(sys.argv[1], "w").write("row\n" * 250)' "$INC/evidence-003.md"
+OUT="$(run_hook "$INC/evidence-003.md" s13)"; RC=$?
+ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "over the 200-line cap" && ! printf '%s' "$OUT" | grep -q "plain english" && ok=1
+report "reader: a 250-line increments/ record is over cap, no prose duty" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(payload "$INC/evidence-003.md" s14 | VLLM_NEURON_PARITY_INCR_CAP_LINES=300 bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "300 lines" && ! printf '%s' "$OUT" | grep -q "over the" && ok=1
+report "reader: increments cap follows VLLM_NEURON_PARITY_INCR_CAP_LINES" "$ok" "rc=$RC out=$OUT"
+
+printf 'transcript\n' > "$INC/accept-001-host.out"
+OUT="$(run_hook "$INC/accept-001-host.out" s15)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: increments/ .out write is silent" "$ok" "rc=$RC out=$OUT"
+
+OUT="$(run_hook "$ARTIFACTS/campaigns/c1/design/helper.py" s15)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
+report "reader: .py write outside increments/ is silent" "$ok" "rc=$RC out=$OUT"
+rm -rf "$INC"
 
 # --- graph_edit_guard --------------------------------------------------------
 # The live canonical graph is landed by record_revision.py from a reviewed

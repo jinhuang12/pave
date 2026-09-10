@@ -1,4 +1,56 @@
-version: 1.5.3
+version: 1.5.4
+
+## 1.5.4 — 2026-09-09
+
+Working-state caps, code economy, and the end of digest pins on living
+documents. Graph revision 7 (`history/v7.patch`) lands the graph's copy of the
+digest cut; everything else is release-layer.
+
+- New — the increments cap (`references/artifact-layout.md` §4.12, increments
+  row): an evidence record 200 lines, a lap record 100 lines, a script header 20
+  lines. World-produced evidence — the bytes a command printed — is kept whole;
+  the script that produced it, and any builder, self-test, or control for that
+  script, is working state: one current revision, edited in place, the
+  superseded copy deleted in the same lap, never renamed with a lap suffix.
+  `write-for-reader.sh` names an over-cap file, an over-cap header, or a
+  lap-suffixed name at the write (`.py`, `.sh`, `.md`, `.txt` under
+  `increments/`); `scripts/measure_artifact.py --tree` and `--classify` give the
+  reviewer the increments census and the code/comment/docstring split, and the
+  batch review records both.
+  - Field evidence: the first run under this plugin wrote 10,844 files under
+    `increments/` with no cap; two thirds were re-cuts under new lap names. The
+    user deleted 2,527 superseded copies on 2026-09-09.
+- Changed — implementer contract. Evidence is demanded where a claim bears on
+  acceptance; the declared acceptance command is the instrument and gets no
+  second instrument — no self-test, builder, or control for a one-off script;
+  one evidence record per increment, its investigation edited in place. Landed
+  code follows the fork's house style (a few-line module docstring, one-line
+  docstrings, a comment only where the code cannot say it); campaign identifiers
+  never appear in shipped source or tests; the test is one item per declared
+  conjunct and nothing the block does not name.
+  - Field evidence: the tracking PR carried 183k added lines; a 76,115-line
+    vendor fixture was 42.8% of them and most of the rest was tests and comments.
+- Changed — the reviewer's exempt list no longer covers increment records, and
+  every batch review records added lines by class, the test/impl ratio, and the
+  increments census; over cap, or a rising file count with no new world
+  evidence, is a finding whose repair is a deletion lap.
+- Changed — no digest of a living document or run input. The agents, their Codex
+  copies, SKILL.md, and the layout reference stop naming "must-hold block
+  digests", the "P9 digest", "hash-pinned inputs", and a per-edit plan digest;
+  the checks that run are named instead: the lead reads the block diff,
+  `comparators_preregistered` compares the registration record's timestamp, the
+  campaign's target-pin entry compares equal to its declared source, and the
+  measurer confirms each input against the identity the registration record
+  declares. Graph revision 7 lands the same wording in `workflow.pave.yaml`
+  (13 hunks, 27 lines for 27, skeleton unchanged). `scripts/measure_artifact.py`
+  drops its unconsumed `sha256` field. Rule: pave-spec §9.14.3 (pave-init 2.5.4).
+  - Field evidence (campaign audit, 2026-09-09): 4 real catches by any hash
+    check, none a wrong measurement or wrong shipped code; 13 benign fires that
+    each cost a re-cut lap; 27 blocks that re-pinned and proceeded unchanged; at
+    least 7 typed-digest defects introduced by the protocol.
+- Not changed — the revision ledger's digests, the registration record's
+  write-once check, and the measurement-capture content hashes the reviewer
+  records: each on a write-once subject.
 
 ## 1.5.3 — 2026-09-09
 

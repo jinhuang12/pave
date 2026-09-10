@@ -23,7 +23,6 @@ Stdlib only.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
@@ -72,7 +71,6 @@ def measure(
         "over_cap": len(lines) > cap_lines or len(data) > cap_bytes,
         "sections": sections,
         "narration_markers": {name: len(pattern.findall(text)) for name, pattern in NARRATION_PATTERNS},
-        "sha256": hashlib.sha256(data).hexdigest(),
     }
     if baseline is not None:
         base = measure(baseline, cap_lines, cap_bytes)

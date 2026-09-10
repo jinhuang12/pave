@@ -50,9 +50,10 @@ on the artifact and disclose the disagreement in one line.
   out of scope. The plan and the design record are living documents
   under the cap at `references/artifact-layout.md` §4.12 — collapse and
   shrink per that entry. A re-entry brief names the blocks to touch and the
-  lap hands back a block diff — touched blocks with their new digests,
-  must-hold digests of every other block — never a whole-plan rewrite,
-  stopping for a re-brief when the change cascades into an unnamed block.
+  lap hands back a block diff — the touched blocks and nothing else —
+  never a whole-plan rewrite, stopping for a re-brief when the change
+  cascades into an unnamed block. The lead reads the diff; an untouched
+  block needs no pin.
   Author against the target
   artifacts on disk (checkpoint configuration, weight index, source at
   the pin), never from memory of them.
@@ -144,8 +145,8 @@ on the artifact and disclose the disagreement in one line.
   recomputed gap check that found it; a repackaging item regroups commits
   and records so the changeset reads as one unit per plan increment, with
   no new code behavior. On failure, investigate and repair within this
-  increment, persisting the investigation record (checked, ruled out,
-  found) as it grows. Never deviate from the design to reach green — a
+  increment; the investigation (checked, ruled out, found) goes into the
+  evidence record's investigation section, edited in place. Never deviate from the design to reach green — a
   recorded contradiction (`evidence_contradicts_design`) outranks a pass
   reached by deviation and outranks `increment_stuck`. Writes outside the
   campaign worktree and branch, hardware attempts, and any change to
@@ -312,21 +313,39 @@ gate (P6).
 
 ## Evidence discipline
 
-Settle every claim on world-produced signals: command transcripts with
-exit codes, git-issued commit hashes and revision identifiers, resolvable
-PR URLs, machine-readable probe outputs. Never self-report a pass — the
-instrument produces the value, not your judgment. Public facts — upstream
-release notes, issue threads, API docs — come from a web search or a
-fetch of the source, cited by URL, never re-derived from memory. Command
-exit status is
+Settle every acceptance-bearing claim on a world-produced signal: the
+declared acceptance command's transcript with its exit code, the
+git-issued commit hash, the diff stat, a resolvable PR URL, a probe's
+machine-readable output. A control-flow outcome with a self-explanatory
+exit code needs no instrument. Never self-report a pass — the instrument
+produces the value, not your judgment. Public facts — upstream release
+notes, issue threads, API docs — come from a web search or a fetch of the
+source, cited by URL, never re-derived from memory. Command exit status is
 rung 1; test ADEQUACY is rung 2 and is settled by review, so never claim
-rung-1 authority for adequacy. Persist one file per event under your
-node's directory per `references/artifact-layout.md`.
+rung-1 authority for adequacy. The declared acceptance command is the
+instrument: do not build a second instrument to prove the first, and do
+not write a self-test, builder, or control for a one-off script. Persist
+one evidence record per increment (capped, `references/artifact-layout.md`
+§4.12) beside the acceptance transcript; on a stuck lap the investigation
+goes into that record's investigation section, edited in place.
 
 Anything you persist that a person will read — design records, increment
-plans, and PR descriptions — follows the prose duty at
-`references/artifact-layout.md` §4.13; attempt, lease, and increment
-records are the exempt working state named there.
+plans, evidence and lap records, and PR descriptions — follows the prose
+duty at `references/artifact-layout.md` §4.13; attempt and lease records
+are the exempt working state named there. Everything you write under
+`increments/` sits under the increments cap in §4.12.
+
+Code you land follows the fork's house style at the pin: a module
+docstring of a few lines, a one-line docstring per public function, a
+comment only where the code cannot say it (`vllm_neuron/functional/argsort_unstable.py`
+at the pin is the shape). Do not restate the plan block, a ruling, or the
+increment id in source; that history lives in the evidence record, and
+campaign identifiers (`inc-glm53f-`, `§N`, `P13`, lap numbers) never
+appear in shipped source or tests. Write the test the block declares —
+one item per declared conjunct — and nothing the block does not name; a
+hollow acceptance is the reviewer's finding to name, not yours to
+pre-empt with more tests. A script under `increments/` opens with at
+most 20 header lines: what it does, its inputs, its one output.
 
 ## How you run
 

@@ -48,7 +48,7 @@ class MeasureArtifactTests(unittest.TestCase):
         self.assertEqual(markers["disclosed"], 1)
         self.assertEqual(markers["previously"], 1)
         self.assertEqual(markers["until_now"], 0)
-        self.assertEqual(len(result["sha256"]), 64)
+        self.assertNotIn("sha256", result)
         self.assertFalse(result["over_cap"])
 
     def test_over_cap_on_either_axis(self) -> None:
@@ -88,6 +88,79 @@ class MeasureArtifactTests(unittest.TestCase):
         record = json.loads(as_json.stdout)
         self.assertEqual(record["lines"], 7)
         self.assertEqual(record["cap_lines"], ma.DEFAULT_CAP_LINES)
+
+    def test_classify_python_and_shell(self) -> None:
+        py = Path(self.tmp.name) / "mod.py"
+        py.write_text(
+            '#!/usr/bin/env python3\n'
+            '"""Module docstring\n'
+            'second line\n'
+            '"""\n'
+            '\n'
+            '# a comment\n'
+            'x = 1  # trailing comment counts as code\n'
+            '\n'
+            'def f():\n'
+            '    """one-line docstring"""\n'
+            '    return x\n',
+            encoding="utf-8",
+        )
+        result = ma.classify(py)
+        self.assertEqual(result["lines"], 11)
+        self.assertEqual(result["docstring"], 4)
+        self.assertEqual(result["comment"], 2)  # shebang + '# a comment'
+        self.assertEqual(result["blank"], 2)
+        self.assertEqual(result["code"], 3)
+        self.assertEqual(result["header_lines"], 6)  # shebang, 3 docstring lines, blank, comment
+        self.assertAlmostEqual(result["prose_share"], 6 / 11, places=3)
+
+        sh = Path(self.tmp.name) / "run.sh"
+        sh.write_text("#!/bin/bash\n# why\n\necho hi  # trailing\n", encoding="utf-8")
+        result = ma.classify(sh)
+        self.assertEqual((result["code"], result["comment"], result["blank"]), (1, 2, 1))
+        self.assertEqual(result["header_lines"], 3)
+        self.assertIn("prose share", ma.render_classify(result))
+
+    def test_header_lines_docstring_edge_cases(self) -> None:
+        raw = Path(self.tmp.name) / "raw.py"
+        raw.write_text('r"""Regex helper."""  # note\n\nimport re\n', encoding="utf-8")
+        self.assertEqual(ma.header_lines(raw), 2)  # prefixed one-line docstring + trailing comment, blank
+        multi = Path(self.tmp.name) / "multi.py"
+        multi.write_text("'''Doc\nmore'''  # trailing\nx = 1\n", encoding="utf-8")
+        self.assertEqual(ma.header_lines(multi), 2)  # closing quote mid-line ends the block
+
+    def test_tree_counts_laps_superseded_and_headers(self) -> None:
+        inc = Path(self.tmp.name) / "increments"
+        inc.mkdir()
+        (inc / "accept-001-host-r1.sh").write_text("#!/bin/bash\n" + "# h\n" * 30 + "echo\n")
+        (inc / "accept-001-host-r2.sh").write_text("#!/bin/bash\necho\n")
+        (inc / "accept-001-host-r2.out").write_text("ran\n")
+        (inc / "evidence-001.md").write_text("# e\n")
+        (inc / "build-002-r4.py").write_text("print(1)\n")
+        result = ma.tree(inc)
+        self.assertEqual(result["files"], 5)
+        self.assertEqual(result["lap_suffixed"], 4)   # r1.sh, r2.sh, r2.out, r4.py
+        self.assertEqual(result["superseded"], 1)     # r1.sh below r2.sh; .out and .py stems stand alone
+        self.assertEqual(result["header_lines_total"], 31 + 1 + 0)
+        self.assertEqual(result["header_lines_median"], 1)
+        self.assertEqual(result["by_ext"][".sh"], 2)
+        self.assertIn("1 superseded", ma.render_tree(result))
+        self.assertEqual(ma.tree(inc, since="2999-01-01")["files"], 0)
+
+    def test_cli_classify_and_tree(self) -> None:
+        inc = Path(self.tmp.name) / "inc"
+        inc.mkdir()
+        (inc / "a-r1.sh").write_text("echo\n")
+        py = inc / "b.py"
+        py.write_text("# c\nx = 1\n")
+        out = subprocess.run([sys.executable, str(SCRIPT), "--classify", str(py)], capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0)
+        self.assertIn("code 1, comment 1", out.stdout)
+        out = subprocess.run([sys.executable, str(SCRIPT), "--tree", str(inc), "--json"], capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0)
+        self.assertEqual(json.loads(out.stdout)["lap_suffixed"], 1)
+        two = subprocess.run([sys.executable, str(SCRIPT), "--tree", str(inc), str(py)], capture_output=True, text=True)
+        self.assertNotEqual(two.returncode, 0)
 
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ on the artifact and disclose the disagreement in one line.
   acceptance verdicts by reading the STABLE measurement artifacts against
   the kickoff-declared thresholds: the correctness and performance gates
   for backport-route campaigns, and for upgrade-route campaigns the
-  kickoff-declared regression matrix instead. Read the registration digest
+  kickoff-declared regression matrix instead. Read the registration record
   (`references/artifact-layout.md` §4.5) and confirm the comparator set
   was frozen before the measurements you are reading — a verdict against
   post-hoc comparators is void. Quote each threshold verbatim from the
@@ -96,7 +96,7 @@ provisioning STOP gate (P6).
   `jinhuang12/vllm-neuron` fork. Merge is human and is never part of a
   verified closure.
 - P9 — comparators are frozen before measurement; adjudicate against the
-  registration digest, and never re-scope a criterion to fit the numbers.
+  registration record, and never re-scope a criterion to fit the numbers.
 - P10 — the lead is the single writer of run state and cross-run
   artifacts. Write only your verdict artifacts, inside your node's own
   directory per `references/artifact-layout.md` §2.

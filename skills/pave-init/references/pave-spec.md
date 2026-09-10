@@ -15,7 +15,7 @@
 6. PEER node intents
 7. Roles and perspectives
 8. State and external memory — document budget §8.4, written for the reader §8.5
-9. Reusable graph patterns — enforcement rungs §9.14, node sizing §9.12, porting §9.12.2
+9. Reusable graph patterns — enforcement rungs §9.14, what a digest may pin §9.14.3, node sizing §9.12, porting §9.12.2
 10. How to engineer a graph with PAVE
 11. Lightweight design canvas
 12. Worked example: AMMO GPU optimization
@@ -761,12 +761,17 @@ tombstones, no supersession chains. History is the revision log plus run
 state.
 
 The budget binds standing prose documents. Two things sit outside it:
-world-produced evidence records — transcripts, measurement captures, attempt
-records — live at their declared evidence paths and may be per-event,
-because there the event itself is the evidence; and collision-safety working
-state — a fresh scratch path minted per dispatch so a stale completion
-cannot overwrite the live one — is working state deleted or ignored at
-close, never a standing document.
+world-produced evidence — the bytes a command printed, a measurement
+capture, an attempt record — lives at its declared evidence path and may be
+per-event, because there the event itself is the evidence; and
+collision-safety working state — a fresh scratch path minted per dispatch so
+a stale completion cannot overwrite the live one — is deleted or ignored at
+close, never a standing document. Neither exemption reaches the script that
+produced the evidence, nor a builder, self-test, or control written for that
+script: those are working state under a per-file cap the layout reference
+declares — one current revision, edited in place, the superseded copy
+deleted in the same lap, never re-cut under a new name (a digest pin on the
+script is the usual cause — §9.14.3).
 
 Per-event evidence lands at the event. A node that reads or changes the
 world persists each event's raw output before any claim cites it; batching
@@ -776,8 +781,9 @@ to every world-contact node or none — partial coverage reads as coverage
 and is worse than silence.
 
 Cite, never copy. Every number and every ruling lives in exactly one file,
-and every other document points at it. Evidence for an outcome is a digest
-plus a run-state entry pointing at a standing document, not a new artifact
+and every other document points at it. Evidence for an outcome is a
+run-state entry pointing at the standing document's revision-log line (a
+write-once record may be cited by digest, §9.14.3), not a new artifact
 file — §5.3.1 governs evidence strength, not file count. A count table
 inside a living document is script output under §5.3.1: it carries its
 recompute command and is never hand-edited.
@@ -1096,11 +1102,13 @@ evidence affected by the change.
 
 The instrument that produced accepted evidence is itself an artifact.
 Register it once in the measurement-procedure record the graph already
-declares: path, content digest, the fixed way it is invoked, and its first
-clean run. A later node doing the same job cites that digest, or records
-why the registered instrument was unusable and what it changed. Retyping a
-validated instrument is how a transcription slip enters a measurement that
-already passed.
+declares: path, the commit that holds it, the fixed way it is invoked, and
+its first clean run. A later node doing the same job runs the registered
+instrument from that path at the commit it records, or records why it was
+unusable and what it changed. Content-address it only when it lives outside version control
+(§9.14.3); an instrument still under revision is never pinned, because a pin
+turns every fix into a new file. Retyping a validated instrument is how a
+transcription slip enters a measurement that already passed.
  
 ### 9.11 Child graph
  
@@ -1317,6 +1325,17 @@ irreversible before the next required guard, and precisely detectable.
 Where a control is registered, which actors it binds, and how it is scoped are
 Runtime Binding concerns (§2.1). Record the mechanism with the enforcement
 record. The Graph Profile states the rule; the binding states the wiring.
+ 
+#### 9.14.3 What a digest may pin
+ 
+Content-address only what never changes again: a write-once value file, a
+ledger entry, a build stamp, or world state no repository holds. Never digest
+a file still being edited: the pin makes every fix a new file plus a re-pin
+of all that named it, and the writer of the bytes also wrote the number
+(§9.14.1 step 1 unmet). For anything in version control the commit is the
+record — `git diff` against the approving commit proves identity with an id
+the doer cannot mint (§5.3.1). A digest check that fires on an absent file
+is an existence test; write that.
  
 ## 10. How to engineer a graph with PAVE
  

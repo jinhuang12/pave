@@ -16,11 +16,23 @@
 # would be artifacts/run/ and would miss every campaign document.
 #
 # Exempt (working state written for the next agent, not a person): any path
-# component named attempts, measurements, increments, intake-preflight, or
-# index. The campaign-name position (campaigns/<name>/...) is never tested,
-# so a campaign named "index" still reminds. Everything else under the
-# workspace reminds (run/delta/<t>/report.md, run/backlog/, campaigns/*/design/,
+# component named attempts, measurements, intake-preflight, or index. The
+# campaign-name position (campaigns/<name>/...) is never tested, so a
+# campaign named "index" still reminds. Everything else under the workspace
+# reminds (run/delta/<t>/report.md, run/backlog/, campaigns/*/design/,
 # kickoff/, approvals/, verdicts/, rederivations/, pr/, closure/, reviews/).
+#
+# increments/ is not exempt; it gets a different sentence. The first run
+# under this plugin put 10,844 files there, two thirds of them re-cuts of
+# scripts under a new lap suffix, none deleted, with 25-line header essays
+# (parity 1.5.4 changelog). For a .py, .sh, .md, or .txt write under any
+# increments/ component the hook measures lines and header lines (the
+# leading comment, blank, and docstring block) and names the increments cap
+# (VLLM_NEURON_PARITY_INCR_CAP_LINES, default 200; header
+# VLLM_NEURON_PARITY_INCR_HEADER_LINES, default 20) with the edit-in-place
+# and delete-superseded duties of section 4.12. A name carrying a lap suffix
+# (-rN) is named as the re-cut it is. Other extensions there (.out, .err,
+# bundles) are world-produced output and stay silent.
 #
 # Throttle: the 1st matching write in a session reminds, then every Nth
 # after (VLLM_NEURON_PARITY_READER_EVERY, default 3). The counter lives at
@@ -35,7 +47,8 @@
 # and file, so the first over-cap write is never silently swallowed. The cap
 # binds living documents only; the hook cannot tell a write-once record or a
 # transcript from a plan by path, so the sentence says which class to shrink
-# and the writer classifies.
+# and the writer classifies. Under increments/ the same once-per-file bypass
+# fires for an over-cap file, an over-cap header, or a lap suffix.
 #
 # Run discovery is marker-only: .vllm-neuron-parity-run at a candidate root
 # (CODEX_PROJECT_DIR, CLAUDE_PROJECT_DIR, payload cwd, PWD). Its first line
@@ -43,9 +56,10 @@
 # terminal_classification.status is set is inactive, so the hook is silent.
 #
 # Silent exit 0 when: interpreter missing, payload unparsable, no marker, no
-# state file, state unparsable, run terminal, write is not markdown, write
-# is outside the workspace, write is in an exempt directory, or the throttle
-# window holds.
+# state file, state unparsable, run terminal, write is not markdown (outside
+# increments/) or not .py/.sh/.md/.txt (under increments/), write is outside
+# the workspace, write is in an exempt directory, or the throttle window
+# holds.
 #
 # Decline path (hook runtime unavailable): the prose duty in SKILL.md stands.
 #
@@ -59,6 +73,8 @@ TAG="[vllm-neuron-parity write-for-reader]"
 EVERY="${VLLM_NEURON_PARITY_READER_EVERY:-3}"
 CAP_LINES="${VLLM_NEURON_PARITY_CAP_LINES:-400}"
 CAP_BYTES="${VLLM_NEURON_PARITY_CAP_BYTES:-61440}"
+INCR_CAP_LINES="${VLLM_NEURON_PARITY_INCR_CAP_LINES:-200}"
+INCR_HEADER_LINES="${VLLM_NEURON_PARITY_INCR_HEADER_LINES:-20}"
 
 PAYLOAD="$(cat 2>/dev/null || true)"
 
@@ -72,7 +88,7 @@ printf '%s' "$PAYLOAD" > "$PAYLOAD_FILE" 2>/dev/null || exit 0
 
 "$PY" - "$TAG" "$PAYLOAD_FILE" "$EVERY" \
   "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "${PWD:-}" \
-  "$CAP_LINES" "$CAP_BYTES" <<'PYEOF' 2>/dev/null || exit 0
+  "$CAP_LINES" "$CAP_BYTES" "$INCR_CAP_LINES" "$INCR_HEADER_LINES" <<'PYEOF' 2>/dev/null || exit 0
 import json
 import os
 import re
@@ -84,6 +100,7 @@ from pathlib import Path
 tag, payload_file, every_raw = sys.argv[1], sys.argv[2], sys.argv[3]
 codex_root, claude_root, pwd_root = sys.argv[4], sys.argv[5], sys.argv[6]
 cap_lines_raw, cap_bytes_raw = sys.argv[7], sys.argv[8]
+incr_cap_raw, incr_header_raw = sys.argv[9], sys.argv[10]
 
 try:
     every = max(1, int(every_raw))
@@ -93,6 +110,42 @@ try:
     cap_lines, cap_bytes = max(1, int(cap_lines_raw)), max(1, int(cap_bytes_raw))
 except ValueError:
     cap_lines, cap_bytes = 400, 61440
+try:
+    incr_cap, incr_header = max(1, int(incr_cap_raw)), max(1, int(incr_header_raw))
+except ValueError:
+    incr_cap, incr_header = 200, 20
+
+INCR_EXTS = {".py", ".sh", ".md", ".txt"}
+LAP_SUFFIX = re.compile(r"-r\d+[a-z]?(?=[-.]|$)")
+
+
+def header_lines(path, ext):
+    """Lines of the leading comment, blank, and docstring block before code."""
+    count = 0
+    in_doc = None
+    try:
+        with open(path, encoding="utf-8", errors="ignore") as handle:
+            for line in handle:
+                s = line.strip()
+                if in_doc:
+                    count += 1
+                    if in_doc in s:
+                        in_doc = None
+                    continue
+                if not s or s.startswith("#"):
+                    count += 1
+                    continue
+                opening = re.match(r"[rRbBuU]{0,2}(\"\"\"|''')", s) if ext == ".py" else None
+                if opening:
+                    count += 1
+                    quote = opening.group(1)
+                    if quote not in s[opening.end():]:
+                        in_doc = quote
+                    continue
+                break
+    except Exception:
+        return 0
+    return count
 
 try:
     with open(payload_file, encoding="utf-8") as handle:
@@ -106,8 +159,11 @@ tool_input = payload.get("tool_input") or {}
 if not isinstance(tool_input, dict):
     sys.exit(0)
 file_path = tool_input.get("file_path") or ""
-if not isinstance(file_path, str) or not file_path.endswith(".md"):
+if not isinstance(file_path, str) or not file_path:
     sys.exit(0)
+ext = os.path.splitext(file_path)[1].lower()
+if ext not in INCR_EXTS:
+    sys.exit(0)  # .md anywhere; .py/.sh/.txt only matter under increments/ (checked below)
 
 # --- run-state discovery (marker only) --------------------------------------
 payload_cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) else ""
@@ -154,7 +210,7 @@ try:
 except Exception:
     sys.exit(0)  # outside the active run workspace
 
-EXEMPT = {"attempts", "measurements", "increments", "intake-preflight", "index"}
+EXEMPT = {"attempts", "measurements", "intake-preflight", "index"}
 # A campaign may carry any name, so the campaign-name position
 # (campaigns/<name>/...) is never tested against the exempt set.
 parts = list(relative.parts)
@@ -164,6 +220,9 @@ else:
     tested = parts
 if any(part in EXEMPT for part in tested):
     sys.exit(0)
+in_increments = "increments" in tested[:-1]
+if not in_increments and ext != ".md":
+    sys.exit(0)
 
 # --- cap (references/artifact-layout.md section 4.12): measure what was written
 try:
@@ -172,7 +231,13 @@ try:
         lines = sum(1 for _ in handle)
 except Exception:
     size, lines = 0, 0  # unreadable target: nothing to measure
-over_cap = lines > cap_lines or size > cap_bytes
+if in_increments:
+    header = header_lines(target, ext) if ext in (".py", ".sh") else 0
+    lap = bool(LAP_SUFFIX.search(target.name))
+    over_cap = lines > incr_cap or header > incr_header or lap
+else:
+    header, lap = 0, False
+    over_cap = lines > cap_lines or size > cap_bytes
 
 # --- throttle ---------------------------------------------------------------
 session = str(payload.get("session_id") or "global") or "global"
@@ -200,6 +265,33 @@ except Exception:
     count = 1  # counter unavailable: remind rather than stay silent forever
 
 if (count - 1) % every != 0 and not first_over_cap:
+    sys.exit(0)
+
+if in_increments:
+    text = (
+        f"{tag} This file is working state under increments/ ({relative}): "
+        f"{lines} lines"
+        + (f", {header} header lines" if ext in (".py", ".sh") else "")
+        + f". The increments cap is {incr_cap} lines and {incr_header} header "
+        "lines (references/artifact-layout.md section 4.12). An instrument is "
+        "edited in place; a re-cut under a new lap suffix is a defect - delete "
+        "the superseded copy in this lap. A command's own output is evidence "
+        "and is kept whole; the script that produced it is not evidence and "
+        "needs no self-test, builder, or control of its own."
+    )
+    if lap:
+        text += " This name carries a lap suffix (-rN): edit the current file instead."
+    if lines > incr_cap:
+        text += f" It is over the {incr_cap}-line cap: cut it before the next lap."
+    if header > incr_header:
+        text += (f" Its header is {header} lines against a cap of {incr_header}: "
+                 "what it does, its inputs, its one output - nothing else.")
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PostToolUse",
+            "additionalContext": text,
+        }
+    }))
     sys.exit(0)
 
 text = (
