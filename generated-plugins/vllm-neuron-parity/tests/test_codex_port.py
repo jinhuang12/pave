@@ -49,7 +49,7 @@ class PackageStructureTests(unittest.TestCase):
         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        self.assertEqual(manifest["version"], "1.5.5")
+        self.assertEqual(manifest["version"], "1.5.6")
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())
@@ -70,9 +70,9 @@ class PackageStructureTests(unittest.TestCase):
             for group in groups
             for handler in group["hooks"]
         ]
-        # twelve controls over seventeen handlers: the goal restatement registers
+        # twelve controls over eighteen handlers: the goal restatement registers
         # under two events; the router runs one process per mode per event
-        self.assertEqual(len(handlers), 17)
+        self.assertEqual(len(handlers), 18)
         self.assertTrue(all(handler["type"] == "command" for handler in handlers))
         self.assertTrue(
             all("${CLAUDE_PLUGIN_ROOT}" in handler["command"] for handler in handlers)

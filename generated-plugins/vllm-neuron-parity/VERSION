@@ -1,99 +1,125 @@
-version: 1.5.5
+version: 1.5.6
+
+## 1.5.6 — 2026-09-11
+
+The no-recut rule now sees shell commands, not only file writes. Most re-cuts
+are born from generator scripts, `cp`/`mv`, and heredoc redirects, so the
+file-write matcher missed them. This release closes that channel. Release layer
+only: graph revision 9 stays the head, so an installed run re-pins the plugin
+version and nothing else.
+
+- Fix — the no-recut rule reads Bash payloads too. It refuses a `<stem>-rN.<ext>`
+  that does not exist yet under `increments/`, beside a same-stem file, when a
+  shell command names it as any argument, redirect target, or copy/move
+  destination. The working directory is tracked per segment, as the write log's
+  token parser does. A same-stem file parked under one extra marker
+  (`.superseded`, `.bak`, `.orig`) now counts as the existing file, so a re-cut
+  cannot hide beside it. Editing an existing `-rN` file in place stays allowed;
+  that is the remedy.
+  - Field evidence: seven hours on a live run under 1.5.5 filed 64 new re-cut
+    files under `increments/`. 51 were first written through shell commands the
+    file-write matcher never saw. 12 reached the rule, and 2 of those were
+    blocked.
+  - Known limit: a path built inside a script body or from a shell variable is
+    invisible at PreToolUse. The write log records it after the fact, and the
+    census's regrowth count trips the next audit checkpoint. That is the
+    designed catch.
 
 ## 1.5.5 — 2026-09-10
 
 The streamlining audit checkpoint. A long run grew ceremony the graph never
-asked for, and the plugin had no moment that looked at it: the stop guard now
-opens an audit checkpoint, a fresh workflow-updater seat classifies the run's
-own recurring forms against the pinned graph, and the cuts land in the graph
-file as bindings. Release-layer plus graph revision 8 (`history/v8.patch`):
-the prerequisite hold at scope_next_increment, the attempt loop's authority to
-repair its own tests, controls, launchers, checkers and bundles, and the empty
-`runtime_bindings` block the audit's cuts will fill - and revision 9
-(`history/v9.patch`), two changes the user approved after the batch: the
-pre-hardware review check also passes when the commits after the reviewed one
-change only tests, controls, launchers, checkers or bundles and no product
-source, and a CPU-mode run that opens no Neuron device is not a hardware
-attempt on any host. 32 nodes, 96 edges, 17 checks, 89 outcomes (the head is
-the ledger's, `revisions.yaml`).
+asked for, and the plugin had no moment that looked at it. Now the stop guard
+opens an audit checkpoint on a cadence. A fresh workflow-updater seat then
+classifies the run's recurring forms against the pinned graph, and the cuts
+land in the graph file as bindings. This release also lands graph revision 8
+(`history/v8.patch`) and revision 9 (`history/v9.patch`). Revision 8 adds the
+prerequisite hold at scope_next_increment. It gives the attempt loop authority
+to repair its own tests, controls, launchers, checkers, and bundles. It adds the
+empty `runtime_bindings` block the audit's cuts will fill. Revision 9 holds two
+changes the user approved after the batch. First, the pre-hardware review check
+also passes when the commits after the reviewed one change only tests,
+controls, launchers, checkers, or bundles and no product source. Second, a
+CPU-mode run that opens no Neuron device is not a hardware attempt on any host.
+32 nodes, 96 edges, 17 checks, 89 outcomes (the head is the ledger's,
+`revisions.yaml`).
 
-- New — audit checkpoint. The stop guard gains an audit branch that blocks ONE
+- New — audit checkpoint. The stop guard gains an audit branch. It blocks ONE
   stop, on its existing one-in-three cooldown, when declared-node outcomes or
-  bytes written since the last checkpoint cross the configured thresholds
+  bytes written since the last checkpoint cross the thresholds
   (`VLLM_NEURON_PARITY_AUDIT_EVERY`, default 40; `_AUDIT_BYTES`, default
   200 MB). The block text IS the brief: the census summary, the checkpoint id,
-  and the one dispatch line. The lead adds nothing to it, and only a
-  workflow-updater-drafted landing or a reviewer-PASSed no-change closes the
-  cycle — nothing the lead types alone does. On its first sight of a run the
+  and the one dispatch line. The lead adds nothing to it. Only a landing that
+  the workflow-updater drafted, or a no-change that the reviewer PASSed, closes
+  the cycle. Nothing the lead types alone does. On its first sight of a run, the
   branch seeds an IDLE sidecar from the current outcome count and logged bytes
-  and passes, so the first checkpoint measures the next window, not the run's
+  and passes. So the first checkpoint measures the next window, not the run's
   history against an empty log.
   - Closing is stamp-bound. The lead lands a checkpoint's proposal with
     `record_revision.py land <root> <N> --approval "<verbatim>" --review
     "<verdict and rounds>" --proposal
     <evolution-root>/proposals/<checkpoint>-<binding|graph>.patch --stamps
-    <run-state>.audit-checkpoint.json`; only that pair records `drafted_by:
-    workflow-updater`, and the guard closes the checkpoint only when the
-    entry's patch bytes equal a proposal file the guard itself stamped. Without
-    the flags the entry reads `drafted_by: unstamped` and the checkpoint never
-    closes. A no-change close needs the update-reviewer's own stamped
-    `review: PASS` line in the findings record, never a lead-typed verdict.
+    <run-state>.audit-checkpoint.json`. Only that pair of flags records
+    `drafted_by: workflow-updater`. The guard closes the checkpoint only when
+    the entry's patch bytes equal a proposal file the guard itself stamped.
+    Without the flags the entry reads `drafted_by: unstamped`, and the
+    checkpoint never closes. A no-change close needs the update-reviewer's own
+    stamped `review: PASS` line in the findings record, never a lead-typed
+    verdict.
   - Field evidence: fourteen days of running graph revision 1 produced about
-    forty lead-invented recurring acts and about 95% of the observed cost,
-    while the only self-correction moment, a seven-question stop check, was
-    answered "lgtm" 288 times out of 308.
+    forty lead-invented recurring acts and about 95% of the observed cost. The
+    only self-correction moment, a seven-question stop check, was answered
+    "lgtm" 288 times out of 308.
 - New — the audit's four artifacts and their enforcement record
   (`references/artifact-layout.md` §4.14): the living findings record at
   `<evolution-root>/streamlining-findings.md` (cap 400 lines / 60 KB, written
-  only by the `pave-init:workflow-updater` seat, edited in place), the
+  only by the `pave-init:workflow-updater` seat, edited in place); the
   hook-owned checkpoint sidecar and write log beside run state (denied to the
-  lead), the updater's two never-blended proposals, and the declared scratch
-  roots the census scans — the run workspace and the evolution root, never a
+  lead); the updater's two proposals, never mixed; and the declared scratch
+  roots the census scans: the run workspace and the evolution root, never a
   bare `/tmp` or `$TMPDIR`.
-- New — two blocking write rungs, both with 9.14.1 entries in §4.14: a
-  lead-only deny read at every call from the live graph's `runtime_bindings`
-  block at the ledger head (reversible by landing the reversal; a seat gets the
-  reason as advice and is never blocked, a seat being a payload with `agent_id`
-  or a session other than the lead's — `agent_type` alone is not one — and a
-  glob starting with `/` matching the absolute path so a scratch family outside
-  the workspace can be cut), and the no-recut rule, which refuses
-  a `<stem>-rN.<ext>` file beside a same-stem file — working state is edited in
-  place, world-produced output takes an event-keyed name.
+- New — two blocking write rungs, both with 9.14.1 entries in §4.14. First, a
+  lead-only deny, read at every call from the live graph's `runtime_bindings`
+  block at the ledger head. Landing the reversal reverses it. A seat gets the
+  reason as advice and is never blocked; a seat is a payload with `agent_id` or
+  a session other than the lead's, and `agent_type` alone is not one. A glob
+  that starts with `/` matches the absolute path, so a scratch family outside
+  the workspace can be cut. Second, the no-recut rule: it refuses a
+  `<stem>-rN.<ext>` file beside a same-stem file. Working state is edited in
+  place; world-produced output takes an event-keyed name.
   - Field evidence: the advisory reminder named `-rN` re-cuts 6,684 times in
     one run without effect, and two thirds of a 562 MB working tree were
     re-cuts.
 - New — a PostToolUse write log (`hooks/write_log.py`) records the path of every
-  Bash, Write, and Edit write, so the census sees script-mediated writes. The
-  lead's dominant write channel was `python3 <script>`, which the shipped
+  Bash, Write, and Edit write, so the census sees writes made through scripts.
+  The lead's main write channel was `python3 <script>`, which the shipped
   Write|Edit hooks never saw. Each record carries `written`, `size`, and
-  `mtime`: a Write or Edit target is written by definition, a Bash argv path
-  counts only when the file's mtime is within 120 s of the call, so a path a
-  command merely read never inflates the bytes trigger or the trend.
+  `mtime`. A Write or Edit target is written by definition. A Bash argument
+  path counts only when the file's mtime is within 120 s of the call, so a path
+  a command only read never inflates the bytes trigger or the trend.
 - Changed — landing authority. The plan field is now `landing: envelope`
-  (evolution contract rule 6): the lead lands, on the update-reviewer's PASS, a
+  (evolution contract rule 6). The lead lands, on the update-reviewer's PASS, a
   proposal that adds no gate, changes no outcome or edge, and changes no
-  declared meaning; anything else is one batch per checkpoint for the user, and
-  `record_revision.py land` refuses `envelope_check: changed_pending_approval`.
-  User decision, 2026-09-10.
-- Changed — evolution contract clauses in `SKILL.md` mirror the authority: rule
-  4 batches one proposal per pause OR audit checkpoint, and rule 8 names the
-  checkpoint census as the usage record's mid-run form, which blocks a stop and
+  declared meaning. Anything else goes to the user as one batch per checkpoint,
+  and `record_revision.py land` refuses `envelope_check:
+  changed_pending_approval`. User decision, 2026-09-10.
+- Changed — the evolution contract clauses in `SKILL.md` mirror this authority.
+  Rule 4 batches one proposal per pause OR audit checkpoint. Rule 8 names the
+  checkpoint census as the usage record's mid-run form; it blocks a stop and
   never a traversal.
 - Changed — the lead rule: "A recurring form the graph does not name is a
   finding for the next checkpoint, never a duty you adopt." The lead may delete
-  a memory entry a PASSed findings record names as a cause (user decision,
+  a memory entry that a PASSed findings record names as a cause (user decision,
   2026-09-10).
-- Changed — repair authority. A failure inside a seat's own test, control,
-  launcher, or checker is that seat's to repair without a lead word, reported as
-  diagnosis and fix together (`SKILL.md` "Default recovery", `agents/implementer.md`);
-  a seat still stops for the cases under its "How you run".
-- Changed — ceiling. `references/artifact-layout.md` is 549 lines, past its
-  500-line pin, because §4.14 adds the checkpoint paths, the declared scratch
-  roots, and four enforcement-record entries; the ceiling in
-  `tests/test_document_ceilings.py` is re-pinned to 550 in this release.
-  `skills/vllm-neuron-parity/SKILL.md` stays at its 500-line pin at 499: the
-  land-flag clause was funded by cutting the envelope restatement in "Plan
-  fields this plugin records" to a pointer at rule 6.
+- Changed — repair authority. When a seat's own test, control, launcher, or
+  checker fails, the seat repairs it without a lead word and reports diagnosis
+  and fix together (`SKILL.md` "Default recovery", `agents/implementer.md`). A
+  seat still stops for the cases under its "How you run".
+- Changed — ceiling. `references/artifact-layout.md` grew past its 500-line pin
+  because §4.14 adds the checkpoint paths, the declared scratch roots, and four
+  enforcement-record entries. `tests/test_document_ceilings.py` re-pins it to
+  550 in this release. `skills/vllm-neuron-parity/SKILL.md` stays under its
+  500-line pin: the land-flag clause was funded by cutting the envelope
+  restatement in "Plan fields this plugin records" to a pointer at rule 6.
 
 ## 1.5.4 — 2026-09-09
 

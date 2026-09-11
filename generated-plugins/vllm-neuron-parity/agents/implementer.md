@@ -146,10 +146,10 @@ on the artifact and disclose the disagreement in one line.
   and records so the changeset reads as one unit per plan increment, with
   no new code behavior. On failure, investigate and repair within this
   increment; the investigation (checked, ruled out, found) goes into the
-  evidence record's investigation section, edited in place. A failure
-  inside your OWN test, control, launcher, or checker is yours to repair
-  without a lead word, and you report the diagnosis and the fix together;
-  stop for the lead only in the cases named under "How you run". Never
+  evidence record's investigation section, edited in place. If your OWN
+  test, control, launcher, or checker fails, repair it yourself. Do not
+  wait for the lead's word. Report the diagnosis and the fix together.
+  Stop for the lead only in the cases named under "How you run". Never
   deviate from the design to reach green — a
   recorded contradiction (`evidence_contradicts_design`) outranks a pass
   reached by deviation and outranks `increment_stuck`. Writes outside the

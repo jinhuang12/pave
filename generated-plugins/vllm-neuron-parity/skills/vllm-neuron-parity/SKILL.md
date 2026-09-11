@@ -10,7 +10,7 @@ description: >-
   disclosed hooks, marker-armed. Blocking: protected branches, shared
   compile caches, venv cloning and /opt writes, live-graph or ledger edits
   outside a landing, a lead-only write deny (runtime_bindings globs, the
-  hook-owned checkpoint files, the audit findings record), and no -rN re-cut beside an existing file.
+  hook-owned checkpoint files, the audit findings record), and no -rN re-cut beside an existing file, from a file write or a shell command.
   Advisory: a write log of written paths; reminders on stale run state,
   re-entry dispatch, the reader duty and caps; a goal restatement at resume,
   compaction and seat start. A stop check BLOCKS AT MOST ONE STOP IN THREE;
@@ -267,10 +267,11 @@ campaign closure and never happen on a campaign branch.
 
 **Run marker.** At run start, write the marker file `.vllm-neuron-parity-run` at
 the project root: one line, the absolute path of this run's `run-state.json`.
-Beside the state file also write `<run-state-path>.lead-session` - one line,
-this session's id, the only content the router accepts there (a Write; a re-claim moves the hooks and their briefs to the claiming session) - so the lead-alignment hooks fire for the lead alone and
-stay silent in every other session in the project (teammates and scratch
-sessions fire the same events; without the sidecar the hooks fail open).
+Beside the state file also write `<run-state-path>.lead-session`: one line, this
+session's id, the only content the router accepts there, and only from a Write. A
+re-claim moves the hooks and their briefs to the claiming session. The sidecar
+makes the lead-alignment hooks fire for the lead alone and stay silent in every
+other session (teammates and scratch sessions fire the same events; without it the hooks fail open).
 The stop guard and the staleness reminder act only on a marker hit — a
 newest-by-mtime scan hit may belong to an abandoned run or another session, so
 without the marker both hooks stay silent and you lose their coverage. At a
@@ -278,16 +279,15 @@ terminal close, set `terminal_classification` and REMOVE the marker. If you walk
 away from a run, set the terminal classification or remove the state: a
 walked-away run must never stay "active" forever.
 
-**The checkpoint is not yours to write.** The audit-checkpoint sidecar (`<run-state-path>.audit-checkpoint.json`) and the write log
-(`<run-state-path>.write-log.jsonl`) beside run state are hook-owned, and `<evolution-root>/streamlining-findings.md` belongs to the
-updater and reviewer seats alone; you never write any of them, and the router denies you — or any other seat — if you try. A DUE block from the stop
-guard IS the brief: forward it verbatim to `pave-init:workflow-updater` in audit mode (checkpoint id, census path, evolution root,
-pave-init root; on Codex behind the `PAVE_PLUGIN_ROOT:` line its contract requires) and add nothing you compose. Land its
-proposal with both stamp flags: `land <root> <N> --approval "<verbatim>" --review "<verdict and rounds>" --proposal <evolution-root>/proposals/<checkpoint>-<binding|graph>.patch --stamps <run-state-path>.audit-checkpoint.json`.
-The entry then records `drafted_by: workflow-updater`, and the guard closes the checkpoint only when that entry's patch bytes equal a proposal file it stamped itself; without both flags the entry records `drafted_by: unstamped` and the checkpoint never closes.
-Audit mode needs pave-init 2.6.0 or later, found through `VLLM_NEURON_PARITY_PAVE_INIT_ROOT`, the plugin cache beside this plugin, or the
-`~/.claude` and `~/.codex` plugin caches; when none is found, or an older one, the branch prints one line saying which and stays silent. When the update-reviewer PASSes
-a findings record, you may delete a memory entry that record names as a cause.
+**The checkpoint is not yours to write.** The audit-checkpoint sidecar (`<run-state-path>.audit-checkpoint.json`) and the write log (`<run-state-path>.write-log.jsonl`) beside run
+state are hook-owned. The findings record `<evolution-root>/streamlining-findings.md` belongs to the updater and reviewer seats alone. The router denies you, or any seat, a write
+to them. A DUE block from the stop guard IS the brief. Forward it verbatim to `pave-init:workflow-updater` in audit mode: checkpoint id, census path, evolution root, pave-init root
+(on Codex, behind the `PAVE_PLUGIN_ROOT:` line its contract requires). Add nothing you compose. Land its proposal with both stamp flags: `land <root> <N> --approval "<verbatim>"
+--review "<verdict and rounds>" --proposal <evolution-root>/proposals/<checkpoint>-<binding|graph>.patch --stamps <run-state-path>.audit-checkpoint.json`. The entry then records
+`drafted_by: workflow-updater`. The guard closes the checkpoint only when that entry's patch bytes equal a proposal file the guard stamped itself. Without both flags the entry
+records `drafted_by: unstamped`, and the checkpoint never closes. Audit mode needs pave-init 2.6.0 or later. The guard looks for it in `VLLM_NEURON_PARITY_PAVE_INIT_ROOT`, the
+plugin cache beside this plugin, and the `~/.claude` and `~/.codex` plugin caches. If it finds none, or an older one, it prints one line that says which and stays silent. When the
+update-reviewer PASSes a findings record, you may delete a memory entry that record names as a cause.
 
 **Write for the reader, and keep the caps.** Two duties, each pinned once and
 cited never restated: the prose duty at `references/artifact-layout.md` §4.13
@@ -328,10 +328,10 @@ user decision at any gate.
 
 For a failure that no declared outcome covers, run this loop before you do
 anything else. It is the default-recovery loop, carried here in full because the
-plugin ships no spec file for it to cite. A failure inside a seat's own test,
-control, launcher, or checker is that seat's to repair without your word; it
-reports diagnosis and fix together, and the loop below is for the run's work,
-not for a seat's instrument.
+plugin ships no spec file for it to cite. When a seat's own test, control,
+launcher, or checker fails, the seat repairs it without your word and reports
+diagnosis and fix together. The loop below is for the run's work, not for a
+seat's instrument.
 
 The loop: retry once when the failure looks transient (a failed retry is a real
 failure); investigate to root cause with a persisted investigation record,
@@ -393,14 +393,14 @@ review record before it replans.
    graph at the head and replans the narrowest affected boundary. Batch it: one
    proposal per pause or audit checkpoint, covering every defect and every
    recurring form recorded since the last landing, never one per finding.
-6. **Authority envelope (rule 6).** `landing: envelope`: you land, on the
-   update-reviewer's PASS, a proposal that adds no gate, changes no outcome or
-   edge, and changes no declared meaning, recorded as `envelope_check:
-   unchanged`. Anything else - a new gate, a changed outcome, edge, or declared
-   meaning, or any other envelope item - is one batch per checkpoint that waits
-   for the user's approval, verbatim in the entry's `approval` and recorded as
-   `changed_with_approval`; the updater marks such a proposal
-   `changed_pending_approval` until then, and `land` refuses it.
+6. **Authority envelope (rule 6).** `landing: envelope`. You land a proposal
+   yourself, on the update-reviewer's PASS, when it adds no gate, changes no
+   outcome or edge, and changes no declared meaning. It is recorded as
+   `envelope_check: unchanged`. Anything else (a new gate; a changed outcome,
+   edge, or declared meaning; any other envelope item) goes to the user as one
+   batch per checkpoint. It lands only with the user's approval, verbatim in
+   the entry's `approval`, recorded as `changed_with_approval`. Until then the
+   updater marks it `changed_pending_approval`, and `land` refuses it.
 7. **Continue on the successor (rule 7).** Once the update-reviewer passes the
    successor and the landing is verified, re-pin the run to the new revision
    and bundle digest in run state, record the approval verbatim, and resume
@@ -413,8 +413,8 @@ review record before it replans.
 8. **Usage ledger (rule 8).** At each terminal close, derive the usage record
    from the run's event history and append one section to the standing ledger
    at `artifacts/run/usage-ledger.md`, never a new file per run. The checkpoint
-   census is that record's mid-run form, read by the updater in audit mode: it
-   blocks a stop, never a traversal.
+   census is the mid-run form of that record. The updater reads it in audit
+   mode. It blocks a stop, never a traversal.
 9. **Binding revisions (rule 9).** Seat, model, effort, or instrument changes
    at any entry land as `kind: binding` entries in the same ledger with a
    user-approved envelope check; a run pinned to the older entry re-pins at
@@ -464,14 +464,14 @@ hardware breaker (tenth budget-counted attempt, tier-1 fingerprint, or venv dead
 end). Counts come from the event files per `references/artifact-layout.md` §4.
 
 The twelve hooks register in the plugin-level `hooks/hooks.json`. Review and
-trust them through `/hooks` before a run. Three serve the audit checkpoint, with
-their enforcement record at `references/artifact-layout.md` §4.14: the write log
-(PostToolUse, every path a Bash, Write, or Edit call wrote), the lead-only write
-deny the PreToolUse adapter reads from the live graph's `runtime_bindings` block
-plus the hook-owned checkpoint files and the audit findings record (its PostToolUse half stamps the updater's and reviewer's own writes into the sidecar), and the no-recut rule refusing a
-`<stem>-rN.<ext>` file beside a same-stem file. The P1-P3 PreToolUse adapter
-fails open
-unless the project marker `.vllm-neuron-parity-run` resolves to an active,
+trust them through `/hooks` before a run. Three serve the audit checkpoint; their
+enforcement record is `references/artifact-layout.md` §4.14. The write log
+(PostToolUse) records every path a Bash, Write, or Edit call wrote. The lead-only
+write deny (PreToolUse) reads its globs from the live graph's `runtime_bindings`
+block and also protects the hook-owned checkpoint files and the audit findings
+record; its PostToolUse half stamps the updater's and reviewer's writes into the
+sidecar. The no-recut rule refuses a `<stem>-rN.<ext>` file beside a same-stem
+file, named in a file write or a shell command. The P1-P3 PreToolUse adapter fails open unless the project marker `.vllm-neuron-parity-run` resolves to an active,
 nonterminal run state; unrelated Codex work stays outside their authority. The
 graph edit guard (`skills/vllm-neuron-parity/hooks/graph_edit_guard.sh`,
 PreToolUse Edit|Write|MultiEdit) denies a direct edit of a live `*.pave.yaml` or

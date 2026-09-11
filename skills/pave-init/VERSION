@@ -1,4 +1,4 @@
-version: 2.6.0
+version: 2.6.1
 
 ## How changelog entries are written
 
@@ -18,84 +18,94 @@ line and use the release date.
 
 ## Changelog
 
+### 2.6.1 (2026-09-11)
+
+Changed — the no-strand re-cut rule's declared scope now includes shell
+commands. A re-cut path named as an argument, a redirect target, or a copy or
+move destination is refused like one named in a file write. A same-stem file
+parked under one extra marker still counts as the existing file. A field
+measurement of 2026-09-11 found that the file-write-only scope reached about
+three percent of the re-cuts a run produced.
+  - Reference text only in this skill: no schema and no script changed.
+
 ### 2.6.0 (2026-09-10)
 
-New — a generated workflow can audit its own ceremony on a cadence instead of
-at the end. The lead-alignment stop check gains an audit-due branch: every 40
+New — a generated workflow can audit its own ceremony on a cadence, not only at
+the end. The lead-alignment stop check gains an audit-due branch. Every 40
 completed outcomes at declared nodes (configurable), or after a fallback amount
-of logged growth, it blocks one stop and hands the lead a census brief with a
-checkpoint id and one dispatch line. The workflow-updater gains an audit mode
-that classifies every recurring act by origin — graph line, plugin prose, a
-user decision quoted verbatim, or lead-invented — writes one living findings
-record with a trend row per checkpoint, and hands back at most two proposals: a
-`kind: binding` cut list and a `kind: graph` patch, never blended. The
+of logged growth, it blocks one stop. The block hands the lead a census brief
+with a checkpoint id and one dispatch line. The workflow-updater gains an audit
+mode. It classifies every recurring act by origin: graph line, plugin prose, a
+user decision quoted verbatim, or lead-invented. It writes one living findings
+record with a trend row per checkpoint. It hands back at most two proposals: a
+`kind: binding` cut list and a `kind: graph` patch, never mixed. The
 update-reviewer verifies the finding's evidence, not only the fix, and judges
-both proposals of a checkpoint in one session. New
-`scripts/run_delta_census.py` produces the census from a hook-kept write log,
-so no Stop hook ever walks a scratch tree.
+both proposals of a checkpoint in one session. The new
+`scripts/run_delta_census.py` builds the census from a hook-kept write log, so
+no Stop hook ever walks a scratch tree.
   - Why: the field measurement of 2026-09-10 over two long runs found about 95%
-    of the observed cost in recurring acts no graph line asked for, while the
-    only self-correction moment in the package — the socratic stop check — was
+    of the observed cost in recurring acts that no graph line asked for. The
+    only self-correction moment in the package, the socratic stop check, was
     answered with a bare acknowledgement almost every time it fired.
-  - Cadence, unit, and thresholds are env knobs; the checkpoint lives in a
-    hook-written sidecar beside run state that the write guard denies to the
+  - Cadence, unit, and thresholds are env knobs. The checkpoint lives in a
+    hook-written sidecar beside run state, and the write guard denies it to the
     lead, so nothing the lead types alone closes a cycle. On its first sight of
-    a run the branch seeds an IDLE sidecar from the current outcome count and
-    logged bytes and passes, so the first checkpoint measures the next window
+    a run, the branch seeds an IDLE sidecar from the current outcome count and
+    logged bytes and passes. So the first checkpoint measures the next window
     instead of charging the run's whole history against an empty log.
-  - The write log marks each path `written`, with its `size` and `mtime`: a
-    `Write` or `Edit` target is written by definition, and a `Bash` argv path
+  - The write log marks each path `written`, with its `size` and `mtime`. A
+    `Write` or `Edit` target is written by definition. A `Bash` argument path
     counts only when the file's mtime is within 120 s of the call, so a path a
-    command merely read never inflates the bytes trigger or the trend.
+    command only read never inflates the bytes trigger or the trend.
 
 New — cuts are enforced from the graph file, not from a hook's own list. The
-profile schema and `scripts/validate_pave.py` accept a `runtime_bindings` block
-(`deny` globs bound to an identity with a reason, a remedy and the creating
-checkpoint; `caps` per name family). It lands as a `kind: binding` revision,
-is covered by the bundle digest, rolls back as a landing, and the write guard
-reads it from the root at the ledger head on every call. `propose` rejects a
-glob that matches any path the graph declares. A glob starting with `/` is
-matched against the absolute path, so a scratch family that grew outside the
-workspace can be cut; every other glob matches workspace-relative. One
-seat-side blocking rule comes with it — no `<stem>-rN.<ext>` beside an existing
-same-stem file under a declared working-state root — and everything else
+profile schema and `scripts/validate_pave.py` accept a `runtime_bindings` block:
+`deny` globs bound to an identity, each with a reason, a remedy, and the
+creating checkpoint; and `caps` per name family. The block lands as a `kind:
+binding` revision, the bundle digest covers it, it rolls back as a landing, and
+the write guard reads it from the root at the ledger head on every call.
+`propose` rejects a glob that matches any path the graph declares. A glob that
+starts with `/` matches the absolute path, so a scratch family that grew
+outside the workspace can be cut; every other glob matches a workspace-relative
+path. One seat-side blocking rule comes with it: no `<stem>-rN.<ext>` beside an
+existing same-stem file under a declared working-state root. Everything else
 seat-side stays advisory.
-  - Why: a control the guarded actor could edit enforces nothing, and the one
+  - Why: a control the guarded actor could edit enforces nothing. The one
     re-cut form the field evidence counted in the thousands has a remedy that
     is always available.
 
 Changed — the ledger records who drafted a landing, and an envelope change can
-wait for the user in the record. `envelope_check` gains
-`changed_pending_approval`: the updater writes it when the envelope moved,
-`propose` accepts it, `land` refuses it until the approval is recorded verbatim
-as `changed_with_approval`, and the audit branch reads it as a checkpoint
-legitimately waiting on the user. A new entry field `drafted_by`
+wait for the user inside the record. `envelope_check` gains
+`changed_pending_approval`. The updater writes it when the envelope moved,
+`propose` accepts it, and `land` refuses it until the approval is recorded
+verbatim as `changed_with_approval`. The audit branch reads it as a checkpoint
+that waits on the user for a good reason. A new entry field `drafted_by`
 (`workflow-updater` | `unstamped`) comes from the checkpoint stamp of the patch
-file, never from a preamble: `land` gains `--proposal <path>` and `--stamps
-<sidecar>`, and only that pair records `workflow-updater`. Closing is
-stamp-bound on both sides — the guard closes a checkpoint on a newer `graph` or
-`binding` entry whose patch bytes equal a proposal file the guard itself
-stamped, or on the findings record it stamped OPEN stating
-`no_change_warranted` plus, when the trend rose, the update-reviewer's own
-stamped `review: PASS` line, which the reviewer writes and the lead cannot
-type. `pin` is documented as informational: it never closes an audit cycle, and
-a later `pin` does not hide the entry that does. Evolution contract rule 4 batches one proposal per pause
-or audit checkpoint, rule 8 states the checkpoint census as the usage record's
-mid-run form that blocks a stop and never a traversal, and rule 9 names
+file, never from a preamble. `land` gains `--proposal <path>` and `--stamps
+<sidecar>`; only that pair records `workflow-updater`. Closing is stamp-bound on
+both sides. The guard closes a checkpoint on a newer `graph` or `binding` entry
+whose patch bytes equal a proposal file the guard itself stamped. Or it closes
+on the findings record it stamped OPEN stating `no_change_warranted`, plus, when
+the trend rose, the update-reviewer's own stamped `review: PASS` line, which
+the reviewer writes and the lead cannot type. `pin` is documented as
+informational: it never closes an audit cycle, and a later `pin` does not hide
+the entry that does. Evolution contract rule 4 batches one proposal per pause
+or audit checkpoint. Rule 8 states the checkpoint census as the usage record's
+mid-run form, which blocks a stop and never a traversal. Rule 9 names
 `runtime_bindings` as the binding surface. Two further clauses of rule 8: the
-lead may delete a memory entry a PASSed findings record names as a cause, and
-two consecutive checkpoints with no drop in the trend number pause the audit
-loop and go to the user with the numbers.
-  - Why: without a pending-approval value both the stall exemption and the
-    second-proposal silence were vacuous, and a lead-typed review verdict
-    cannot prove who held the pen.
+lead may delete a memory entry that a PASSed findings record names as a cause;
+and two consecutive checkpoints with no drop in the trend number pause the
+audit loop and go to the user with the numbers.
+  - Why: without a pending-approval value, both the stall exemption and the
+    second-proposal silence were empty. And a lead-typed review verdict cannot
+    prove who held the pen.
 
 Changed — the stop check states duties instead of asking seven questions. It
-now requires one line per active seat — what the seat waits on and the next act
-— and drops the acknowledgement-only exit; the remaining reminders are
-imperatives, and the whole-run ceremony question moved to the audit checkpoint.
-The generated `description` discloses the audit branch, the write log, and the
-two write guards.
+now requires one line per active seat: what the seat waits on, and the next
+act. It drops the acknowledgement-only exit. The remaining reminders are
+duties, and the whole-run ceremony question moved to the audit checkpoint. The
+generated `description` discloses the audit branch, the write log, and the two
+write guards.
   - Why: a check a lead may answer with one word is answered with one word
     while the run's ceremony grows.
 

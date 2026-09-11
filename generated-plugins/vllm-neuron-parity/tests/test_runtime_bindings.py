@@ -225,6 +225,58 @@ class RouterModeTests(unittest.TestCase):
         result = self.tree.run(ROUTER, "no-recut", self.tree.write_payload(LEAD, self.tree.increments / "foo-r2.md", "Edit"))
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_no_recut_blocks_a_shell_command_naming_the_form(self) -> None:
+        (self.tree.increments / "foo.md").write_text("x\n", encoding="utf-8")
+        cut = self.tree.increments / "foo-r3.md"
+        for actor in (LEAD, SEAT):                   # a generator script's output argument
+            with self.subTest(actor=actor):
+                result = self.tree.run(ROUTER, "no-recut", self.tree.bash_payload(actor, f"python3 gen.py '{cut}'"))
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn("foo-r3.md", result.stderr)
+                self.assertIn("edit the existing file", result.stderr)
+        # A bare token counts, resolved against the segment's own working directory.
+        payload = self.tree.bash_payload(LEAD, f"cd '{self.tree.increments}' && python3 gen.py foo-r3.md")
+        self.assertEqual(self.tree.run(ROUTER, "no-recut", payload).returncode, 2)
+        # An attached-flag form `--out=<name>` names the same output as `-o <name>`.
+        payload = self.tree.bash_payload(LEAD, f"cd '{self.tree.increments}' && python3 gen.py --out=foo-r3.md")
+        self.assertEqual(self.tree.run(ROUTER, "no-recut", payload).returncode, 2)
+        # A subshell `(cd X && ...)` tracks X like `cd X && ...`; a trailing slash still names the file.
+        payload = self.tree.bash_payload(LEAD, f"(cd '{self.tree.increments}' && python3 gen.py foo-r3.md)")
+        self.assertEqual(self.tree.run(ROUTER, "no-recut", payload).returncode, 2)
+        payload = self.tree.bash_payload(LEAD, f"cd '{self.tree.increments}' && python3 gen.py foo-r3.md/")
+        self.assertEqual(self.tree.run(ROUTER, "no-recut", payload).returncode, 2)
+        # A copy destination, and a heredoc redirect target.
+        (self.tree.increments / "bar-r1.sh").write_text("x\n", encoding="utf-8")
+        copy = f"cp '{self.tree.increments / 'bar-r1.sh'}' '{self.tree.increments / 'bar-r2.sh'}'"
+        self.assertEqual(self.tree.run(ROUTER, "no-recut", self.tree.bash_payload(LEAD, copy)).returncode, 2)
+        heredoc = f"cat > '{cut}' <<'EOF'\nbody\nEOF\n"
+        self.assertEqual(self.tree.run(ROUTER, "no-recut", self.tree.bash_payload(LEAD, heredoc)).returncode, 2)
+
+    def test_no_recut_passes_a_shell_command_that_files_no_new_cut(self) -> None:
+        (self.tree.increments / "foo.md").write_text("x\n", encoding="utf-8")
+        (self.tree.increments / "foo-r2.md").write_text("x\n", encoding="utf-8")
+        design = self.tree.workspace / "campaigns" / "c1" / "design"
+        (design / "foo.md").write_text("x\n", encoding="utf-8")
+        # A subshell that leaves increments/ writes elsewhere, even when the payload cwd is increments/.
+        away = self.tree.bash_payload(LEAD, f"(cd '{design}' && python3 gen.py foo-r3.md)", cwd=self.tree.increments)
+        self.assertEqual(self.tree.run(ROUTER, "no-recut", away).returncode, 0)
+        for command in (                             # in-place edit of the existing cut is the remedy
+            f"sed -i s/a/b/ '{self.tree.increments / 'foo-r2.md'}'",
+            f"python3 gen.py '{design / 'foo-r3.md'}'",          # outside increments/
+            f"cat '{self.tree.increments / 'foo.md'}'",           # no lap suffix anywhere
+            f"curl https://example.com/foo-r3.md -o '{self.tree.increments / 'notes.md'}'",
+            "git status",
+        ):
+            with self.subTest(command=command.split()[0]):
+                result = self.tree.run(ROUTER, "no-recut", self.tree.bash_payload(LEAD, command))
+                self.assertEqual((result.returncode, result.stdout), (0, ""), result.stderr)
+
+    def test_no_recut_counts_a_same_stem_file_parked_under_a_marker(self) -> None:
+        (self.tree.increments / "baz.sh.superseded").write_text("x\n", encoding="utf-8")
+        result = self.tree.run(ROUTER, "no-recut", self.tree.write_payload(LEAD, self.tree.increments / "baz-r2.sh"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("baz.sh.superseded", result.stderr)
+
     # --- audit-sidecar --------------------------------------------------------
 
     def test_lead_writing_hook_owned_files_is_blocked(self) -> None:
@@ -512,6 +564,7 @@ class RouterModeTests(unittest.TestCase):
         for mode, payload in (
             ("runtime-bindings", self.tree.write_payload(LEAD, self.denied)),
             ("no-recut", self.tree.write_payload(LEAD, self.tree.increments / "foo-r2.md")),
+            ("no-recut", self.tree.bash_payload(LEAD, f"cp a.md '{self.tree.increments / 'foo-r2.md'}'")),
             ("audit-sidecar", self.tree.write_payload(LEAD, self.tree.sidecar)),
         ):
             with self.subTest(mode=mode, case="no marker"):
@@ -631,7 +684,8 @@ class RegistrationTests(unittest.TestCase):
             return [h["command"] for g in hooks[event] if g.get("matcher") == matcher for h in g["hooks"]]
 
         pre_bash = commands("PreToolUse", "Bash")
-        for mode in ("protected-branch", "compile-cache", "venv-opt", "runtime-bindings", "audit-sidecar"):
+        for mode in ("protected-branch", "compile-cache", "venv-opt", "runtime-bindings",
+                     "no-recut", "audit-sidecar"):   # a shell command files a re-cut too
             self.assertTrue(any(c.endswith(f"pre_tool_use_router.py\" {mode}") for c in pre_bash), mode)
         pre_edit = commands("PreToolUse", "Edit|Write|MultiEdit")
         self.assertTrue(any("graph_edit_guard.sh" in c for c in pre_edit))

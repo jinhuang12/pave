@@ -10,9 +10,13 @@ directly (helpers in hooks/runtime_bindings.py):
                     matching one is refused (exit 2) with reason and remedy; a
                     seat's match is advisory (additionalContext). Fails OPEN on
                     a parse error or while <evolution-root>/.landing exists.
-  no-recut          PreToolUse Edit|Write|MultiEdit, every actor. Refuses
-                    creating <stem>-rN.<ext> under an increments/ component
-                    when a same-stem same-extension file already sits there.
+  no-recut          PreToolUse Bash|Edit|Write|MultiEdit, every actor. Refuses
+                    creating <stem>-rN.<ext> under an increments/ component when
+                    a same-stem same-extension file already sits there (a parked
+                    marker such as .superseded still counts); for Bash any
+                    argument, redirect target, or copy/move destination naming
+                    the form counts. A path built inside a script body stays
+                    invisible here: the write log and the census catch it after.
   audit-sidecar     PreToolUse Bash|Edit|Write|MultiEdit. The lead never writes
                     the hook-owned <state>.audit-checkpoint.json,
                     <state>.write-log*.jsonl or <state>.audit-census-*.txt, or the
@@ -158,11 +162,14 @@ def mode_runtime_bindings(payload: dict[str, Any], run: rb.RunContext) -> int:
 
 
 def mode_no_recut(payload: dict[str, Any], run: rb.RunContext) -> int:
-    for path in rb.target_paths(payload):
+    for path in rb.recut_candidates(payload):
         existing = rb.recut_conflict(path)
         if existing is not None:
+            token = ""                               # a shell actor sees which argument tripped it
+            if str(payload.get("tool_name") or "") == "Bash":
+                token = f"the argument {path.name} of this command names a new file: "
             return _block(
-                f"{path} is a re-cut of {existing.name}: "
+                f"{token}{path} is a re-cut of {existing.name}: "
                 + NO_RECUT_TEXT.format(existing=existing)
             )
     return 0

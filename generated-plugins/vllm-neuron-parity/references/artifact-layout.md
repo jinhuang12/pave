@@ -70,7 +70,7 @@ artifacts/
 | campaigns/*/measurements/ (bundles) | stabilize_and_package_evidence (defect records beside its bundles) |
 | reviews/<campaign>/ | the adversarial reviewer seat only |
 | `<evolution-root>/streamlining-findings.md` | the `pave-init:workflow-updater` seat, edited in place, plus the `pave-init:update-reviewer` seat's one `review:` line (§4.14) |
-| `<run-state>.audit-checkpoint.json`, `<run-state>.write-log*.jsonl`, `<run-state>.audit-census-*.txt` | the hooks only — the stop guard and the PreToolUse router; the lead is denied (§4.14) |
+| `<run-state>.audit-checkpoint.json`, `<run-state>.write-log*.jsonl`, `<run-state>.audit-census-*.txt` | the hooks only (the stop guard and the PreToolUse router); the lead is denied (§4.14) |
 
 Run state (`artifacts/run/run-state.json`) is lead-only. No node writes another node's
 directory (except a landing path §2 names); a stray write is an effect
@@ -90,10 +90,10 @@ violation before it is a count bug.
 - Non-indexed intermediates (scratch, delegate transcripts not cited by
   any record) go under the owning node's directory in `scratch/` and are
   never cited as evidence.
-- Superseding a campaign rule APPENDS a supersession section to the
-  append-only decision record (`approvals/DECISIONS.md`, §2) naming the
-  section it supersedes and why; it never edits the creating section, so
-  the record still shows what was decided and when it stopped holding.
+- To supersede a campaign rule, APPEND a supersession section to the
+  append-only decision record (`approvals/DECISIONS.md`, §2). Name the
+  section it supersedes and why. Never edit the creating section, so the
+  record still shows what was decided and when it stopped holding.
 
 ## 4. Pinned shapes (single authority; consumers cite, never restate)
 
@@ -507,43 +507,44 @@ The streamlining audit runs on three files and one census. Paths, with
 `<state>` = this run's `run-state.json` and `<evolution-root>` =
 `<project-root>/.vllm-neuron-parity/evolution`:
 
-- `<evolution-root>/streamlining-findings.md` — the findings record. Living:
-  edited in place, cap 400 lines AND 60 KB (§4.12 governs it), written by
-  the `pave-init:workflow-updater` seat; the `pave-init:update-reviewer`
-  seat appends only its one `review: PASS|REVISE` line on a no-change
-  close; the router denies every other actor, the lead included, and a close reads the record only as those two seats left it (size and mtime stamped at their write). Both write it with `Write` or `Edit`, never a shell redirect,
-  because the guard stamps only those writes and reads its own stamp.
-  First line `checkpoint: <checkpoint_id>`; one section per name family;
-  one `## Trend` section whose rows are
-  `checkpoint_id | outcomes | bytes | bytes_per_outcome`, plus
-  `outcome: no_change_warranted` under the row when nothing is warranted.
-- `<state>.audit-checkpoint.json` (the checkpoint sidecar) and
-  `<state>.write-log.jsonl` with its one rotated `.write-log.1.jsonl`
-  generation (the write log, one JSON record per path a tool call named,
-  carrying `written`, `size`, and `mtime` so a read never counts), and
-  `<state>.audit-census-<checkpoint_id>.txt` (the census text a DUE brief
-  names) — hook-owned scratch beside run state, like `<state>.lead-session`:
-  written only by the stop guard's audit branch, the router (PreToolUse deny, PostToolUse stamp),
-  and the PostToolUse write-log hook, and denied to the lead.
-- `<evolution-root>/proposals/<checkpoint_id>-binding.patch` and
-  `-graph.patch` — the updater's two proposals, never blended; read by
-  `record_revision.py propose` and `land`.
+- `<evolution-root>/streamlining-findings.md`: the findings record. Living:
+  edited in place, cap 400 lines AND 60 KB (§4.12 governs it). The
+  `pave-init:workflow-updater` seat writes it. The `pave-init:update-reviewer`
+  seat appends only its one `review: PASS|REVISE` line on a no-change close.
+  The router denies every other actor, the lead included. A close reads the
+  record only as those two seats left it (size and mtime stamped at their
+  write). Both seats write it with `Write` or `Edit`, never a shell redirect,
+  because the guard stamps only those writes and reads its own stamp. First
+  line: `checkpoint: <checkpoint_id>`. Then one section per name family, and
+  one `## Trend` section whose rows are `checkpoint_id | outcomes | bytes |
+  bytes_per_outcome`, with `outcome: no_change_warranted` under the row when nothing is warranted.
+- `<state>.audit-checkpoint.json` (the checkpoint sidecar), `<state>.write-log.jsonl`
+  with its one rotated `.write-log.1.jsonl` generation (the write log: one JSON
+  record per path a tool call named, with `written`, `size`, and `mtime`, so a
+  read never counts), and `<state>.audit-census-<checkpoint_id>.txt` (the census
+  text a DUE brief names). These are hook-owned scratch beside run state, like
+  `<state>.lead-session`. Only the stop guard's audit branch, the router
+  (PreToolUse deny, PostToolUse stamp), and the PostToolUse write-log hook write
+  them. The lead is denied.
+- `<evolution-root>/proposals/<checkpoint_id>-binding.patch` and `-graph.patch`:
+  the updater's two proposals, never mixed. `record_revision.py propose` and
+  `land` read them.
 
-**Declared scratch roots.** The census scans these roots and no others,
-and a run writes its scratch nowhere else: the run workspace root (the
-parent of the run-state directory, `increments/` included) and the
-evolution root. A bare `/tmp` or `$TMPDIR` path is not a declared root —
-work written there is invisible to the census, so it is a finding at the
-next checkpoint, not a shortcut.
+**Declared scratch roots.** The census scans these roots and no others, and a
+run writes its scratch nowhere else. The roots are the run workspace root (the
+parent of the run-state directory, `increments/` included) and the evolution
+root. A bare `/tmp` or `$TMPDIR` path is not a declared root. Work written
+there is invisible to the census, so it is a finding at the next checkpoint,
+not a shortcut.
 
-**Enforcement record** for the four controls this section owns
-(`references/pave-spec.md` §9.14.1 form: the rung, then why the
-neighbouring rungs are wrong — likely, costly, irreversible before the
-next gate, precisely detectable):
+**Enforcement record** for the four controls this section owns. The form is
+`references/pave-spec.md` §9.14.1: the rung, then why the neighbouring rungs
+are wrong (likely, costly, irreversible before the next gate, precisely
+detectable):
 
 | Control | Rung | Why that rung |
 |---|---|---|
-| Audit-due block (stop guard) | REINJECTION, block-once | Likely: the form the graph never named grew for fourteen days with no observer, and the advisory question it replaces was answered "lgtm" 288 times out of 308. Costly: about 95% of the observed run cost was lead-invented form. Not irreversible — a late audit loses nothing — so the rung stops below blocking: it blocks at most one stop per cooldown and never a traversal. Not weaker, because the advisory version demonstrably failed; not stronger, because a graph node would price the audit into every campaign |
-| Lead-only write deny (`runtime_bindings.deny` at the ledger head) | BLOCKING, reversible by a landing | Likely: the cut form is the lead's own habit, and the census counted the same families regrowing. Costly: one such family reached 1 GB of one-off scripts. Irreversible before the next gate: once the file is written the cost is paid. Precisely detectable: a landed glob matched against a Write/Edit path or a Bash argv token. Reversal is always available — the lead lands the reversal, which the graph edit guard's landing allowance never blocks. Bound to the lead alone; a seat whose target matches gets the reason as advice and is never blocked, so no glob can strand a seat. A payload is a seat when it carries `agent_id` or a session other than the lead's recorded session; `agent_type` alone does not make a seat, because a lead started with `--agent` carries one; the updater and reviewer are matched by exact registered name (the flat Codex form only under Codex), the lead-session sidecar accepts only a Write of its writer's own session id, and every protected path is compared by on-disk spelling plus casefolded basename so a case alias on a case-insensitive volume never slips past. A glob starting with `/` is matched against the absolute path, so a scratch family outside the workspace can be cut; every other glob matches workspace-relative |
-| No-recut rule (`<stem>-r<N>.<ext>`) | BLOCKING, remedy always available | Likely: 6,684 re-cuts in one run, after the advisory reminder had named the form as often. Costly: two thirds of a 562 MB working tree. Irreversible before the next gate, and precisely detectable: the strict basename form beside a same-stem file in the same directory. The remedy is always available and stated per class — working state (scripts, records) is edited in place; world-produced output (`.out`, `.err`, transcripts) takes a new event-keyed name, never `-rN`. Not stronger: the guard matches only the strict form, and the census's broader pattern (a timestamp after `rN`) feeds the next checkpoint instead of blocking |
-| Checkpoint sidecar, write log, findings record, and the live graph with its ledger outside a landing (hook- or seat-written; the sidecar and log denied to every actor, the record to every actor but the updater and reviewer, the graph and `revisions.yaml` to every actor unless `.landing` sits beside them, through the Bash write shapes the router parses as well as Write/Edit) | BLOCKING on the writes named; the remedy is in each block text (dispatch the updater; land with `record_revision.py land --proposal --stamps`) | The cycle state must not be typeable by the actor the cycle audits, nor by a seat it briefs: a blocked lead could close its own audit by editing one field or one line. Likely, because the lead is the one whose stop is blocked; costly, because a self-closed cycle turns the whole audit into ceremony; precisely detectable, because the paths are exact and a close accepts the record and a pending proposal only at the size and mtime stamped when the audit seats wrote them. Nothing above blocking exists here. Known limit, covered by the kill criterion (pave-init's `references/pave-revisions.md` rule 8: two consecutive checkpoints with no drop in the trend number pause the audit loop and go to the user with the numbers): `land --review` is still lead-typed, so a landing binds the DRAFTER's identity (`drafted_by: workflow-updater`) and the patch bytes the guard stamped, never the reviewer's verdict. A no-change close is stamp-bound on both sides: the guard stamps the reviewer's own `review: PASS` line when the reviewer writes it |
+| Audit-due block (stop guard) | REINJECTION, block-once | Likely: the forms the graph never named grew for fourteen days with no observer, and the advisory question this replaces was answered "lgtm" 288 times out of 308. Costly: about 95% of the observed run cost was lead-invented form. Not irreversible: a late audit loses nothing, so the rung stops below blocking. It blocks at most one stop per cooldown and never a traversal. Not weaker: the advisory version failed in the field. Not stronger: a graph node would price the audit into every campaign |
+| Lead-only write deny (`runtime_bindings.deny` at the ledger head) | BLOCKING, reversible by a landing | Likely: the cut form is the lead's own habit, and the census counted the same families regrowing. Costly: one such family reached 1 GB of one-off scripts. Irreversible before the next gate: once the file is written the cost is paid. Precisely detectable: a landed glob matched against a Write/Edit path or a Bash argument. Reversal is always available: the lead lands the reversal, and the graph edit guard's landing allowance never blocks that. The deny binds the lead alone. A seat whose target matches gets the reason as advice and is never blocked, so no glob can strand a seat. A payload is a seat when it carries `agent_id` or a session other than the lead's recorded session. `agent_type` alone does not make a seat, because a lead started with `--agent` carries one. The updater and reviewer are matched by exact registered name (the flat Codex form only under Codex). The lead-session sidecar accepts only a Write of its writer's own session id. Every protected path is compared by on-disk spelling plus casefolded basename, so a case alias on a case-insensitive volume never slips past. A glob that starts with `/` matches the absolute path, so a scratch family outside the workspace can be cut. Every other glob matches a workspace-relative path |
+| No-recut rule (`<stem>-r<N>.<ext>`) | BLOCKING, remedy always available | Likely: on one live run under 1.5.5, seven hours after install, 64 new re-cut files landed under `increments/`. 51 of them were first written through shell commands the file-write matcher never saw; 2 were blocked. Costly: the re-cut tree is what every later reader loads. Irreversible before the next gate: a filed re-cut is what the next lap cites. Precisely detectable: the strict basename form, absent on disk, beside a same-stem file in one directory under `increments/`. The sibling may sit under a parked marker (`.superseded`, `.bak`, `.orig`). The new path may be named in a file write, or as any argument, redirect target, or copy/move destination of a shell command. The remedy is always available, and the block text states it per class: edit working state in place; give world-produced output an event-keyed name, never `-rN`. Not stronger (a per-family deny): a wrong match strands a seat mid-node. Not cheaper: the advisory reminder named the form thousands of times without effect, and the file-write-only form reached 3% of the population in the field. Known limit: a path built inside a script body or from a shell variable is invisible at PreToolUse. The write log records it after the fact, and the census's regrowth count trips the next audit checkpoint. That is the designed catch for what a pre-write check cannot see |
+| Checkpoint sidecar, write log, findings record, and the live graph with its ledger outside a landing. The sidecar and log are denied to every actor. The record is denied to every actor but the updater and reviewer. The graph and `revisions.yaml` are denied to every actor unless `.landing` sits beside them. The router parses Bash write shapes as well as Write/Edit | BLOCKING on the writes named. The remedy is in each block text: dispatch the updater; land with `record_revision.py land --proposal --stamps` | The actor the cycle audits, and any seat it briefs, must not be able to type the cycle state. Otherwise a blocked lead could close its own audit by editing one field or one line. Likely: the lead is the one whose stop is blocked. Costly: a self-closed cycle turns the whole audit into ceremony. Precisely detectable: the paths are exact, and a close accepts the record and a pending proposal only at the size and mtime stamped when the audit seats wrote them. Nothing above blocking exists here. Known limit: `land --review` is still lead-typed, so a landing binds the DRAFTER's identity (`drafted_by: workflow-updater`) and the patch bytes the guard stamped, never the reviewer's verdict. The kill criterion covers this (pave-init's `references/pave-revisions.md` rule 8: two consecutive checkpoints with no drop in the trend number pause the audit loop and go to the user with the numbers). A no-change close is stamp-bound on both sides: the guard stamps the reviewer's own `review: PASS` line when the reviewer writes it |

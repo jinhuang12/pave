@@ -494,7 +494,7 @@ def bash_write_tokens(command: str, cwd: str | None) -> list[Path]:
         words = list(tokens)
         while words and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[0]):
             words.pop(0)                             # leading env assignments only
-        head = os.path.basename(words[0]) if words else ""
+        head = os.path.basename(words[0].lstrip("(")) if words else ""   # `(cd X && ...` tracks X too
         if head in ("sudo", "env", "nohup", "time", "command") and len(words) > 1:
             head = os.path.basename(words[1])
         if head == "cd":                             # later segments resolve against the new directory
@@ -577,15 +577,74 @@ def target_paths(payload: dict[str, Any]) -> list[Path]:
 # --- no-recut ----------------------------------------------------------------
 
 
+def bash_recut_candidates(command: str, cwd: str | None) -> list[Path]:
+    """Bare `<stem>-rN.<ext>` tokens of a shell command, resolved against the segment's
+    working directory (`cd` tracked per segment as in bash_write_tokens). A generator
+    script names its output as a plain argument, so a token needs no "/" to count."""
+    out: list[Path] = []
+    base = cwd if isinstance(cwd, str) and cwd else os.getcwd()
+    for segment in _SEGMENT_SPLIT.split(command):
+        if not segment.strip():
+            continue
+        try:
+            tokens = shlex.split(segment, comments=True, posix=True)
+        except ValueError:  # unbalanced quoting: fall back to plain whitespace tokens
+            tokens = segment.split()
+        while tokens and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[0]):
+            tokens.pop(0)                            # leading env assignments only
+        head = os.path.basename(tokens[0].lstrip("(")) if tokens else ""   # `(cd X && ...` tracks X too
+        if head == "cd":                             # later segments resolve against the new directory
+            target = tokens[1] if len(tokens) > 1 else os.path.expanduser("~")
+            base = os.path.normpath(os.path.join(base, os.path.expanduser(target)))
+            continue
+        for raw in tokens:
+            tok = _REDIRECT_PREFIX.sub("", raw).strip(_TOKEN_TRIM)
+            if "=" in tok and not tok.startswith(("/", ".", "~")):
+                tok = tok.split("=", 1)[1].strip(_TOKEN_TRIM)   # --out=foo-r3.md -> foo-r3.md
+            if not tok or tok.startswith("-") or "://" in tok:
+                continue
+            tok = tok.rstrip("/") or tok                 # a trailing slash still names the file
+            if not LAP_SUFFIX.match(os.path.basename(tok)):
+                continue
+            tok = os.path.expanduser(tok)
+            candidate = Path(tok) if os.path.isabs(tok) else Path(base) / tok
+            resolved = normalize(candidate)
+            if resolved not in out:
+                out.append(resolved)
+    return out
+
+
+def recut_candidates(payload: dict[str, Any]) -> list[Path]:
+    """Paths a payload could file as a new cut. Write/Edit/MultiEdit: file_path. Bash:
+    every path token plus every bare lap-suffix token, deduplicated."""
+    tool_input = payload.get("tool_input")
+    if not isinstance(tool_input, dict):
+        return []
+    file_path = tool_input.get("file_path")
+    if isinstance(file_path, str) and file_path:
+        return write_target_paths(payload)
+    command = tool_input.get("command")
+    if not (isinstance(command, str) and command.strip()):
+        return []
+    cwd = payload.get("cwd")
+    cwd = cwd if isinstance(cwd, str) and cwd else os.getcwd()
+    out: list[Path] = []
+    for path in target_paths(payload) + bash_recut_candidates(command, cwd):
+        if path not in out:
+            out.append(path)
+    return out
+
+
 def recut_conflict(path: Path) -> Path | None:
-    """The existing same-stem file that makes `<stem>-rN.<ext>` a re-cut, else None."""
+    """The existing same-stem file that makes `<stem>-rN.<ext>` a re-cut, else None.
+    A same-stem file parked under one extra marker (.superseded, .bak) still counts."""
     if "increments" not in path.parts or path.exists():
         return None
     match = LAP_SUFFIX.match(path.name)
     if not match:
         return None
     stem, ext = match.group("stem"), match.group("ext")
-    sibling_form = re.compile(rf"^{re.escape(stem)}(?:-r\d+)?{re.escape(ext)}$")
+    sibling_form = re.compile(rf"^{re.escape(stem)}(?:-r\d+)?{re.escape(ext)}(?:\.[A-Za-z0-9]+)?$")
     try:
         siblings = sorted(path.parent.iterdir())
     except OSError:
