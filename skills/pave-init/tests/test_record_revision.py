@@ -4,7 +4,10 @@
 Covers the ledger contract end to end on a tiny valid PAVE graph: init, a graph
 landing, a binding landing that moves the digest, pin routing (current, graph
 landed, binding landed), the unrecorded-edit and interrupted-landing failures,
-rollback, symlink rejection, and install.
+rollback, symlink rejection, install, the pending-approval envelope value
+(proposes, never lands), drafted_by from the hook stamps, --proposal staging,
+and the deny-glob check against declared paths, including a glob the runtime guard
+would widen onto a declared directory through its trailing components.
 
 Run: python3 skills/pave-init/tests/test_record_revision.py
 Needs pyyaml and jsonschema (the landing path validates the graph through
@@ -14,6 +17,7 @@ scripts/validate_pave.py) plus the git command-line tool; skips without them.
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import subprocess
 import sys
@@ -124,8 +128,8 @@ class RecordRevision(unittest.TestCase):
         path = (root or self.root) / "revisions.yaml"
         return yaml.safe_load(path.read_text())["entries"]
 
-    def write_proposal(self, revision, replacements, **overrides):
-        """Write history/vN.patch: a declared preamble plus a real unified diff."""
+    def write_proposal(self, revision, replacements, into=None, **overrides):
+        """Write history/vN.patch (or `into`): a declared preamble plus a real unified diff."""
         scratch = Path(tempfile.mkdtemp(prefix="pave-proposal-"))
         for side in ("a", "b"):
             (scratch / side).mkdir()
@@ -142,10 +146,22 @@ class RecordRevision(unittest.TestCase):
         ).stdout
         shutil.rmtree(scratch, ignore_errors=True)
         self.assertTrue(diff.strip(), "the replacements produced no diff")
-        patch = self.root / "history" / f"v{revision}.patch"
+        patch = into or self.root / "history" / f"v{revision}.patch"
         patch.parent.mkdir(parents=True, exist_ok=True)
         patch.write_text(yaml.safe_dump(dict(PREAMBLE, **overrides), sort_keys=False) + diff)
         return patch
+
+    def write_stamps(self, *proposals, **tweaks):
+        """Write a hook-style checkpoint sidecar stamping each proposal by path, size, mtime."""
+        stamps = []
+        for proposal in proposals:
+            stat = proposal.stat()
+            stamps.append(dict({"path": str(proposal), "size": stat.st_size,
+                                "mtime": stat.st_mtime}, **tweaks))
+        sidecar = self.tmp / "run-state.json.audit-checkpoint.json"
+        sidecar.write_text(json.dumps({"checkpoint_id": "cp-20260910T193405Z",
+                                       "state": "OPEN", "stamped_proposals": stamps}))
+        return sidecar
 
     def land_graph_change(self, revision, replacements, **overrides):
         self.write_proposal(revision, replacements, **overrides)
@@ -164,6 +180,7 @@ class RecordRevision(unittest.TestCase):
         self.assertIsNone(entry["patch"])
         self.assertIsNone(entry["semantic_diff"])
         self.assertIsNone(entry["review"])
+        self.assertIsNone(entry["drafted_by"])
         self.assertEqual(entry["approval"], "user: ship it")
         self.assertTrue(entry["digest_after"].startswith("sha256:"))
         rc, out = run("verify", self.root)
@@ -355,6 +372,215 @@ class RecordRevision(unittest.TestCase):
         rc, out = run("verify", self.root)
         self.assertEqual(rc, 1, out)
         self.assertIn("symlink not allowed", out)
+
+    def test_entry_fields_and_enums_carry_the_audit_cycle_values(self):
+        self.assertEqual(rr.ENUMS["envelope_check"],
+                         ("unchanged", "changed_with_approval", "changed_pending_approval"))
+        fields = list(rr.ENTRY_FIELDS)
+        self.assertEqual(fields[fields.index("review") + 1], "drafted_by")
+
+    def test_pending_envelope_proposes_but_never_lands(self):
+        """The updater writes changed_pending_approval when a proposal moves the envelope;
+        propose accepts it so the reviewer can read it, land refuses it with exit 3."""
+        self.init_root()
+        ledger, before = self.ledger(), (self.root / "workflow.pave.yaml").read_text()
+        patch = self.write_proposal(1, {"status: draft": "status: active"},
+                                    envelope_check="changed_pending_approval")
+        rc, out = run("propose", self.root, "--patch", patch)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("envelope_check: changed_pending_approval", out)
+        rc, out = run("land", self.root, 1, "--review", "material review: clean, 1 round")
+        self.assertEqual(rc, 3, out)
+        self.assertIn("envelope change awaits the user's approval; re-propose with"
+                      " changed_with_approval and the approval verbatim", out)
+        self.assertEqual(self.ledger(), ledger)
+        self.assertEqual((self.root / "workflow.pave.yaml").read_text(), before)
+        self.assertFalse((self.root / ".landing").exists())
+        patch.write_text(patch.read_text().replace("changed_pending_approval",
+                                                   "changed_with_approval"))
+        rc, out = run("land", self.root, 1, "--approval", "user: yes, widen it")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.ledger()[1]["envelope_check"], "changed_with_approval")
+
+    def test_land_without_the_new_flags_records_unstamped(self):
+        self.init_root()
+        self.land_graph_change(1, {"status: draft": "status: active"})
+        self.assertEqual(self.ledger()[1]["drafted_by"], "unstamped")
+
+    def test_land_proposal_copies_it_into_history_before_applying(self):
+        self.init_root()
+        proposal = self.write_proposal(1, {"status: draft": "status: active"},
+                                       into=self.tmp / "proposals" / "cp-20260910T193405Z-graph.patch")
+        rc, out = run("land", self.root, 1, "--proposal", proposal, "--review", "clean, 1 round")
+        self.assertEqual(rc, 0, out)
+        copy = self.root / "history" / "v1.patch"
+        self.assertEqual(copy.read_bytes(), proposal.read_bytes())
+        entry = self.ledger()[1]
+        self.assertEqual(entry["patch"], "history/v1.patch")
+        self.assertEqual(entry["drafted_by"], "unstamped")
+        self.assertIn("status: active", (self.root / "workflow.pave.yaml").read_text())
+        rc, out = run("verify", self.root)
+        self.assertEqual(rc, 0, out)
+        # A proposal that differs from an existing history/vN.patch is refused; the
+        # existing file, the graph and the ledger stay as they were.
+        staged = self.write_proposal(2, {"status: active": "status: retired"})
+        other = self.write_proposal(2, {"status: active": "status: retired"},
+                                    into=self.tmp / "proposals" / "other.patch",
+                                    changelog_entry="A different proposal.")
+        ledger, graph = self.ledger(), (self.root / "workflow.pave.yaml").read_text()
+        rc, out = run("land", self.root, 2, "--proposal", other)
+        self.assertEqual(rc, 1, out)
+        self.assertIn("already exists and differs", out)
+        self.assertNotEqual(staged.read_bytes(), other.read_bytes())
+        self.assertEqual(staged.read_text(), self.write_proposal(2, {"status: active": "status: retired"}).read_text())
+        self.assertEqual((self.ledger(), (self.root / "workflow.pave.yaml").read_text()), (ledger, graph))
+        self.assertFalse((self.root / ".landing").exists())
+
+    def test_land_proposal_that_fails_removes_its_copy_and_restores(self):
+        self.init_root()
+        ledger = self.ledger()
+        proposal = self.write_proposal(1, {"      intent: execute": "      intent: execute\n      oops: x"},
+                                       into=self.tmp / "proposals" / "bad.patch")
+        rc, out = run("land", self.root, 1, "--proposal", proposal)
+        self.assertEqual(rc, 1, out)
+        self.assertIn("does not validate", out)
+        self.assertFalse((self.root / "history" / "v1.patch").exists())
+        self.assertEqual(self.ledger(), ledger)
+        self.assertFalse((self.root / ".landing").exists())
+
+    def test_drafted_by_reads_the_hook_stamps(self):
+        """workflow-updater only when the --proposal path, size and mtime all match a stamp
+        in the sidecar's stamped_proposals; any other case, or no --stamps, is unstamped."""
+        self.init_root()
+        proposals = self.tmp / "proposals"
+        stamped = self.write_proposal(1, {"status: draft": "status: active"},
+                                      into=proposals / "cp-1-graph.patch")
+        sidecar = self.write_stamps(stamped)
+        rc, out = run("land", self.root, 1, "--proposal", stamped, "--stamps", sidecar)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.ledger()[1]["drafted_by"], "workflow-updater")
+        # Same stamps, a proposal the hook never saw: unstamped.
+        unseen = self.write_proposal(2, {"style: mechanical": "style: reviewed"},
+                                     into=proposals / "lead-typed.patch", kind="binding",
+                                     changelog_entry="Reviewed instrument.")
+        rc, out = run("land", self.root, 2, "--proposal", unseen, "--stamps", sidecar)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.ledger()[2]["drafted_by"], "unstamped")
+        # A stamp whose size disagrees (the file changed after the stamp): unstamped.
+        edited = self.write_proposal(3, {"status: active": "status: retired"},
+                                     into=proposals / "cp-2-graph.patch",
+                                     changelog_entry="Retire the graph.")
+        sidecar = self.write_stamps(edited, size=edited.stat().st_size + 1)
+        rc, out = run("land", self.root, 3, "--proposal", edited, "--stamps", sidecar)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.ledger()[3]["drafted_by"], "unstamped")
+        # A stamp whose mtime disagrees: unstamped.
+        moved = self.write_proposal(4, {"status: retired": "status: draft"},
+                                    into=proposals / "cp-3-graph.patch",
+                                    changelog_entry="Back to draft.")
+        sidecar = self.write_stamps(moved, mtime=moved.stat().st_mtime - 5)
+        rc, out = run("land", self.root, 4, "--proposal", moved, "--stamps", sidecar)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.ledger()[4]["drafted_by"], "unstamped")
+        # A --stamps path that does not exist is a typo, never a silent unstamped.
+        rc, out = run("land", self.root, 5, "--proposal", moved, "--stamps", self.tmp / "missing.json")
+        self.assertEqual(rc, 1, out)
+        self.assertIn("not found", out)
+        self.assertEqual(len(self.ledger()), 5)
+
+    def test_propose_rejects_a_deny_glob_on_a_declared_path(self):
+        """A runtime_bindings deny glob may never match a path the graph declares under
+        evidence, state, produces or consumes: propose reads the graph after a dry apply
+        and exits 4 naming the glob and the path; a glob off the declared paths passes."""
+        self.init_root()
+        declare = {"  evidence: {}": "  evidence:\n    result_record:\n      kind: observation\n"
+                                     "      produced_by: do_work\n      artifact: artifacts/run/result/",
+                   "  state: {}": "  state:\n    fields:\n      ledger_path: leases/ledger.md"}
+
+        def bindings(glob):
+            return {"  state: {}": declare["  state: {}"], "  evidence: {}": declare["  evidence: {}"]
+                    + "\n  runtime_bindings:\n    deny:\n      - glob: \"" + glob + "\"\n"
+                    "        bound_to: [lead]\n        reason: The lead never writes here.\n"
+                    "        remedy: Ask the seat that owns the path.\n"
+                    "        created_by: cp-20260910T193405Z"}
+
+        for glob, declared in (("artifacts/run/*", "artifacts/run/result/"),
+                               ("leases/*.md", "leases/ledger.md")):
+            patch = self.write_proposal(1, bindings(glob), kind="binding",
+                                        changelog_entry="Bind the lead away from a path.")
+            rc, out = run("propose", self.root, "--patch", patch)
+            self.assertEqual(rc, 4, out)
+            self.assertIn(f"deny glob '{glob}' matches the declared path '{declared}'", out)
+            rc, out = run("land", self.root, 1)
+            self.assertEqual(rc, 4, out)
+            self.assertEqual(len(self.ledger()), 1)
+            self.assertNotIn("runtime_bindings", (self.root / "workflow.pave.yaml").read_text())
+        patch = self.write_proposal(1, bindings("increments/build-*.py"), kind="binding",
+                                    changelog_entry="Bind the lead away from build scripts.")
+        rc, out = run("propose", self.root, "--patch", patch)
+        self.assertEqual(rc, 0, out)
+        rc, out = run("land", self.root, 1)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.ledger()[1]["kind"], "binding")
+        self.assertEqual(rr.declared_paths(yaml.safe_load((self.root / "workflow.pave.yaml").read_text())),
+                         {"artifacts/run/result/", "leases/ledger.md"})
+
+    def test_glob_covers_matches_the_runtime_guard(self):
+        """The guard matches a deny glob against the workspace-relative path and every
+        trailing-component suffix; an absolute glob never reaches a relative path."""
+        declared = "artifacts/campaigns/parity/increments/"
+        for glob in ("increments/*", "campaigns/*/increments/*", "*", "parity/increments/*",
+                     "artifacts/campaigns/*/increments"):
+            with self.subTest(covers=glob):
+                self.assertTrue(rr.glob_covers(declared, glob))
+        for glob in ("increments/build-*.py", "/tmp/opusaudit/*.py", "/increments/*", "leases/*.md"):
+            with self.subTest(clear=glob):
+                self.assertFalse(rr.glob_covers(declared, glob))
+
+    def test_propose_rejects_a_deny_glob_the_runtime_guard_would_widen(self):
+        """A glob that never matches a declared path whole-string still reaches it through
+        the path's trailing components at run time, so propose and land refuse it (exit 4);
+        a glob the guard cannot widen onto a declared path proposes and lands."""
+        self.init_root()
+        increments = "artifacts/campaigns/parity/increments/"
+
+        def bindings(glob):
+            return {"  evidence: {}":
+                    "  evidence:\n    increment_dir:\n      kind: observation\n"
+                    "      produced_by: do_work\n      artifact: " + increments
+                    + "\n  runtime_bindings:\n    deny:\n      - glob: \"" + glob + "\"\n"
+                    "        bound_to: [lead]\n        reason: The lead never writes here.\n"
+                    "        remedy: Ask the seat that owns the path.\n"
+                    "        created_by: cp-20260910T193405Z"}
+
+        for glob in ("increments/*", "campaigns/*/increments/*", "*"):
+            with self.subTest(rejected=glob):
+                patch = self.write_proposal(1, bindings(glob), kind="binding",
+                                            changelog_entry="Bind the lead away from the increments dir.")
+                rc, out = run("propose", self.root, "--patch", patch)
+                self.assertEqual(rc, 4, out)
+                self.assertIn(f"deny glob '{glob}' matches the declared path '{increments}'", out)
+                rc, out = run("land", self.root, 1)
+                self.assertEqual(rc, 4, out)
+                self.assertEqual(len(self.ledger()), 1)
+                self.assertNotIn("runtime_bindings", (self.root / "workflow.pave.yaml").read_text())
+        for glob in ("increments/build-*.py", "/tmp/opusaudit/*.py"):
+            with self.subTest(accepted=glob):
+                patch = self.write_proposal(1, bindings(glob), kind="binding",
+                                            changelog_entry="Bind the lead away from build scripts.")
+                rc, out = run("propose", self.root, "--patch", patch)
+                self.assertEqual(rc, 0, out)
+        rc, out = run("land", self.root, 1)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.ledger()[1]["kind"], "binding")
+        self.assertEqual(rr.declared_paths(yaml.safe_load((self.root / "workflow.pave.yaml").read_text())),
+                         {increments})
+
+    def test_pin_help_says_it_never_closes_an_audit_cycle(self):
+        rc, out = run("pin", "--help")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("informational; never closes an audit cycle", out)
+        self.assertIn("informational; never closes an audit cycle", rr.pin.__doc__)
 
     def test_install_copies_a_package_root_and_verifies_it(self):
         self.init_root()

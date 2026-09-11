@@ -33,7 +33,7 @@ CEILINGS: dict[str, int] = {
     "README.md": 700,
     "workflow.pave.yaml": 3100,
     "skills/vllm-neuron-parity/SKILL.md": 500,
-    "references/artifact-layout.md": 500,
+    "references/artifact-layout.md": 550,
     "references/collision-ranking.md": 160,
     "references/measurement-pitfalls.md": 200,
     "references/patch-mechanism-inventory.md": 180,

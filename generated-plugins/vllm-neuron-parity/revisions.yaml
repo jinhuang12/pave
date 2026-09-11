@@ -641,3 +641,123 @@ entries:
   commit: null
   derived_from: null
   run_id: null
+- revision: 8
+  kind: graph
+  landed_at: '2026-09-11T00:09:00Z'
+  digest_before: sha256:7122658f420f313cba40f50163cd9c7df11dc2f618ef4666e3e534fbc82b3163
+  digest_after: sha256:c1a8576f55e72dd9e4e769767f4f16d8f21bb6a7c77fdb2ba29bba4a083b44ac
+  semantic_diff: 'Envelope-changing revision, approved by the user: one outcome, one
+    edge and one check added at scope_next_increment; one meaning change at execute_attempt_loop;
+    the empty runtime_bindings block. 6 hunks, 38 added lines against 1 removed. Counts:
+    32 nodes unchanged, 95 -> 96 edges, 16 -> 17 checks, 88 -> 89 outcomes.
+
+    (1) PREREQUISITE HOLD AT SCOPING (new outcome prerequisite_unlanded, edge prerequisite_to_rescoping,
+    check prerequisite_is_in_plan). The node declared no route for "the item the rule
+    would select depends on an unlanded block the plan already carries". plan_unrealizable_as_designed
+    re-enters the design boundary for what is an ordering fact; increment_selected
+    on the prerequisite hides the hold. The lead resolved the field case by ruling
+    on an undeclared route. Now the lap holds the item by id, selects the prerequisite,
+    and re-arms the held item at the prerequisite''s landing; the mechanical check
+    settles that the prerequisite is an in-plan unlanded block (otherwise the case
+    is a design change and takes the existing door). The precedence list gains it
+    at position 4.
+
+    (2) THE ATTEMPT LOOP REPAIRS ITS OWN TESTS, CONTROLS, LAUNCHERS, CHECKERS AND
+    BUNDLES (execute_attempt_loop activity + allowed effect). The node had no write
+    allowance in the worktree, so a failing launcher stopped the loop for a lead word.
+    Now the diagnosis and fix are recorded together in the attempt log and committed;
+    only a product-source change leaves the loop for review. The pre-hardware review
+    check impl_commit_is_reviewed is unchanged: a proposal to let test- or launcher-only
+    commits keep ready_for_hardware was considered and withheld for the user''s word.
+
+    (3) runtime_bindings (empty deny and caps). The binding surface the streamlining
+    audit''s kind: binding proposals fill: deny globs bound to the lead identity and
+    per-checkpoint caps, read by the PreToolUse router from this file at the ledger
+    head. Empty here; it changes no behaviour until a landed binding fills it.
+
+    FIELD EVIDENCE: (1) the campaign''s graph-defect record of 2026-09-10T19:34:05Z
+    (a held selection resolved by lead ruling and one plan ordering line); (2) the
+    user''s ruling of 2026-09-10T17:05:11Z that a lane repairs its own test, control,
+    launcher, checker or bundle defects without waiting for the lead, recorded verbatim
+    in the campaign log, and the ceremony audit of the same day (two workflows, 53
+    agents) that found the wait lead-invented against a graph that neither allowed
+    nor forbade the repair; (3) pave-init 2.6.0 schema. A clause saying a CPU-mode
+    acceptance run on an assigned host is no hardware attempt was drafted and withheld:
+    no user words cover it and the campaign log counts host runs. Reviewed by independent
+    adversarial reviewers (fable) as part of the 1.5.5 batch before landing.'
+  approval: 'User, 2026-09-10: "yes to all" (landing flips to envelope; memory deletions
+    per PASSed findings record; install and re-pin the running campaign), then "lgtm
+    go" and "build" on the reviewed plan whose "Graph defects queued" section names
+    the run lead''s routed scope defect (prerequisite hold); the attempt-loop repair
+    authority is the user''s ruling recorded verbatim in the campaign log at 2026-09-10T17:05:11Z
+    (a lane repairs its own test, control, launcher, checker or bundle defects without
+    waiting for the lead).'
+  envelope_check: changed_with_approval
+  plan_evidence: verified
+  usage_evidence: field
+  review: 'Fable adversarial review, six rounds over the 2.6.0/1.5.5 batch (31 + 7
+    + 13 + 5 + 4 + 5 findings, every BLOCKING/HIGH fixed and re-verified). The graph
+    proposal itself: round 2 REVISE (the CPU-mode clause lacked user words: withheld),
+    round 3 PASS, round 4 PASS after the control/bundle wording matched the ruling
+    verbatim. Hook findings through round 6 were identity- and path-alias holes in
+    the audit guard, fixed in the same batch.'
+  drafted_by: unstamped
+  patch: history/v8.patch
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 9
+  kind: graph
+  landed_at: '2026-09-11T01:09:29Z'
+  digest_before: sha256:c1a8576f55e72dd9e4e769767f4f16d8f21bb6a7c77fdb2ba29bba4a083b44ac
+  digest_after: sha256:4f8e0734cb862c7e8814e63f5a56c5afce5adb56004530783b9d0a145601e794
+  semantic_diff: 'Envelope-changing revision, approved by the user: one check meaning
+    change at the reviewed_impl_to_hardware edge, and one budget rule stated at execute_attempt_loop
+    (where the count is kept), at the hardware_attempt_counts state field (where its
+    meaning is declared), and mirrored at the realize_increment allowed effect. 4
+    hunks, 13 added lines against 4 removed. Counts unchanged: 32 nodes, 96 edges,
+    17 checks, 89 outcomes.
+
+    (a) THE PRE-HARDWARE REVIEW CHECK ADMITS NON-PRODUCT COMMITS (impl_commit_is_reviewed).
+    Before: the worktree commit had to equal the commit the adversarial review stamped,
+    so a lane that repaired its own test, control, launcher, checker or bundle after
+    the review (revision 8 gave it that authority) lost ready_for_hardware and waited
+    for a new review of a change that touched no product source. Now the check also
+    passes when every commit after the stamped one changes only tests, controls, launchers,
+    checkers or bundles and no product source, each named with its file set in the
+    attempt log; a product-source commit still fails the check and re-enters review_implementation.
+
+    (b) A CPU-MODE RUN IS NOT A HARDWARE ATTEMPT ON ANY HOST (execute_attempt_loop
+    purpose, hardware_attempt_counts meaning, realize_increment allowed effect). The
+    per-target budget (hardware_attempt_counts) counts non-host-level failures of
+    hardware attempts in execute_attempt_loop and budget-counted venv-recipe retries
+    in replicate_campaign_venv. A CPU-mode run (VLLM_NEURON_CPU_MODE=1) opens no Neuron
+    device; the clause removes the reading that charged such runs on the leased host
+    to that budget, and states it where the counter is read so a stage-7 lead cannot
+    read the stage-6 sentence as not governing the loop.
+
+    FIELD EVIDENCE: (a) the campaign''s lanes repaired launchers after review and
+    waited for a lead word the graph never required (ceremony audit 2026-09-10; user
+    ruling recorded at 2026-09-10T17:05:11Z in the campaign log); (b) the campaign
+    log counted ten CPU-mode launches on the leased host as budget attempts and tripped
+    the breaker on them, a reading the plan never intended. Both drafted in the 1.5.5
+    batch, withheld for the user''s word, and approved by the user on 2026-09-10 in
+    answer to two plain questions (recorded verbatim in the approval).'
+  approval: User, 2026-09-10, answering two plain questions with "a. yes b. yes".
+    (a) "Let a lane skip the pre-hardware review when a commit changes only tests
+    or launch scripts, not product code. Today every commit before a hardware run
+    needs a review." (b) "Do not count a CPU-only test run on an assigned machine
+    against the hardware attempt budget. Today the campaign log counts it."
+  envelope_check: changed_with_approval
+  plan_evidence: verified
+  usage_evidence: field
+  review: 'Fable adversarial review of the revision-9 proposal, two rounds: round
+    1 REVISE (the CPU-mode clause sat only at the stage-6 node while the campaign
+    log counted CPU-mode launches on the leased host in the attempt loop; the preamble
+    misdescribed the budget), round 2 PASS with no material finding after the clause
+    moved to the attempt counter and the budget field.'
+  drafted_by: unstamped
+  patch: history/v9.patch
+  commit: null
+  derived_from: null
+  run_id: null

@@ -357,9 +357,19 @@ pave:
     impl_commit_is_reviewed:
       style: mechanical
       question: Does the campaign worktree's checked-out commit equal the commit
-        stamped in the adversarial review findings record that granted ready_for_hardware?
+        stamped in the adversarial review findings record that granted ready_for_hardware,
+        or differ from it only by commits whose file sets are tests, controls,
+        launchers, checkers, or bundles and no product source - each named with its
+        file set in the attempt log?
       evaluated_by: lead
       on_failure_route: review_implementation
+    prerequisite_is_in_plan:
+      style: mechanical
+      question: Is the prerequisite the lap record names for the held item a block
+        the approved increment plan already carries with no passing evidence record
+        yet - an ordering fact - rather than a surface the plan never designed?
+      evaluated_by: lead
+      on_failure_route: screen_pin_and_progress
     batch_review_current:
       style: mechanical
       question: >-
@@ -1468,7 +1478,9 @@ pave:
         precedence: (1) plan_unrealizable_as_designed - a concrete recorded contradiction
         outranks every repetition signal; (2) no_new_route - repetition proves
         iteration is not working, so it outranks resizing; (3) plan_exceeds_node;
-        (4) plan_satisfied when nothing is pending; (5) increment_selected otherwise.
+        (4) prerequisite_unlanded when the item the rule would select declares a
+        prerequisite that is an unlanded block the plan already carries; (5) plan_satisfied
+        when nothing is pending; (6) increment_selected otherwise.
         A landed item''s plan block collapses to its ledger row at the lap that
         first reads its passing record (the layout reference''s cap rule), and
         the lap record names the plan''s revision-log line after the collapse. Instrument
@@ -1516,6 +1528,15 @@ pave:
             mark - settled by the lap record resolving
             item-by-item against the approved design record and findings history
             on disk, a derivation any reader can re-run from the same two inputs.
+          required_evidence:
+          - increment_lap_record
+        prerequisite_unlanded:
+          meaning: The item the rule would select declares a prerequisite that is
+            a block the approved plan already carries and no passing evidence record
+            yet covers. The lap record holds the item by id and names the prerequisite
+            as the next selection, re-armed at the prerequisite's landing - an ordering
+            hold the check on its edge distinguishes from a design change. Routes
+            back to this node.
           required_evidence:
           - increment_lap_record
         plan_satisfied:
@@ -1617,7 +1638,8 @@ pave:
       allowed_effects:
       - Writes inside this campaign's worktree - or, for a concurrent-eligible set,
         one checkout per item on the campaign branch - and branch on the fork.
-      - CPU-mode execution on local or assigned hosts.
+      - CPU-mode execution on local or assigned hosts; a CPU-mode run is not a
+        hardware attempt and is charged to no attempt budget.
       - Guardrailed delegate dispatch.
       forbidden_effects:
       - Mutating protected base branches on fork or upstream.
@@ -1863,7 +1885,10 @@ pave:
         never launch an attempt identical to a recorded failure (tier 1). Count
         every attempt whose failure cause is not host-level against the per-target
         shared budget and halt at the tier-2 threshold (every 10 budget-counted
-        hardware attempts per target since the last re-derivation). Outcome precedence
+        hardware attempts per target since the last re-derivation). A CPU-mode run
+        (VLLM_NEURON_CPU_MODE=1, no Neuron device opened) on any host this campaign
+        holds - assigned or leased - is not a hardware attempt and is never charged
+        to that budget; only a run that opens a Neuron device counts. Outcome precedence
         when both hold - a host fault on the threshold-reaching attempt routes
         to host_faulted first; a host-caused failure recorded as the breaker's
         final datum would feed re-derivation contaminated evidence. The attempt
@@ -1899,9 +1924,15 @@ pave:
         fingerprint records, never a bare "nothing left" claim.
       - Dispatch delegates only through the guardrail wrapper (remedy interception,
         benchmark scope restriction).
+      - A failure inside the attempt's own test, control, launcher, checker, or
+        bundle is this node's to repair with no lead word - diagnosis and fix recorded together
+        in the attempt log and committed; only a product-source change leaves the
+        loop for review.
       allowed_effects:
       - In-band SSH compile and serve runs on the leased host using the campaign
         venv and the shared multi-writer-safe compile cache.
+      - Writes to the attempt's own tests, controls, launchers, checkers, and bundles
+        in the campaign worktree, committed on the campaign branch.
       - Guardrailed delegate dispatch.
       forbidden_effects:
       - Clearing or bypassing the shared compile cache, including via a delegate's
@@ -2585,6 +2616,16 @@ pave:
   - id: selected_to_realization
     from: scope_next_increment.increment_selected
     to: realize_increment
+  - id: prerequisite_to_rescoping
+    from: scope_next_increment.prerequisite_unlanded
+    to: scope_next_increment
+    checks:
+    - prerequisite_is_in_plan
+    rationale: An in-plan, unlanded prerequisite is an ordering hold, not a plan
+      defect - the lap re-enters with the prerequisite selected and the held item
+      named, so no selection row stands unexplained and the design boundary is
+      not re-entered for an ordering fact (field record 2026-09-10 - a held selection
+      the lead resolved by ruling on a route the graph did not declare).
   - id: passed_to_next_scoping
     from: realize_increment.increment_passed
     to: scope_next_increment
@@ -2718,6 +2759,9 @@ pave:
       kind: join
       meaning: Hold until every approved campaign instance reaches its verified
         closure; run-closure verification re-runs at each closure.
+  runtime_bindings:
+    deny: []
+    caps: []
   state:
     required:
     - workflow_identity
@@ -2773,7 +2817,9 @@ pave:
           whenever a campaign design refines its predicted surface.
       hardware_attempt_counts:
         meaning: Per-target shared budget across all routes that spend hardware
-          attempts; the tier-2 breaker reads it at every 10.
+          attempts; the tier-2 breaker reads it at every 10. A CPU-mode run that
+          opens no Neuron device is not a hardware attempt on any host and never
+          increments it.
       campaign_states:
         meaning: Pointer per campaign to its own state and evidence directory
           (one-file-per-event); never inlined into run state.

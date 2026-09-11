@@ -6,7 +6,7 @@ Run from anywhere:
     plugins/vllm-neuron-parity/tests/test_workflow_pave.py
 
 Checks: the canonical graph validates (exit 0) and reports the approved
-topology - 32 nodes, 95 edges, 5 control endpoints. A change in any of those
+topology - 32 nodes, 96 edges, 5 control endpoints. A change in any of those
 counts means the graph changed; the graph's meaning is frozen, so a count
 change is a finding, not a test update.
 
@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 VALIDATOR = ROOT / "scripts" / "validate_pave.py"
 GRAPH = ROOT / "workflow.pave.yaml"
-EXPECTED = "32 nodes, 95 edges, 5 control endpoints"
+EXPECTED = "32 nodes, 96 edges, 5 control endpoints"
 VALIDATOR_COUNTS = re.compile(r"(\d+) nodes, (\d+) edges, (\d+) control endpoints")
 DOC_COUNTS = re.compile(r"(\d+) nodes(?:,| and) (\d+) edges")
 

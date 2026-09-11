@@ -1,0 +1,92 @@
+kind: graph
+semantic_diff: >-
+  Envelope-changing revision, approved by the user: one check meaning change at the
+  reviewed_impl_to_hardware edge, and one budget rule stated at execute_attempt_loop
+  (where the count is kept), at the hardware_attempt_counts state field (where its
+  meaning is declared), and mirrored at the realize_increment allowed effect.
+  4 hunks, 13 added lines against 4 removed. Counts unchanged:
+  32 nodes, 96 edges, 17 checks, 89 outcomes.
+
+  (a) THE PRE-HARDWARE REVIEW CHECK ADMITS NON-PRODUCT COMMITS
+  (impl_commit_is_reviewed). Before: the worktree commit had to equal the commit the
+  adversarial review stamped, so a lane that repaired its own test, control, launcher,
+  checker or bundle after the review (revision 8 gave it that authority) lost
+  ready_for_hardware and waited for a new review of a change that touched no product
+  source. Now the check also passes when every commit after the stamped one changes
+  only tests, controls, launchers, checkers or bundles and no product source, each
+  named with its file set in the attempt log; a product-source commit still fails the
+  check and re-enters review_implementation.
+
+  (b) A CPU-MODE RUN IS NOT A HARDWARE ATTEMPT ON ANY HOST (execute_attempt_loop
+  purpose, hardware_attempt_counts meaning, realize_increment allowed effect). The
+  per-target budget (hardware_attempt_counts) counts non-host-level failures of
+  hardware attempts in execute_attempt_loop and budget-counted venv-recipe retries in
+  replicate_campaign_venv. A CPU-mode run (VLLM_NEURON_CPU_MODE=1) opens no Neuron
+  device; the clause removes the reading that charged such runs on the leased host
+  to that budget, and states it where the counter is read so a stage-7 lead cannot
+  read the stage-6 sentence as not governing the loop.
+
+  FIELD EVIDENCE: (a) the campaign's lanes repaired launchers after review and waited
+  for a lead word the graph never required (ceremony audit 2026-09-10; user ruling
+  recorded at 2026-09-10T17:05:11Z in the campaign log); (b) the campaign log counted ten
+  CPU-mode launches on the leased host as budget attempts and tripped the breaker on
+  them, a reading the plan never intended. Both
+  drafted in the 1.5.5 batch, withheld for the user's word, and approved by the user
+  on 2026-09-10 in answer to two plain questions (recorded verbatim in the approval).
+envelope_check: changed_with_approval
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 9 (graph): impl_commit_is_reviewed also passes when the commits after the
+  reviewed one change only tests, controls, launchers, checkers or bundles and no
+  product source; a CPU-mode run that opens no Neuron device is not a hardware
+  attempt on any host and never increments hardware_attempt_counts. 32 nodes, 96 edges, 17 checks, 89 outcomes; 13 added lines against
+  4 removed in 4 hunks. Approved by the user 2026-09-10 ("a. yes b. yes").
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -357,7 +357,10 @@ pave:
+     impl_commit_is_reviewed:
+       style: mechanical
+       question: Does the campaign worktree's checked-out commit equal the commit
+-        stamped in the adversarial review findings record that granted ready_for_hardware?
++        stamped in the adversarial review findings record that granted ready_for_hardware,
++        or differ from it only by commits whose file sets are tests, controls,
++        launchers, checkers, or bundles and no product source - each named with its
++        file set in the attempt log?
+       evaluated_by: lead
+       on_failure_route: review_implementation
+     prerequisite_is_in_plan:
+@@ -1635,7 +1638,8 @@ pave:
+       allowed_effects:
+       - Writes inside this campaign's worktree - or, for a concurrent-eligible set,
+         one checkout per item on the campaign branch - and branch on the fork.
+-      - CPU-mode execution on local or assigned hosts.
++      - CPU-mode execution on local or assigned hosts; a CPU-mode run is not a
++        hardware attempt and is charged to no attempt budget.
+       - Guardrailed delegate dispatch.
+       forbidden_effects:
+       - Mutating protected base branches on fork or upstream.
+@@ -1881,7 +1885,10 @@ pave:
+         never launch an attempt identical to a recorded failure (tier 1). Count
+         every attempt whose failure cause is not host-level against the per-target
+         shared budget and halt at the tier-2 threshold (every 10 budget-counted
+-        hardware attempts per target since the last re-derivation). Outcome precedence
++        hardware attempts per target since the last re-derivation). A CPU-mode run
++        (VLLM_NEURON_CPU_MODE=1, no Neuron device opened) on any host this campaign
++        holds - assigned or leased - is not a hardware attempt and is never charged
++        to that budget; only a run that opens a Neuron device counts. Outcome precedence
+         when both hold - a host fault on the threshold-reaching attempt routes
+         to host_faulted first; a host-caused failure recorded as the breaker's
+         final datum would feed re-derivation contaminated evidence. The attempt
+@@ -2810,7 +2817,9 @@ pave:
+           whenever a campaign design refines its predicted surface.
+       hardware_attempt_counts:
+         meaning: Per-target shared budget across all routes that spend hardware
+-          attempts; the tier-2 breaker reads it at every 10.
++          attempts; the tier-2 breaker reads it at every 10. A CPU-mode run that
++          opens no Neuron device is not a hardware attempt on any host and never
++          increments it.
+       campaign_states:
+         meaning: Pointer per campaign to its own state and evidence directory
+           (one-file-per-event); never inlined into run state.

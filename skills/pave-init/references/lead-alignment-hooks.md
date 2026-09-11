@@ -7,6 +7,8 @@ Read this when a plan chooses a hook as its enforcement mechanism, and when plan
 - Hook doctrine
 - Why this pair exists
 - The hooks
+- The audit-due branch, the write log, and the two write guards
+- Enforcement-record entries for the audit path
 - Invariants any adaptation must preserve
 - Registration and disclosure
 - Legitimate omission conditions
@@ -28,7 +30,7 @@ Scoping: settings- and plugin-level hooks fire in every actor's loop — subagen
 
 1. **Placement.** Register by the actor the hook watches. A hook only the lead must trigger — a lead-only event, or a tool-event hook that acts on the lead's own writes — goes in skill frontmatter: it ends with the skill, and invoking the skill is the opt-in. A hook that must see a subagent's tool call goes in the plugin-level hook registration, armed by the run marker and silent once the run records a terminal status. That boundary is wider than skill frontmatter's: any session in the repository whose marker points at a live run state is in scope, not only the session that invoked the skill — the price of seeing subagent writes, so keep such a hook advisory and marker-gated. Use role-scoped registration only when the harness supports it (an agent-frontmatter PostToolUse hook produced no events in the same measurement). Otherwise use an identity gate.
 2. **Lead-only events.** User prompt submit and session start — including SessionStart's compact matcher, the only event that can inject content after compaction — fire only in the main session. Bind role reinjection there.
-3. **Identity gate.** Inside a subagent, hook input carries `agent_type` and `agent_id`; in the main session both are absent. A hook that must ride a tool event but target one actor reads those fields and exits silently otherwise. When every role dispatches through the same generic agent type, `agent_type` cannot tell roles apart — dispatch each role with a distinct Agent-tool `name` and gate on the `agentName` recorded in the transcript the hook input points to.
+3. **Identity gate.** A payload is a seat when it carries `agent_id` (a subagent) or a session other than the lead's recorded session (a teammate); everything else is the lead. A role that unlocks a control (the updater, the reviewer) is matched by its exact registered name in every harness form, never by suffix — a look-alike name is one file the lead can write mid-run. The lead-session sidecar itself accepts only a Write whose whole content is the writing session's own id (never an Edit: its result depends on the file), so a re-claim is a visible transfer — the guard and its brief follow the file to the claiming session — and no actor can silence the gate. Compare every protected path by its on-disk spelling and a casefolded basename: the default macOS volume is case-insensitive, and a typed-string compare lets `RUN-STATE.JSON` alias the protected file. Deny the live graph and its ledger to every actor outside a `.landing` window through the same write guard, Bash shapes included: the audit counters and every deny glob are read from that file, so a hand-written graph re-keys them; and never let a shrunken declared-node count erase an open checkpoint — clamp and name the disagreement instead. `agent_type` alone does not make a seat — a lead started with `--agent` carries one — so a hook that gates on `agent_type` presence fires on the lead too. A hook that must ride a tool event but target one actor reads those fields and exits silently otherwise. When every role dispatches through the same generic agent type, `agent_type` cannot tell roles apart — dispatch each role with a distinct Agent-tool `name` and gate on the `agentName` recorded in the transcript the hook input points to.
 
 A worker whose active duty — its own definition of done — decays within its node is mis-sized work: a node-sizing finding (`pave-spec.md` §9.12), not a reinjection target. Its latent standing rules — prohibitions orthogonal to the work in front of it — are different: compaction preserves active focus and summarizes away latent rules and prior hook injections alike. Target reminder machinery by latent-rule count times blast radius, never by wall-clock length: a long single-focus builder needs none; a seat carrying several rarely-exercised prohibitions over irreversible surfaces qualifies.
 
@@ -46,7 +48,7 @@ The recorded failure cause of long-horizon leads is context decay, not disobedie
 1. **The decision to stop.** A Stop with an active, non-terminal run is the highest-risk decay moment: the campaign silently stalls at its resume point, and no user event fires to re-inject anything.
 2. **Long autonomous stretches.** Many tool calls with no user prompt and no compaction means zero reinjection; outcomes happen and never reach run state.
 
-The pair covers exactly these two windows, socratically. It asks, never commands, because valid stops and mid-node quiet stretches are common. The stop check also carries the lead duties no other moment re-asks — is the next step the practical one toward the goal, was anything since the last check ceremony, did the last reply reach the user in plain words (no write hook sees a chat reply; `pave-spec.md` §8.5) — because a check whose only alignment question is the next declared action reinforces a wasteful graph: every wasted lap in the field was a declared edge.
+The pair covers exactly these two windows. The stop check asks one thing — one line per active seat, because only the lead knows what each seat waits on — and states the rest as duties, since valid stops are common but a duty the lead may answer with one word is a duty it answers with one word while the run's ceremony grows — the measured behaviour of the socratic form this replaces. It carries the duties no other moment re-asks: the declared edge, the routing fact only its context holds, the idle seat, the plain words in the last reply (no write hook sees a chat reply; `pave-spec.md` §8.5), the landed work no review has seen. The question a stop cannot answer — what the whole run's shape costs — moved to the audit-due branch below, where a count answers it.
 
 This pair is one pre-derived answer to one universal failure mode. No two workflows share a failure surface: derive any further enforcement from the workflow's own evidence the same way, and size it on the same spectrum (`references/pave-spec.md` §9.14). A cwd-drift warning or a budget-burn alert may be justified by one workflow's field evidence — and neither belongs in a workflow whose evidence does not name the failure.
 
@@ -54,19 +56,64 @@ This pair is one pre-derived answer to one universal failure mode. No two workfl
 
 | hook | event | rung | shape |
 |---|---|---|---|
-| stop-alignment check | Stop | socratic reinjection | Blocks a stop ONCE with the socratic check (template below), answered only where the lead finds an issue, else `lgtm`; then a cooldown counter lets the next N−1 stops pass silently (default N=3: at most one nudge per 3 stops). |
+| stop-alignment check | Stop | socratic reinjection | Blocks a stop ONCE with one reply line per active seat plus the standing imperatives (template below); then a cooldown counter lets the next N−1 stops pass silently (default N=3: at most one nudge per 3 stops). There is no acknowledgement-only exit — a seat with no line is a seat the lead forgot. |
+| audit-due branch of the same Stop hook | Stop | socratic reinjection | Every `AUDIT_EVERY` declared-node outcomes (default 40, one env knob), or after `AUDIT_BYTES` of logged growth, blocks one stop with the census brief and the checkpoint id. One Stop hook, one cooldown, one breaker; no second registration. Silent without an evolution root. |
+| write log | PostToolUse (`Bash\|Write\|Edit`) | observing | Appends one record per write — stamp, session, `agent_id`/`agent_type`, tool, path, plus `size`, `mtime`, and `written` — so the census never walks the tree: for `Write`/`Edit` the target path, for `Bash` every argv token that is or resolves to a path, which is how a script-mediated writer is seen at all. Always exit 0; rotated at a declared size. |
+| lead-only deny | PreToolUse (`Bash\|Write\|Edit`) | blocking | Refuses a write by the lead identity to a path matching a landed `runtime_bindings.deny` glob, read from the live graph at the ledger head. A seat's match is advisory (`additionalContext`) only. |
+| no-strand re-cut rule | PreToolUse (`Write\|Edit`) | blocking | Refuses creating `<stem>-r<N>.<ext>` where a same-stem file already exists in that directory under a declared working-state root, for every actor; the remedy is always available. |
 | state-staleness reminder | PostToolUse (`Bash\|Write\|Edit`) | observing / socratic | When the run-state file's mtime exceeds a threshold while tools keep running, injects one throttled `additionalContext` question: which node are you actually in, and has an outcome occurred that is not recorded? |
 | goal restatement | SessionStart (`resume\|compact`), SubagentStart | socratic reinjection | At a context rebuild, injects one `additionalContext` question: state the goal and its reason from the record (the file wins over memory) and the fewest steps toward it — what breaks if each is skipped? A seat states its brief's goal against the run's. Never throttled: each rebuild is one firing. |
+
+## The audit-due branch, the write log, and the two write guards
+
+Ship these only for a workflow with an evolution root (`references/pave-revisions.md`); they are the running form of the evolution contract, not a mechanism beside it. The stop check re-asks alignment, which no context holds after a compaction; it cannot ask what the run's whole shape costs, because that answer is a count no context holds either. The audit-due branch asks it on a cadence, from files.
+
+**Trigger.** Every `<PREFIX>_AUDIT_EVERY` completed outcomes whose node is a declared node id of the pinned graph (default 40, configurable — cadence is a per-workflow judgment; a `node: lead` pseudo-row never counts), OR when the write log shows more than `<PREFIX>_AUDIT_BYTES` written since the last checkpoint. The bytes fallback catches the run whose cost grows without traversals; the outcome count is the primary unit because it is the run's own measure of progress.
+
+**Checkpoint sidecar.** The cycle lives in one file beside run state, like the ownership marker:
+
+```json
+{"checkpoint_id": "cp-<UTC stamp>", "at": "...Z", "outcomes_at": 812, "bytes_at": 1234567,
+ "state": "DUE|OPEN|CLOSED|IDLE", "findings_record": null, "closed_by": null,
+ "stamped_proposals": [{"path": "...", "size": 1234, "mtime": 1757530445.1}]}
+```
+
+The hooks write it and the PreToolUse guard denies the lead every write to it; the findings record is denied to every actor but the updater and the reviewer, and a close reads that record — and any pending proposal — only as those two seats left it (size and mtime stamped at their write), so nothing the lead can type alone, or order another seat to type, moves the cycle. On its first sight of a run with no sidecar the branch seeds an IDLE sidecar with the current declared-outcome count and write-log bytes and passes, so the first checkpoint covers the next window and never charges the run's whole history against an empty log. It survives a reboot, and its states are hook-derived:
+
+- **DUE** — a checkpoint just opened and the lead owes one dispatch. The block text IS the whole brief: the census summary (or the raw counts when no census script is installed), the checkpoint id, the evolution root, the pave-init root, and the one line dispatching the workflow-updater in audit mode. The lead forwards it verbatim (behind whichever first line the updater contract requires for its harness) and adds nothing it composes — a brief the lead writes is the ceremony this branch measures.
+- **OPEN** — the updater has written the findings record naming this checkpoint; the write guard stamps the sidecar when it sees that write, and the branch passes while OPEN. Do not register SubagentStop for this: the write is the evidence, and SubagentStop never fires in the lead's session.
+- **CLOSED** — exactly one of two, both stamp-bound. (i) A `graph` or `binding` ledger entry newer than the checkpoint — any such entry, so a later `pin` cannot hide it — recording `drafted_by: workflow-updater`, whose patch bytes equal a proposal file the guard itself stamped in the sidecar. (ii) The findings record the guard stamped OPEN, stating `no_change_warranted` for this checkpoint, plus — whenever the census trend rose since the previous checkpoint — the update-reviewer's `review: PASS` line as stamped by the guard when the reviewer wrote it. A `pin` entry closes nothing by itself; neither does a landing whose patch the guard never stamped, nor a line the lead could have typed. On CLOSED the branch resets to IDLE with fresh counts.
+- **STALL** — an OPEN checkpoint with no close within `<PREFIX>_AUDIT_STALL` further declared-node outcomes (default 10) blocks once more, naming the stall and its remedy: land the reviewed proposal with `--proposal` and `--stamps` (the stamp is what closes it), or have the updater record the no-change. Exception: a proposal the guard stamped as the updater's, recording `envelope_check: changed_pending_approval`, awaits the user, and only the user closes it — never nag over it; a file anyone else drops in `proposals/` exempts nothing.
+
+**Version skew.** The branch needs the installed pave-init at 2.6.0 or newer (the updater's audit mode, the census script, the `runtime_bindings` schema). When it finds none (probe an override variable, the plugin cache beside the generated plugin, and the harness plugin caches) or an older one, it prints one line saying which and passes, rather than blocking on a brief nobody can execute.
+
+**Write log (observing).** The census reads the log, never the tree: a Stop hook that walks a large scratch tree exceeds its timeout and fails open silently. Log every `Bash` argv token that resolves to a path, because a lead's dominant write channel is a script it runs, which a `Write|Edit` guard never sees. Each record carries `written` per path, with `size` and `mtime`: a `Write` or `Edit` target is written by definition, and a `Bash` argv path counts as written only when the file's mtime is within 120 s of the call — so a path a command only read never inflates the bytes trigger or the trend.
+
+**Lead-only deny (blocking).** The deny globs live in the graph file's `runtime_bindings` block, land as a `kind: binding` entry, and are read from the root at the ledger head on every call — never from a hook-owned list, which the holder of the pen could rewrite. Fail OPEN on a parse error or while `.landing` exists, so a landing never strands a write. A glob starting with `/` is matched against the absolute path, so a scratch family that grew outside the workspace can be cut; every other glob matches workspace-relative. Every block prints the glob's `reason` and its `remedy`.
+
+**One seat-side no-strand rule (blocking).** Creating `<stem>-r<N>.<ext>` where a same-stem file already exists in that directory, under a declared working-state root, is denied for every actor: the match is exact and the remedy is always available, stated per class — working state (a script, a record) is edited in place; world-produced output (a captured log, a transcript) takes a new event-keyed name, never `-rN`. Every other seat-side cut stays advisory: a wrong match on a seat's own working file strands it mid-node. Regrowth of a cut family before the next checkpoint trips DUE and blocks the LEAD over the order that created the form, never the seat over its file.
+
+## Enforcement-record entries for the audit path
+
+Copy these into the plan's enforcement record, adapted to the workflow's own counts (`references/pave-spec.md` §9.14.1: the rung, why the stronger rung is unnecessary, and why the cheaper one cannot catch the defect):
+
+- **Audit-due block** — reinjection, blocking at most once per checkpoint and sharing the stop cooldown. Likely: ceremony grew in every long run measured. Costly: the growth was the dominant share of a run's writes and tokens. Not irreversible — a late audit loses nothing, which is why the rung stops below blocking: it blocks at most one stop per cooldown and never a traversal. Detectable: the trigger is a count of declared-node outcomes and logged bytes, not a judgment. Not stronger (denying the lead's next act) because no finding exists yet and a graph node would price the audit into every run; not cheaper (prose, or an advisory) because the advisory form fired thousands of times without changing the behaviour.
+- **Lead-only deny** — blocking. Likely: the cut forms are the ones the lead re-created after each context rebuild. Costly: each is a file every later lap cites. Irreversible before the next gate: the file exists and is cited. Detectable: an exact glob match against a landed graph line, and the glob was checked at `propose` time against every path the graph declares. Not stronger than needed because it is reversible by the lead landing the reversal, which the graph-edit guard's landing allowance never blocks; not cheaper because the reason and remedy already rode an advisory that changed nothing.
+- **Seat-side no-strand rule** — blocking, exactly one rule. Likely: measured in the thousands of re-cut files. Costly: the tree the run must carry and read. Irreversible: the re-cut file is what the next reader finds. Detectable: the strict `<stem>-r<N>.<ext>` form beside an existing same-stem file. Remedy always available, per class, printed in the block. Not stronger (a deny per cut family) because a wrong match strands a seat mid-node; not cheaper because the advisory form was already delivered thousands of times.
+- **Checkpoint sidecar and findings record** — hook-written sidecar, blocking on the lead's write to it; the findings record blocks every actor but the updater and the reviewer, and the block text names the remedy (dispatch the updater). Likely: the actor whose ceremony is counted holds the pen, and can hand it to a generic seat. Costly and irreversible: a self-closed cycle is indistinguishable from an audited one afterwards. Detectable: two exact paths, and a close accepts the record only at the size and mtime stamped when those seats wrote it. Not cheaper: a lead-writable cycle marker is self-certification, the failure the whole path exists to remove.
+
+Known limit: evolution contract rule 5 — the reviewer is neither the updater nor the lander — stays prose-enforced. `drafted_by` binds the drafter's identity only, and the ledger's `review` field is lead-typed. The kill criterion covers it: two consecutive checkpoints with no drop in the trend number pause the audit loop and go to the user with the numbers (`references/pave-revisions.md`).
 
 ## Invariants any adaptation must preserve
 
 Stop hooks have no non-blocking channel: `additionalContext` is dropped, so the questions can only be delivered by blocking once (exit 2). That makes these invariants load-bearing. Losing the circuit breaker is the one catastrophic adaptation error: an infinite stop loop.
 
-- **Cooldown circuit breaker**: a session-keyed marker file holding a countdown; the first stop nudges and writes N−1 (default N=3, one env-overridable knob, minimum 2 — the breaker needs at least one free pass after a nudge), each following stop decrements it and passes, and the stop after the marker is spent nudges again. A payload with `stop_hook_active` set short-circuits immediately.
+- **Cooldown circuit breaker**: a session-keyed marker file holding a countdown; the first stop nudges and writes N−1 (default N=3, one env-overridable knob, minimum 2 — the breaker needs at least one free pass after a nudge), each following stop decrements it and passes, and the stop after the marker is spent nudges again. Clamp the count on read to N−1 and deny the marker to every actor through the write guard: the file sits in a temp dir the lead can write, and an unclamped count silences every stop for the rest of the run. A payload with `stop_hook_active` set short-circuits immediately.
 - **Silent when stopping is correct**: no active run state found, or the run's terminal field is set. Do not try to enumerate every valid stop — the questions plus the breaker handle pending user gates and background waits at the cost of at most one bounce.
 - **Marker-authoritative discovery**: the hooks act only on run state found via the ownership marker the lead writes at run start (`FOUND_STATE_VIA` = `marker`). A newest-by-mtime scan hit may belong to an abandoned run or a different session — blocking or nudging on it fires in sessions that do not own the run, which is the one detection misfire this design must exclude. The scan fallback exists only for lead-driven resume discovery, where judgment applies. Corollary: the generated state protocol must give the lead an abandon/pause duty (set the terminal field, or remove the state) so a walked-away run cannot stay "active" forever.
-- **Staleness stays observing**: always exit 0; mtime-based (stateless), one env-overridable threshold, throttled to once per window per session, skipped for subagent payloads (`agent_type`/`agent_id` present — only the lead can act on it) and for terminal runs.
+- **Staleness stays observing**: always exit 0; mtime-based (stateless), one env-overridable threshold, throttled to once per window per session, skipped for seat payloads (`agent_id` present, or a session other than the lead's — only the lead can act on it; `agent_type` alone is not a seat) and for terminal runs.
 - **Fail open everywhere**: missing interpreter, unparsable payload or state → silent exit 0. The payload case must be explicit: emit a distinct parse sentinel and exit on it — defaulting a failed parse to an empty dict is indistinguishable from a minimal valid payload, and the hook will act on input it could not read. These hooks align; they must never strand a run.
+- **One Stop hook, one breaker**: the audit-due branch lives inside the same script and shares the cooldown marker — at most one block per N stops in total, whichever branch fires. Its sidecar is hook-written and lead-denied; a hook never trusts a value the audited actor may write.
 - **Lead-only scope**: Stop never fires in a subagent (that is SubagentStop — do not register it); the staleness hook gates on payload identity.
 
 What must be re-derived per workflow: the run-state discovery (marker file name, runs-directory glob), the terminal-classification field, the names of the routing section and state-write protocol the messages point at, and the env-var prefix.
@@ -84,6 +131,7 @@ Record ONE of these in the enforcement record instead of the pair. Silent omissi
 - **Every node is a user gate.** Stopping is almost always correct, so the one bounce is pure friction with nothing to catch.
 - **No lead orchestrator.** Nothing long-horizon exists to align.
 - **No seats** (goal restatement only). The SubagentStart half has no receiver; keep the SessionStart half whenever the run can resume or compact.
+- **No evolution root** (audit-due branch only). A workflow with no revision ledger has nowhere to land a cut and no graph to read bindings from: the branch records nothing and passes, and the stop check ships without it.
 - **Hooks runtime unavailable** in the target environment — record the degradation, not just the omission.
 
 ## Templates
@@ -136,11 +184,12 @@ fi
 
 ```bash
 #!/usr/bin/env bash
-# Stop-alignment socratic check. Blocks a stop ONCE (Stop hooks have no
-# non-blocking channel), then a cooldown counter lets the next STOP_EVERY-1
-# stops pass (default 3: at most one nudge per 3 stops). Silent when no
-# active run or the run is terminal. The lead answers only on a hit, else
-# "lgtm": a retrospective at every firing is itself ceremony.
+# Stop-alignment check. Blocks a stop ONCE (Stop hooks have no non-blocking
+# channel), then a cooldown counter lets the next STOP_EVERY-1 stops pass
+# (default 3: at most one nudge per 3 stops). Silent when no active run or the
+# run is terminal. Every active seat gets one reply line; there is no
+# acknowledgement-only exit. The whole-run ceremony question is not asked here:
+# it belongs to the audit-due branch below, which shares this cooldown.
 set -uo pipefail
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 SKILL_DIR="$(cd "$HOOK_DIR/.." && pwd)"
@@ -193,6 +242,8 @@ print((state.get("run_identity") or {}).get("run_id", "<unset>"))
 print(state.get("restart_from") or "<unset>")     # ADAPT: resume field
 print("%s.%s" % (last.get("node", "<none>"), last.get("outcome", "<none>")))
 print(int((time.time() - os.path.getmtime(path)) / 60))
+seats = [e for e in (state.get("active_node_runs") or []) if isinstance(e, dict)]  # ADAPT: active-seat field
+print("; ".join("%s at %s" % (s.get("seat", "<seat>"), s.get("node", "<node>")) for s in seats) or "none recorded")
 PYEOF
 )" || exit 0
 [ "$(printf '%s\n' "$SUMMARY" | sed -n 1p)" = "ACTIVE" ] || exit 0
@@ -200,38 +251,32 @@ RUN_ID="$(printf '%s\n' "$SUMMARY" | sed -n 2p)"
 RESTART="$(printf '%s\n' "$SUMMARY" | sed -n 3p)"
 LAST="$(printf '%s\n' "$SUMMARY" | sed -n 4p)"
 AGE_MIN="$(printf '%s\n' "$SUMMARY" | sed -n 5p)"
+SEATS="$(printf '%s\n' "$SUMMARY" | sed -n 6p)"
 printf '%s\n' "$((STOP_EVERY - 1))" > "$MARKER" 2>/dev/null || true
-# ADAPT: question 2's route -- name this workflow's evolution root; when the plan says landing: user, add "the user approves before it lands".
 cat >&2 <<EOF
 $TAG Active run $RUN_ID ($FOUND_STATE_LABEL): restart_from=$RESTART, last traversal $LAST, run state last written ${AGE_MIN} min ago.
+Active seats: $SEATS
 
-You decided to stop. Socratic check -- answer only the questions where you
-find an issue; otherwise reply "lgtm" and stop again. A pending user decision,
-a background subagent, a recorded pause: all lgtm. The next
-$((STOP_EVERY - 1)) stops pass before this fires again.
-  1. Next practical step toward the approved goal, and why -- a declared edge
-     from $RESTART (re-read the routing section) or a graph change you will
-     propose; never an invented edge.
-  2. Since the last check, any ceremony -- a seat a lead-run check settles, a
-     lap with no new world evidence, an agent for something knowable from
-     disk? Cut it. One that recurs is a graph defect: pause the run, record
-     the evidence in run state, and hand it to the pave-evolve seats — the
-     workflow-updater drafts the successor, the update-reviewer passes it,
-     you land it and continue on it (Evolution contract rule 7); never
-     draft it yourself, never edit the live graph outside a landing.
-  3. Landed work the next lap builds on that no review has seen?
-  4. About to ask the user something a recorded approval already covers, or
-     to decide something that is theirs?
-  5. Anything routing depends on that lives only in your context, not in run
-     state?
-  6. Idle subagents or teammates? Retire them now.
-  7. Your last reply to the user: any codename -- id, round number, control
-     letter, lease or seat name, section number, hash -- without its plain
-     meaning beside it, or prose a stranger could not follow? Restate it in
-     ordinary words now (ADAPT: cite this skill's write-for-the-reader section).
+You decided to stop. Reply one line per active seat above, in this form:
+  <seat>: waits on <grant | frozen value | design change | seat working | nothing>; next act: <...>
+"nothing" means act before you stop. There is no acknowledgement-only exit: a
+seat with no line is a seat you forgot. Then these five, as duties, not
+questions. The next $((STOP_EVERY - 1)) stops pass before this fires again.
+  1. Take a declared edge from $RESTART (re-read the routing section) or
+     propose a graph change; never an invented edge.
+  2. Write to run state anything routing depends on that lives only in your
+     context.
+  3. Retire every idle subagent and teammate now.
+  4. Restate any codename in your last reply to the user -- id, round number,
+     control letter, lease or seat name, section number, hash -- in ordinary
+     words (ADAPT: cite this skill's write-for-the-reader section).
+  5. Landed work the next lap builds on that no review has seen: run the batch
+     review before you continue.
 EOF
 exit 2
 ```
+
+The audit-due branch is the same script, after the cooldown check and before or after the block above (whichever fires, it writes the one cooldown marker and exits 2 at most once per N stops). ADAPT: name this workflow's evolution root, the declared-node source, and the census script path; the block text is the census summary, the checkpoint id, the evolution root, the pave-init root, and the dispatch line — nothing composed at the moment of the block. Route a `verify` result of `graph landed since pin` there too: block once with the evolution contract rule 1 route, so an inert run pinned behind the ledger head cannot keep looping.
 
 ### `hooks/state_staleness_reminder.sh` (PostToolUse `Bash|Write|Edit`)
 

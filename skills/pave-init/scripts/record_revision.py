@@ -10,16 +10,30 @@ project root alike. kind (graph | binding | pin) is declared by the proposer,
 never inferred from digests: a binding revision moves the live digest as well,
 because instruments live in the YAML. The pinned bundle is the newest graph or
 binding entry, the active graph revision is the last graph entry, and pin
-entries are informational. A .landing marker exists only while land, pin, or
-rollback runs; verify reports a leftover marker as an interrupted landing,
-distinct from an unrecorded edit (the live digest moved, no entry explains it).
+entries are informational: a pin never closes an audit cycle. A .landing marker
+exists only while land, pin, or rollback runs; verify reports a leftover marker
+as an interrupted landing, distinct from an unrecorded edit (the live digest
+moved, no entry explains it).
+
+A proposal whose envelope_check is changed_pending_approval proposes but never
+lands: land refuses it until the user's approval is recorded verbatim. land
+records who drafted the patch in drafted_by (workflow-updater when the
+--proposal path, size and mtime match a stamp in the --stamps sidecar's
+stamped_proposals; unstamped otherwise). propose and land refuse a
+runtime_bindings deny glob that matches a path the graph itself declares under
+evidence, state, produces or consumes — matched the way the runtime guard matches
+it, against the whole path and every trailing-component suffix, so `increments/*`
+is refused against a declared campaigns/<c>/increments/ directory.
 
 Requires pyyaml and the git command-line tool (git apply, git diff --no-index).
 """
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
+import json
+import re
 import shutil
 import subprocess
 import sys
@@ -41,8 +55,8 @@ BUNDLE_KINDS = ("graph", "binding")
 DIFF_START = ("diff --git ", "--- ")
 ENTRY_FIELDS = (
     "revision", "kind", "landed_at", "digest_before", "digest_after", "semantic_diff",
-    "approval", "envelope_check", "plan_evidence", "usage_evidence", "review", "patch",
-    "commit", "derived_from", "run_id",
+    "approval", "envelope_check", "plan_evidence", "usage_evidence", "review", "drafted_by",
+    "patch", "commit", "derived_from", "run_id",
 )
 PREAMBLE_FIELDS = (
     "kind", "semantic_diff", "envelope_check", "plan_evidence", "usage_evidence",
@@ -50,10 +64,25 @@ PREAMBLE_FIELDS = (
 )
 ENUMS = {
     "kind": BUNDLE_KINDS,
-    "envelope_check": ("unchanged", "changed_with_approval"),
+    "envelope_check": ("unchanged", "changed_with_approval", "changed_pending_approval"),
     "plan_evidence": ("verified", "provisional"),
     "usage_evidence": ("none", "clean_room", "field"),
 }
+PENDING = "changed_pending_approval"
+PENDING_MESSAGE = ("envelope change awaits the user's approval; re-propose with"
+                   " changed_with_approval and the approval verbatim")
+PIN_HELP = "append the pin entry for a run: informational; never closes an audit cycle"
+# Keys whose string values may declare a path relative to the run workspace.
+DECLARING_KEYS = ("evidence", "state", "produces", "consumes")
+PATH_LIKE = re.compile(r"[^\s/]\S*")
+
+
+class Refusal(ValueError):
+    """A refusal with its own exit code: 3 = envelope pending, 4 = glob on a declared path."""
+
+    def __init__(self, message: str, code: int):
+        super().__init__(message)
+        self.code = code
 
 
 def check_regular(path: Path):
@@ -178,6 +207,56 @@ def apply_diff(diff: str, cwd: Path, reverse: bool = False):
         Path(handle.name).unlink(missing_ok=True)
 
 
+def declared_paths(node, under: bool = False) -> set:
+    """Every string under an evidence/state/produces/consumes key that looks like a relative path."""
+    found = set()
+    if isinstance(node, dict):
+        for key, value in node.items():
+            found |= declared_paths(value, under or key in DECLARING_KEYS)
+    elif isinstance(node, list):
+        for value in node:
+            found |= declared_paths(value, under)
+    elif under and isinstance(node, str) and PATH_LIKE.fullmatch(node):
+        if "/" in node or re.search(r"\.[A-Za-z0-9]+$", node):
+            found.add(node)
+    return found
+
+
+def glob_covers(declared: str, pattern: str) -> bool:
+    """True when the runtime guard would match `pattern` against the declared path.
+
+    The guard matches a glob against the workspace-relative path and against every
+    trailing-component suffix of it, so `increments/*` reaches a declared
+    `campaigns/c1/increments/`. A pattern starting with `/` is workspace-absolute and
+    never covers a relative declared path. Kept in step with the same helper in
+    validate_pave.py; neither script imports the other.
+    """
+    if pattern.startswith("/"):
+        return False
+    candidates = {declared, declared.rstrip("/")}
+    for text in tuple(candidates):
+        parts = text.split("/")
+        candidates.update("/".join(parts[index:]) for index in range(len(parts)))
+    return any(fnmatch.fnmatchcase(candidate, pattern) for candidate in candidates)
+
+
+def check_deny_globs(root: Path):
+    """Refuse (exit 4) a runtime_bindings deny glob that reaches a path the bundle
+    declares, matched the way the runtime guard matches it (see glob_covers)."""
+    documents = [yaml.safe_load(path.read_text()) or {} for path in graph_files(root).values()]
+    paths = set().union(*(declared_paths(document) for document in documents))
+    for document in documents:
+        pave = document.get("pave") if isinstance(document, dict) else None
+        for rule in ((pave or {}).get("runtime_bindings") or {}).get("deny") or []:
+            glob = rule.get("glob") if isinstance(rule, dict) else None
+            if not isinstance(glob, str):
+                continue
+            for declared in sorted(paths):
+                if glob_covers(declared, glob):
+                    raise Refusal(f"runtime_bindings deny glob {glob!r} matches the declared path"
+                                  f" {declared!r}; a binding never denies what the graph declares", 4)
+
+
 def validate_graph(root: Path):
     proc = subprocess.run([sys.executable, str(VALIDATOR), str(root / ROOT_GRAPH)],
                           capture_output=True, text=True)
@@ -289,6 +368,7 @@ def propose(args) -> int:
         for name, path in files.items():
             shutil.copyfile(path, scratch / name)
         apply_diff(diff, scratch)
+        check_deny_globs(scratch)
         validate_graph(scratch)
         digest = live_digest(scratch)
     finally:
@@ -311,10 +391,51 @@ def commit_landing(root: Path, revision: int, patch: str) -> str | None:
     return git(["rev-parse", "HEAD"], root).stdout.strip()
 
 
+def drafted_by(proposal: Path | None, stamps: Path | None) -> str:
+    """workflow-updater when the proposal's path, size and mtime match a hook stamp; else unstamped."""
+    if proposal is None or stamps is None:
+        return "unstamped"
+    if not stamps.is_file():
+        raise ValueError(f"{stamps} not found; the stamps sidecar is hook-written")
+    try:
+        sidecar = json.loads(stamps.read_text())
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{stamps}: not JSON ({error})")
+    stat = proposal.stat()
+    for stamp in (sidecar.get("stamped_proposals") if isinstance(sidecar, dict) else None) or []:
+        if not isinstance(stamp, dict):
+            continue
+        same_path = Path(str(stamp.get("path", ""))).resolve() == proposal.resolve()
+        same_size = stamp.get("size") == stat.st_size
+        same_mtime = isinstance(stamp.get("mtime"), (int, float)) and abs(stamp["mtime"] - stat.st_mtime) < 1e-6
+        if same_path and same_size and same_mtime:
+            return "workflow-updater"
+    return "unstamped"
+
+
+def stage_proposal(root: Path, patch: str, proposal: Path) -> bool:
+    """Copy the proposal to history/vN.patch; True when this call created the copy."""
+    if not proposal.is_file():
+        raise ValueError(f"{proposal} not found")
+    target = root / patch
+    if target.exists():
+        if target.read_bytes() == proposal.read_bytes():
+            return False
+        raise ValueError(f"{target} already exists and differs from {proposal}; remove one")
+    target.parent.mkdir(exist_ok=True)
+    shutil.copyfile(proposal, target)
+    return True
+
+
 def land(args) -> int:
     root = Path(args.root)
     patch = f"history/v{args.revision}.patch"
-    preamble, diff = read_proposal(root / patch)
+    proposal = Path(args.proposal) if args.proposal else None
+    stamps = Path(args.stamps) if args.stamps else None
+    preamble, diff = read_proposal(proposal or root / patch)
+    if preamble["envelope_check"] == PENDING:
+        raise Refusal(PENDING_MESSAGE, 3)
+    drafter = drafted_by(proposal, stamps)
     entries, digest_before = check_chain(root)
     head = head_entry(entries)
     if args.revision != head["revision"] + 1:
@@ -322,14 +443,18 @@ def land(args) -> int:
                          f" {head['revision']}; land v{head['revision'] + 1}")
     saved = snapshot(root)
     marker = take_marker(root, args.revision)
+    copied = False
     try:
+        if proposal is not None:
+            copied = stage_proposal(root, patch, proposal)
         apply_diff(diff, root)
+        check_deny_globs(root)
         validate_graph(root)
         digest_after = live_digest(root)
         if digest_after == digest_before:
             raise ValueError("the patch changed no graph file; nothing to land")
         fields = dict(preamble, revision=args.revision, digest_before=digest_before,
-                      digest_after=digest_after, patch=patch)
+                      digest_after=digest_after, patch=patch, drafted_by=drafter)
         fields["approval"] = args.approval or preamble.get("approval")
         fields["review"] = args.review or preamble.get("review")
         entry = make_entry(**fields)
@@ -340,6 +465,8 @@ def land(args) -> int:
             write_ledger(root, entries)
     except (ValueError, OSError):
         restore(root, saved)
+        if copied:
+            (root / patch).unlink(missing_ok=True)
         marker.unlink(missing_ok=True)
         raise
     marker.unlink(missing_ok=True)
@@ -348,6 +475,7 @@ def land(args) -> int:
 
 
 def pin(args) -> int:
+    """Append the pin entry for a run: informational; never closes an audit cycle."""
     root = Path(args.root)
     entries, live = check_chain(root)
     head = head_entry(entries)
@@ -467,18 +595,25 @@ def main() -> int:
     p.add_argument("root", help="a nonexistent or empty destination directory")
     p.add_argument("--from", dest="from_root", required=True, help="the package root to copy")
     p.set_defaults(func=install)
-    p = sub.add_parser("propose", help="check a proposal against a root without touching the root")
+    p = sub.add_parser("propose", help="check a proposal against a root without touching the root:"
+                       " exit 4 when a deny glob matches a declared path")
     p.add_argument("root")
     p.add_argument("--patch", required=True, help="the proposal: YAML preamble then unified diff")
     p.set_defaults(func=propose)
-    p = sub.add_parser("land", help="apply history/vN.patch and append its ledger entry")
+    p = sub.add_parser("land", help="apply history/vN.patch and append its ledger entry; exit 3"
+                       f" when envelope_check is {PENDING}")
     p.add_argument("root")
     p.add_argument("revision", type=int, help="N: the successor revision number")
+    p.add_argument("--proposal", default=None,
+                   help="a proposal file to copy to history/vN.patch before applying")
+    p.add_argument("--stamps", default=None,
+                   help="the hook-written sidecar whose stamped_proposals decide drafted_by:"
+                        " workflow-updater when --proposal path, size and mtime match; else unstamped")
     p.add_argument("--approval", default=None, help="overrides the preamble's approval")
     p.add_argument("--review", default=None, help="the review verdict and rounds")
     p.add_argument("--commit", action="store_true", help="also git add and git commit the landing")
     p.set_defaults(func=land)
-    p = sub.add_parser("pin", help="append the informational pin entry for a run")
+    p = sub.add_parser("pin", help=PIN_HELP, description=PIN_HELP)
     p.add_argument("root")
     p.add_argument("--run-id", required=True)
     p.set_defaults(func=pin)
@@ -499,7 +634,7 @@ def main() -> int:
         return args.func(args)
     except (ValueError, OSError) as error:
         print(f"FAIL: {error}", file=sys.stderr)
-        return 1
+        return getattr(error, "code", 1)
 
 
 if __name__ == "__main__":

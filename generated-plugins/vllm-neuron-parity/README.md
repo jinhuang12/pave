@@ -40,7 +40,7 @@ The plugin is the directory containing this README. It runs on either
 harness.
 
 **Claude Code.** Add the marketplace that lists this package and install
-it; the six role agents (`agents/*.md`) and the nine hooks
+it; the six role agents (`agents/*.md`) and the twelve hooks
 (`hooks/hooks.json`) register with the plugin, and `/hooks` lists them:
 
 ```text
@@ -86,7 +86,7 @@ max_concurrent_threads_per_session = 6
 python3 /path/to/vllm-neuron-parity/codex/install_agents.py --project /path/to/target --check
 ```
 
-6. Open `/hooks`, review the nine registered controls, and trust them when
+6. Open `/hooks`, review the twelve registered controls, and trust them when
    their paths match this package.
 
 7. Both harnesses: seed the project's evolution root from the package before
@@ -121,7 +121,7 @@ through gate 1 needs none of them; a campaign whose delegate skill is
 unavailable pauses and reports rather than substituting.
 
 A successor revision of this plugin's graph depends on the pave-init plugin
-(2.5.0 or later): its pave-evolve seats (`pave-init:workflow-updater`,
+(2.6.0 or later): its pave-evolve seats (`pave-init:workflow-updater`,
 `pave-init:update-reviewer`) draft and review every successor. No run needs
 pave-init until a defect in the graph pauses it.
 
@@ -163,7 +163,7 @@ flowchart LR
 Stage boxes are tinted by the agent that dominates the stage (color
 key below).
 
-The full graph has 32 nodes and 95 edges, so it is rendered as six
+The full graph has 32 nodes and 96 edges, so it is rendered as six
 stage sub-diagrams. Rectangles are graph nodes labeled with node ids;
 hexagons are user gates presented by a node (gates 1 and 3 — gate 2 is
 a check on the `design_sound` edge, so it appears as edge text in
@@ -428,10 +428,14 @@ vllm-neuron-parity/
   .codex-plugin/plugin.json            # Codex plugin manifest
   .claude-plugin/plugin.json           # Claude Code plugin manifest
   hooks/
-    hooks.json                         # registers the nine controls for both
+    hooks.json                         # registers the twelve controls for both
                                        #   harnesses (restored in 1.3.0; Codex
                                        #   asks you to trust it once)
-    pre_tool_use_router.py             # active-run scope adapter for P1-P3
+    pre_tool_use_router.py             # active-run scope adapter: P1-P3, the
+                                       #   lead-only deny, the no-recut rule,
+                                       #   and the checkpoint sidecar
+    runtime_bindings.py                # reads runtime_bindings.deny from the live graph at the ledger head
+    write_log.py                       # PostToolUse write log: every path a Bash, Write, or Edit call wrote (hook-owned, lead-denied)
     dispatch_advisory.py               # advisory-only re-entry dispatch check
                                        #   (PreToolUse Agent|Task, lead-gated)
   codex/
@@ -451,7 +455,7 @@ vllm-neuron-parity/
       venv-opt-guard.sh                # blocks venv cloning / /opt writes
       graph_edit_guard.sh              # denies direct edits of the live graph or revisions.yaml outside a landing
       state-staleness-reminder.sh      # re-presents run position periodically (lead-session-gated)
-      stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active (lead-session-gated)
+      stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active (lead-session-gated); its audit branch blocks one of those stops when a streamlining checkpoint comes due
       write-for-reader.sh              # reminds any actor to write documents for the reader (advisory, throttled); names an over-cap document, and under increments/ an over-cap file, header, or -rN re-cut
       goal-restate.sh                  # SessionStart resume|compact + SubagentStart: goal and fewest steps before acting
   agents/*.md                          # role contracts registered on Claude Code
@@ -471,12 +475,14 @@ vllm-neuron-parity/
     validate_pave.py                   # graph checker
     record_revision.py                 # revision record tool: init, install, propose, land, pin, verify, rollback
     measure_artifact.py                # living-document size vs its cap (references/artifact-layout.md §4.12)
+    run_delta_census.py                # what the run wrote since the last audit checkpoint (the block text's census)
   tests/
-    test_codex_port.py                 # Codex port: version pin, nine hook controls, TOML fields, legacy-token absence, harness tool map
+    test_codex_port.py                 # Codex port: version pin, hook control count, TOML fields, legacy-token absence, harness tool map
     test_document_ceilings.py          # every prose document under its pinned line ceiling, and none unpinned
     test_hooks.sh                      # hook behaviour: marker gating, guards, reader reminder, cap notice, goal restatement
     test_measure_artifact.py           # size instrument tests
     test_run_state_schema.py           # schema accept/reject tests
+    test_runtime_bindings.py           # router modes: lead-only deny, no-recut, checkpoint sidecar, write log
     test_validate_run_state_caps.py    # validate_run_state.py length caps and path checks, stdlib and jsonschema paths
     test_workflow_pave.py              # shipped-graph validity test
   README.md                            # this file — rendered view, never authority
@@ -495,7 +501,9 @@ edit. Reinstalling the plugin does not touch that root. The authority is
 pave-init's `references/pave-revisions.md` (under the pave-init plugin root);
 the lead skill's "Evolution contract" carries the run-time rules. Successors
 are drafted and reviewed by the pave-init plugin's pave-evolve seats, so
-pave-init 2.5.0 or later must be installed for a successor. Package versions
+pave-init 2.6.0 or later must be installed for a successor, which is also what
+the updater's audit mode at a checkpoint needs; on an older install the audit
+branch records the degradation once and stays silent. Package versions
 in `VERSION` are separate — they track what a user of the plugin would notice
 changed.
 
@@ -589,7 +597,8 @@ are in the lead skill's "Roles and dispatch"; this README does not restate them.
 ## 5. Hooks and enforcement
 
 Source: the native `SKILL.md` (prohibitions P1–P13 and transition guards), the
-active-run adapter and the re-entry dispatch advisory under `hooks/`, and the eight policy scripts under
+active-run adapter, the write log, and the re-entry dispatch advisory under
+`hooks/`, and the eight policy scripts under
 `skills/vllm-neuron-parity/hooks/`. Rungs,
 weakest to strongest: prose < reinjection < reviewed < mechanical
 < blocking hook.
@@ -609,7 +618,9 @@ weakest to strongest: prose < reinjection < reviewed < mechanical
 | Lead single-writer for run state, cross-run artifacts, leases | STRUCTURE + schema validation | ownership-by-structure beats detection; budgets are derived from files, never stored |
 | Measured revision = git-issued id, never a branch name | MECHANICAL check | exact string-shape + agreement test |
 | Two-tier repair budgets and breakers (measure three/nine; hardware ten + one recovery) | BLOCKING routing preconditions | counts derived from event files; runaway loops are the costliest failure |
-| Lead-alignment hook pair (staleness reminder + stop guard) | reinjection | long-horizon, session-crossing workflow — the pair's target case; the stop guard **blocks at most one stop in three** while a run is active, disclosed in the skill description; its seven-question socratic check is answered only where the lead finds an issue, else `lgtm`. Both hooks gate on the lead session id in `<run-state>.lead-session` and stay silent in every other session; without the sidecar they fail open |
+| Lead-alignment hook pair (staleness reminder + stop guard) | reinjection | long-horizon, session-crossing workflow — the pair's target case; the stop guard **blocks at most one stop in three** while a run is active, disclosed in the skill description. It asks for one line per active seat from run state (what that seat waits on and the next act — "nothing" means act before stopping) and then states its reminders as imperatives; there is no bare-acknowledgement exit. Both hooks gate on the lead session id in `<run-state>.lead-session` and stay silent in every other session; without the sidecar they fail open |
+| Audit checkpoint (the stop guard's audit branch) | reinjection, block-once | a design-time graph cannot forecast the form a fourteen-day run invents: about forty recurring acts and ~95% of the observed cost were lead-invented, while the only self-correction moment was answered "lgtm" 288 times out of 308. Every `VLLM_NEURON_PARITY_AUDIT_EVERY` declared-node outcomes (default 40), or `_AUDIT_BYTES` of writes (default 200 MB), the branch blocks ONE stop on the existing one-in-three cooldown; the block text is the whole brief (census, checkpoint id, one dispatch line), and only a workflow-updater-drafted landing or a reviewer-PASSed no-change closes the cycle. A later audit loses nothing, so the rung stays below blocking: it never blocks a traversal. Enforcement record: `references/artifact-layout.md` §4.14 |
+| Lead-only write deny (`runtime_bindings.deny` in the live graph) and the no-recut rule | BLOCKING hooks | the cut list lives IN the graph file, lands as a `kind: binding` entry, and is read at every call from the ledger head — no hook-owned rule list. The deny binds the lead alone and is reversed by landing the reversal; a seat whose target matches gets the reason as advice, so no glob can strand a seat. The no-recut rule refuses a `<stem>-rN.<ext>` file beside a same-stem file for every actor, because the advisory form named 6,684 re-cuts in one run without effect and the remedy is always available: edit working state in place, give world-produced output an event-keyed name. The PostToolUse write log makes script-mediated writes visible to the census, which the shipped Write\|Edit hooks never saw. Enforcement record: `references/artifact-layout.md` §4.14 |
 | Goal restatement at every context rebuild (`skills/vllm-neuron-parity/hooks/goal-restate.sh`) | reinjection (advisory `additionalContext`, never blocks) | a compaction summary or a fresh seat brief loses the goal and, with it, the sunk cost of the process — the cheapest moment to reconcile the one and cut the other. SessionStart resume\|compact asks the lead for the goal from run state and the active campaign's `approvals/DECISIONS.md` and for the fewest steps toward it (what breaks if you skip it); SubagentStart asks each seat for its brief's goal and why it serves the run's. Lead-session-gated like the pair; silent without the marker or on a terminal run |
 | Re-entry dispatch advisory (`hooks/dispatch_advisory.py`) | reinjection (advisory `additionalContext`, never blocks) | edge-triggered: fires only when a dispatch names an instrumented design node that already completed a traversal this run, and asks whether the graph's cheaper re-entry instrument settles it without a seat; lead-session-gated, throttled per node via its own counter file |
 | Documents are written for the reader (`skills/vllm-neuron-parity/hooks/write-for-reader.sh`) | prose + reinjection (advisory `additionalContext`, never blocks) + REVIEWED | agents drift back to identifier chains and inlined checker output the moment the prose duty leaves context; the hook fires on the first `.md` write under `artifacts/` and every third after it per session, for any actor, marker-gated and terminal-silent, and skips working state (attempts, measurements, index, intake-preflight); the adversarial reviewer treats an illegible reader-facing artifact as a material finding; the hook also names an over-cap document with its size (`references/artifact-layout.md` §4.12) once per session and file, past the throttle, and the reviewer records each living document's lines and bytes every round. Under `increments/` the same hook measures `.py`, `.sh`, `.md`, and `.txt` writes against the §4.12 increments row (200 lines, 20 header lines, one revision edited in place; the 100-line lap-record cap is the reviewer's) and names an over-cap file, an over-cap header, or a lap-suffixed (`-rN`) re-cut once per file past the throttle; the batch review records `scripts/measure_artifact.py --classify` (code / comment / docstring split) and `--tree` (increments/ census since the last batch). The first run under this plugin wrote 10,844 files there with no cap, two thirds of them re-cuts (1.5.4) |
@@ -618,13 +629,14 @@ weakest to strongest: prose < reinjection < reviewed < mechanical
 `SKILL.md` carries 13 run-wide prohibitions and 6 transition guards in
 total; this table shows the strongest rows, and every rule not shown
 sits at a weaker rung with its rationale in the skill and agent
-contracts. `hooks/hooks.json` registers the nine controls at plugin scope (the
-three P1-P3 guards, the graph edit guard, the lead-alignment pair, the re-entry
-dispatch advisory, the write-for-the-reader reminder, and the goal restatement);
-a fresh install on either harness registers the same nine, and Codex asks you to
-trust it once. On Codex, SessionStart fires at startup and resume (no compact
+contracts. `hooks/hooks.json` registers the twelve controls at plugin scope (the
+three P1-P3 guards, the graph edit guard, the lead-only deny (whose PostToolUse half stamps the audit seats' writes), the no-recut rule,
+the write log, the lead-alignment pair, the re-entry dispatch advisory, the
+write-for-the-reader reminder, and the goal restatement); a fresh install on
+either harness registers the same twelve, and Codex asks you to trust it once. On Codex, SessionStart fires at startup and resume (no compact
 source) and SubagentStart has no dispatch, so the lead is asked at resume and
-seats are not — a recorded degradation there.
+seats are not — a recorded degradation there. The audit branch finds pave-init through
+`VLLM_NEURON_PARITY_PAVE_INIT_ROOT`, the plugin cache beside this plugin, or the `~/.claude` and `~/.codex` plugin caches, and says so when none is found.
 P1-P3 fail open unless `.vllm-neuron-parity-run` points to active nonterminal
 state, so they do not block unrelated Codex work.
 Nothing registers silently.
@@ -632,7 +644,7 @@ Nothing registers silently.
 ## 6. Appendix — the shipped authorities
 
 - `workflow.pave.yaml` and `revisions.yaml` — the immutable packaged seed, at
-  its ledger head (32 nodes, 95 edges, 24 evidence definitions, 5 endpoints;
+  its ledger head (32 nodes, 96 edges, 24 evidence definitions, 5 endpoints;
   validates clean with `scripts/validate_pave.py`). The head's revision number
   and check count are the ledger's, not this README's — read them from
   `revisions.yaml` and the validator, which is why no number here can go

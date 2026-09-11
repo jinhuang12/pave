@@ -89,7 +89,8 @@
         },
         "state": {"type": "object"},
         "completion": {"type": "object"},
-        "extensions": {"type": "object"}
+        "extensions": {"type": "object"},
+        "runtime_bindings": {"$ref": "#/$defs/runtimeBindings"}
       },
       "patternProperties": {
         "^x_[a-z][a-z0-9_]*$": {}
@@ -223,6 +224,47 @@
         "resumable": {"type": "boolean"}
       },
       "additionalProperties": true
+    },
+    "runtimeBindings": {
+      "type": "object",
+      "properties": {
+        "deny": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/runtimeDeny"}
+        },
+        "caps": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/runtimeCap"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeDeny": {
+      "type": "object",
+      "required": ["glob", "bound_to", "reason", "remedy", "created_by"],
+      "properties": {
+        "glob": {"$ref": "#/$defs/nonEmptyString"},
+        "bound_to": {
+          "type": "array",
+          "items": {"const": "lead"},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "reason": {"$ref": "#/$defs/nonEmptyString"},
+        "remedy": {"$ref": "#/$defs/nonEmptyString"},
+        "created_by": {"$ref": "#/$defs/nonEmptyString"}
+      },
+      "additionalProperties": false
+    },
+    "runtimeCap": {
+      "type": "object",
+      "required": ["family_glob", "max_per_checkpoint", "created_by"],
+      "properties": {
+        "family_glob": {"$ref": "#/$defs/nonEmptyString"},
+        "max_per_checkpoint": {"type": "integer", "minimum": 1},
+        "created_by": {"$ref": "#/$defs/nonEmptyString"}
+      },
+      "additionalProperties": false
     }
   }
 }

@@ -1,0 +1,143 @@
+kind: graph
+semantic_diff: >-
+  Envelope-changing revision, approved by the user: one outcome, one edge and
+  one check added at scope_next_increment; one meaning change at
+  execute_attempt_loop; the empty runtime_bindings block. 6 hunks, 38 added lines against 1
+  removed. Counts: 32 nodes unchanged, 95 -> 96 edges, 16 -> 17 checks,
+  88 -> 89 outcomes.
+
+  (1) PREREQUISITE HOLD AT SCOPING (new outcome prerequisite_unlanded, edge
+  prerequisite_to_rescoping, check prerequisite_is_in_plan). The node declared no
+  route for "the item the rule would select depends on an unlanded block the plan
+  already carries". plan_unrealizable_as_designed re-enters the design boundary
+  for what is an ordering fact; increment_selected on the prerequisite hides the
+  hold. The lead resolved the field case by ruling on an undeclared route. Now the
+  lap holds the item by id, selects the prerequisite, and re-arms the held item at
+  the prerequisite's landing; the mechanical check settles that the prerequisite is
+  an in-plan unlanded block (otherwise the case is a design change and takes the
+  existing door). The precedence list gains it at position 4.
+
+  (2) THE ATTEMPT LOOP REPAIRS ITS OWN TESTS, CONTROLS, LAUNCHERS, CHECKERS AND BUNDLES
+  (execute_attempt_loop activity + allowed effect). The node had no write
+  allowance in the worktree, so a failing launcher stopped the loop for a lead
+  word. Now the diagnosis and fix are recorded together in the attempt log and
+  committed; only a product-source change leaves the loop for review. The
+  pre-hardware review check impl_commit_is_reviewed is unchanged: a proposal to
+  let test- or launcher-only commits keep ready_for_hardware was considered and
+  withheld for the user's word.
+
+  (3) runtime_bindings (empty deny and caps). The binding surface the streamlining
+  audit's kind: binding proposals fill: deny globs bound to the lead identity and
+  per-checkpoint caps, read by the PreToolUse router from this file at the ledger
+  head. Empty here; it changes no behaviour until a landed binding fills it.
+
+  FIELD EVIDENCE: (1) the campaign's graph-defect record of 2026-09-10T19:34:05Z
+  (a held selection resolved by lead ruling and one plan ordering line); (2) the
+  user's ruling of 2026-09-10T17:05:11Z that a lane repairs its own test, control,
+  launcher, checker or bundle defects without waiting for the lead, recorded
+  verbatim in the campaign log, and the ceremony audit of the same day (two
+  workflows, 53 agents) that found the wait lead-invented against a graph that
+  neither allowed nor forbade the repair; (3) pave-init 2.6.0 schema. A clause
+  saying a CPU-mode acceptance run on an assigned host is no hardware attempt was
+  drafted and withheld: no user words cover it and the campaign log counts host
+  runs. Reviewed by
+  independent adversarial reviewers (fable) as part of the 1.5.5 batch before
+  landing.
+envelope_check: changed_with_approval
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 8 (graph): scope_next_increment gains the prerequisite_unlanded
+  outcome, its return edge and the prerequisite_is_in_plan check (an in-plan
+  unlanded prerequisite is an ordering hold, not a design change);
+  execute_attempt_loop repairs its own tests, controls, launchers, checkers and
+  bundles without a lead word; the empty runtime_bindings block is the binding surface for audit
+  cuts. 32 nodes, 96 edges, 17 checks, 89 outcomes; 38 added lines against
+  1 removed in 6 hunks. Approved by the user 2026-09-10.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -360,6 +360,13 @@ pave:
+         stamped in the adversarial review findings record that granted ready_for_hardware?
+       evaluated_by: lead
+       on_failure_route: review_implementation
++    prerequisite_is_in_plan:
++      style: mechanical
++      question: Is the prerequisite the lap record names for the held item a block
++        the approved increment plan already carries with no passing evidence record
++        yet - an ordering fact - rather than a surface the plan never designed?
++      evaluated_by: lead
++      on_failure_route: screen_pin_and_progress
+     batch_review_current:
+       style: mechanical
+       question: >-
+@@ -1468,7 +1475,9 @@ pave:
+         precedence: (1) plan_unrealizable_as_designed - a concrete recorded contradiction
+         outranks every repetition signal; (2) no_new_route - repetition proves
+         iteration is not working, so it outranks resizing; (3) plan_exceeds_node;
+-        (4) plan_satisfied when nothing is pending; (5) increment_selected otherwise.
++        (4) prerequisite_unlanded when the item the rule would select declares a
++        prerequisite that is an unlanded block the plan already carries; (5) plan_satisfied
++        when nothing is pending; (6) increment_selected otherwise.
+         A landed item''s plan block collapses to its ledger row at the lap that
+         first reads its passing record (the layout reference''s cap rule), and
+         the lap record names the plan''s revision-log line after the collapse. Instrument
+@@ -1518,6 +1527,15 @@ pave:
+             on disk, a derivation any reader can re-run from the same two inputs.
+           required_evidence:
+           - increment_lap_record
++        prerequisite_unlanded:
++          meaning: The item the rule would select declares a prerequisite that is
++            a block the approved plan already carries and no passing evidence record
++            yet covers. The lap record holds the item by id and names the prerequisite
++            as the next selection, re-armed at the prerequisite's landing - an ordering
++            hold the check on its edge distinguishes from a design change. Routes
++            back to this node.
++          required_evidence:
++          - increment_lap_record
+         plan_satisfied:
+           meaning: Every increment in the approved plan, plus every repair item
+             derived from confirmed findings, carries a passing CPU-mode evidence
+@@ -1899,9 +1917,15 @@ pave:
+         fingerprint records, never a bare "nothing left" claim.
+       - Dispatch delegates only through the guardrail wrapper (remedy interception,
+         benchmark scope restriction).
++      - A failure inside the attempt's own test, control, launcher, checker, or
++        bundle is this node's to repair with no lead word - diagnosis and fix recorded together
++        in the attempt log and committed; only a product-source change leaves the
++        loop for review.
+       allowed_effects:
+       - In-band SSH compile and serve runs on the leased host using the campaign
+         venv and the shared multi-writer-safe compile cache.
++      - Writes to the attempt's own tests, controls, launchers, checkers, and bundles
++        in the campaign worktree, committed on the campaign branch.
+       - Guardrailed delegate dispatch.
+       forbidden_effects:
+       - Clearing or bypassing the shared compile cache, including via a delegate's
+@@ -2585,6 +2609,16 @@ pave:
+   - id: selected_to_realization
+     from: scope_next_increment.increment_selected
+     to: realize_increment
++  - id: prerequisite_to_rescoping
++    from: scope_next_increment.prerequisite_unlanded
++    to: scope_next_increment
++    checks:
++    - prerequisite_is_in_plan
++    rationale: An in-plan, unlanded prerequisite is an ordering hold, not a plan
++      defect - the lap re-enters with the prerequisite selected and the held item
++      named, so no selection row stands unexplained and the design boundary is
++      not re-entered for an ordering fact (field record 2026-09-10 - a held selection
++      the lead resolved by ruling on a route the graph did not declare).
+   - id: passed_to_next_scoping
+     from: realize_increment.increment_passed
+     to: scope_next_increment
+@@ -2718,6 +2752,9 @@ pave:
+       kind: join
+       meaning: Hold until every approved campaign instance reaches its verified
+         closure; run-closure verification re-runs at each closure.
++  runtime_bindings:
++    deny: []
++    caps: []
+   state:
+     required:
+     - workflow_identity

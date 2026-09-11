@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Invariant tests for three vllm-neuron-parity hooks:
+# Invariant tests for four vllm-neuron-parity hooks:
 #   - skills/vllm-neuron-parity/hooks/write-for-reader.sh
 #   - skills/vllm-neuron-parity/hooks/graph_edit_guard.sh
 #   - skills/vllm-neuron-parity/hooks/goal-restate.sh
+#   - skills/vllm-neuron-parity/hooks/stop-guard.sh
 #
 # What is tested for write-for-reader (behavior, not wording):
 #   - a markdown write under the run workspace (parent of the run-state
@@ -35,9 +36,25 @@
 # marker, unrelated events, and garbage stdin are silent; hooks/hooks.json
 # registers both events.
 #
+# What is tested for stop-guard: the block text names every active seat with
+# the mandatory reply form and carries no "lgtm"; the audit branch fires DUE at
+# the outcome threshold (declared nodes only; node: lead never counts) or at
+# the write-log bytes threshold, writes the checkpoint sidecar, and its brief
+# carries the dispatch line; OPEN passes; a ledger entry newer than the
+# checkpoint with drafted_by: workflow-updater closes the cycle and resets the
+# counters; a pin entry never closes; a no-change findings record closes only
+# with review: PASS when the trend rose; a stalled OPEN cycle is named unless
+# the newest proposal awaits the user's approval; a graph landed since the
+# run's pin is named with the rule-1 route unless move_declined stands; no
+# evolution root means no audit text and no sidecar; a pave-init older than
+# 2.6.0 gets one degraded line; the cooldown still passes the next two stops;
+# no marker, a subagent, stop_hook_active, and a terminal run pass; a firing
+# exits within 5 s.
+#
 # Self-contained: everything runs inside a mktemp sandbox with its own
-# TMPDIR, so throttle counters start clean on every run. No real run state,
-# marker, counter, or evolution root is touched. Exits 1 on any failure.
+# TMPDIR and HOME, so throttle counters and the pave-init version lookup start
+# clean on every run. No real run state, marker, counter, or evolution root is
+# touched. Exits 1 on any failure.
 
 set -u
 
@@ -494,6 +511,398 @@ assert any("goal-restate.sh" in c for c in sa), sa
 PY
 ok=0; [ "$?" = "0" ] && ok=1
 report "restate: registered in hooks/hooks.json (SessionStart resume|compact, SubagentStart)" "$ok" "see hooks/hooks.json"
+
+# --- stop-guard ------------------------------------------------------------
+# Lead-only Stop hook: blocks at most one stop in STOP_EVERY with the seat
+# lines and the imperatives; its audit branch shares the cooldown and speaks
+# only when an evolution root exists. HOME points into the sandbox so the
+# pave-init version check reads a fake plugin cache, never the real one.
+
+STOP_HOOK="$PLUGIN/skills/vllm-neuron-parity/hooks/stop-guard.sh"
+export HOME="$WORK/home"
+CACHE="$HOME/.claude/plugins/cache/jinhuang12-plugins/pave-init"
+mkdir -p "$CACHE/2.6.0/skills/pave-init"
+printf 'version: 2.6.0\n\n## changelog\n' > "$CACHE/2.6.0/skills/pave-init/VERSION"
+EVO_ROOT="$ROOT/.vllm-neuron-parity/evolution"
+SIDECAR="$STATE.audit-checkpoint.json"
+unset VLLM_NEURON_PARITY_AUDIT_EVERY VLLM_NEURON_PARITY_AUDIT_BYTES VLLM_NEURON_PARITY_AUDIT_STALL VLLM_NEURON_PARITY_STOP_EVERY 2>/dev/null || true
+rm -f "$STATE.lead-session" "$SIDECAR" "$STATE".audit-census-* "$STATE".write-log*.jsonl
+rm -rf "$EVO_ROOT"
+
+stop_state() { # $1 = declared outcomes count, $2 = terminal status ("" for active)
+  python3 - "$STATE" "$1" "${2:-}" <<'PY'
+import json, sys
+path, count, status = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+state = {
+    "workflow_identity": {"run_id": "test-run"},
+    "active_node_runs": [
+        {"node": "scan_upstream_delta", "campaign": "run", "seat": "lane-alpha", "started": "2026-09-10T18:00:00Z"},
+        {"node": "cost_targets", "seat": "lane-beta"},
+    ],
+    "completed_outcomes": [{"node": "scan_upstream_delta", "outcome": "delta_ready"}] * count
+                          + [{"node": "lead", "outcome": "pseudo"}] * 7,   # never counts
+    "terminal_classification": None,
+}
+if status:
+    state["terminal_classification"] = {"status": status}
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(state, handle)
+PY
+}
+
+write_evo() { # a minimal evolution root: nodes mapping + edges list, empty-ish ledger
+  mkdir -p "$EVO_ROOT/proposals"
+  cat > "$EVO_ROOT/workflow.pave.yaml" <<'YAML'
+pave:
+  nodes:
+    scan_upstream_delta:
+      intent: execute
+    cost_targets:
+      intent: execute
+  edges:
+  - id: delta_to_costing
+    from: scan_upstream_delta.delta_ready
+YAML
+  cat > "$EVO_ROOT/revisions.yaml" <<'YAML'
+entries:
+- revision: 0
+  kind: graph
+  landed_at: '2026-09-03T19:12:09Z'
+  drafted_by: null
+YAML
+}
+
+write_sidecar() { # $1 = state, $2 = outcomes_at, $3 = at, [$4 = findings_record path], [$5 = review], [$6 = stamped proposal path]
+  python3 - "$SIDECAR" "$1" "$2" "$3" "${4:-}" "${5:-}" "${6:-}" <<'PY'
+import json, os, sys
+path, state, outcomes_at, at, findings, review, stamp = sys.argv[1:8]
+stamps = []
+if stamp:
+    st = os.stat(stamp)
+    stamps.append({"path": stamp, "size": st.st_size, "mtime": st.st_mtime})
+fstat = None
+if findings and os.path.exists(findings):
+    fs = os.stat(findings)
+    fstat = {"size": fs.st_size, "mtime": fs.st_mtime}
+doc = {"checkpoint_id": "cp-20260910T000000Z", "at": at, "outcomes_at": int(outcomes_at),
+       "bytes_at": 0, "state": state, "findings_record": findings or None, "findings_stat": fstat,
+       "stamped_proposals": stamps, "review": review or None, "closed_by": None}
+json.dump(doc, open(path, "w"), indent=1)
+PY
+}
+
+sidecar_field() { # $1 = field
+  python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]))' "$SIDECAR" "$1" 2>/dev/null
+}
+
+stop_payload() { # $1 = session, $2 = agent_id ("" for lead), $3 = stop_hook_active (1|"")
+  python3 - "$1" "${2:-}" "${3:-}" <<'PY'
+import json, sys
+session, agent, active = sys.argv[1:4]
+payload = {"hook_event_name": "Stop", "session_id": session, "stop_hook_active": bool(active)}
+if agent:
+    payload["agent_id"] = agent
+    payload["agent_type"] = "vllm-neuron-parity:investigator"
+print(json.dumps(payload))
+PY
+}
+
+run_stop() { # $1 = session, $2 = agent_id, $3 = stop_hook_active; prints stderr, returns rc
+  stop_payload "$1" "${2:-}" "${3:-}" | bash "$STOP_HOOK" 2>&1 >/dev/null
+}
+
+DISPATCH="Forward this block verbatim to pave-init:workflow-updater in audit mode (checkpoint id, census path, evolution root, pave-init root); add nothing you compose."
+
+# S1. the hook text carries no "lgtm" (case-insensitive)
+ok=0; ! grep -qi "lgtm" "$STOP_HOOK" && ok=1
+report "stop: no lgtm anywhere in the hook" "$ok" "$(grep -ni lgtm "$STOP_HOOK" | head -3)"
+
+# S2. no evolution root: the standard block, per-seat lines, no audit text, no sidecar
+stop_state 100
+write_marker
+ERR="$(run_stop st1)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "lane-alpha on scan_upstream_delta\[run\]" \
+  && printf '%s' "$ERR" | grep -q "lane-beta on cost_targets" \
+  && printf '%s' "$ERR" | grep -q "waits on <grant | frozen value | design change | seat working | nothing>; next act:" \
+  && printf '%s' "$ERR" | grep -q '"nothing" means act before you stop' && ok=1
+report "stop: block names every active seat with the mandatory reply form" "$ok" "rc=$RC err=$ERR"
+ok=0; ! printf '%s' "$ERR" | grep -qi "lgtm" && ! printf '%s' "$ERR" | grep -q "AUDIT" && [ ! -f "$SIDECAR" ] && ok=1
+report "stop: silent audit without an evolution root (no AUDIT text, no sidecar)" "$ok" "err=$ERR"
+ok=0; printf '%s' "$ERR" | grep -q "Retire every idle seat now" \
+  && printf '%s' "$ERR" | grep -q "single writer (P10)" \
+  && printf '%s' "$ERR" | grep -q "declared edge (P12)" \
+  && printf '%s' "$ERR" | grep -q "batch review" \
+  && printf '%s' "$ERR" | grep -q "plain words" && ok=1
+report "stop: reminders are present as imperatives" "$ok" "err=$ERR"
+
+# S3. cooldown: the next two stops pass, the fourth fires again
+ERR="$(run_stop st1)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "stop: 2nd stop in the session passes (cooldown)" "$ok" "rc=$RC err=$ERR"
+ERR="$(run_stop st1)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "stop: 3rd stop passes" "$ok" "rc=$RC err=$ERR"
+ERR="$(run_stop st1)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ok=1
+report "stop: 4th stop fires again" "$ok" "rc=$RC"
+# a lead-typed count in the marker is clamped to N-1: two silent stops, then it fires
+printf '999999\n' > "${TMPDIR:-/tmp}/vllm-neuron-parity-stop-nudged-st1"
+ERR="$(run_stop st1)"; RC1=$?; ERR="$(run_stop st1)"; RC2=$?; ERR="$(run_stop st1)"; RC3=$?
+ok=0; [ "$RC1" = "0" ] && [ "$RC2" = "0" ] && [ "$RC3" = "2" ] && ok=1
+report "stop: a marker holding 999999 buys at most N-1 silent stops (clamped)" "$ok" "rc=$RC1,$RC2,$RC3"
+
+# S3b. a planted sidecar the hook could never have written (future outcomes_at) is reseeded, not trusted
+write_evo
+write_sidecar IDLE 1000000000 "2026-09-10T00:00:00Z"
+stop_state 10
+ERR="$(run_stop st3b)"; RC=$?
+ok=0; [ "$(sidecar_field outcomes_at)" = "10" ] && [ "$(sidecar_field closed_by)" = "seeded" ] && ok=1
+report "stop: a planted sidecar with outcomes_at beyond the run is reseeded from the real count" "$ok" "rc=$RC sidecar=$(cat "$SIDECAR" 2>/dev/null)"
+rm -f "$SIDECAR"
+# S3c. an OPEN or DUE cycle is never erased by a shrunken count (a graph write): clamp and say so
+write_sidecar DUE 1000000000 "2026-09-10T00:00:00Z"
+stop_state 10
+ERR="$(run_stop st3c)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT COUNTER DISAGREEMENT" && printf '%s' "$ERR" | grep -q "AUDIT DUE" \
+  && [ "$(sidecar_field state)" = "DUE" ] && [ "$(sidecar_field checkpoint_id)" = "cp-20260910T000000Z" ] && ok=1
+report "stop: a DUE cycle survives a baseline above the run count (disagreement named, brief re-presented)" "$ok" "rc=$RC err=$ERR"
+rm -f "$SIDECAR"
+
+# S4. DUE below the threshold does not fire; at the threshold it fires and writes the sidecar
+write_evo
+rm -f "$SIDECAR"
+stop_state 39
+ERR="$(run_stop st2)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT DUE" && ok=1
+report "stop: 39 declared outcomes (+7 lead rows) is below the audit threshold" "$ok" "rc=$RC err=$ERR"
+ok=0; [ -f "$SIDECAR" ] && [ "$(sidecar_field state)" = "IDLE" ] && [ "$(sidecar_field outcomes_at)" = "39" ] \
+  && [ "$(sidecar_field closed_by)" = "seeded" ] && ! printf '%s' "$ERR" | grep -q "AUDIT" && ok=1
+report "stop: first sight seeds an IDLE baseline at the current counts and passes" "$ok" "sidecar=$(cat "$SIDECAR" 2>/dev/null)"
+write_sidecar IDLE 0 "2026-09-10T00:00:00Z"
+
+stop_state 40
+START_NS="$(python3 -c 'import time; print(time.time())')"
+ERR="$(run_stop st3)"; RC=$?
+ELAPSED="$(python3 -c 'import sys, time; print(int(time.time() - float(sys.argv[1])))' "$START_NS")"
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT DUE: checkpoint cp-[0-9]*T[0-9]*Z" && ok=1
+report "stop: DUE fires at 40 declared outcomes" "$ok" "rc=$RC err=$ERR"
+ok=0; [ -f "$SIDECAR" ] && [ "$(sidecar_field state)" = "DUE" ] && [ "$(sidecar_field outcomes_at)" = "40" ] \
+  && [ "$(sidecar_field checkpoint_id)" = "$(printf '%s' "$ERR" | sed -n 's/.*AUDIT DUE: checkpoint \(cp-[0-9TZ]*\).*/\1/p' | head -1)" ] && ok=1
+report "stop: DUE writes the sidecar (state DUE, outcomes_at 40, same checkpoint id)" "$ok" "sidecar=$(cat "$SIDECAR" 2>/dev/null)"
+ok=0; printf '%s' "$ERR" | grep -qF "$DISPATCH" && ok=1
+report "stop: the DUE block carries the dispatch line verbatim" "$ok" "err=$ERR"
+ok=0; printf '%s' "$ERR" | grep -q "^evolution root: .*/evolution$" && printf '%s' "$ERR" | grep -q "^pave-init root: " && ok=1
+report "stop: the DUE block names the evolution root and the pave-init root" "$ok" "err=$ERR"
+ok=0; printf '%s' "$ERR" | grep -q "^census: " && { printf '%s' "$ERR" | grep -q "raw counts: 40 declared-node outcomes" || printf '%s' "$ERR" | grep -q "declared outcomes since: 40"; } && ok=1
+report "stop: the DUE block names the census path and the outcome count (census script when shipped, else raw counts)" "$ok" "err=$ERR"
+ok=0; [ "$ELAPSED" -lt 5 ] && ok=1
+report "stop: a firing exits within 5 s" "$ok" "elapsed=${ELAPSED}s"
+
+# S5. OPEN passes: no DUE, no STALL, sidecar untouched
+write_sidecar OPEN 40 "2026-09-10T00:00:00Z"
+stop_state 45
+BEFORE="$(cat "$SIDECAR")"
+ERR="$(run_stop st4)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT" && [ "$(cat "$SIDECAR")" = "$BEFORE" ] && ok=1
+report "stop: an OPEN cycle passes the audit branch and leaves the sidecar alone" "$ok" "rc=$RC err=$ERR"
+
+# S6. STALL: OPEN with 10 more declared outcomes and no close is named; a pending-approval proposal exempts it
+stop_state 50
+ERR="$(run_stop st5)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT STALL: checkpoint cp-20260910T000000Z" \
+  && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
+report "stop: a stalled OPEN cycle is named" "$ok" "rc=$RC err=$ERR"
+
+printf 'kind: graph\nenvelope_check: changed_pending_approval\n--- a/workflow.pave.yaml\n' > "$EVO_ROOT/proposals/cp-20260910T000000Z-graph.patch"
+ERR="$(run_stop st6a)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT STALL" && ok=1
+report "stop: a pending-approval file the router never stamped (lead-typed) exempts nothing" "$ok" "rc=$RC err=$ERR"
+write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-graph.patch"
+ERR="$(run_stop st6)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT STALL" && ok=1
+report "stop: a STAMPED proposal awaiting the user's approval exempts the stall" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO_ROOT/proposals/cp-20260910T000000Z-graph.patch"
+
+# S7. CLOSED via a ledger entry newer than the checkpoint drafted by the updater, whose patch bytes
+# equal a proposal the router stamped in the sidecar; a pin appended after it does not hide it
+mkdir -p "$EVO_ROOT/proposals" "$EVO_ROOT/history"
+printf 'kind: binding\n--- a/workflow.pave.yaml\n+++ b/workflow.pave.yaml\n' > "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
+cp "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch" "$EVO_ROOT/history/v1.patch"
+write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
+cat >> "$EVO_ROOT/revisions.yaml" <<'YAML'
+- revision: 1
+  kind: binding
+  landed_at: '2026-09-10T12:00:00Z'
+  review: PASS
+  drafted_by: workflow-updater
+  patch: history/v1.patch
+- revision: 1
+  kind: pin
+  landed_at: '2026-09-10T12:01:00Z'
+  run_id: test-run
+YAML
+ERR="$(run_stop st7)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "IDLE" ] \
+  && [ "$(sidecar_field outcomes_at)" = "50" ] && printf '%s' "$(sidecar_field closed_by)" | grep -q "^ledger:" && ok=1
+report "stop: a stamped updater-drafted ledger entry closes the cycle (a later pin does not hide it) and resets the counters" "$ok" "rc=$RC err=$ERR sidecar=$(cat "$SIDECAR")"
+
+# S7b. the same entry shape without a matching stamp in the sidecar (a lead-typed --stamps file) never closes
+write_sidecar OPEN 40 "2026-09-10T00:00:00Z"
+ERR="$(run_stop st7b)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
+report "stop: an updater-drafted entry whose patch no router stamp vouches for does not close" "$ok" "rc=$RC err=$ERR"
+printf 'kind: binding\n+forged\n' > "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
+write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
+ERR="$(run_stop st7c)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
+report "stop: a stamped proposal whose bytes differ from the landed patch does not close" "$ok" "rc=$RC err=$ERR"
+cp "$EVO_ROOT/history/v1.patch" "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
+write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
+ERR="$(run_stop st7d)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "IDLE" ] && ok=1
+report "stop: restoring the stamped bytes closes it" "$ok" "rc=$RC err=$ERR"
+
+# S8. after the reset, 50 outcomes are not DUE again; 90 are
+ERR="$(run_stop st8)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT" && ok=1
+report "stop: fresh counters after the close, nothing due" "$ok" "rc=$RC err=$ERR"
+stop_state 90
+ERR="$(run_stop st9)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT DUE" && [ "$(sidecar_field state)" = "DUE" ] \
+  && [ "$(sidecar_field checkpoint_id)" != "cp-20260910T000000Z" ] && ok=1
+report "stop: the next threshold mints a new checkpoint" "$ok" "rc=$RC err=$ERR"
+
+# S8b. the bytes fallback: an IDLE cycle with few outcomes but AUDIT_BYTES written since the checkpoint is DUE
+write_sidecar IDLE 90 "2026-09-10T13:00:00Z"
+printf '%0200d\n' 0 > "$ARTIFACTS/run/big-scratch.txt"      # 201 bytes, logged below
+printf '{"at": "2026-09-10T14:00:00Z", "session_id": "s", "agent_id": null, "agent_type": null, "tool": "Write", "path": "%s"}\n' \
+  "$ARTIFACTS/run/big-scratch.txt" > "$STATE.write-log.jsonl"
+stop_state 91
+ERR="$(VLLM_NEURON_PARITY_AUDIT_BYTES=100 run_stop st9b)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT DUE" && [ "$(sidecar_field state)" = "DUE" ] \
+  && [ "$(sidecar_field bytes_at)" = "201" ] && ok=1
+report "stop: bytes written since the checkpoint over AUDIT_BYTES is DUE (1 outcome, 201 bytes)" "$ok" "rc=$RC err=$ERR sidecar=$(cat "$SIDECAR" 2>/dev/null)"
+rm -f "$STATE.write-log.jsonl" "$ARTIFACTS/run/big-scratch.txt"
+
+# S9. an old ledger entry without the updater stamp does not close (pin never closes)
+write_sidecar OPEN 90 "2026-09-10T13:00:00Z"
+cat >> "$EVO_ROOT/revisions.yaml" <<'YAML'
+- revision: 1
+  kind: pin
+  landed_at: '2026-09-10T14:00:00Z'
+  run_id: test-run
+YAML
+stop_state 92
+ERR="$(run_stop st10)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
+report "stop: a pin entry never closes the cycle" "$ok" "rc=$RC err=$ERR"
+
+# S10. CLOSED via the findings record: the router stamped the updater's record (OPEN + findings_record),
+# it says no_change_warranted, the trend rose, and the router stamped the reviewer's review: PASS
+FINDINGS="$EVO_ROOT/streamlining-findings.md"
+printf 'checkpoint: cp-20260910T000000Z\n\noutcome: no_change_warranted\n\n## Trend\ncp-20260910T000000A | 40 | 100 | 2.5\ncp-20260910T000000Z | 50 | 400 | 8.0\nreview: PASS\n' > "$FINDINGS"
+write_sidecar OPEN 90 "2026-09-10T13:00:00Z" "$FINDINGS" PASS
+ERR="$(run_stop st11)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "IDLE" ] && ok=1
+report "stop: a stamped no-change findings record with the reviewer's stamped PASS closes the cycle" "$ok" "rc=$RC err=$ERR"
+write_sidecar OPEN 90 "2026-09-10T13:00:00Z" "$FINDINGS" PASS
+printf 'outcome: no_change_warranted\n' >> "$FINDINGS"
+ERR="$(run_stop st11b)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
+report "stop: a stamped record changed since the stamp (any actor, any write shape) cannot close" "$ok" "rc=$RC err=$ERR"
+write_sidecar OPEN 90 "2026-09-10T13:00:00Z" "$FINDINGS"
+ERR="$(run_stop st12)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
+report "stop: a rising trend needs the reviewer's STAMPED review: PASS (the text alone does not count)" "$ok" "rc=$RC err=$ERR"
+write_sidecar DUE 90 "2026-09-10T13:00:00Z" "" PASS
+ERR="$(run_stop st12b)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "DUE" ] && ok=1
+report "stop: a findings record the router never stamped OPEN cannot close (lead-typed record)" "$ok" "rc=$RC err=$ERR"
+printf 'checkpoint: cp-20260910T000000Z\n\noutcome: no_change_warranted\n\n## Trend\ncp-20260910T000000A | 40 | 400 | 8.0\ncp-20260910T000000Z | 50 | 100 | 2.5\n' > "$FINDINGS"
+write_sidecar OPEN 90 "2026-09-10T13:00:00Z" "$FINDINGS"
+ERR="$(run_stop st12c)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && ok=1
+report "stop: a stamped no-change record with a falling trend closes without a reviewer" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO_ROOT/streamlining-findings.md"
+
+# S11. degraded: pave-init older than 2.6.0 gets one line and no sidecar write
+rm -rf "$CACHE/2.6.0"; mkdir -p "$CACHE/2.5.4/skills/pave-init"
+printf 'version: 2.5.4\n' > "$CACHE/2.5.4/skills/pave-init/VERSION"
+rm -f "$SIDECAR"
+stop_state 60
+ERR="$(run_stop st13)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT DEGRADED: pave-init 2.5.4" && [ ! -f "$SIDECAR" ] && ok=1
+report "stop: pave-init below 2.6.0 prints one degraded line and writes nothing" "$ok" "rc=$RC err=$ERR"
+rm -rf "$CACHE/2.5.4"; mkdir -p "$CACHE/2.6.0/skills/pave-init"
+printf 'version: 2.6.0\n' > "$CACHE/2.6.0/skills/pave-init/VERSION"
+
+# S11b. rule-1 route: a real ledger (installed from the plugin root) pinned at revision 0 names the landed graph
+rm -rf "$EVO_ROOT" "$SIDECAR"
+python3 "$PLUGIN/scripts/record_revision.py" install "$EVO_ROOT" --from "$PLUGIN" >/dev/null 2>&1
+DIGEST0="$(python3 - "$EVO_ROOT/revisions.yaml" <<'PY'
+import re, sys
+first = re.split(r"(?m)^-\s+revision:", open(sys.argv[1]).read())[1]
+print(re.search(r"digest_after:\s*[\x27\"]?(sha256:[0-9a-f]+)", first).group(1))
+PY
+)"
+pin_state() { # $1 = move_declined text ("" for null)
+  python3 - "$STATE" "$DIGEST0" "${1:-}" <<'PY'
+import json, sys
+path, digest, declined = sys.argv[1:4]
+state = json.load(open(path))
+state["workflow_identity"] = {"run_id": "test-run", "active_revision": 0, "bundle_digest": digest,
+                              "move_declined": declined or None}
+json.dump(state, open(path, "w"))
+PY
+}
+stop_state 5
+pin_state
+ERR="$(run_stop st19)"; RC=$?
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "GRAPH LANDED SINCE PIN (rule 1" \
+  && printf '%s' "$ERR" | grep -q "move_declined" && [ "$(sidecar_field state)" = "IDLE" ] && ok=1
+report "stop: a graph landed since the pin is named with the rule-1 route (first sight still seeds)" "$ok" "rc=$RC err=$ERR"
+pin_state "user 2026-09-10: stay on revision 0"
+ERR="$(run_stop st20)"; RC=$?
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "GRAPH LANDED SINCE PIN" && ok=1
+report "stop: a standing move_declined silences the rule-1 route" "$ok" "rc=$RC err=$ERR"
+rm -rf "$EVO_ROOT"; write_evo
+
+# S12. gates: stop_hook_active, a subagent, a terminal run, another session, no marker all pass
+ERR="$(run_stop st14 "" 1)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "stop: stop_hook_active passes (never loops)" "$ok" "rc=$RC err=$ERR"
+ERR="$(run_stop st15 seat-9)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "stop: a subagent payload passes" "$ok" "rc=$RC err=$ERR"
+printf 'the-lead\n' > "$STATE.lead-session"
+ERR="$(run_stop st16)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "stop: another session passes when the sidecar names the lead" "$ok" "rc=$RC err=$ERR"
+rm -f "$STATE.lead-session"
+stop_state 60 accepted
+ERR="$(run_stop st17)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "stop: a terminal run passes" "$ok" "rc=$RC err=$ERR"
+stop_state 60
+rm -f "$MARKER"
+ERR="$(run_stop st18)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "stop: no marker passes" "$ok" "rc=$RC err=$ERR"
+write_marker
+ERR="$(printf 'not json' | bash "$STOP_HOOK" 2>&1 >/dev/null)"; RC=$?
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+report "stop: unparsable payload fails open" "$ok" "rc=$RC err=$ERR"
+
+# S13. registered in hooks/hooks.json under Stop
+python3 - "$PLUGIN" <<'PY' 2>/dev/null
+import json, sys
+from pathlib import Path
+hooks = json.loads((Path(sys.argv[1]) / "hooks" / "hooks.json").read_text())["hooks"]
+commands = [h["command"] for e in hooks["Stop"] for h in e["hooks"]]
+assert any("stop-guard.sh" in c for c in commands), commands
+PY
+ok=0; [ "$?" = "0" ] && ok=1
+report "stop: registered in hooks/hooks.json under Stop" "$ok" "see hooks/hooks.json"
 
 echo
 echo "$PASS passed, $FAIL failed"

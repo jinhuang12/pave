@@ -40,15 +40,19 @@ import measure_artifact as ma  # noqa: E402
 # instrument-by-commit rewrite of 9.10 and the digest-subject rule 9.14.3;
 # SKILL.md gains the evidence-bound and digest mapping bullets; the revisions,
 # briefs, reviewer and planner texts each gain one clause of the same rule.
+# 2026-09-10 (2.6.0): the audit checkpoint adds its branch, sidecar, write log
+# and two write guards to the hooks reference, the binding-revision clause to
+# pave-revisions, audit mode to the updater, item 19 to the reviewer, and the
+# land flags to pave-evolve; SKILL.md gains the hook-pair sentence.
 CEILINGS = {
-    "skills/pave-init/SKILL.md": (267, 37314),
+    "skills/pave-init/SKILL.md": (267, 38041),
     "skills/pave-init/README.md": (448, 26136),
-    "skills/pave-evolve/SKILL.md": (69, 7897),
+    "skills/pave-evolve/SKILL.md": (69, 8760),
     "skills/pave-init/references/approval-briefs.md": (72, 9502),
-    "skills/pave-init/references/lead-alignment-hooks.md": (434, 33510),
+    "skills/pave-init/references/lead-alignment-hooks.md": (479, 47045),
     "skills/pave-init/references/pave-composition.md": (186, 10814),
     "skills/pave-init/references/pave-init-traceability.md": (169, 21886),
-    "skills/pave-init/references/pave-revisions.md": (80, 14329),
+    "skills/pave-init/references/pave-revisions.md": (81, 16789),
     "skills/pave-init/references/pave-spec.md": (1723, 76571),
     "skills/pave-init/references/pave-yaml.md": (431, 17816),
     "skills/pave-init/references/planning-layout.md": (52, 4116),
@@ -63,8 +67,8 @@ CEILINGS = {
     "sources/roles/research-delegate.md.tmpl": (63, 2682),
     "sources/roles/skill-builder.md.tmpl": (44, 4700),
     "sources/roles/system-explorer.md.tmpl": (23, 1536),
-    "sources/roles/update-reviewer.md.tmpl": (71, 7450),
-    "sources/roles/workflow-updater.md.tmpl": (53, 7325),
+    "sources/roles/update-reviewer.md.tmpl": (73, 8662),
+    "sources/roles/workflow-updater.md.tmpl": (61, 10217),
 }
 
 SLACK = 0.10

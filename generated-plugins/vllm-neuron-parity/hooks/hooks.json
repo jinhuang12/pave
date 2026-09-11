@@ -19,6 +19,16 @@
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" venv-opt",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" runtime-bindings",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" audit-sidecar",
+            "timeout": 10
           }
         ]
       },
@@ -39,30 +49,55 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity/hooks/graph_edit_guard.sh\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" runtime-bindings",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" no-recut",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" audit-sidecar",
+            "timeout": 10
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash|Write|Edit",
+        "matcher": "Bash|Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity/hooks/state-staleness-reminder.sh\"",
             "timeout": 10,
             "additionalContextLimit": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/write_log.py\"",
+            "timeout": 10
           }
         ]
       },
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity/hooks/write-for-reader.sh\"",
             "timeout": 10,
             "additionalContextLimit": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use_router.py\" audit-stamp",
+            "timeout": 10
           }
         ]
       }
@@ -96,7 +131,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/vllm-neuron-parity/hooks/stop-guard.sh\"",
-            "timeout": 30
+            "timeout": 60
           }
         ]
       }

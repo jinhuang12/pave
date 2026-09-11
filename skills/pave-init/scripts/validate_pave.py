@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate PAVE 0.3.0 workflow definitions: JSON Schema plus graph cross-references.
+"""Validate PAVE 0.3.0 workflow definitions: JSON Schema, graph cross-references, runtime bindings.
 
 When a profile declares the composition extension, referenced child profiles are
 resolved, validated recursively, and checked against the composition contract
@@ -10,6 +10,7 @@ Fails closed when a dependency (PyYAML, jsonschema) is unavailable.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
 import re
@@ -35,7 +36,10 @@ REQUIRED_ROOT_FIELDS = [
     "version", "name", "purpose", "entrypoints", "roles", "evidence",
     "checks", "nodes", "edges", "control_endpoints", "state",
 ]
-OPTIONAL_ROOT_FIELDS = ["status", "scope", "principles", "completion", "extensions"]
+OPTIONAL_ROOT_FIELDS = [
+    "status", "scope", "principles", "completion", "extensions", "runtime_bindings",
+]
+DECLARED_PATH_KEYS = {"evidence", "state", "produces", "consumes"}
 CHECK_STYLES = ["reflective", "socratic", "reviewed", "mechanical"]
 INTENTS = ["plan", "explore", "execute", "review"]
 ENDPOINT_KINDS = ["pause", "join", "return", "control", "terminal"]
@@ -59,6 +63,74 @@ def mapping(value: object) -> dict:
 
 def listing(value: object) -> list:
     return value if isinstance(value, list) else []
+
+
+def relative_path_like(value: object) -> bool:
+    """A string with a slash or dot, no whitespace, not absolute."""
+    return (
+        isinstance(value, str)
+        and bool(value)
+        and ("/" in value or "." in value)
+        and not any(char.isspace() for char in value)
+        and not value.startswith("/")
+    )
+
+
+def declared_paths(value: object, under_key: bool = False) -> set[str]:
+    """Every relative-path-like string nested under a DECLARED_PATH_KEYS key."""
+    found: set[str] = set()
+    if isinstance(value, dict):
+        for key, child in value.items():
+            found |= declared_paths(child, under_key or key in DECLARED_PATH_KEYS)
+    elif isinstance(value, list):
+        for child in value:
+            found |= declared_paths(child, under_key)
+    elif under_key and relative_path_like(value):
+        found.add(value)
+    return found
+
+
+def glob_covers(declared: str, pattern: str) -> bool:
+    """True when the runtime guard would match `pattern` against the declared path.
+
+    The guard matches a glob against the workspace-relative path and against every
+    trailing-component suffix of it, so `increments/*` reaches a declared
+    `campaigns/c1/increments/`. A pattern starting with `/` is workspace-absolute and
+    never covers a relative declared path.
+    """
+    if pattern.startswith("/"):
+        return False
+    candidates = {declared, declared.rstrip("/")}
+    for text in tuple(candidates):
+        parts = text.split("/")
+        candidates.update("/".join(parts[index:]) for index in range(len(parts)))
+    return any(fnmatch.fnmatchcase(candidate, pattern) for candidate in candidates)
+
+
+def validate_runtime_bindings(pave: dict) -> list[str]:
+    """A deny glob or cap family must not reach a path the graph declares, matched the
+    way the runtime guard matches: whole path or any trailing-component suffix."""
+    errors: list[str] = []
+    bindings = mapping(pave.get("runtime_bindings"))
+    if not bindings:
+        return errors
+    paths = sorted(declared_paths(pave))
+    for section, field in (("deny", "glob"), ("caps", "family_glob")):
+        for index, entry in enumerate(listing(bindings.get(section))):
+            entry = mapping(entry)
+            location = f"pave.runtime_bindings.{section}[{index}]"
+            pattern = entry.get(field)
+            if section == "deny" and entry.get("bound_to") != ["lead"]:
+                errors.append(f"{location}.bound_to: must be exactly [lead]; no other identity is bindable")
+            if not isinstance(pattern, str):
+                continue
+            for declared in paths:
+                if glob_covers(declared, pattern):
+                    errors.append(
+                        f"{location}.{field}: {pattern!r} matches declared path {declared!r};"
+                        " a binding must not cover a path the graph declares"
+                    )
+    return errors
 
 
 def validate_schema(document: object, schema_path: Path = SCHEMA_PATH, label: str = "schema") -> list[str]:
@@ -315,6 +387,8 @@ def validate_document(
             )
     elif "composition" in required_extensions:
         add("pave.extensions.required", "declares composition but no composition block is present")
+
+    errors.extend(validate_runtime_bindings(pave))
 
     return errors
 

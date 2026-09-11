@@ -49,13 +49,13 @@ class PackageStructureTests(unittest.TestCase):
         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        self.assertEqual(manifest["version"], "1.5.4")
+        self.assertEqual(manifest["version"], "1.5.5")
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())
         self.assertEqual(manifest["interface"]["displayName"], "vLLM-Neuron Parity")
 
-    def test_hook_config_registers_exactly_nine_controls(self) -> None:
+    def test_hook_config_registers_the_disclosed_controls(self) -> None:
         # One hooks.json serves both harnesses: Codex sets CLAUDE_PLUGIN_ROOT
         # for compatibility, so every command resolves under that variable.
         data = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text())
@@ -70,8 +70,9 @@ class PackageStructureTests(unittest.TestCase):
             for group in groups
             for handler in group["hooks"]
         ]
-        # nine controls; the goal restatement registers under two events
-        self.assertEqual(len(handlers), 10)
+        # twelve controls over seventeen handlers: the goal restatement registers
+        # under two events; the router runs one process per mode per event
+        self.assertEqual(len(handlers), 17)
         self.assertTrue(all(handler["type"] == "command" for handler in handlers))
         self.assertTrue(
             all("${CLAUDE_PLUGIN_ROOT}" in handler["command"] for handler in handlers)
