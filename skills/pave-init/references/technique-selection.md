@@ -5,15 +5,15 @@ when a technique earns its cost, when it hurts, and what a minimal setup
 looks like. Read it when a plan chooses review structure or enforcement
 strength — usually at node-planning time, alongside §9.14.
 
-Each technique here is battle-tested: it held up in production
-graph-engineering systems that ran multi-hour autonomous campaigns. Each
+Each technique here held up in production systems that ran multi-hour
+autonomous campaigns. Each
 also has a price — tokens, wall-clock, and sometimes the size of the wins
 the graph will accept. The wrong technique on the wrong work does not just
 waste money; it actively makes the outcome worse. So every entry says
 **consider**, never **always**: the trigger says when the technique usually
 pays, the skip condition says when it usually does not, and the planner's
 judgment makes the call. Record the choice and its reason in the
-enforcement record (§9.14.1) like any other.
+enforcement table (§9.14.1) like any other.
 
 The diagrams are minimal legal shapes. Copy the shape, not the names:
 rename every node and outcome for the domain at hand, and drop any part
@@ -81,7 +81,7 @@ when the work runs long and unattended, so a silent stall or a drifting
 method would burn hours before the next gate catches it.
 
 **Skip when** the stage's evidence is already hardened mechanically
-(§9.14.1 rungs 1–2 usually catch what a monitor would), and skip it on any
+(§9.14.1 enforcement levels 1–2 usually catch what a monitor would), and skip it on any
 stage that already carries adversarial pressure — a debate needs no
 monitor, because the rivals are the monitor.
 
@@ -110,7 +110,7 @@ this doc) is a working reference implementation of the read side: it
 filters a `.jsonl` transcript to a readable digest, resumes incrementally
 (pass `--start-line` with the previous run's `LAST_LINE_PROCESSED`; the
 `--state-file` carries the same offsets for discovered subagents, not for
-the main transcript), stops safely at the active write frontier, and can
+the main transcript), stops safely at the active write position, and can
 follow the doer's own subagents (`--include-subagents --projects-dir`). A monitor
 loop then is: run the doer in the background, poll the filter on its
 transcript at a fixed cadence, judge the new digest, and deliver any
@@ -169,27 +169,27 @@ Spec: §7 auditor role; §8.3 existence is not approval.
 **The doer never writes its own acceptance check.** A doer that writes
 both the work and the check that accepts it will drift the check toward
 what was built. Have another actor produce the check, blind to the doer's
-own tests. This is rung 2 of the harden-first ladder (§9.14.1). Freeze
+own tests. This is enforcement level 2 (§9.14.1). Freeze
 what the check applies — thresholds, rubrics, references — before the
 attempt starts: a doer who can retune the standard after a failing check
 has written its own acceptance after all.
 
 **One terminal metric.** Judge progress against one system-level
-measurement, produced by an instrument the doer did not author and cannot
+measurement, produced by a check tool the doer did not author and cannot
 tamper with — the doer may run it, because the value comes from the
-instrument, not the doer's judgment. Local numbers feed decisions; they
+tool, not the doer's judgment. Local numbers feed decisions; they
 never count as progress. When many proxy numbers are available, the doer
 will eventually improve one that does not matter (§9.1, §5.3.1).
 
-**Rejection ledger.** When a candidate dies, record why, with the
+**Rejection record.** When a candidate dies, record why, with the
 measurement that killed it. Long runs rediscover dead ends silently
 without one, and a recorded negative result honestly supports an
 `exhausted` outcome later (§4.7, §9.11).
 
 **Edge-triggered reminders.** Prefer injecting guidance on entry to a new
 state over repeating it on every event. A reminder repeated on every
-action becomes wallpaper the actor learns to ignore; one that fires when
-state changes lands while it is news. The exception is the one §9.14.2
+action becomes noise the actor learns to ignore; one that fires when
+state changes arrives while it is news. The exception is the one §9.14.2
 names: a rule that must hold on every action of the run needs a mechanism
 that fires on every action (§4.7, §9.14.2).
 

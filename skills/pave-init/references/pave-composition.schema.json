@@ -2,22 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "pave-composition.schema.json",
   "title": "PAVE composition extension",
-  "description": "Structural validation for extensions.composition. Cross-references against the child profile are checked by validate_pave.py, not by this schema.",
+  "description": "Structural validation for extensions.composition. Cross-references against the child graph file are checked by validate_pave.py, not by this schema.",
   "type": "object",
-  "required": ["version", "realizations"],
+  "required": ["version", "implementations"],
   "additionalProperties": false,
   "properties": {
     "version": {
       "const": "1.0.0"
     },
-    "realizations": {
+    "implementations": {
       "type": "object",
       "minProperties": 1,
       "propertyNames": {
         "pattern": "^[a-z][a-z0-9_]*$"
       },
       "additionalProperties": {
-        "$ref": "#/$defs/realization"
+        "$ref": "#/$defs/implementation"
       }
     }
   },
@@ -26,23 +26,23 @@
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]*$"
     },
-    "realization": {
+    "implementation": {
       "type": "object",
-      "required": ["kind", "profile", "terminal_map"],
+      "required": ["kind", "graph_file", "child_outcome_map"],
       "additionalProperties": false,
       "properties": {
         "kind": {
-          "const": "child_profile"
+          "const": "child_graph_file"
         },
-        "profile": {
+        "graph_file": {
           "type": "string",
           "minLength": 1,
-          "description": "Path to the child profile, relative to the parent profile file."
+          "description": "Path to the child graph file, relative to the parent file."
         },
-        "profile_digest": {
+        "graph_file_digest": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$",
-          "description": "Required only for child profiles outside the generated package."
+          "description": "Required only for child graph files outside the generated package."
         },
         "entrypoint": {
           "$ref": "#/$defs/identifier"
@@ -73,7 +73,7 @@
             }
           }
         },
-        "terminal_map": {
+        "child_outcome_map": {
           "type": "object",
           "minProperties": 1,
           "propertyNames": {

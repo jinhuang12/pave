@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Invariant tests for pave-init's lead-alignment hook pair (the Stage 6
+# Invariant tests for pave-init's lead hook pair (the Stage 6
 # step 4 duty in SKILL.md, applied to this package itself). Tests the
-# invariants from references/lead-alignment-hooks.md, not the wording:
+# invariants from references/lead-hooks.md, not the wording:
 #   stop:      first stop blocks (exit 2), the next STOP_EVERY-1 stops pass
 #              (default 3), the stop after that blocks again,
 #              stop_hook_active short-circuits, terminal runs are silent,
@@ -18,10 +18,10 @@
 #              runs; an over-cap document is named with its size once per
 #              session and file even when the throttle holds, and the cap
 #              follows PAVE_INIT_CAP_LINES
-#   guard:     an Edit or Write on a live .pave.yaml or the ledger inside an evolution root
-#              (revisions.yaml beside it, no .landing) is denied with exit 2
+#   guard:     an Edit or Write on a live .pave.yaml or the revision_log inside a revision folder
+#              (revisions.yaml beside it, no .applying) is denied with exit 2
 #              and a reason on stderr, for a subagent payload as much as for
-#              the lead; a landing in progress, a .pave.yaml with no ledger
+#              the lead; an apply step in progress, a .pave.yaml with no revision_log
 #              beside it, a non-graph path in the root, a payload with no
 #              file_path, and an unparsable payload all pass silently
 #   restate:   SessionStart resume|compact and SubagentStart inject one
@@ -84,10 +84,10 @@ state = {
     "requirements_status": "approved",
     "fitness_verdict": "fit",
     "fitness_override": None,
-    "exploration_lenses": ["structure"],
-    "explorer_results": [{"lens": "structure", "artifact": "exploration/structure.md"}],
-    "frontier_entries": None,
-    "boundary_review_results": [],
+    "exploration_angles": ["structure"],
+    "explorer_results": [{"angle": "structure", "artifact": "exploration/structure.md"}],
+    "planning_queue_entries": None,
+    "node_plan_reviews": [],
     "approval_bundle_revisions": 0,
     "plan_review_rounds": 0,
     "user_plan_approval": None,
@@ -95,8 +95,8 @@ state = {
     "validation_results": None,
     "final_review_rounds": 0,
     "forward_test_result": None,
-    "revision_ledger_state": None,
-    "terminal_classification": {"status": status} if status else None,
+    "revision_log_state": None,
+    "final_status": {"status": status} if status else None,
     "traversal_history": [{"node": "interview_system", "outcome": "requirements_ready"}],
 }
 if shape == "minimal":
@@ -249,9 +249,9 @@ OUT="$(layout_payload root-contract.md "" | bash "$LAYOUT_HOOK" 2>/dev/null)"; R
 ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
 report "layout: lead writing root-contract.md is silent" "$ok" "rc=$RC out=$OUT"
 
-OUT="$(layout_payload frontier.yaml "" | bash "$LAYOUT_HOOK" 2>/dev/null)"; RC=$?
+OUT="$(layout_payload planning-queue.yaml "" | bash "$LAYOUT_HOOK" 2>/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
-report "layout: lead writing frontier.yaml is silent" "$ok" "rc=$RC out=$OUT"
+report "layout: lead writing planning-queue.yaml is silent" "$ok" "rc=$RC out=$OUT"
 
 OUT="$(layout_payload assembly-checklist.md "" | bash "$LAYOUT_HOOK" 2>/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && printf '%s' "$OUT" | grep -q "matches no allowed planning/ pattern" && ok=1
@@ -311,7 +311,7 @@ OUT="$(reader_payload planning/scratch.md r3 "" | bash "$READER_HOOK" 2>/dev/nul
 ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
 report "reader: exempt planning/ write is silent" "$ok" "rc=$RC out=$OUT"
 
-OUT="$(reader_payload exploration/lens.md r3 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
+OUT="$(reader_payload exploration/angle.md r3 "" | bash "$READER_HOOK" 2>/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
 report "reader: exempt exploration/ write is silent" "$ok" "rc=$RC out=$OUT"
 
@@ -351,20 +351,20 @@ report "reader: cap follows PAVE_INIT_CAP_LINES" "$ok" "rc=$RC out=$OUT"
 rm -f "$WORKSPACE/design-plan.md"
 
 # --- graph_edit_guard --------------------------------------------------------
-# The live canonical graph is landed by record_revision.py from a reviewed
+# The live canonical graph is applied by record_revision.py from a reviewed
 # patch, never edited directly. The guard is path-only: a revisions.yaml beside
-# the target is what marks the directory an evolution root, and a .landing
-# marker means the landing tool owns the graph right now. No identity
+# the target is what marks the directory a revision folder, and a .applying
+# marker means the apply step tool owns the graph right now. No identity
 # exemption -- the actor a prohibition has to survive is the one that never
 # read the lead skill.
 
 EVO="$CLAUDE_PROJECT_DIR/evo root"   # regression: roots with spaces
-mkdir -p "$EVO" "$WORK/no-ledger"
+mkdir -p "$EVO" "$WORK/no-revision_log"
 : > "$EVO/revisions.yaml"
 : > "$EVO/workflow.pave.yaml"
 : > "$EVO/child.pave.yaml"
 : > "$EVO/README.md"
-: > "$WORK/no-ledger/workflow.pave.yaml"
+: > "$WORK/no-revision_log/workflow.pave.yaml"
 
 guard_payload() { # $1 = file_path, $2 = tool_name, $3 = agent_id ("" for lead)
   python3 - "$1" "$2" "${3:-}" <<'PY'
@@ -385,22 +385,22 @@ PY
 
 ERR="$(guard_payload "$EVO/workflow.pave.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] \
-  && printf '%s' "$ERR" | grep -q "record_revision.py land" && ok=1
-report "guard: editing the live graph in an evolution root is denied" "$ok" "rc=$RC err=$ERR"
+  && printf '%s' "$ERR" | grep -q "record_revision.py apply" && ok=1
+report "guard: editing the live graph in a revision folder is denied" "$ok" "rc=$RC err=$ERR"
 
-: > "$EVO/.landing"
+: > "$EVO/.applying"
 ERR="$(guard_payload "$EVO/workflow.pave.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
-report "guard: a landing in progress passes" "$ok" "rc=$RC err=$ERR"
-rm -f "$EVO/.landing"
+report "guard: an apply step in progress passes" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO/.applying"
 
 ERR="$(guard_payload "$EVO/child.pave.yaml" Write "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
-report "guard: a child graph beside the ledger is guarded too" "$ok" "rc=$RC err=$ERR"
+report "guard: a child graph beside the revision_log is guarded too" "$ok" "rc=$RC err=$ERR"
 
-ERR="$(guard_payload "$WORK/no-ledger/workflow.pave.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ERR="$(guard_payload "$WORK/no-revision_log/workflow.pave.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
-report "guard: a .pave.yaml with no ledger beside it passes" "$ok" "rc=$RC err=$ERR"
+report "guard: a .pave.yaml with no revision_log beside it passes" "$ok" "rc=$RC err=$ERR"
 
 ERR="$(guard_payload "$EVO/README.md" Write "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
@@ -408,17 +408,17 @@ report "guard: a non-graph path in the root passes" "$ok" "rc=$RC err=$ERR"
 
 ERR="$(guard_payload "$EVO/revisions.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
-report "guard: editing the ledger itself is denied" "$ok" "rc=$RC err=$ERR"
+report "guard: editing the revision_log itself is denied" "$ok" "rc=$RC err=$ERR"
 
-: > "$EVO/.landing"
+: > "$EVO/.applying"
 ERR="$(guard_payload "$EVO/revisions.yaml" Edit "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
-report "guard: the ledger under a landing in progress passes" "$ok" "rc=$RC err=$ERR"
-rm -f "$EVO/.landing"
+report "guard: the revision_log under an apply step in progress passes" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO/.applying"
 
-ERR="$(guard_payload "$WORK/no-ledger/revisions.yaml" Write "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
+ERR="$(guard_payload "$WORK/no-revision_log/revisions.yaml" Write "" | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
-report "guard: creating a ledger where none exists passes" "$ok" "rc=$RC err=$ERR"
+report "guard: creating a revision_log where none exists passes" "$ok" "rc=$RC err=$ERR"
 
 ERR="$(printf '{"tool_name":"Edit","tool_input":{}}' | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1

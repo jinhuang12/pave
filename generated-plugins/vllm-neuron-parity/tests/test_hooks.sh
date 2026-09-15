@@ -19,13 +19,13 @@
 #   - garbage stdin exits 0 with empty stdout
 #   - Edit payloads (file_path + old_string/new_string) count like Write
 #   - increments/ is not exempt: .py/.sh/.md/.txt writes there get the
-#     increments sentence (cap, edit in place, delete superseded); a lap
+#     increments sentence (cap, edit in place, delete superseded); a round
 #     suffix, over-cap file, or over-cap header bypasses the throttle once
 #     per file; .out there and .py outside increments/ stay silent
 #
 # What is tested for graph_edit_guard: it denies (exit 2) a direct Edit or
 # Write of a live *.pave.yaml or of revisions.yaml only when a revisions.yaml
-# sits beside the target and no .landing marker does; it fails open on every
+# sits beside the target and no .applying marker does; it fails open on every
 # input it cannot read; it has no subagent exemption; and hooks/hooks.json
 # registers it, so subagent edits are seen too.
 #
@@ -37,23 +37,23 @@
 # registers both events.
 #
 # What is tested for stop-guard: the block text names every active seat with
-# the mandatory reply form and carries no "lgtm"; the audit branch fires DUE at
+# the mandatory reply form and carries no "lgtm"; the audit check fires DUE at
 # the outcome threshold (declared nodes only; node: lead never counts) or at
 # the write-log bytes threshold, writes the checkpoint sidecar, and its brief
-# carries the dispatch line; OPEN passes; a ledger entry newer than the
-# checkpoint with drafted_by: workflow-updater closes the cycle and resets the
+# carries the dispatch line; OPEN passes; a revision_log entry newer than the
+# checkpoint with written_by: workflow-updater closes the cycle and resets the
 # counters; a pin entry never closes; a no-change findings record closes only
 # with review: PASS when the trend rose; a stalled OPEN cycle is named unless
-# the newest proposal awaits the user's approval; a graph landed since the
+# the newest proposal awaits the user's approval; a graph applied since the
 # run's pin is named with the rule-1 route unless move_declined stands; no
-# evolution root means no audit text and no sidecar; a pave-init older than
-# 2.6.0 gets one degraded line; the cooldown still passes the next two stops;
+# revision folder means no audit text and no sidecar; a pave-init older than
+# 2.6.2 gets one degraded line; the cooldown still passes the next two stops;
 # no marker, a subagent, stop_hook_active, and a terminal run pass; a firing
 # exits within 5 s.
 #
 # Self-contained: everything runs inside a mktemp sandbox with its own
 # TMPDIR and HOME, so throttle counters and the pave-init version lookup start
-# clean on every run. No real run state, marker, counter, or evolution root is
+# clean on every run. No real run state, marker, counter, or revision folder is
 # touched. Exits 1 on any failure.
 
 set -u
@@ -95,10 +95,10 @@ state = {
     "workflow_identity": {"run_id": "test-run"},
     "active_node_runs": [{"node": "scan_upstream_delta", "campaign": "run"}],
     "completed_outcomes": [],
-    "terminal_classification": None,
+    "final_status": None,
 }
 if status:
-    state["terminal_classification"] = {"status": status}
+    state["final_status"] = {"status": status}
 with open(path, "w", encoding="utf-8") as handle:
     json.dump(state, handle)
 PY
@@ -198,7 +198,7 @@ write_marker
 write_state accepted
 OUT="$(run_hook "$DESIGN" s6)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$OUT" ] && ok=1
-report "reader: terminal_classification.status set is silent" "$ok" "rc=$RC out=$OUT"
+report "reader: final_status.status set is silent" "$ok" "rc=$RC out=$OUT"
 write_state ""
 
 # 11. outside artifacts/ => silent
@@ -250,9 +250,9 @@ report "reader: cap follows VLLM_NEURON_PARITY_CAP_LINES" "$ok" "rc=$RC out=$OUT
 rm -f "$PLAN"
 
 # 19-25. increments/ (references/artifact-layout.md section 4.12, parity 1.5.4):
-# .py/.sh/.md/.txt writes there get the increments sentence; a lap suffix, an
+# .py/.sh/.md/.txt writes there get the increments sentence; a round suffix, an
 # over-cap file, or an over-cap header bypasses the throttle once per file;
-# world-produced output (.out) and non-.md writes elsewhere stay silent.
+# external output (.out) and non-.md writes elsewhere stay silent.
 INC="$ARTIFACTS/campaigns/c1/increments"
 mkdir -p "$INC"
 incr_reminds() { # $1 = hook stdout, $2 = substring the sentence must carry
@@ -268,7 +268,7 @@ assert "increments" in hook["additionalContext"] and sys.argv[1] in hook["additi
 
 printf '#!/bin/bash\n# one line\necho hi\n' > "$INC/accept-001-host.sh"
 OUT="$(run_hook "$INC/accept-001-host.sh" s13)"; RC=$?
-ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "edited in place" && ! printf '%s' "$OUT" | grep -q "lap suffix (-rN)" && ok=1
+ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "edited in place" && ! printf '%s' "$OUT" | grep -q "round suffix (-rN)" && ok=1
 report "reader: increments/ .sh write gets the increments sentence" "$ok" "rc=$RC out=$OUT"
 
 OUT="$(run_hook "$INC/accept-001-host.sh" s13)"; RC=$?
@@ -277,8 +277,8 @@ report "reader: 2nd clean increments/ write rides the throttle" "$ok" "rc=$RC ou
 
 printf '#!/bin/bash\necho hi\n' > "$INC/accept-001-host-r3.sh"
 OUT="$(run_hook "$INC/accept-001-host-r3.sh" s13)"; RC=$?
-ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "lap suffix (-rN)" && ok=1
-report "reader: a lap-suffixed increments/ name is named past the throttle" "$ok" "rc=$RC out=$OUT"
+ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "round suffix (-rN)" && ok=1
+report "reader: a round-suffixed increments/ name is named past the throttle" "$ok" "rc=$RC out=$OUT"
 
 python3 -c 'import sys; open(sys.argv[1], "w").write("#!/usr/bin/env python3\n" + "# why this exists\n" * 30 + "print(1)\n")' "$INC/build-002.py"
 OUT="$(run_hook "$INC/build-002.py" s13)"; RC=$?
@@ -288,7 +288,7 @@ report "reader: a 31-line increments/ header is named past the throttle" "$ok" "
 python3 -c 'import sys; open(sys.argv[1], "w").write("row\n" * 250)' "$INC/evidence-003.md"
 OUT="$(run_hook "$INC/evidence-003.md" s13)"; RC=$?
 ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "over the 200-line cap" && ! printf '%s' "$OUT" | grep -q "plain english" && ok=1
-report "reader: a 250-line increments/ record is over cap, no prose duty" "$ok" "rc=$RC out=$OUT"
+report "reader: a 250-line increments/ record is over cap, no plain-writing rule" "$ok" "rc=$RC out=$OUT"
 
 OUT="$(payload "$INC/evidence-003.md" s14 | VLLM_NEURON_PARITY_INCR_CAP_LINES=300 bash "$READER_HOOK" 2>/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && incr_reminds "$OUT" "300 lines" && ! printf '%s' "$OUT" | grep -q "over the" && ok=1
@@ -305,19 +305,19 @@ report "reader: .py write outside increments/ is silent" "$ok" "rc=$RC out=$OUT"
 rm -rf "$INC"
 
 # --- graph_edit_guard --------------------------------------------------------
-# The live canonical graph is landed by record_revision.py from a reviewed
+# The live canonical graph is applied by record_revision.py from a reviewed
 # patch, never edited directly. The guard is path-only: a revisions.yaml beside
-# the target marks the directory an evolution root, and a .landing marker means
-# the landing tool owns the graph right now. No identity exemption -- the actor
+# the target marks the directory a revision folder, and a .applying marker means
+# the apply step tool owns the graph right now. No identity exemption -- the actor
 # a prohibition has to survive is the one that never read the lead skill.
 
 EVO="$ROOT/evo root"   # regression: roots with spaces
-mkdir -p "$EVO" "$WORK/no-ledger"
+mkdir -p "$EVO" "$WORK/no-revision_log"
 : > "$EVO/revisions.yaml"
 : > "$EVO/workflow.pave.yaml"
 : > "$EVO/child.pave.yaml"
 : > "$EVO/README.md"
-: > "$WORK/no-ledger/workflow.pave.yaml"
+: > "$WORK/no-revision_log/workflow.pave.yaml"
 
 guard_payload() { # $1 = file_path, $2 = tool (Write|Edit), $3 = agent_id ("" for lead)
   python3 - "$1" "$2" "${3:-}" <<'PY'
@@ -342,22 +342,22 @@ run_guard() { # $1 = file_path, $2 = tool, $3 = agent_id; prints stderr, returns
 
 ERR="$(run_guard "$EVO/workflow.pave.yaml" Edit)"; RC=$?
 ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] \
-  && printf '%s' "$ERR" | grep -q "record_revision.py land" && ok=1
-report "guard: editing the live graph in an evolution root is denied" "$ok" "rc=$RC err=$ERR"
+  && printf '%s' "$ERR" | grep -q "record_revision.py apply" && ok=1
+report "guard: editing the live graph in a revision folder is denied" "$ok" "rc=$RC err=$ERR"
 
-: > "$EVO/.landing"
+: > "$EVO/.applying"
 ERR="$(run_guard "$EVO/workflow.pave.yaml" Edit)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
-report "guard: a landing in progress passes" "$ok" "rc=$RC err=$ERR"
-rm -f "$EVO/.landing"
+report "guard: an apply step in progress passes" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO/.applying"
 
 ERR="$(run_guard "$EVO/child.pave.yaml" Write)"; RC=$?
 ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
-report "guard: a child graph beside the ledger is guarded too" "$ok" "rc=$RC err=$ERR"
+report "guard: a child graph beside the revision_log is guarded too" "$ok" "rc=$RC err=$ERR"
 
-ERR="$(run_guard "$WORK/no-ledger/workflow.pave.yaml" Edit)"; RC=$?
+ERR="$(run_guard "$WORK/no-revision_log/workflow.pave.yaml" Edit)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
-report "guard: a .pave.yaml with no ledger beside it passes" "$ok" "rc=$RC err=$ERR"
+report "guard: a .pave.yaml with no revision_log beside it passes" "$ok" "rc=$RC err=$ERR"
 
 ERR="$(run_guard "$EVO/README.md" Write)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
@@ -365,17 +365,17 @@ report "guard: a non-graph path in the root passes" "$ok" "rc=$RC err=$ERR"
 
 ERR="$(run_guard "$EVO/revisions.yaml" Edit)"; RC=$?
 ok=0; [ "$RC" = "2" ] && [ -n "$ERR" ] && ok=1
-report "guard: editing the ledger itself is denied" "$ok" "rc=$RC err=$ERR"
+report "guard: editing the revision_log itself is denied" "$ok" "rc=$RC err=$ERR"
 
-: > "$EVO/.landing"
+: > "$EVO/.applying"
 ERR="$(run_guard "$EVO/revisions.yaml" Edit)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
-report "guard: the ledger under a landing in progress passes" "$ok" "rc=$RC err=$ERR"
-rm -f "$EVO/.landing"
+report "guard: the revision_log under an apply step in progress passes" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO/.applying"
 
-ERR="$(run_guard "$WORK/no-ledger/revisions.yaml" Write)"; RC=$?
+ERR="$(run_guard "$WORK/no-revision_log/revisions.yaml" Write)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
-report "guard: creating a ledger where none exists passes" "$ok" "rc=$RC err=$ERR"
+report "guard: creating a revision_log where none exists passes" "$ok" "rc=$RC err=$ERR"
 
 ERR="$(printf '{"tool_name":"Edit","tool_input":{}}' | bash "$GUARD_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
@@ -514,19 +514,19 @@ report "restate: registered in hooks/hooks.json (SessionStart resume|compact, Su
 
 # --- stop-guard ------------------------------------------------------------
 # Lead-only Stop hook: blocks at most one stop in STOP_EVERY with the seat
-# lines and the imperatives; its audit branch shares the cooldown and speaks
-# only when an evolution root exists. HOME points into the sandbox so the
+# lines and the imperatives; its audit check shares the cooldown and speaks
+# only when a revision folder exists. HOME points into the sandbox so the
 # pave-init version check reads a fake plugin cache, never the real one.
 
 STOP_HOOK="$PLUGIN/skills/vllm-neuron-parity/hooks/stop-guard.sh"
 export HOME="$WORK/home"
 CACHE="$HOME/.claude/plugins/cache/jinhuang12-plugins/pave-init"
-mkdir -p "$CACHE/2.6.0/skills/pave-init"
-printf 'version: 2.6.0\n\n## changelog\n' > "$CACHE/2.6.0/skills/pave-init/VERSION"
+mkdir -p "$CACHE/2.6.2/skills/pave-init"
+printf 'version: 2.6.2\n\n## changelog\n' > "$CACHE/2.6.2/skills/pave-init/VERSION"
 EVO_ROOT="$ROOT/.vllm-neuron-parity/evolution"
 SIDECAR="$STATE.audit-checkpoint.json"
 unset VLLM_NEURON_PARITY_AUDIT_EVERY VLLM_NEURON_PARITY_AUDIT_BYTES VLLM_NEURON_PARITY_AUDIT_STALL VLLM_NEURON_PARITY_STOP_EVERY 2>/dev/null || true
-rm -f "$STATE.lead-session" "$SIDECAR" "$STATE".audit-census-* "$STATE".write-log*.jsonl
+rm -f "$STATE.lead-session" "$SIDECAR" "$STATE".audit-write-report-* "$STATE".write-log*.jsonl
 rm -rf "$EVO_ROOT"
 
 stop_state() { # $1 = declared outcomes count, $2 = terminal status ("" for active)
@@ -541,16 +541,16 @@ state = {
     ],
     "completed_outcomes": [{"node": "scan_upstream_delta", "outcome": "delta_ready"}] * count
                           + [{"node": "lead", "outcome": "pseudo"}] * 7,   # never counts
-    "terminal_classification": None,
+    "final_status": None,
 }
 if status:
-    state["terminal_classification"] = {"status": status}
+    state["final_status"] = {"status": status}
 with open(path, "w", encoding="utf-8") as handle:
     json.dump(state, handle)
 PY
 }
 
-write_evo() { # a minimal evolution root: nodes mapping + edges list, empty-ish ledger
+write_evo() { # a minimal revision folder: nodes mapping + edges list, empty-ish revision_log
   mkdir -p "$EVO_ROOT/proposals"
   cat > "$EVO_ROOT/workflow.pave.yaml" <<'YAML'
 pave:
@@ -567,26 +567,26 @@ YAML
 entries:
 - revision: 0
   kind: graph
-  landed_at: '2026-09-03T19:12:09Z'
-  drafted_by: null
+  applied_at: '2026-09-03T19:12:09Z'
+  written_by: null
 YAML
 }
 
-write_sidecar() { # $1 = state, $2 = outcomes_at, $3 = at, [$4 = findings_record path], [$5 = review], [$6 = stamped proposal path]
+write_sidecar() { # $1 = state, $2 = outcomes_at, $3 = at, [$4 = findings_record path], [$5 = review], [$6 = hook_recorded proposal path]
   python3 - "$SIDECAR" "$1" "$2" "$3" "${4:-}" "${5:-}" "${6:-}" <<'PY'
 import json, os, sys
-path, state, outcomes_at, at, findings, review, stamp = sys.argv[1:8]
-stamps = []
-if stamp:
-    st = os.stat(stamp)
-    stamps.append({"path": stamp, "size": st.st_size, "mtime": st.st_mtime})
+path, state, outcomes_at, at, findings, review, hook_record = sys.argv[1:8]
+hook_records = []
+if hook_record:
+    st = os.stat(hook_record)
+    hook_records.append({"path": hook_record, "size": st.st_size, "mtime": st.st_mtime})
 fstat = None
 if findings and os.path.exists(findings):
     fs = os.stat(findings)
     fstat = {"size": fs.st_size, "mtime": fs.st_mtime}
 doc = {"checkpoint_id": "cp-20260910T000000Z", "at": at, "outcomes_at": int(outcomes_at),
        "bytes_at": 0, "state": state, "findings_record": findings or None, "findings_stat": fstat,
-       "stamped_proposals": stamps, "review": review or None, "closed_by": None}
+       "hook_recorded_writes": hook_records, "review": review or None, "closed_by": None}
 json.dump(doc, open(path, "w"), indent=1)
 PY
 }
@@ -611,13 +611,13 @@ run_stop() { # $1 = session, $2 = agent_id, $3 = stop_hook_active; prints stderr
   stop_payload "$1" "${2:-}" "${3:-}" | bash "$STOP_HOOK" 2>&1 >/dev/null
 }
 
-DISPATCH="Forward this block verbatim to pave-init:workflow-updater in audit mode (checkpoint id, census path, evolution root, pave-init root); add nothing you compose."
+DISPATCH="Forward this block verbatim to pave-init:workflow-updater in audit mode (checkpoint id, write report path, revision folder, pave-init root); add nothing you compose."
 
 # S1. the hook text carries no "lgtm" (case-insensitive)
 ok=0; ! grep -qi "lgtm" "$STOP_HOOK" && ok=1
 report "stop: no lgtm anywhere in the hook" "$ok" "$(grep -ni lgtm "$STOP_HOOK" | head -3)"
 
-# S2. no evolution root: the standard block, per-seat lines, no audit text, no sidecar
+# S2. no revision folder: the standard block, per-seat lines, no audit text, no sidecar
 stop_state 100
 write_marker
 ERR="$(run_stop st1)"; RC=$?
@@ -627,7 +627,7 @@ ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "lane-alpha on scan_upstre
   && printf '%s' "$ERR" | grep -q '"nothing" means act before you stop' && ok=1
 report "stop: block names every active seat with the mandatory reply form" "$ok" "rc=$RC err=$ERR"
 ok=0; ! printf '%s' "$ERR" | grep -qi "lgtm" && ! printf '%s' "$ERR" | grep -q "AUDIT" && [ ! -f "$SIDECAR" ] && ok=1
-report "stop: silent audit without an evolution root (no AUDIT text, no sidecar)" "$ok" "err=$ERR"
+report "stop: silent audit without a revision folder (no AUDIT text, no sidecar)" "$ok" "err=$ERR"
 ok=0; printf '%s' "$ERR" | grep -q "Retire every idle seat now" \
   && printf '%s' "$ERR" | grep -q "single writer (P10)" \
   && printf '%s' "$ERR" | grep -q "declared edge (P12)" \
@@ -691,10 +691,10 @@ ok=0; [ -f "$SIDECAR" ] && [ "$(sidecar_field state)" = "DUE" ] && [ "$(sidecar_
 report "stop: DUE writes the sidecar (state DUE, outcomes_at 40, same checkpoint id)" "$ok" "sidecar=$(cat "$SIDECAR" 2>/dev/null)"
 ok=0; printf '%s' "$ERR" | grep -qF "$DISPATCH" && ok=1
 report "stop: the DUE block carries the dispatch line verbatim" "$ok" "err=$ERR"
-ok=0; printf '%s' "$ERR" | grep -q "^evolution root: .*/evolution$" && printf '%s' "$ERR" | grep -q "^pave-init root: " && ok=1
-report "stop: the DUE block names the evolution root and the pave-init root" "$ok" "err=$ERR"
-ok=0; printf '%s' "$ERR" | grep -q "^census: " && { printf '%s' "$ERR" | grep -q "raw counts: 40 declared-node outcomes" || printf '%s' "$ERR" | grep -q "declared outcomes since: 40"; } && ok=1
-report "stop: the DUE block names the census path and the outcome count (census script when shipped, else raw counts)" "$ok" "err=$ERR"
+ok=0; printf '%s' "$ERR" | grep -q "^revision folder: .*/evolution$" && printf '%s' "$ERR" | grep -q "^pave-init root: " && ok=1
+report "stop: the DUE block names the revision folder and the pave-init root" "$ok" "err=$ERR"
+ok=0; printf '%s' "$ERR" | grep -q "^write_report: " && { printf '%s' "$ERR" | grep -q "raw counts: 40 declared-node outcomes" || printf '%s' "$ERR" | grep -q "declared outcomes since: 40"; } && ok=1
+report "stop: the DUE block names the write_report path and the outcome count (write_report script when shipped, else raw counts)" "$ok" "err=$ERR"
 ok=0; [ "$ELAPSED" -lt 5 ] && ok=1
 report "stop: a firing exits within 5 s" "$ok" "elapsed=${ELAPSED}s"
 
@@ -704,7 +704,7 @@ stop_state 45
 BEFORE="$(cat "$SIDECAR")"
 ERR="$(run_stop st4)"; RC=$?
 ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT" && [ "$(cat "$SIDECAR")" = "$BEFORE" ] && ok=1
-report "stop: an OPEN cycle passes the audit branch and leaves the sidecar alone" "$ok" "rc=$RC err=$ERR"
+report "stop: an OPEN cycle passes the audit check and leaves the sidecar alone" "$ok" "rc=$RC err=$ERR"
 
 # S6. STALL: OPEN with 10 more declared outcomes and no close is named; a pending-approval proposal exempts it
 stop_state 50
@@ -713,54 +713,54 @@ ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT STALL: checkpoint c
   && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
 report "stop: a stalled OPEN cycle is named" "$ok" "rc=$RC err=$ERR"
 
-printf 'kind: graph\nenvelope_check: changed_pending_approval\n--- a/workflow.pave.yaml\n' > "$EVO_ROOT/proposals/cp-20260910T000000Z-graph.patch"
+printf 'kind: graph\nuser_only_changes: pending\n--- a/workflow.pave.yaml\n' > "$EVO_ROOT/proposals/cp-20260910T000000Z-graph.patch"
 ERR="$(run_stop st6a)"; RC=$?
 ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT STALL" && ok=1
-report "stop: a pending-approval file the router never stamped (lead-typed) exempts nothing" "$ok" "rc=$RC err=$ERR"
+report "stop: a pending-approval file the router never hook_recorded (lead-typed) exempts nothing" "$ok" "rc=$RC err=$ERR"
 write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-graph.patch"
 ERR="$(run_stop st6)"; RC=$?
 ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT STALL" && ok=1
-report "stop: a STAMPED proposal awaiting the user's approval exempts the stall" "$ok" "rc=$RC err=$ERR"
+report "stop: a HOOK-RECORDED proposal awaiting the user's approval exempts the stall" "$ok" "rc=$RC err=$ERR"
 rm -f "$EVO_ROOT/proposals/cp-20260910T000000Z-graph.patch"
 
-# S7. CLOSED via a ledger entry newer than the checkpoint drafted by the updater, whose patch bytes
-# equal a proposal the router stamped in the sidecar; a pin appended after it does not hide it
+# S7. CLOSED via a revision_log entry newer than the checkpoint drafted by the updater, whose patch bytes
+# equal a proposal the router hook_recorded in the sidecar; a pin appended after it does not hide it
 mkdir -p "$EVO_ROOT/proposals" "$EVO_ROOT/history"
-printf 'kind: binding\n--- a/workflow.pave.yaml\n+++ b/workflow.pave.yaml\n' > "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
-cp "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch" "$EVO_ROOT/history/v1.patch"
-write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
+printf 'kind: run_setup\n--- a/workflow.pave.yaml\n+++ b/workflow.pave.yaml\n' > "$EVO_ROOT/proposals/cp-20260910T000000Z-run-setup.patch"
+cp "$EVO_ROOT/proposals/cp-20260910T000000Z-run-setup.patch" "$EVO_ROOT/history/v1.patch"
+write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-run-setup.patch"
 cat >> "$EVO_ROOT/revisions.yaml" <<'YAML'
 - revision: 1
-  kind: binding
-  landed_at: '2026-09-10T12:00:00Z'
+  kind: run_setup
+  applied_at: '2026-09-10T12:00:00Z'
   review: PASS
-  drafted_by: workflow-updater
+  written_by: workflow-updater
   patch: history/v1.patch
 - revision: 1
   kind: pin
-  landed_at: '2026-09-10T12:01:00Z'
+  applied_at: '2026-09-10T12:01:00Z'
   run_id: test-run
 YAML
 ERR="$(run_stop st7)"; RC=$?
 ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "IDLE" ] \
-  && [ "$(sidecar_field outcomes_at)" = "50" ] && printf '%s' "$(sidecar_field closed_by)" | grep -q "^ledger:" && ok=1
-report "stop: a stamped updater-drafted ledger entry closes the cycle (a later pin does not hide it) and resets the counters" "$ok" "rc=$RC err=$ERR sidecar=$(cat "$SIDECAR")"
+  && [ "$(sidecar_field outcomes_at)" = "50" ] && printf '%s' "$(sidecar_field closed_by)" | grep -q "^revision_log:" && ok=1
+report "stop: a hook_recorded updater-drafted revision_log entry closes the cycle (a later pin does not hide it) and resets the counters" "$ok" "rc=$RC err=$ERR sidecar=$(cat "$SIDECAR")"
 
-# S7b. the same entry shape without a matching stamp in the sidecar (a lead-typed --stamps file) never closes
+# S7b. the same entry shape without a matching hook_record in the sidecar (a lead-typed --hook-records file) never closes
 write_sidecar OPEN 40 "2026-09-10T00:00:00Z"
 ERR="$(run_stop st7b)"; RC=$?
 ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
-report "stop: an updater-drafted entry whose patch no router stamp vouches for does not close" "$ok" "rc=$RC err=$ERR"
-printf 'kind: binding\n+forged\n' > "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
-write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
+report "stop: an updater-drafted entry whose patch no router hook_record vouches for does not close" "$ok" "rc=$RC err=$ERR"
+printf 'kind: run_setup\n+forged\n' > "$EVO_ROOT/proposals/cp-20260910T000000Z-run-setup.patch"
+write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-run-setup.patch"
 ERR="$(run_stop st7c)"; RC=$?
 ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
-report "stop: a stamped proposal whose bytes differ from the landed patch does not close" "$ok" "rc=$RC err=$ERR"
-cp "$EVO_ROOT/history/v1.patch" "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
-write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-binding.patch"
+report "stop: a hook_recorded proposal whose bytes differ from the applied patch does not close" "$ok" "rc=$RC err=$ERR"
+cp "$EVO_ROOT/history/v1.patch" "$EVO_ROOT/proposals/cp-20260910T000000Z-run-setup.patch"
+write_sidecar OPEN 40 "2026-09-10T00:00:00Z" "" "" "$EVO_ROOT/proposals/cp-20260910T000000Z-run-setup.patch"
 ERR="$(run_stop st7d)"; RC=$?
 ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "IDLE" ] && ok=1
-report "stop: restoring the stamped bytes closes it" "$ok" "rc=$RC err=$ERR"
+report "stop: restoring the hook recorded bytes closes it" "$ok" "rc=$RC err=$ERR"
 
 # S8. after the reset, 50 outcomes are not DUE again; 90 are
 ERR="$(run_stop st8)"; RC=$?
@@ -784,12 +784,12 @@ ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT DUE" && [ "$(sideca
 report "stop: bytes written since the checkpoint over AUDIT_BYTES is DUE (1 outcome, 201 bytes)" "$ok" "rc=$RC err=$ERR sidecar=$(cat "$SIDECAR" 2>/dev/null)"
 rm -f "$STATE.write-log.jsonl" "$ARTIFACTS/run/big-scratch.txt"
 
-# S9. an old ledger entry without the updater stamp does not close (pin never closes)
+# S9. an old revision_log entry without the updater hook record does not close (pin never closes)
 write_sidecar OPEN 90 "2026-09-10T13:00:00Z"
 cat >> "$EVO_ROOT/revisions.yaml" <<'YAML'
 - revision: 1
   kind: pin
-  landed_at: '2026-09-10T14:00:00Z'
+  applied_at: '2026-09-10T14:00:00Z'
   run_id: test-run
 YAML
 stop_state 92
@@ -797,46 +797,46 @@ ERR="$(run_stop st10)"; RC=$?
 ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
 report "stop: a pin entry never closes the cycle" "$ok" "rc=$RC err=$ERR"
 
-# S10. CLOSED via the findings record: the router stamped the updater's record (OPEN + findings_record),
-# it says no_change_warranted, the trend rose, and the router stamped the reviewer's review: PASS
-FINDINGS="$EVO_ROOT/streamlining-findings.md"
-printf 'checkpoint: cp-20260910T000000Z\n\noutcome: no_change_warranted\n\n## Trend\ncp-20260910T000000A | 40 | 100 | 2.5\ncp-20260910T000000Z | 50 | 400 | 8.0\nreview: PASS\n' > "$FINDINGS"
+# S10. CLOSED via the findings record: the router hook_recorded the updater's record (OPEN + findings_record),
+# it says no_change_needed, the trend rose, and the router hook_recorded the reviewer's review: PASS
+FINDINGS="$EVO_ROOT/audit-findings.md"
+printf 'checkpoint: cp-20260910T000000Z\n\noutcome: no_change_needed\n\n## Trend\ncp-20260910T000000A | 40 | 100 | 2.5\ncp-20260910T000000Z | 50 | 400 | 8.0\nreview: PASS\n' > "$FINDINGS"
 write_sidecar OPEN 90 "2026-09-10T13:00:00Z" "$FINDINGS" PASS
 ERR="$(run_stop st11)"; RC=$?
 ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "IDLE" ] && ok=1
-report "stop: a stamped no-change findings record with the reviewer's stamped PASS closes the cycle" "$ok" "rc=$RC err=$ERR"
+report "stop: a hook_recorded no-change findings record with the reviewer's hook_recorded PASS closes the cycle" "$ok" "rc=$RC err=$ERR"
 write_sidecar OPEN 90 "2026-09-10T13:00:00Z" "$FINDINGS" PASS
-printf 'outcome: no_change_warranted\n' >> "$FINDINGS"
+printf 'outcome: no_change_needed\n' >> "$FINDINGS"
 ERR="$(run_stop st11b)"; RC=$?
 ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
-report "stop: a stamped record changed since the stamp (any actor, any write shape) cannot close" "$ok" "rc=$RC err=$ERR"
+report "stop: a hook_recorded record changed since the hook record (any actor, any write shape) cannot close" "$ok" "rc=$RC err=$ERR"
 write_sidecar OPEN 90 "2026-09-10T13:00:00Z" "$FINDINGS"
 ERR="$(run_stop st12)"; RC=$?
 ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "OPEN" ] && ok=1
-report "stop: a rising trend needs the reviewer's STAMPED review: PASS (the text alone does not count)" "$ok" "rc=$RC err=$ERR"
+report "stop: a rising trend needs the reviewer's HOOK-RECORDED review: PASS (the text alone does not count)" "$ok" "rc=$RC err=$ERR"
 write_sidecar DUE 90 "2026-09-10T13:00:00Z" "" PASS
 ERR="$(run_stop st12b)"; RC=$?
 ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && [ "$(sidecar_field state)" = "DUE" ] && ok=1
-report "stop: a findings record the router never stamped OPEN cannot close (lead-typed record)" "$ok" "rc=$RC err=$ERR"
-printf 'checkpoint: cp-20260910T000000Z\n\noutcome: no_change_warranted\n\n## Trend\ncp-20260910T000000A | 40 | 400 | 8.0\ncp-20260910T000000Z | 50 | 100 | 2.5\n' > "$FINDINGS"
+report "stop: a findings record the router never hook_recorded OPEN cannot close (lead-typed record)" "$ok" "rc=$RC err=$ERR"
+printf 'checkpoint: cp-20260910T000000Z\n\noutcome: no_change_needed\n\n## Trend\ncp-20260910T000000A | 40 | 400 | 8.0\ncp-20260910T000000Z | 50 | 100 | 2.5\n' > "$FINDINGS"
 write_sidecar OPEN 90 "2026-09-10T13:00:00Z" "$FINDINGS"
 ERR="$(run_stop st12c)"; RC=$?
 ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT CLOSED" && ok=1
-report "stop: a stamped no-change record with a falling trend closes without a reviewer" "$ok" "rc=$RC err=$ERR"
-rm -f "$EVO_ROOT/streamlining-findings.md"
+report "stop: a hook_recorded no-change record with a falling trend closes without a reviewer" "$ok" "rc=$RC err=$ERR"
+rm -f "$EVO_ROOT/audit-findings.md"
 
-# S11. degraded: pave-init older than 2.6.0 gets one line and no sidecar write
-rm -rf "$CACHE/2.6.0"; mkdir -p "$CACHE/2.5.4/skills/pave-init"
+# S11. degraded: pave-init older than 2.6.2 gets one line and no sidecar write
+rm -rf "$CACHE/2.6.2"; mkdir -p "$CACHE/2.5.4/skills/pave-init"
 printf 'version: 2.5.4\n' > "$CACHE/2.5.4/skills/pave-init/VERSION"
 rm -f "$SIDECAR"
 stop_state 60
 ERR="$(run_stop st13)"; RC=$?
 ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "AUDIT DEGRADED: pave-init 2.5.4" && [ ! -f "$SIDECAR" ] && ok=1
-report "stop: pave-init below 2.6.0 prints one degraded line and writes nothing" "$ok" "rc=$RC err=$ERR"
-rm -rf "$CACHE/2.5.4"; mkdir -p "$CACHE/2.6.0/skills/pave-init"
-printf 'version: 2.6.0\n' > "$CACHE/2.6.0/skills/pave-init/VERSION"
+report "stop: pave-init below 2.6.2 prints one degraded line and writes nothing" "$ok" "rc=$RC err=$ERR"
+rm -rf "$CACHE/2.5.4"; mkdir -p "$CACHE/2.6.2/skills/pave-init"
+printf 'version: 2.6.2\n' > "$CACHE/2.6.2/skills/pave-init/VERSION"
 
-# S11b. rule-1 route: a real ledger (installed from the plugin root) pinned at revision 0 names the landed graph
+# S11b. rule-1 route: a real revision_log (installed from the plugin root) pinned at revision 0 names the applied graph
 rm -rf "$EVO_ROOT" "$SIDECAR"
 python3 "$PLUGIN/scripts/record_revision.py" install "$EVO_ROOT" --from "$PLUGIN" >/dev/null 2>&1
 DIGEST0="$(python3 - "$EVO_ROOT/revisions.yaml" <<'PY'
@@ -858,12 +858,12 @@ PY
 stop_state 5
 pin_state
 ERR="$(run_stop st19)"; RC=$?
-ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "GRAPH LANDED SINCE PIN (rule 1" \
+ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "GRAPH APPLIED SINCE PIN (rule 1" \
   && printf '%s' "$ERR" | grep -q "move_declined" && [ "$(sidecar_field state)" = "IDLE" ] && ok=1
-report "stop: a graph landed since the pin is named with the rule-1 route (first sight still seeds)" "$ok" "rc=$RC err=$ERR"
+report "stop: a graph applied since the pin is named with the rule-1 route (first sight still seeds)" "$ok" "rc=$RC err=$ERR"
 pin_state "user 2026-09-10: stay on revision 0"
 ERR="$(run_stop st20)"; RC=$?
-ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "GRAPH LANDED SINCE PIN" && ok=1
+ok=0; [ "$RC" = "2" ] && ! printf '%s' "$ERR" | grep -q "GRAPH APPLIED SINCE PIN" && ok=1
 report "stop: a standing move_declined silences the rule-1 route" "$ok" "rc=$RC err=$ERR"
 rm -rf "$EVO_ROOT"; write_evo
 

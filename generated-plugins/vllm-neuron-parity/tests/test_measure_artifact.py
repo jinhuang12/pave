@@ -1,4 +1,4 @@
-"""Tests for scripts/measure_artifact.py — the one size instrument."""
+"""Tests for scripts/measure_artifact.py — the one size check_tool."""
 
 from __future__ import annotations
 
@@ -139,7 +139,7 @@ class MeasureArtifactTests(unittest.TestCase):
         (inc / "build-002-r4.py").write_text("print(1)\n")
         result = ma.tree(inc)
         self.assertEqual(result["files"], 5)
-        self.assertEqual(result["lap_suffixed"], 4)   # r1.sh, r2.sh, r2.out, r4.py
+        self.assertEqual(result["round_suffixed"], 4)   # r1.sh, r2.sh, r2.out, r4.py
         self.assertEqual(result["superseded"], 1)     # r1.sh below r2.sh; .out and .py stems stand alone
         self.assertEqual(result["header_lines_total"], 31 + 1 + 0)
         self.assertEqual(result["header_lines_median"], 1)
@@ -158,7 +158,7 @@ class MeasureArtifactTests(unittest.TestCase):
         self.assertIn("code 1, comment 1", out.stdout)
         out = subprocess.run([sys.executable, str(SCRIPT), "--tree", str(inc), "--json"], capture_output=True, text=True)
         self.assertEqual(out.returncode, 0)
-        self.assertEqual(json.loads(out.stdout)["lap_suffixed"], 1)
+        self.assertEqual(json.loads(out.stdout)["round_suffixed"], 1)
         two = subprocess.run([sys.executable, str(SCRIPT), "--tree", str(inc), str(py)], capture_output=True, text=True)
         self.assertNotEqual(two.returncode, 0)
 

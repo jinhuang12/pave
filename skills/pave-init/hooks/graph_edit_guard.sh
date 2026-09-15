@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # graph_edit_guard -- PreToolUse (Edit|Write|MultiEdit), blocking
-# (rung: blocking guard; exit 2 denies, every other path exits 0).
+# (level: blocking guard; exit 2 denies, every other path exits 0).
 #
 # A delivered workflow keeps one live canonical graph (`workflow.pave.yaml`
-# plus any child `<name>.pave.yaml` beside it) and one append-only ledger
-# (`revisions.yaml`). The graph is landed by `record_revision.py land` from a
-# reviewed patch, so the ledger's digests describe the file on disk. A direct
-# Edit or Write on either file skips the patch, the review, and the ledger
+# plus any child `<name>.pave.yaml` beside it) and one append-only revision log
+# (`revisions.yaml`). The graph is applied by `record_revision.py apply` from a
+# reviewed patch, so the revision log's digests describe the file on disk. A direct
+# Edit or Write on either file skips the patch, the review, and the revision log
 # entry at once: the digests stop describing the graph -- or are rewritten to
 # match an unreviewed one -- and no reader can tell which revision is running.
 #
-# Blocking rung (references/lead-alignment-hooks.md, hook doctrine): the
+# Blocking level (references/lead-hooks.md, hook doctrine): the
 # violation has occurred in the field -- a lead amended its pinned graph in
 # place -- it is costly, and it is precisely path-detectable, because the
 # `revisions.yaml` beside the target is what makes the directory an evolution
@@ -19,11 +19,11 @@
 # Denies (one paragraph on stderr, exit 2) only when all three hold:
 #   1. the target's basename ends in `.pave.yaml`, or is `revisions.yaml`,
 #   2. a file named `revisions.yaml` already sits in the same directory,
-#   3. no `.landing` marker sits in that directory.
-# The `.landing` marker is written by `record_revision.py land`, `pin`, and
+#   3. no `.applying` marker sits in that directory.
+# The `.applying` marker is written by `record_revision.py apply`, `pin`, and
 # `rollback` for the length of the operation; the tool writes through Bash,
 # which this event never sees, so its own writes pass either way. Creating a
-# ledger where none exists (`init`) is not an edit of a pinned record.
+# revision log where none exists (`init`) is not an edit of a pinned record.
 #
 # No agent identity exemption: the guard fires for the lead and for every
 # subagent. The actor a prohibition has to survive is the one that never read
@@ -31,7 +31,7 @@
 #
 # Bash-tool edits (`sed -i`, a shell redirect) are not path-detectable at this
 # event: the payload carries a command string, not a file path. Bash therefore
-# stays at the observing rung, and `record_revision.py verify` at run start and
+# stays at the observing level, and `record_revision.py verify` at run start and
 # resume catches it -- an unrecorded edit shows up as a live digest that does
 # not match the head entry's `digest_after`.
 #
@@ -44,16 +44,16 @@
 #         "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/<workflow-name>/hooks/graph_edit_guard.sh\"",
 #         "timeout": 10 } ] } ] } }
 #
-# pave-init itself registers nothing: the package has no evolution root, and
-# its own graph (references/pave-init.pave.yaml) is landed by the release.
+# pave-init itself registers nothing: the package has no revision folder, and
+# its own graph (references/pave-init.pave.yaml) is applied by the release.
 #
 # Silent exit 0 when: interpreter missing, payload unparsable or empty, no
-# `tool_input.file_path`, the target is neither a `.pave.yaml` nor the ledger,
-# no `revisions.yaml` beside it, or a `.landing` marker is present. A blocking
+# `tool_input.file_path`, the target is neither a `.pave.yaml` nor the revision log,
+# no `revisions.yaml` beside it, or a `.applying` marker is present. A blocking
 # hook must never act on input it cannot read.
 #
 # Decline path (hook runtime unavailable): degrades to the prose prohibition
-# in the evolution contract plus `record_revision.py verify` at start and
+# in the revision rules plus `record_revision.py verify` at start and
 # resume, which reports the unrecorded edit after the fact.
 #
 # Interpreter: python3 by default; override with PAVE_INIT_PYTHON.
@@ -109,11 +109,11 @@ if not (name.endswith(".pave.yaml") or name == "revisions.yaml"):
     sys.exit(0)
 
 root = resolved.parent
-# The ledger beside the graph is what makes this directory an evolution root.
+# The revision log beside the graph is what makes this directory a revision folder.
 if not (root / "revisions.yaml").is_file():
     sys.exit(0)
-# A landing is in progress: record_revision.py owns the graph until it clears.
-if (root / ".landing").exists():
+# An apply step is in progress: record_revision.py owns the graph until it clears.
+if (root / ".applying").exists():
     sys.exit(0)
 
 print("DENY")
@@ -125,6 +125,6 @@ PYEOF
 GRAPH="$(printf '%s\n' "$DECISION" | sed -n 2p)"
 
 cat >&2 <<EOF
-$TAG Denied: $GRAPH is part of an evolution root's pinned record -- the live canonical graph and the revisions.yaml beside it -- and no .landing marker is present. Both are written only by \`record_revision.py land\`, \`pin\`, and \`rollback\` from a reviewed patch (history/v<N>.patch), never edited directly, so the ledger's digests keep describing the graph on disk: write the successor as a patch with its preamble, have the update reviewer pass it, then land it. If a landing was interrupted, run \`record_revision.py verify\` first and restore what it reports from version control before touching either file.
+$TAG Denied: $GRAPH is part of a revision folder's pinned record -- the live canonical graph and the revisions.yaml beside it -- and no .applying marker is present. Both are written only by \`record_revision.py apply\`, \`pin\`, and \`rollback\` from a reviewed patch (history/v<N>.patch), never edited directly, so the revision_log's digests keep describing the graph on disk: write the successor as a patch with its preamble, have the update reviewer pass it, then apply it. If an apply step was interrupted, run \`record_revision.py verify\` first and restore what it reports from version control before touching either file.
 EOF
 exit 2

@@ -2,7 +2,7 @@
 """Measure a living document against its declared cap.
 
 `references/artifact-layout.md` section 4.12: each living document declares a
-cap — default 400 lines and 60 KB, both. This script is the one instrument
+cap — default 400 lines and 60 KB, both. This script is the one check_tool
 that reports a document's size, so seats, the reviewer, the hook, and tests
 all read the same numbers instead of each counting their own way.
 
@@ -23,7 +23,7 @@ adds the delta against another copy. `--json` prints the full record.
 code, comment, docstring, and blank, plus the leading header block — the
 batch review records these for a changeset's added files (section 4.12,
 increments row). `--tree` walks one working-state directory such as
-`increments/` and reports its files, bytes, lap-suffixed names (-rN),
+`increments/` and reports its files, bytes, round-suffixed names (-rN),
 superseded revisions (N below the stem's max), and header lines; `--since`
 limits it to files modified on or after a date, for "since the last batch".
 
@@ -114,7 +114,7 @@ def render(result: dict) -> str:
     return line
 
 
-LAP_SUFFIX = re.compile(r"^(?P<stem>.*?)-r(?P<n>\d+)[a-z]?(?=[-.]|$)(?P<rest>.*)$")
+RETRY_SUFFIX = re.compile(r"^(?P<stem>.*?)-r(?P<n>\d+)[a-z]?(?=[-.]|$)(?P<rest>.*)$")
 
 
 def header_lines(path: str | Path) -> int:
@@ -232,7 +232,7 @@ def render_classify(result: dict) -> str:
 
 
 def tree(directory: str | Path, since: str | None = None) -> dict:
-    """Census of one working-state directory: files, bytes, lap suffixes, headers."""
+    """Write report of one working-state directory: files, bytes, round suffixes, headers."""
     root = Path(directory)
     cutoff = None
     if since:
@@ -244,11 +244,11 @@ def tree(directory: str | Path, since: str | None = None) -> dict:
     if cutoff is not None:
         files = [p for p in files if p.stat().st_mtime >= cutoff]
     groups: dict[tuple[str, str], list[int]] = {}
-    lap_suffixed = 0
+    round_suffixed = 0
     for p in files:
-        match = LAP_SUFFIX.match(p.name)
+        match = RETRY_SUFFIX.match(p.name)
         if match:
-            lap_suffixed += 1
+            round_suffixed += 1
             groups.setdefault((match.group("stem"), match.group("rest")), []).append(int(match.group("n")))
     superseded = sum(len(ns) - 1 for ns in groups.values() if len(ns) > 1)
     headers = [header_lines(p) for p in files if p.suffix.lower() in (".py", ".sh")]
@@ -260,7 +260,7 @@ def tree(directory: str | Path, since: str | None = None) -> dict:
         "since": since,
         "files": len(files),
         "bytes": sum(p.stat().st_size for p in files),
-        "lap_suffixed": lap_suffixed,
+        "round_suffixed": round_suffixed,
         "superseded": superseded,
         "header_lines_total": sum(headers),
         "header_lines_median": statistics.median(headers) if headers else 0,
@@ -272,7 +272,7 @@ def render_tree(result: dict) -> str:
     since = f" since {result['since']}" if result["since"] else ""
     return (
         f"{result['path']}{since}: {result['files']} files, {result['bytes']} bytes; "
-        f"{result['lap_suffixed']} lap-suffixed names, {result['superseded']} superseded revisions; "
+        f"{result['round_suffixed']} round-suffixed names, {result['superseded']} superseded revisions; "
         f"script headers {result['header_lines_total']} lines total, median {result['header_lines_median']:g}"
     )
 
@@ -287,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--strict", action="store_true", help="exit 1 when any document is over its cap")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--classify", action="store_true", help="split source files into code, comment, docstring, blank")
-    mode.add_argument("--tree", action="store_true", help="census one working-state directory")
+    mode.add_argument("--tree", action="store_true", help="write_report one working-state directory")
     parser.add_argument("--since", help="with --tree: only files modified on or after this ISO date")
     args = parser.parse_args(argv)
 

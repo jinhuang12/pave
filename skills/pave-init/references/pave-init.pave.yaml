@@ -3,12 +3,12 @@ pave:
   name: pave_init
   status: active
   purpose: >-
-    Assess whether a system fits PAVE, design an approved concrete Graph Profile,
+    Assess whether a system fits PAVE, design an approved concrete graph file,
     and build a validated native workflow plugin (lead skill plus role agents)
     for the active harness while preserving the approved graph; then, on request,
     revise a delivered workflow from its recorded defect and usage evidence
-    through the same review and approval discipline, landing each successor
-    in the workflow's append-only revision ledger.
+    through the same review and approval discipline, applying each successor
+    in the workflow's append-only revision log.
   entrypoints: [initialize_run, draft_successor]
 
   scope:
@@ -28,7 +28,7 @@ pave:
     - interview before designing
     - inspect available evidence before asking the user for discoverable facts
     - keep the approved PAVE YAML authoritative during skill construction
-    - use the smallest sufficient realization for every node in the generated graph
+    - use the smallest sufficient implementation for every node in the generated graph
     - isolate independent exploration and non-overlapping build units
     - reward accurate adversarial review rather than issue count
     - require evidence and material impact for every blocking review finding
@@ -38,19 +38,19 @@ pave:
 
   roles:
     lead:
-      purpose: Maintain run state, verify evidence, route outcomes, integrate outputs, deliver the final skill, and land reviewed successors in the revision ledger.
+      purpose: Maintain run state, verify evidence, route outcomes, integrate outputs, deliver the final skill, and apply reviewed successors in the revision log.
       authority: authoritative_for_run_state
       avoids:
         - approving the graph for the user
         - changing approved graph meaning during construction
-        - landing a successor that lacks its review or a required approval
+        - applying a successor that lacks its review or a required approval
     requirements_interviewer:
       purpose: Establish the goal and classify the requirements it implies through short adaptive interview rounds.
       authority: advisory
       avoids:
         - designing the graph before requirements approval
     system_explorer:
-      purpose: Investigate one bounded system lens and report primary evidence without shared-file edits.
+      purpose: Investigate one bounded system angle and report primary evidence without shared-file edits.
       authority: evidentiary
       avoids:
         - writing approval artifacts
@@ -60,7 +60,7 @@ pave:
       authority: authorship
       avoids:
         - changing ancestor or sibling interfaces
-        - writing approval artifacts or the frontier
+        - writing approval artifacts or the planning queue
         - approving its own plan
         - inventing missing runtime capability
     material_reviewer:
@@ -88,24 +88,24 @@ pave:
       purpose: Draft one successor proposal — a declared preamble plus a unified diff against the live graph — from the recorded defect and usage evidence, generalized beyond the run that triggered it.
       authority: authorship
       avoids:
-        - landing a revision
+        - applying a revision
         - writing run state
         - presenting a gate
         - editing an installed skill
-        - blending a graph change and a binding change in one proposal
+        - blending a graph change and a run-setup change in one proposal
     update_reviewer:
-      purpose: Find only evidence-backed material defects in a successor proposal and confirm its declared kind by the layer test.
+      purpose: Find only evidence-backed material defects in a successor proposal and confirm its declared kind by the graph-or-setup test.
       authority: advisory_gate
       independence:
         - must not author the proposal under review
-        - must not be the lead that lands it
+        - must not be the lead that applies it
       avoids:
         - style preferences
         - speculative risks
         - invented requirements
         - unsupported findings
     user_authority:
-      purpose: Approve requirements, fitness overrides, the complete graph plan, and a successor whose landing requires explicit approval.
+      purpose: Approve requirements, fitness overrides, the complete graph plan, and a successor whose applying requires explicit approval.
       authority: final_for_scope_and_plan
 
   evidence:
@@ -142,33 +142,33 @@ pave:
       artifact: system-map.md
     root_contract:
       kind: derivation
-      produced_by: plan_root_skeleton
+      produced_by: plan_root
       subject: requested_workflow
       artifact: planning/root-contract.md
-      scope: the root's frozen five-part contract plus shared-state ownership and global budgets, lead-written before the queue opens; changes only by returning to Stage 1 approval; the root's own draft (planning/root.draft.pave.yaml) is a boundary_drafts instance like any other (references/planning-layout.md)
-    frontier_record:
+      scope: the root's frozen five-part contract plus shared-state ownership and global budgets, lead-written before the queue opens; changes only by returning to Stage 1 approval; the root's own draft (planning/root.draft.pave.yaml) is a node_plan_drafts instance like any other (references/planning-layout.md)
+    planning_queue_record:
       kind: observation
       produced_by:
-        - plan_root_skeleton
-        - review_boundary
-        - resynchronize_skeleton
-      subject: planning_frontier
-      artifact: planning/frontier.yaml
+        - plan_root
+        - review_node_plan
+        - fix_root_conflict
+      subject: planning_queue
+      artifact: planning/planning-queue.yaml
       scope: opened with the root as its only pending entry; grows at every reviewed return with that unit's framed children — atomic predictions included — read from the draft's x_planning.elaboration on disk; closes when every entry is reviewed or its exhaustion is recorded; depth is unbounded (orchestration/explore-and-plan.md §4.2–4.5)
-    boundary_drafts:
+    node_plan_drafts:
       kind: derivation
-      produced_by: elaborate_boundary
+      produced_by: plan_node
       subject: root_contract
       artifacts:
         - planning/<node>.draft.pave.yaml
         - planning/<node>.v2.draft.pave.yaml
-      scope: one fragment per dispatched boundary, the root's draft first; a redispatch mints a new path, never a reused one (references/planning-layout.md)
-    boundary_reviews:
+      scope: one node draft per dispatched node plan, the root's draft first; a redispatch mints a new path, never a reused one (references/planning-layout.md)
+    node_plan_reviews:
       kind: judgment
-      produced_by: review_boundary
-      subject: boundary_drafts
-      artifact: run-state.json#boundary_review_results
-      scope: the per-boundary verdict is a run-state entry plus the frontier entry's status in planning/frontier.yaml; no per-boundary file (pave-spec §8.4)
+      produced_by: review_node_plan
+      subject: node_plan_drafts
+      artifact: run-state.json#node_plan_reviews
+      scope: the per-node plan verdict is a run-state entry plus the planning queue entry's status in planning/planning-queue.yaml; no per-node plan file (pave-spec §8.4)
     workflow_definition:
       kind: derivation
       produced_by:
@@ -176,7 +176,7 @@ pave:
         - repair_graph_plan
       subject: requested_workflow
       artifact: workflow.draft.pave.yaml
-      scope: root draft Graph Profile plus any child draft profiles justified through the realization ladder; approved as revision 0, landed at delivery
+      scope: root draft graph file plus any child draft graph files justified through the implementation ladder; approved as revision 0, applied at delivery
     traceability_record:
       kind: derivation
       produced_by:
@@ -228,26 +228,26 @@ pave:
       produced_by: forward_test_skill
       subject: generated_skill_package
       artifact: reviews/forward-test.md
-    revision_ledger:
+    revision_log:
       kind: observation
       produced_by:
         - finalize_delivery
-        - land_revision
+        - apply_revision
       subject: workflow_definition
       artifact: revisions.yaml
-      scope: the append-only ledger beside the live canonical graph — entry 0 at delivery, one appended entry per landing or pin; the delivered package root is a valid evolution root with zero patches (references/pave-revisions.md)
+      scope: the append-only revision log beside the live canonical graph — entry 0 at delivery, one appended entry per apply step or pin; the delivered package root is a valid revision folder with zero patches (references/pave-revisions.md)
     successor_proposal:
       kind: derivation
       produced_by: draft_successor
       subject: workflow_definition
       artifact: history/v<N>.patch
-      scope: a YAML preamble declaring kind, semantic diff, envelope check, plan and usage evidence, and changelog entry, then the unified diff against the live graph at the newest graph or binding revision; one declared kind per proposal
+      scope: a YAML preamble declaring kind, semantic diff, user-only-changes check, plan and usage evidence, and changelog entry, then the unified diff against the live graph at the newest graph or run-setup revision; one declared kind per proposal
     update_review:
       kind: judgment
       produced_by: review_successor
       subject: successor_proposal
       artifact: revisions.yaml#review
-      scope: verdict and round count, held in run state until land_revision writes them into the landed entry's review field; no standing review file (pave-spec §8.4)
+      scope: verdict and round count, held in run state until apply_revision writes them into the applied entry's review field; no standing review file (pave-spec §8.4)
 
   checks:
     manually_invoked:
@@ -273,26 +273,26 @@ pave:
       on_failure_route: pause_for_user_authority
     exploration_coverage_complete:
       style: reviewed
-      question: Did every selected exploration lens return evidence or a clearly scoped gap?
+      question: Did every selected exploration angle return evidence or a clearly scoped gap?
       evaluated_by: lead
       on_failure_route: wait_for_exploration_join
-    skeleton_complete:
+    root_plan_complete:
       style: socratic
-      question: Is the root's five-part contract frozen with shared-state ownership and global budgets, are the run-wide enforcement record, revision record (landing and usage_ledger fields), and state contract drafted, and is the queue open with the root as its only pending entry?
+      question: Is the root's five-part contract frozen with shared-state ownership and global budgets, are the run-wide enforcement table, revision record (approval and usage_log fields), and state contract drafted, and is the queue open with the root as its only pending entry?
       evaluated_by: lead
-      on_failure_route: plan_root_skeleton
-    boundary_review_passed:
+      on_failure_route: plan_root
+    node_plan_review_passed:
       style: reviewed
-      question: Did the planning reviewer pass this boundary unit against the frozen root contract and previously reviewed siblings?
+      question: Did the planning reviewer pass this node plan unit against the frozen root contract and previously reviewed siblings?
       evaluated_by: material_reviewer
-      on_failure_route: elaborate_boundary
-    frontier_closed:
+      on_failure_route: plan_node
+    planning_queue_closed:
       style: mechanical
-      question: Is every frontier entry reviewed, or its exhaustion recorded with a routed blocked or replan outcome?
-      on_failure_route: wait_for_frontier_join
+      question: Is every planning queue entry reviewed, or its exhaustion recorded with a routed blocked or replan outcome?
+      on_failure_route: wait_for_planning_queue_join
     pave_definition_valid:
       style: mechanical
-      question: Does the graph definition (workflow.draft.pave.yaml at plan time; the live graph a successor starts from) pass the PAVE schema and graph-reference validator, including every referenced child profile and composition boundary?
+      question: Does the graph definition (workflow.draft.pave.yaml at plan time; the live graph a successor starts from) pass the PAVE schema and graph-reference validator, including every referenced child graph file and composition boundary?
       on_failure_route: assemble_graph_plan
     plan_material_review_passed:
       style: reviewed
@@ -322,13 +322,13 @@ pave:
       question: Did the clean-room test complete without a transferable BLOCKING or HIGH skill defect?
       evaluated_by: lead
       on_failure_route: repair_integrated_skill
-    revision_ledger_valid:
+    revision_log_valid:
       style: mechanical
-      question: Does `scripts/record_revision.py verify` pass on the delivered package root, and does the ledger hold entry 0 only — or, for a one-session workflow whose plan omits the ledger, does the package ship none and the delivery report say so?
+      question: Does `scripts/record_revision.py verify` pass on the delivered package root, and does the revision log hold entry 0 only — or, for a one-session workflow whose plan omits the revision log, does the package ship none and the delivery report say so?
       on_failure_route: finalize_delivery
     update_review_material:
       style: reviewed
-      question: Did the update reviewer find no verified BLOCKING or HIGH defect in the proposal, and did the declared kind survive the layer test?
+      question: Did the update reviewer find no verified BLOCKING or HIGH defect in the proposal, and did the declared kind survive the graph-or-setup test?
       evaluated_by: update_reviewer
       on_failure_route: draft_successor
     update_review_rounds_remain:
@@ -338,14 +338,14 @@ pave:
     successor_approved:
       style: reviewed
       question: >-
-        Is explicit approval recorded verbatim when the envelope check is changed_with_approval
-        or the plan's landing field is user — or, when the envelope check is unchanged and the
-        landing field is envelope, is that recorded envelope check itself the satisfying record?
+        Is explicit approval recorded verbatim when the user-only-changes check is approved
+        or the plan's approval field is always — or, when no user-only change was touched and the
+        approval field is when_needed, is that recorded user-only-changes check itself the satisfying record?
       evaluated_by: user_authority
       on_failure_route: approve_successor
-    landing_verified:
+    apply_verified:
       style: mechanical
-      question: Does `scripts/record_revision.py verify` pass after the landing, and does the new head digest equal the proposal's validated digest?
+      question: Does `scripts/record_revision.py verify` pass after the apply step, and does the new head digest equal the proposal's validated digest?
       on_failure_route: pause_for_user_authority
 
   nodes:
@@ -403,11 +403,11 @@ pave:
 
     explore_system:
       intent: explore
-      purpose: Investigate one approved evidence lens without shared-file edits.
+      purpose: Investigate one approved evidence angle without shared-file edits.
       roles: [system_explorer]
       consumes: [requirements_record]
       produces: [exploration_reports]
-      instance_per: exploration_lenses
+      instance_per: exploration_angles
       outcomes:
         findings_ready: {}
         bounded_gap: {}
@@ -424,72 +424,72 @@ pave:
         contradiction_requires_research: {}
         planning_blocked: {}
 
-    plan_root_skeleton:
+    plan_root:
       intent: plan
-      purpose: Freeze the root node's five-part contract, draft the run-wide records (enforcement, revision record with its landing and usage_ledger fields, state contract), and open the planning queue with the root as its only pending entry — the root's own plan is the queue's first dispatch, not this node's work.
+      purpose: Freeze the root node's five-part contract, draft the run-wide records (enforcement, revision record with its approval and usage_log fields, state contract), and open the planning queue with the root as its only pending entry — the root's own plan is the queue's first dispatch, not this node's work.
       roles: [lead]
       consumes: [requirements_record, system_map]
-      produces: [root_contract, frontier_record]
+      produces: [root_contract, planning_queue_record]
       outcomes:
-        skeleton_ready: {}
+        root_plan_ready: {}
         more_evidence_needed: {}
         fitness_changed: {}
       activities:
         - freeze the root's five-part contract with shared-state ownership and global budgets (orchestration/explore-and-plan.md §4.1)
-        - draft the run-wide enforcement record, the revision record (its landing field set to envelope or user, its usage_ledger field set to kept or omitted), and the state contract
-        - open planning/frontier.yaml with the root as its only pending entry (§4.2); id kept for traceability — the "skeleton" is this contract plus the queue that grows from it
+        - draft the run-wide enforcement table, the revision record (its approval field set to when_needed or always, its usage_log field set to kept or omitted), and the state contract
+        - open planning/planning-queue.yaml with the root as its only pending entry (§4.2); the root plan is this contract plus the queue that grows from it
 
-    elaborate_boundary:
+    plan_node:
       intent: plan
-      purpose: Plan one frontier boundary — one frozen parent contract and its immediate children — without changing ancestor or sibling interfaces.
+      purpose: Plan one planning queue node plan — one frozen parent contract and its immediate children — without changing ancestor or sibling interfaces.
       roles: [node_planner]
-      consumes: [root_contract, frontier_record]
-      produces: [boundary_drafts]
-      instance_per: frontier_entries
+      consumes: [root_contract, planning_queue_record]
+      produces: [node_plan_drafts]
+      instance_per: planning_queue_entries
       outcomes:
-        boundary_planned: {}
+        node_planned: {}
         interface_conflict: {}
         more_evidence_needed: {}
       activities:
         - the same job at any depth — the root is the first entry
-        - judge the one-agent test for the dispatched node and, on decompose, frame its immediate children with predictions; a child's prediction is settled by that child's own dispatch, never by the parent's
+        - judge the one-agent test for the dispatched node and, on decompose, frame its immediate children with predictions; a child's prediction is decided by that child's own dispatch, never by the parent's
         - write exactly the one draft path the brief names
 
-    review_boundary:
+    review_node_plan:
       intent: review
-      purpose: Judge one closed boundary unit against the frozen root contract and previously reviewed siblings; on a pass the lead marks the entry reviewed and appends the unit's framed children to the queue as pending.
+      purpose: Judge one closed node plan unit against the frozen root contract and previously reviewed siblings; on a pass the lead marks the entry reviewed and appends the unit's framed children to the queue as pending.
       roles: [material_reviewer, lead]
-      consumes: [boundary_drafts, root_contract, frontier_record]
-      produces: [boundary_reviews, frontier_record]
-      instance_per: frontier_entries
+      consumes: [node_plan_drafts, root_contract, planning_queue_record]
+      produces: [node_plan_reviews, planning_queue_record]
+      instance_per: planning_queue_entries
       outcomes:
-        boundary_passed: {}
-        boundary_revision_required: {}
+        node_plan_passed: {}
+        node_plan_needs_revision: {}
       activities:
         - the reviewer judges the unit; the lead records the verdict in run state
         - on a pass, the lead marks the entry reviewed and appends the framed children — atomic predictions included — read from the draft's x_planning.elaboration on disk, never from the reply
         - on a revision, the lead redispatches that node's planner with the findings on a freshly minted draft path
 
-    resynchronize_skeleton:
+    fix_root_conflict:
       intent: plan
-      purpose: Resolve a reported interface conflict at the parent level and mark dependent reviewed boundaries stale.
+      purpose: Resolve a reported interface conflict at the parent level and mark dependent reviewed node plans stale.
       roles: [lead]
-      consumes: [root_contract, frontier_record, boundary_drafts]
-      produces: [frontier_record]
+      consumes: [root_contract, planning_queue_record, node_plan_drafts]
+      produces: [planning_queue_record]
       outcomes:
         resynchronized: {}
         root_contract_change_required: {}
-        frontier_exhausted: {}
+        planning_queue_exhausted: {}
       activities:
         - receive interface conflicts, later-stage semantic gaps, and requested revisions
-        - resolve at the parent level and mark dependent reviewed boundaries stale
-        - redispatch only the narrowest affected boundaries
+        - resolve at the parent level and mark dependent reviewed node plans stale
+        - redispatch only the narrowest affected node plans
 
     assemble_graph_plan:
       intent: plan
-      purpose: Merge the reviewed drafts into one flat graph, run the global simplicity pass, mark runtime bindings, merge the enforcement record, and produce the complete approval bundle.
+      purpose: Merge the reviewed drafts into one flat graph, run the global trim pass, mark run setup, merge the enforcement table, and produce the complete approval bundle.
       roles: [lead]
-      consumes: [root_contract, boundary_drafts, boundary_reviews, frontier_record]
+      consumes: [root_contract, node_plan_drafts, node_plan_reviews, planning_queue_record]
       produces: [workflow_definition, traceability_record, package_plan]
       outcomes:
         bundle_ready: {}
@@ -593,53 +593,53 @@ pave:
 
     finalize_delivery:
       intent: execute
-      purpose: Write ledger entry 0 for the approved graph into the delivered package, publish the validated skill, and report evidence, reviews, tests, and known gaps.
+      purpose: Write revision log entry 0 for the approved graph into the delivered package, publish the validated skill, and report evidence, reviews, tests, and known gaps.
       roles: [lead]
       consumes: [generated_skill_package, validation_results, final_skill_review, forward_test_result, workflow_definition]
-      produces: [revision_ledger]
+      produces: [revision_log]
       activities:
-        - write revisions.yaml entry 0 into the delivered package root with `scripts/record_revision.py init`, so the package root is itself a valid evolution root with zero patches; a one-session workflow whose plan omits the ledger ships none, and the delivery report says so
-        - state the first-run duty — the first real run installs the package root into the project's evolution root and pins revision 0 and its digest in its own run state before any work
-        - never land a successor at delivery; clean-room testing creates no entry and claims no real-use evidence
+        - write revisions.yaml entry 0 into the delivered package root with `scripts/record_revision.py init`, so the package root is itself a valid revision folder with zero patches; a one-session workflow whose plan omits the revision log ships none, and the delivery report says so
+        - state the first-run duty — the first real run installs the package root into the project's revision folder and pins revision 0 and its digest in its own run state before any work
+        - never apply a successor at delivery; clean-room testing creates no entry and claims no real-use evidence
       outcomes:
         delivered: {}
         reporting_failed: {}
 
     draft_successor:
       intent: plan
-      purpose: Draft one successor proposal for a delivered workflow — the preamble declaring kind, semantic diff, envelope check, plan and usage evidence, and changelog entry, then the unified diff against the live graph at the newest graph or binding revision. Entered directly by a requester — a generated workflow's lead paused on a graph defect mid-run, or a user invoking the pave-evolve skill — who supplies the evolution root and its recorded defect and usage evidence by path.
+      purpose: Draft one successor proposal for a delivered workflow — the preamble declaring kind, semantic diff, user-only-changes check, plan and usage evidence, and changelog entry, then the unified diff against the live graph at the newest graph or run-setup revision. Entered directly by a requester — a generated workflow's lead paused on a graph defect mid-run, or a user invoking the pave-evolve skill — who supplies the revision folder and its recorded defect and usage evidence by path.
       roles: [workflow_updater]
-      consumes: [revision_ledger]
+      consumes: [revision_log]
       produces: [successor_proposal]
       outcomes:
         draft_ready: {}
-        envelope_exceeded:
-          meaning: The change leaves the authority envelope; the user decides.
-        no_change_warranted:
+        needs_user_approval:
+          meaning: The change touches a user-only change; the user decides.
+        no_change_needed:
           meaning: The recorded evidence does not justify a change; an honest close.
       activities:
-        - read the ledger and the recorded defect and usage evidence before drafting; a diff silent on recorded usage evidence is a review finding
+        - read the revision log and the recorded defect and usage evidence before drafting; a diff silent on recorded usage evidence is a review finding
         - refactor before adding, and state why the change holds for runs in general, not for the run that triggered it
-        - declare one kind per proposal, graph or binding, never both; a binding change may move the live digest because instruments live in the YAML
-        - pin the diff to the newest graph or binding entry's digest_after so the landing can validate it
+        - declare one kind per proposal, graph or run_setup, never both; a run-setup change may move the live digest because implementations live in the YAML
+        - pin the diff to the newest graph or run-setup entry's digest_after so the apply step can validate it
 
     review_successor:
       intent: review
-      purpose: Find only evidence-backed material defects in the proposal and confirm its declared kind by the layer test; the lead records the verdict and the round count.
+      purpose: Find only evidence-backed material defects in the proposal and confirm its declared kind by the graph-or-setup test; the lead records the verdict and the round count.
       roles: [update_reviewer, lead]
-      consumes: [successor_proposal, revision_ledger]
+      consumes: [successor_proposal, revision_log]
       produces: [update_review]
       outcomes:
         passed: {}
         revision_required: {}
       activities:
-        - the reviewer judges the proposal against the live graph, the ledger, and the recorded evidence; the lead records the verdict and round in run state
-        - layer test — a graph proposal changes nodes, outcomes, edges, evidence, or guards; a binding proposal changes only seat, model, effort, or instrument, whatever it does to the digest
+        - the reviewer judges the proposal against the live graph, the revision log, and the recorded evidence; the lead records the verdict and round in run state
+        - graph-or-setup test — a graph proposal changes nodes, outcomes, edges, evidence, or guards; a run-setup proposal changes only seat, model, effort, or implementation, whatever it does to the digest
         - the same reviewer continues across one proposal's rounds; the lead's plan_review_rounds counter bounds them at three (edge successor_revision_to_draft)
 
     approve_successor:
       intent: review
-      purpose: Obtain explicit user approval for a reviewed successor whose envelope check is changed_with_approval or whose plan's landing field is user; the approval is recorded verbatim and lands in the ledger entry's approval field.
+      purpose: Obtain explicit user approval for a reviewed successor whose user-only-changes check is approved or whose plan's approval field is always; the approval is recorded verbatim in the revision log entry's approval field.
       roles: [user_authority]
       consumes: [successor_proposal, update_review]
       outcomes:
@@ -647,20 +647,20 @@ pave:
         revision_requested: {}
         rejected: {}
 
-    land_revision:
+    apply_revision:
       intent: execute
-      purpose: Land the reviewed and, when required, approved proposal as the next ledger entry, and re-pin the calling run when there is one.
+      purpose: Apply the reviewed and, when required, approved proposal as the next revision log entry, and re-pin the calling run when there is one.
       roles: [lead]
       consumes: [successor_proposal, update_review]
-      produces: [revision_ledger]
+      produces: [revision_log]
       activities:
-        - take the landing lock (the .landing marker in the evolution root)
+        - take the apply step lock (the .applying marker in the revision folder)
         - apply the patch to the live graph, validate the result, and append the entry with the review verdict, rounds, and any approval verbatim
-        - re-pin the calling run to the new revision and digest when there is one (Evolution contract rule 7, references/pave-revisions.md)
-        - release the lock; a landing that cannot complete leaves the marker for verify to report as interrupted
+        - re-pin the calling run to the new revision and digest when there is one (Revision rule 7, references/pave-revisions.md)
+        - release the lock; an apply step that cannot complete leaves the marker for verify to report as interrupted
       outcomes:
-        landed: {}
-        landing_failed: {}
+        applied: {}
+        apply_failed: {}
 
   edges:
     - id: initialize_ready_to_interview
@@ -700,7 +700,7 @@ pave:
       from: approve_requirements_and_fit.approved
       to:
         fan_out: explore_system
-        for_each: exploration_lenses
+        for_each: exploration_angles
       checks: [requirements_and_fit_approved]
     - id: requirements_revision_to_interview
       from: approve_requirements_and_fit.revision_requested
@@ -713,7 +713,7 @@ pave:
       from: approve_fitness_override.override_approved
       to:
         fan_out: explore_system
-        for_each: exploration_lenses
+        for_each: exploration_angles
       checks: [fitness_override_approved]
     - id: override_revision_to_interview
       from: approve_fitness_override.revision_requested
@@ -732,9 +732,9 @@ pave:
       from: explore_system.critical_gap
       to: pause_for_user_authority
 
-    - id: synthesis_ready_to_skeleton
+    - id: synthesis_ready_to_root_plan
       from: synthesize_exploration.map_ready
-      to: plan_root_skeleton
+      to: plan_root
       checks: [exploration_coverage_complete]
     - id: synthesis_contradiction_to_explore
       from: synthesize_exploration.contradiction_requires_research
@@ -743,57 +743,57 @@ pave:
       from: synthesize_exploration.planning_blocked
       to: pause_for_user_authority
 
-    - id: skeleton_ready_to_frontier
-      from: plan_root_skeleton.skeleton_ready
+    - id: root_plan_ready_to_planning_queue
+      from: plan_root.root_plan_ready
       to:
-        fan_out: elaborate_boundary
-        for_each: frontier_entries
-      checks: [skeleton_complete]
-      notes: The fan-out is over the live frontier, never empty here — the root is its first entry. review_boundary appends each reviewed unit's framed children, so the set widens during the fan-out and the join re-evaluates on every frontier write; a root its first dispatch confirms atomic closes the queue after one entry.
-    - id: skeleton_evidence_gap_to_explore
-      from: plan_root_skeleton.more_evidence_needed
+        fan_out: plan_node
+        for_each: planning_queue_entries
+      checks: [root_plan_complete]
+      notes: The fan-out is over the live planning queue, never empty here — the root is its first entry. review_node_plan appends each reviewed unit's framed children, so the set widens during the fan-out and the join re-evaluates on every planning queue write; a root its first dispatch confirms atomic closes the queue after one entry.
+    - id: root_plan_evidence_gap_to_explore
+      from: plan_root.more_evidence_needed
       to: explore_system
-    - id: skeleton_fitness_changed_to_assess
-      from: plan_root_skeleton.fitness_changed
+    - id: root_plan_fitness_changed_to_assess
+      from: plan_root.fitness_changed
       to: assess_pave_fitness
 
-    - id: boundary_planned_to_review
-      from: elaborate_boundary.boundary_planned
-      to: review_boundary
-    - id: boundary_conflict_to_resync
-      from: elaborate_boundary.interface_conflict
-      to: resynchronize_skeleton
-    - id: boundary_evidence_gap_to_explore
-      from: elaborate_boundary.more_evidence_needed
+    - id: node_plan_planned_to_review
+      from: plan_node.node_planned
+      to: review_node_plan
+    - id: node_plan_conflict_to_resync
+      from: plan_node.interface_conflict
+      to: fix_root_conflict
+    - id: node_plan_evidence_gap_to_explore
+      from: plan_node.more_evidence_needed
       to: explore_system
 
-    - id: boundary_passed_to_join
-      from: review_boundary.boundary_passed
-      to: wait_for_frontier_join
-      checks: [boundary_review_passed]
-      notes: The unit's framed children are already pending entries when this edge is taken (review_boundary); the join waits for them too.
-    - id: boundary_revision_to_elaborate
-      from: review_boundary.boundary_revision_required
-      to: elaborate_boundary
+    - id: node_plan_passed_to_join
+      from: review_node_plan.node_plan_passed
+      to: wait_for_planning_queue_join
+      checks: [node_plan_review_passed]
+      notes: The unit's framed children are already pending entries when this edge is taken (review_node_plan); the join waits for them too.
+    - id: node_plan_revision_to_replan
+      from: review_node_plan.node_plan_needs_revision
+      to: plan_node
 
     - id: resync_done_to_elaborate
-      from: resynchronize_skeleton.resynchronized
-      to: elaborate_boundary
-      notes: Redispatch only stale and still-pending boundaries.
+      from: fix_root_conflict.resynchronized
+      to: plan_node
+      notes: Redispatch only stale and still-pending node plans.
     - id: resync_root_change_to_pause
-      from: resynchronize_skeleton.root_contract_change_required
+      from: fix_root_conflict.root_contract_change_required
       to: pause_for_user_authority
     - id: resync_exhausted_to_pause
-      from: resynchronize_skeleton.frontier_exhausted
+      from: fix_root_conflict.planning_queue_exhausted
       to: pause_for_user_authority
 
     - id: assembly_ready_to_review
       from: assemble_graph_plan.bundle_ready
       to: review_graph_plan
-      checks: [frontier_closed, pave_definition_valid]
+      checks: [planning_queue_closed, pave_definition_valid]
     - id: assembly_conflict_to_resync
       from: assemble_graph_plan.integration_conflict_found
-      to: resynchronize_skeleton
+      to: fix_root_conflict
 
     - id: plan_review_pass_to_approval
       from: review_graph_plan.passed
@@ -809,7 +809,7 @@ pave:
       checks: [pave_definition_valid]
     - id: plan_repair_semantic_change_to_resync
       from: repair_graph_plan.semantic_change_required
-      to: resynchronize_skeleton
+      to: fix_root_conflict
     - id: plan_repair_blocked_to_pause
       from: repair_graph_plan.repair_blocked
       to: pause_for_user_authority
@@ -822,7 +822,7 @@ pave:
       checks: [whole_bundle_approved]
     - id: plan_revision_to_resync
       from: approve_graph_plan.revision_requested
-      to: resynchronize_skeleton
+      to: fix_root_conflict
     - id: plan_rejected_to_close
       from: approve_graph_plan.rejected
       to: closed_unaccepted
@@ -835,7 +835,7 @@ pave:
       to: build_skill_component
     - id: build_semantic_gap_to_resync
       from: build_skill_component.semantic_gap_found
-      to: resynchronize_skeleton
+      to: fix_root_conflict
 
     - id: integration_ready_to_validation
       from: integrate_skill.package_ready
@@ -846,7 +846,7 @@ pave:
       to: repair_integrated_skill
     - id: integration_semantic_gap_to_resync
       from: integrate_skill.semantic_gap_found
-      to: resynchronize_skeleton
+      to: fix_root_conflict
 
     - id: validation_pass_to_final_review
       from: validate_integrated_skill.validation_passed
@@ -872,7 +872,7 @@ pave:
       to: validate_integrated_skill
     - id: skill_repair_semantic_change_to_resync
       from: repair_integrated_skill.semantic_change_required
-      to: resynchronize_skeleton
+      to: fix_root_conflict
     - id: skill_repair_blocked_to_pause
       from: repair_integrated_skill.repair_blocked
       to: pause_for_user_authority
@@ -891,7 +891,7 @@ pave:
     - id: delivery_complete
       from: finalize_delivery.delivered
       to: complete
-      checks: [revision_ledger_valid]
+      checks: [revision_log_valid]
     - id: delivery_retry
       from: finalize_delivery.reporting_failed
       to: finalize_delivery
@@ -899,27 +899,27 @@ pave:
     - id: draft_ready_to_review
       from: draft_successor.draft_ready
       to: review_successor
-    - id: draft_envelope_exceeded_to_pause
-      from: draft_successor.envelope_exceeded
+    - id: draft_needs_user_approval_to_pause
+      from: draft_successor.needs_user_approval
       to: pause_for_user_authority
     - id: draft_no_change_to_close
-      from: draft_successor.no_change_warranted
+      from: draft_successor.no_change_needed
       to: closed_no_change
 
-    - id: successor_review_pass_to_landing
+    - id: successor_review_pass_to_apply
       from: review_successor.passed
-      to: land_revision
+      to: apply_revision
       checks: [update_review_material, successor_approved]
-      notes: One edge, one route. successor_approved passes outright when the envelope check is unchanged and the plan's landing field is envelope; otherwise it fails until approve_successor records the approval verbatim, so its on_failure_route is that gate and no second edge shares this source.
+      notes: One edge, one route. successor_approved passes outright when no user-only change was touched and the plan's approval field is when_needed; otherwise it fails until approve_successor records the approval verbatim, so its on_failure_route is that gate and no second edge shares this source.
     - id: successor_revision_to_draft
       from: review_successor.revision_required
       to: draft_successor
       checks: [update_review_rounds_remain]
       notes: Bounded like the plan gate, by the lead's counter — plan_review_rounds, the update path's only review loop. The check fails on the third revision_required and routes to pause_for_user_authority with the open findings; the loop never runs a fourth draft on its own.
 
-    - id: successor_approved_to_landing
+    - id: successor_approved_to_apply
       from: approve_successor.approved
-      to: land_revision
+      to: apply_revision
       checks: [successor_approved]
     - id: successor_approval_revision_to_draft
       from: approve_successor.revision_requested
@@ -928,26 +928,26 @@ pave:
       from: approve_successor.rejected
       to: closed_no_change
 
-    - id: landing_complete
-      from: land_revision.landed
-      to: revision_landed
-      checks: [landing_verified]
-    - id: landing_failed_to_pause
-      from: land_revision.landing_failed
+    - id: apply_complete
+      from: apply_revision.applied
+      to: revision_applied
+      checks: [apply_verified]
+    - id: apply_failed_to_pause
+      from: apply_revision.apply_failed
       to: pause_for_user_authority
 
-  control_endpoints:
+  control_nodes:
     resume_from_checkpoint:
       kind: return
       meaning: Reopen the node or edge after the last satisfied check in persisted traversal history.
       state_pointer: traversal_history
     wait_for_exploration_join:
       kind: join
-      meaning: Wait until every selected exploration lens returns findings or a bounded gap.
+      meaning: Wait until every selected exploration angle returns findings or a bounded gap.
       resume_at: synthesize_exploration
-    wait_for_frontier_join:
+    wait_for_planning_queue_join:
       kind: join
-      meaning: Wait until every frontier entry is reviewed or its exhaustion is recorded; the frontier grows while it waits — each reviewed unit's framed children are pending entries — so the join re-evaluates on every frontier write.
+      meaning: Wait until every planning queue entry is reviewed or its exhaustion is recorded; the planning queue grows while it waits — each reviewed unit's framed children are pending entries — so the join re-evaluates on every planning queue write.
       resume_at: assemble_graph_plan
     wait_for_build_join:
       kind: join
@@ -965,13 +965,13 @@ pave:
       kind: terminal
       meaning: The generated skill passed validation, material review, and clean-room forward testing.
       terminal_status: accepted
-    revision_landed:
+    revision_applied:
       kind: terminal
-      meaning: A reviewed, approved successor landed in the ledger, the landing verifies, and the requester re-pinned.
+      meaning: A reviewed, approved successor applied in the revision log, the apply step verifies, and the requester re-pinned.
       terminal_status: accepted
     closed_no_change:
       kind: terminal
-      meaning: The evidence warranted no revision, or the user rejected the proposal; nothing landed.
+      meaning: The evidence warranted no revision, or the user rejected the proposal; nothing applied.
       terminal_status: closed_unaccepted
 
   state:
@@ -984,10 +984,10 @@ pave:
       - requirements_status
       - fitness_verdict
       - fitness_override
-      - exploration_lenses
+      - exploration_angles
       - explorer_results
-      - frontier_entries
-      - boundary_review_results
+      - planning_queue_entries
+      - node_plan_reviews
       - approval_bundle_revisions
       - plan_review_rounds
       - user_plan_approval
@@ -995,8 +995,8 @@ pave:
       - validation_results
       - final_review_rounds
       - forward_test_result
-      - revision_ledger_state
-      - terminal_classification
+      - revision_log_state
+      - final_status
       - traversal_history
     checkpoint:
       after:
@@ -1016,12 +1016,12 @@ pave:
       - skill, PAVE, traceability, and helper validation pass
       - final material review has no verified BLOCKING or HIGH finding
       - clean-room forward test has no transferable BLOCKING or HIGH defect
-      - the ledger's entry 0 records the approved graph and verifies
-    revision_landed_when:
-      - the proposal declares one kind and the update reviewer's layer test confirmed it
+      - the revision log's entry 0 records the approved graph and verifies
+    revision_applied_when:
+      - the proposal declares one kind and the update reviewer's graph-or-setup test confirmed it
       - update review has no verified BLOCKING or HIGH finding within three rounds
-      - explicit approval is recorded verbatim when the envelope check is changed_with_approval or the plan's landing field is user
-      - the landing verifies and the new head digest equals the proposal's validated digest
+      - explicit approval is recorded verbatim when the user-only-changes check is approved or the plan's approval field is always
+      - the apply step verifies and the new head digest equals the proposal's validated digest
       - the calling run, when there is one, re-pinned to the new revision and digest
     closed_unaccepted_when:
       - user stops after a not-fit verdict
@@ -1034,11 +1034,11 @@ pave:
     exploration:
       cardinality: 2_to_4
       isolation: read_only_no_shared_writes
-      join: all_selected_lenses_terminal
-    boundary_planning:
-      cardinality: derived_from_frontier_entries
-      isolation: one_planner_per_boundary_frozen_sibling_interfaces
-      join: all_frontier_entries_reviewed_or_exhausted
+      join: all_selected_angles_terminal
+    node_planning:
+      cardinality: derived_from_planning_queue_entries
+      isolation: one_planner_per_node_plan_frozen_sibling_interfaces
+      join: all_planning_queue_entries_reviewed_or_exhausted
     construction:
       cardinality: derived_from_non_overlapping_build_units
       isolation: one_writer_per_file
@@ -1051,9 +1051,9 @@ pave:
     wait_for_exploration_join:
       resume_at: synthesize_exploration
       condition: every selected exploration instance returned findings_ready or bounded_gap
-    wait_for_frontier_join:
+    wait_for_planning_queue_join:
       resume_at: assemble_graph_plan
-      condition: every frontier entry reached reviewed, or exhaustion recorded and routed — entries appended by review_boundary included; the frontier is never empty because the root is its first entry
+      condition: every planning queue entry reached reviewed, or exhaustion recorded and routed — entries appended by review_node_plan included; the planning queue is never empty because the root is its first entry
     wait_for_build_join:
       resume_at: integrate_skill
       condition: every approved build unit returned unit_ready

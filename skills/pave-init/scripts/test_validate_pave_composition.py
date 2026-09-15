@@ -50,7 +50,7 @@ CHILD = {
             {"id": "done_to_accepted", "from": "do_work.done", "to": "child_accepted"},
             {"id": "stuck_to_blocked", "from": "do_work.stuck", "to": "child_blocked"},
         ],
-        "control_endpoints": {
+        "control_nodes": {
             "child_accepted": {"kind": "terminal", "meaning": "Accepted."},
             "child_blocked": {"kind": "terminal", "meaning": "Blocked."},
         },
@@ -87,7 +87,7 @@ PARENT = {
             {"id": "ready_to_complete", "from": "port_model.candidate_ready", "to": "complete"},
             {"id": "blocked_to_blocked", "from": "port_model.port_blocked", "to": "blocked"},
         ],
-        "control_endpoints": {
+        "control_nodes": {
             "complete": {"kind": "terminal", "meaning": "Accepted."},
             "blocked": {"kind": "terminal", "meaning": "Blocked."},
         },
@@ -97,14 +97,14 @@ PARENT = {
             "required": ["composition"],
             "composition": {
                 "version": "1.0.0",
-                "realizations": {
+                "implementations": {
                     "port_model": {
-                        "kind": "child_profile",
-                        "profile": "child.pave.yaml",
+                        "kind": "child_graph_file",
+                        "graph_file": "child.pave.yaml",
                         "evidence_exports": [
                             {"child": "return_bundle", "parent": "port_return"},
                         ],
-                        "terminal_map": {
+                        "child_outcome_map": {
                             "child_accepted": "candidate_ready",
                             "child_blocked": "port_blocked",
                         },
@@ -144,20 +144,20 @@ class CompositionValidationTest(unittest.TestCase):
 
     def test_missing_child_profile(self) -> None:
         errors = self.validate(copy.deepcopy(PARENT), child=None)
-        self.assertTrue(any("child profile not found" in e for e in errors), errors)
+        self.assertTrue(any("child graph file not found" in e for e in errors), errors)
 
     def test_digest_mismatch(self) -> None:
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        realization["profile_digest"] = "sha256:" + "0" * 64
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        implementation["graph_file_digest"] = "sha256:" + "0" * 64
         errors = self.validate(parent, copy.deepcopy(CHILD))
         self.assertTrue(any("digest mismatch" in e for e in errors), errors)
 
     def test_digest_match_passes(self) -> None:
         child_path = self.write("child.pave.yaml", copy.deepcopy(CHILD))
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        realization["profile_digest"] = (
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        implementation["graph_file_digest"] = (
             "sha256:" + hashlib.sha256(child_path.read_bytes()).hexdigest()
         )
         parent_path = self.write("parent.pave.yaml", parent)
@@ -165,29 +165,29 @@ class CompositionValidationTest(unittest.TestCase):
 
     def test_unknown_child_entrypoint(self) -> None:
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        realization["entrypoint"] = "missing_node"
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        implementation["entrypoint"] = "missing_node"
         errors = self.validate(parent, copy.deepcopy(CHILD))
         self.assertTrue(any("unknown child node missing_node" in e for e in errors), errors)
 
     def test_unknown_parent_outcome(self) -> None:
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        realization["terminal_map"]["child_blocked"] = "no_such_outcome"
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        implementation["child_outcome_map"]["child_blocked"] = "no_such_outcome"
         errors = self.validate(parent, copy.deepcopy(CHILD))
         self.assertTrue(any("unknown parent outcome no_such_outcome" in e for e in errors), errors)
 
     def test_unmapped_child_terminal(self) -> None:
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        del realization["terminal_map"]["child_blocked"]
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        del implementation["child_outcome_map"]["child_blocked"]
         errors = self.validate(parent, copy.deepcopy(CHILD))
         self.assertTrue(any("unmapped child terminal endpoint child_blocked" in e for e in errors), errors)
 
     def test_terminal_key_not_a_child_terminal(self) -> None:
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        realization["terminal_map"]["do_work"] = "candidate_ready"
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        implementation["child_outcome_map"]["do_work"] = "candidate_ready"
         errors = self.validate(parent, copy.deepcopy(CHILD))
         self.assertTrue(any("does not name a child terminal endpoint" in e for e in errors), errors)
 
@@ -196,23 +196,23 @@ class CompositionValidationTest(unittest.TestCase):
         del parent["pave"]["nodes"]["port_model"]["outcomes"]["candidate_ready"]["required_evidence"]
         errors = self.validate(parent, copy.deepcopy(CHILD))
         self.assertTrue(
-            any("terminal-mapped outcome must declare required_evidence" in e for e in errors),
+            any("outcome named in child_outcome_map must declare required_evidence" in e for e in errors),
             errors,
         )
 
     def test_invalid_evidence_export(self) -> None:
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        realization["evidence_exports"] = [{"child": "ghost", "parent": "port_return"}]
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        implementation["evidence_exports"] = [{"child": "ghost", "parent": "port_return"}]
         errors = self.validate(parent, copy.deepcopy(CHILD))
         self.assertTrue(any("unknown child evidence 'ghost'" in e for e in errors), errors)
 
     def test_profile_reference_cycle(self) -> None:
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        realization["profile"] = "parent.pave.yaml"
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        implementation["graph_file"] = "parent.pave.yaml"
         errors = self.validate(parent)
-        self.assertTrue(any("profile reference cycle" in e for e in errors), errors)
+        self.assertTrue(any("graph_file reference cycle" in e for e in errors), errors)
 
     def test_depth_limit(self) -> None:
         grandchild = copy.deepcopy(CHILD)
@@ -230,11 +230,11 @@ class CompositionValidationTest(unittest.TestCase):
             "required": ["composition"],
             "composition": {
                 "version": "1.0.0",
-                "realizations": {
+                "implementations": {
                     "do_work": {
-                        "kind": "child_profile",
-                        "profile": "grandchild.pave.yaml",
-                        "terminal_map": {
+                        "kind": "child_graph_file",
+                        "graph_file": "grandchild.pave.yaml",
+                        "child_outcome_map": {
                             "child_accepted": "done",
                             "child_blocked": "stuck",
                         },
@@ -255,11 +255,11 @@ class CompositionValidationTest(unittest.TestCase):
             "required": ["composition"],
             "composition": {
                 "version": "1.0.0",
-                "realizations": {
+                "implementations": {
                     "do_work": {
-                        "kind": "child_profile",
-                        "profile": "middle.pave.yaml",
-                        "terminal_map": {
+                        "kind": "child_graph_file",
+                        "graph_file": "middle.pave.yaml",
+                        "child_outcome_map": {
                             "child_accepted": "done",
                             "child_blocked": "stuck",
                         },
@@ -275,8 +275,8 @@ class CompositionValidationTest(unittest.TestCase):
 
     def test_delegated_effect_exceeds_parent_authority(self) -> None:
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        realization["delegated_effects"] = ["delete_repository"]
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        implementation["delegated_effects"] = ["delete_repository"]
         errors = self.validate(parent, copy.deepcopy(CHILD))
         self.assertTrue(
             any("effect delete_repository exceeds parent allowed_effects" in e for e in errors),
@@ -294,8 +294,8 @@ class CompositionValidationTest(unittest.TestCase):
 
     def test_realization_names_unknown_node(self) -> None:
         parent = copy.deepcopy(PARENT)
-        realizations = parent["pave"]["extensions"]["composition"]["realizations"]
-        realizations["ghost_node"] = realizations.pop("port_model")
+        implementations = parent["pave"]["extensions"]["composition"]["implementations"]
+        implementations["ghost_node"] = implementations.pop("port_model")
         errors = self.validate(parent, copy.deepcopy(CHILD))
         self.assertTrue(any("does not name a declared node" in e for e in errors), errors)
 
@@ -329,10 +329,10 @@ class CompositionValidationTest(unittest.TestCase):
         from validate_traceability import expected_rows
 
         parent = copy.deepcopy(PARENT)
-        realization = parent["pave"]["extensions"]["composition"]["realizations"]["port_model"]
-        realization["profile"] = "parent.pave.yaml"
+        implementation = parent["pave"]["extensions"]["composition"]["implementations"]["port_model"]
+        implementation["graph_file"] = "parent.pave.yaml"
         parent_path = self.write("parent.pave.yaml", parent)
-        with self.assertRaisesRegex(ValueError, "profile reference cycle"):
+        with self.assertRaisesRegex(ValueError, "graph_file reference cycle"):
             expected_rows(parent["pave"], parent_path)
 
     def test_traceability_expects_qualified_child_rows(self) -> None:
@@ -342,16 +342,16 @@ class CompositionValidationTest(unittest.TestCase):
         parent = copy.deepcopy(PARENT)
         parent_path = self.write("parent.pave.yaml", parent)
         expected = expected_rows(parent["pave"], parent_path)
-        self.assertIn(("realization", "port_model"), expected)
+        self.assertIn(("implementation", "port_model"), expected)
         self.assertIn(("node", "port_model/do_work"), expected)
         self.assertIn(("contract", "port_model/state"), expected)
 
     def test_invalid_child_profile_fails_parent(self) -> None:
         child = copy.deepcopy(CHILD)
-        del child["pave"]["control_endpoints"]["child_blocked"]
+        del child["pave"]["control_nodes"]["child_blocked"]
         child["pave"]["edges"] = [{"from": "do_work.done", "to": "child_accepted"}]
         errors = self.validate(copy.deepcopy(PARENT), child)
-        self.assertTrue(any("profile[child.pave.yaml]" in e for e in errors), errors)
+        self.assertTrue(any("graph_file[child.pave.yaml]" in e for e in errors), errors)
 
 
 if __name__ == "__main__":

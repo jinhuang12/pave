@@ -1,0 +1,106 @@
+kind: graph
+semantic_diff: >-
+  Text-only fix of three lines the update-reviewer flagged as LOW notes on
+  2026-09-15 against revision 11. No node, outcome, edge, check, role, evidence
+  path, or state field changes; the skeleton is identical - 22 nodes, 68 edges,
+  68 outcomes, 17 checks, 24 evidence, 5 control nodes, state.required and every
+  role list equal, proved by parsing both graphs (/tmp/vt/rev12/make_v13.py).
+  Diff: 3 hunks, 5 added lines against 5 removed; 2336 lines stay 2336.
+
+  (1) design_campaign, check narrow_delta_scoped (line 285): "with the
+  kickoff-declared criteria digest unchanged" becomes "with the kickoff-declared
+  criteria unchanged (value-level read against the kickoff record)". No digest
+  of the registration record exists anywhere - run-state comparator_registrations
+  holds artifact and committed_at only, and references/artifact-layout.md 4.5
+  pins the record as subject plus timestamp, write-once. The check's own last
+  sentence already demands the value-level read; the new words name the read the
+  check already requires. Same meaning: a narrow repair must not rewrite the
+  criteria. Revision 7 (revisions.yaml, the kept-digest list) kept this digest as
+  a write-once subject; this revision supersedes that keep-list entry for this
+  site because the digest was never stored - no schema field or record holds it.
+
+  (2) control_nodes.run_paused (lines 2215-2216): the sentence "A run that
+  closes in this condition records terminal classification incomplete." is
+  removed. Revision 10 renamed terminal_classification to final_status and
+  missed this copy. No enum value fits: schemas/run-state.schema.json
+  final_status.status allows accepted, blocked, closed_unaccepted, null, and its
+  description says status mirrors the terminal_status values the graph's control
+  nodes declare and is null while the run is paused; incomplete is a pave-spec
+  9.13 status that no control node of this graph declares; closed_unaccepted
+  belongs to run_aborted and requires the user's verbatim reason; blocked means
+  no declared route remains, and a pause has one - resume. A pause node closes
+  nothing (pave-spec control-node table: suspend the run and preserve resumable
+  state), and the graph declares no edge from run_paused to a terminal, so the
+  sentence was prose handling an undeclared route (evolution contract rule 2).
+  The duty it hinted at - a walked-away run must not stay active - already lives
+  in skills/vllm-neuron-parity/SKILL.md ("If you walk away from a run, set the
+  final status or remove the state"). Cutting the sentence removes the phantom
+  value and adds nothing. If the user later wants abandoned runs recorded as
+  such, that is a graph-plus-schema change (a terminal node with terminal_status
+  incomplete and the matching enum value), not a text fix.
+
+  (3) prepare_host, outcome host_ready (line 1514): "capacity is settled per job
+  by its job lease, never here" becomes "capacity is decided per job by its job
+  lease, never here". The same outcome text two lines above (workflow.pave.yaml:1511)
+  already says "decided by the lease record"; one verb for one idea. Same meaning.
+
+  Every copy: one release-layer copy existed - skills/vllm-neuron-parity/SKILL.md:170
+  said "run_paused (resumable; a run that closes here records final status
+  incomplete)"; it is corrected to "run_paused (resumable)" in 1.5.8 alongside
+  this revision, the package's precedent (revision 7: release-layer copies
+  corrected in the release, the revision is the graph copy). Outside that line,
+  history/, and the append-only revisions.yaml, the three old wordings occur
+  nowhere else - references, schemas, hooks, tests, and the Codex port searched.
+  Usage evidence: the predecessors'
+  usage records (v10 usage read - 291 lease records, 0 acquire-seat traversals)
+  were answered by revision 11; this revision changes no seat and the records
+  ask for nothing more. Layer test (pave-spec 2.1): description text of one
+  check, one outcome, and one control node - kind graph; no runtime binding
+  touched.
+user_only_changes: none
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 12 (graph, text only): three wording fixes from the 2026-09-15 review
+  of revision 11. The narrow-repair check now reads the kickoff criteria at value
+  level instead of naming a digest that no record stores; run_paused no longer
+  says a paused run records "terminal classification incomplete", a value the
+  run-state final_status field cannot hold - the pause node preserves resumable
+  state and the lead skill carries the walk-away duty; host_ready says capacity
+  is decided, not settled, per job lease. No node, outcome, edge, check, role,
+  evidence path, or state field changes.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index ead0468..82d22fc 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -282,8 +282,9 @@ pave:
+         findings never enter this classification - the lead applies them as direct
+         edits, per review_campaign_design) name only increment-plan
+         text, design-record, or registration surfaces, with the kickoff-declared
+-        criteria digest unchanged and the screen inputs (pin, feasibility, and
+-        progress facts) untouched since the current design_entry_id was minted -
++        criteria unchanged (value-level read against the kickoff record) and the
++        screen inputs (pin, feasibility, and progress facts) untouched since the
++        current design_entry_id was minted -
+         and does no standing material finding repeat a prior narrow round's finding fingerprint
+         (same node, surface, and claim) without a gap-closing artifact produced
+         since that round? Recurrence fails this check - the full round owns it, where
+@@ -1511,7 +1512,7 @@ pave:
+             path with all three verification probes passed - decided by the lease
+             record, the identity-probe transcript, and the probe artifacts in the
+             attempt log, never by this node's assertion. Other campaigns may hold the
+-            same host; capacity is settled per job by its job lease, never here.
++            same host; capacity is decided per job by its job lease, never here.
+           required_evidence:
+           - hardware_attempt_log
+         no_host_available:
+@@ -2212,8 +2213,7 @@ pave:
+       kind: pause
+       meaning: The user pauses, a required input, source, or hardware capability
+         is unavailable, or intake costing stalls and awaits user direction; resumable
+-        state preserved. A run that closes in this condition records terminal
+-        classification incomplete.
++        state preserved.
+       resumable: true
+     run_blocked:
+       kind: terminal

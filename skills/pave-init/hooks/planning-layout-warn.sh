@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # planning-layout-warn -- PostToolUse (Write|Edit), observing
-# (rung: socratic reinjection; always exit 0).
+# (level: socratic reminder; always exit 0).
 #
 # The planning workspace's layout rules (references/planning-layout.md) are
-# followed until their prose leaves the context window. This hook re-injects
-# them at the moment they are broken: when a write lands under the active
+# followed until their prose leaves the context window. This hook reminds
+# them at the moment they are broken: when a write applies under the active
 # run's planning/ directory at a path matching no allowed pattern, when a
-# subagent writes a lead-owned file (frontier.yaml or root-contract.md), or
+# subagent writes a lead-owned file (planning-queue.yaml or root-contract.md), or
 # when a draft's written content mints a lead-owned conflict id (c<N>). It
 # warns via non-blocking additionalContext and never blocks: layout drift is
-# detectable and cheap to repair, so an observing rung is sufficient --
+# detectable and cheap to repair, so an observing level is sufficient --
 # content checks beyond the c<N> heuristic belong to
-# validate_run_state.py --frontier.
+# validate_run_state.py --planning-queue.
 #
 # Registered in the plugin's hooks/hooks.json, not the skill's frontmatter: a
 # skill-frontmatter hook fires only for the agent that invoked the skill and
@@ -74,7 +74,7 @@ except Exception:
 # workspace). Same gate as the stop check and the staleness reminder.
 try:
     with open(state_path, encoding="utf-8") as handle:
-        terminal = (json.load(handle) or {}).get("terminal_classification")
+        terminal = (json.load(handle) or {}).get("final_status")
 except Exception:
     terminal = None  # unparsable state is validate_run_state.py business
 if isinstance(terminal, dict) and terminal.get("status"):
@@ -115,7 +115,7 @@ is_subagent = bool(find(payload, "agent_type") not in ("", "main", "lead", "root
 warnings = []
 
 name = str(relative)
-if name in ("frontier.yaml", "root-contract.md"):
+if name in ("planning-queue.yaml", "root-contract.md"):
     if is_subagent:
         warnings.append(
             f"a subagent wrote planning/{name} - the lead is its only "
@@ -127,13 +127,13 @@ elif re.fullmatch(r"[A-Za-z0-9_.-]+\.draft\.pave\.yaml", name):
     if re.search(r"^\s*-?\s*id:\s*['\"]?c[0-9]+['\"]?\s*$", content, re.MULTILINE):
         warnings.append(
             "this draft mints a conflict id in the lead-owned c<N> namespace - "
-            "conflict ids are lead-assigned in frontier.yaml's register; report "
+            "conflict ids are lead-assigned in planning-queue.yaml's register; report "
             "the conflict without an id or use a node-local label (n1, e1, ...)"
         )
 else:
     warnings.append(
         f"'{name}' matches no allowed planning/ pattern (root-contract.md, "
-        "frontier.yaml, or *.draft.pave.yaml) - the layout and its write "
+        "planning-queue.yaml, or *.draft.pave.yaml) - the layout and its write "
         "ownership are in references/planning-layout.md"
     )
 
@@ -142,7 +142,7 @@ if not warnings:
 
 text = (
     f"{tag} {'; '.join(warnings)}. This is a warning, not a block: verify with "
-    "scripts/validate_run_state.py --frontier and repair the layout before "
+    "scripts/validate_run_state.py --planning-queue and repair the layout before "
     "routing on this write."
 )
 print(json.dumps({

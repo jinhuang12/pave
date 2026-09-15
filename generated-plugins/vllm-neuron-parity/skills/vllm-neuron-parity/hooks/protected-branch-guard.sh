@@ -2,7 +2,7 @@
 # P1 -- Never mutate protected base branches (release-0.24.0.1.1.0,
 # release-0.21.0.1.0.0, main, mainline) on the fork or upstream.
 #
-# Enforcement rung: BLOCKING PreToolUse hook (P1 in the prohibitions table
+# Enforcement level: BLOCKING PreToolUse hook (P1 in the prohibitions table
 # of skills/vllm-neuron-parity/SKILL.md).
 # Blocking is justified there because the violation is likely (every seat runs
 # git constantly), costly, irreversible before any gate, and precisely
@@ -12,7 +12,7 @@
 # retained custom agent, and one-shot sub-agent -- because P1 is a run-wide prohibition
 # with no legitimate actor.
 #
-# Exit semantics (doctrine: pave-init's references/lead-alignment-hooks.md "Hook
+# Exit semantics (doctrine: pave-init's references/lead-hooks.md "Hook
 # doctrine"): exit 2 with the reason on stderr refuses the call; exit 0
 # allows. FAIL OPEN everywhere -- missing interpreter, unreadable payload,
 # unparsable command -> silent exit 0. A guard must never strand a run.

@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # write_for_reader -- PostToolUse (Write|Edit), observing
-# (rung: reinjection; always exit 0).
+# (level: reminder; always exit 0).
 #
 # The write-for-the-reader duty (references/pave-spec.md section 8.5) is
 # followed until its prose leaves the context window, and agents then drift
 # back to identifier chains, inlined checker output, and telegraphic notes no
-# stranger can parse. This hook re-injects the duty at the moment it binds:
-# when any actor -- lead or subagent -- lands a markdown write inside the
+# stranger can parse. This hook reminds the duty at the moment it binds:
+# when any actor -- lead or subagent -- applies a markdown write inside the
 # active run workspace, outside the exempt working-state directories
 # (planning/, build/, exploration/), it reminds via non-blocking
 # additionalContext. Throttled: the 1st matching write in a session reminds,
 # then every Nth after (PAVE_INIT_READER_EVERY, default 3).
 #
-# It also carries the document budget's instrument (section 8.4): when the
+# It also carries the document budget's implementation (section 8.4): when the
 # written document is over its cap (PAVE_INIT_CAP_LINES, default 400;
 # PAVE_INIT_CAP_BYTES, default 61440) the reminder names the size and the
-# deletion-lap duty. That sentence bypasses the throttle once per session and
+# deletion-round duty. That sentence bypasses the throttle once per session and
 # file, so the first over-cap write is never silently swallowed.
 #
 # Registered in the plugin's hooks/hooks.json, not the skill's frontmatter: a
@@ -29,7 +29,7 @@
 # window holds.
 #
 # Decline path (hook runtime unavailable): degrades to the section 8.5
-# prose duty carried in SKILL.md and the role contracts.
+# plain-writing rule carried in SKILL.md and the role contracts.
 #
 # Interpreter: python3 by default; override with PAVE_INIT_PYTHON.
 
@@ -93,7 +93,7 @@ except Exception:
 # workspace). Same gate as the stop check and the staleness reminder.
 try:
     with open(state_path, encoding="utf-8") as handle:
-        terminal = (json.load(handle) or {}).get("terminal_classification")
+        terminal = (json.load(handle) or {}).get("final_status")
 except Exception:
     terminal = None  # unparsable state is validate_run_state.py business
 if isinstance(terminal, dict) and terminal.get("status"):
@@ -117,7 +117,7 @@ except Exception:
 if relative.parts and relative.parts[0] in ("planning", "build", "exploration"):
     sys.exit(0)
 
-# The document budget's instrument (section 8.4): measure what was written.
+# The document budget's implementation (section 8.4): measure what was written.
 try:
     size = target.stat().st_size
     with open(target, "rb") as handle:
@@ -165,8 +165,8 @@ if over_cap:
     text += (
         f" This document is {lines} lines and {-(-size // 1024)} KB, over its cap of "
         f"{cap_lines} lines / {cap_bytes // 1024} KB (references/pave-spec.md "
-        "section 8.4): before the next review lap, run a deletion lap - collapse "
-        "landed items to ledger rows, drop narration, and move frozen values to "
+        "section 8.4): before the next review round, run a trim round - collapse "
+        "finished items to plan rows, drop narration, and move frozen values to "
         "their evidence paths."
     )
 print(json.dumps({

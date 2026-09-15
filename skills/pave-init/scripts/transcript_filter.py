@@ -463,7 +463,7 @@ def process_transcript(path, start_line, max_content_len, label=""):
                 try:
                     record = json.loads(raw_line)
                 except json.JSONDecodeError:
-                    # Stop at the first parse error — likely the active write frontier.
+                    # Stop at the first parse error — likely the active write planning_queue.
                     skipped_parse += 1
                     break
 

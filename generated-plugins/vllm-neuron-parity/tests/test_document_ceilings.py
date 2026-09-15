@@ -2,7 +2,7 @@
 """Every prose document in this package has a pinned line ceiling.
 
 Why this test exists: the defects this workflow keeps finding in itself are
-accretion defects, and a cap that lives only in prose is not a cap. The rule
+growth defects, and a cap that lives only in prose is not a cap. The rule
 is the same one the run applies to its own artifacts
 (`references/artifact-layout.md` §4.12): growth is deliberate. So a release
 that grows a document past its ceiling must raise the ceiling here, in the
@@ -33,11 +33,11 @@ CEILINGS: dict[str, int] = {
     "README.md": 700,
     "workflow.pave.yaml": 3100,
     "skills/vllm-neuron-parity/SKILL.md": 500,
-    "references/artifact-layout.md": 550,
-    "references/collision-ranking.md": 160,
-    "references/measurement-pitfalls.md": 200,
-    "references/patch-mechanism-inventory.md": 180,
-    "references/toolchain-evidence-pitfalls.md": 400,
+    "references/artifact-layout.md": 440,
+    "references/collision-ranking.md": 50,
+    "references/measurement-pitfalls.md": 160,
+    "references/patch-mechanism-inventory.md": 70,
+    "references/toolchain-evidence-pitfalls.md": 270,
     "agents/adjudicator.md": 150,
     "agents/adversarial-reviewer.md": 240,
     "agents/implementer.md": 380,

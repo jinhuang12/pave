@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # goal-restate -- SessionStart (resume|compact) and SubagentStart, observing
-# (rung: socratic reinjection; always exit 0). Adapted from the pave-init
-# template (lead-alignment-hooks.md, hooks/goal_restate.sh).
+# (level: socratic reminder; always exit 0). Adapted from the pave-init
+# template (lead-hooks.md, hooks/goal_restate.sh).
 #
 # The moments an agent's context is rebuilt -- a session resumed, a context
 # compacted, a seat started from a brief -- are the moments the goal is most
@@ -40,14 +40,24 @@ command -v "$PY" >/dev/null 2>&1 || exit 0
 # --- run-state discovery (marker-authoritative; see stop-guard.sh) ----------
 FOUND_STATE=""
 FOUND_VIA=""
-for root in "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
-  [ -n "$root" ] || continue
-  marker="$root/.vllm-neuron-parity-run"
-  [ -f "$marker" ] || continue
-  candidate="$(head -n 1 "$marker" 2>/dev/null | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-  if [ -n "$candidate" ] && [ -f "$candidate" ]; then
-    FOUND_STATE="$candidate"; FOUND_VIA="marker"; break
-  fi
+# DECISIONS §1052/§1053 (2026-09-14): try each seed root and then every parent
+# up to / -- a seat whose cwd is a campaign subdirectory must still find the
+# marker at the project root.
+for seed in "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
+  [ -n "$seed" ] || continue
+  root="$seed"
+  while :; do
+    marker="$root/.vllm-neuron-parity-run"
+    if [ -f "$marker" ]; then
+      candidate="$(head -n 1 "$marker" 2>/dev/null | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+      if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+        FOUND_STATE="$candidate"; FOUND_VIA="marker"; break 2
+      fi
+    fi
+    parent="$(dirname "$root")"
+    [ "$parent" != "$root" ] || break
+    root="$parent"
+  done
 done
 [ "$FOUND_VIA" = "marker" ] || exit 0
 
@@ -87,11 +97,11 @@ if os.path.isfile(lead_file):
     if lead_id and session != lead_id:
         sys.exit(0)
 
-# A run that recorded a terminal classification is over, marker or not.
-terminal = state.get("terminal_classification")
-settled = bool(terminal.get("status") or terminal.get("classification")) \
+# A run that recorded a final status is over, marker or not.
+terminal = state.get("final_status")
+decided = bool(terminal.get("status") or terminal.get("classification")) \
     if isinstance(terminal, dict) else bool(terminal)
-if settled:
+if decided:
     sys.exit(0)
 
 # Goal records: run state (requested_targets, approved_campaigns) and each
@@ -120,7 +130,7 @@ if event == "SessionStart":
         "files win over memory; (2) the declared next step and the fewest after "
         "it; for each, what breaks if you skip it -- cut any with no answer (a "
         "seat for a fact knowable from disk, a re-gate of a recorded approval, a "
-        "lap with no new evidence). A needed cut the graph forbids is a graph "
+        "round with no new evidence). A needed cut the graph forbids is a graph "
         "defect: record it and route it to the pave-evolve seats (stop check, "
         "question 2)."
     )

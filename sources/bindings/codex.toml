@@ -18,7 +18,7 @@ description: >-
   planning-layout, and write-for-the-reader hooks. While a run is active,
   stop alignment blocks at most one stop in three.
 ---'''
-PRODUCT_INTRO = '''Turn a system or engineering process into a validated PAVE Graph Profile and a Codex plugin: a lead workflow skill plus custom role agents. Resolve `PAVE_PLUGIN_ROOT` as the absolute path three directories above this file (`<root>/codex/skills/pave-init/SKILL.md` → `<root>`) and resolve every `orchestration/...`, `references/...`, `schemas/...`, and `scripts/...` path below under `<PAVE_PLUGIN_ROOT>/skills/pave-init/`. The user's stated goal drives the run: clarify it until it is designable, then design. Treat the approved PAVE YAML as the workflow authority.'''
+PRODUCT_INTRO = '''Turn a system or engineering process into a validated PAVE graph file and a Codex plugin: a lead workflow skill plus custom role agents. Resolve `PAVE_PLUGIN_ROOT` as the absolute path three directories above this file (`<root>/codex/skills/pave-init/SKILL.md` → `<root>`) and resolve every `orchestration/...`, `references/...`, `schemas/...`, and `scripts/...` path below under `<PAVE_PLUGIN_ROOT>/skills/pave-init/`. The user's stated goal drives the run: clarify it until it is designable, then design. Treat the approved PAVE YAML as the workflow authority.'''
 MULTI_AGENT_CONTRACT = '''Every worker role is a named Codex custom agent installed from this plugin. Its TOML contains the complete role contract. Start every brief with `PAVE_PLUGIN_ROOT: <absolute plugin root>`.
 
 Codex V2 is required. Keep `features.multi_agent = true`; set `features.multi_agent_v2.enabled = true`, `agents.enabled = true`, and `agents.max_concurrent_threads_per_session = 16`. Remove `agents.max_depth`; V2 ignores it. This configuration provides 16 child slots and 17 total V2 slots including the root.
@@ -32,10 +32,10 @@ Before Stage 1, resolve the target project root and a fresh evidence directory, 
 PACKAGE_IDENTITY = '''The delivered unit is a Codex plugin — the native Codex shape of pave-init.'''
 MANIFEST_COMPONENT = '''the plugin manifest (`.codex-plugin/plugin.json`: name, description, version); the plugin name is `<workflow-name>` — one string serving as the manifest name, lead-skill directory, and custom-agent prefix;'''
 ROLE_COMPONENT = '''custom-agent TOML sources plus an explicit consented installer under the plugin root, when authority or context differs;'''
-HOOK_COMPONENT = '''hook scripts plus plugin-level `hooks/hooks.json` registration per the approved enforcement record;'''
+HOOK_COMPONENT = '''hook scripts plus plugin-level `hooks/hooks.json` registration per the approved enforcement table;'''
 ROLE_RUNTIME_BINDING = '''Roles map to named custom-agent TOML contracts only when they need distinct authority or context. The lead dispatches the mapped custom-agent name and pauses when it is unavailable; it never substitutes a generic worker. Installation is explicit and must not hide inside a hook.'''
 MODEL_RUNTIME_BINDING = '''Map the approved capability tier to Codex models explicitly: top-capability and strong-judgment roles use `gpt-5.6-sol`, while small, fast evidence roles use `gpt-5.6-terra`. A reviewer or adjudicator seat binds at or above the producer whose artifact it judges — a judge below its producer misses the findings that need the producer's whole reasoning to see. Preserve the approved reasoning effort in custom-agent TOML and each scripted invocation.'''
-HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement record. Register it in plugin-level `hooks/hooks.json`; a payload adapter may change wire format but not policy, actor scope, or enforcement strength.'''
+HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement table. Register it in plugin-level `hooks/hooks.json`; a payload adapter may change wire format but not policy, actor scope, or enforcement strength.'''
 SCRIPT_RUNTIME_BINDING = '''A subgraph with an approved `workflow_script` binding maps to one deterministic Python or TypeScript `codex_exec_script` per the native `skill-builder` contract, with lead-driven custom-agent dispatch as fallback when the script runtime is unavailable. In generated custom-agent TOML, map top-capability and strong-judgment roles to `gpt-5.6-sol` and small, fast evidence roles to `gpt-5.6-terra`. Preserve the approved reasoning effort exactly; use the highest supported effort only when the approved level is unavailable and record that fallback.'''
 DELIVERY_INSTALL_BULLET = '''- install or enable the Codex plugin, run its explicit custom-agent installer, review hooks through `/hooks`, then invoke `$<workflow-name>:<workflow-name>`; marketplace installation alone is incomplete while agents remain outside the manifest;'''
 SKILL_VALIDATION_BINDING = '''the `$skill-creator` quick validator'''
@@ -50,8 +50,8 @@ name: pave-evolve
 description: >-
   Revise a delivered PAVE workflow — pave-init included — from recorded defect
   and usage evidence: a workflow-updater drafts a successor patch, an
-  update-reviewer judges it, the user approves where the authority envelope
-  moved, and the lead lands it in the append-only revision ledger.
+  update-reviewer judges it, the user approves where the user-only changes
+  moved, and the lead applies it in the append-only revision log.
   Manual-only: use only after explicit $pave-init:pave-evolve invocation or
   selection through /skills, or when a PAVE lead routes here from a run paused
   on a defect in its own graph. Registers no hooks.

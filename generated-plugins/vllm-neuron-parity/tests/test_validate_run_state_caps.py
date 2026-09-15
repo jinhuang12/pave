@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the observing-rung length caps, whole-file warn, and path checks
+"""Tests for the observing-level length caps, whole-file warn, and path checks
 in scripts/validate_run_state.py (pave-spec section 8.1).
 
 Run from the plugin root:
@@ -50,7 +50,7 @@ MINIMAL = {
     "completed_outcomes": [],
     "evidence_references": {},
     "open_questions": [],
-    "terminal_classification": None,
+    "final_status": None,
     "scan_entry_id": None,
     "design_entry_id": None,
 }
@@ -286,7 +286,7 @@ class RecordedPaths(unittest.TestCase):
 
     def test_looks_like_path_heuristic(self):
         self.assertTrue(vrs.looks_like_path("artifacts/run/delta/report.md"))
-        self.assertTrue(vrs.looks_like_path("increments/scope-lap-040.md"))
+        self.assertTrue(vrs.looks_like_path("increments/scope-round-040.md"))
         self.assertTrue(vrs.looks_like_path("/abs/path/file.md"))
         self.assertFalse(vrs.looks_like_path("delta_report"))  # evidence key
         self.assertFalse(vrs.looks_like_path("see the design record / section 3"))  # prose
@@ -327,7 +327,7 @@ class RecordedPaths(unittest.TestCase):
                         "see the design record for details",  # prose -> skipped
                         "https://example.com/x/y",  # URL -> skipped
                         "artifacts/run/delta/",  # exists
-                        "increments/scope-lap-040.md",  # campaign-relative pointer -> warn
+                        "increments/scope-round-040.md",  # campaign-relative pointer -> warn
                     ],
                 }
             ]
@@ -342,7 +342,7 @@ class RecordedPaths(unittest.TestCase):
                 "WARN: <root>/evidence_references/records/1: recorded path resolves nowhere"
                 " (artifacts/run/missing-record.md) - fix the pointer or land the artifact",
                 "WARN: <root>/completed_outcomes/0/evidence/4: recorded path resolves nowhere"
-                " (increments/scope-lap-040.md) - fix the pointer or land the artifact",
+                " (increments/scope-round-040.md) - fix the pointer or land the artifact",
                 "WARN: <root>/open_questions/0/evidence/1: recorded path resolves nowhere"
                 " (artifacts/run/nope.md) - fix the pointer or land the artifact",
             }

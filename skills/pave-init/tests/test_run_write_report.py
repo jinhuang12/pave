@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-"""Regression tests for scripts/run_delta_census.py.
+"""Regression tests for scripts/run_write_report.py.
 
 Builds a tmp run tree: a fake run state, an audit checkpoint sidecar, a write
 log with two generations, a graph, a decisions file, a lead-log file and a memory
-dir; then asserts every output field of the census, the 15-line summary plus its
-excerpts, the numbered-artifact families, read-only write-log records, default
-discovery of the approvals inputs, hash-suffixed re-cuts against the strict
+dir; then asserts every output field of the write_report, the 15-line summary plus its
+excerpts, the numbered-artifact name_groups, read-only write-log records, default
+discovery of the approvals inputs, hash-suffixed retry copies against the strict
 `<stem>-rN.<ext>` sub-count, the top-40 bound on the two text scans, the no-sidecar
 case, the regex node reader, the read-only promise, and the 2 s budget on a
 10k-record log.
 
-The artifact names follow a real run: numbered (`039-grant-...md`), so the family
+The artifact names follow a real run: numbered (`039-grant-...md`), so the name_group
 is the token after the sequence number.
 
-Run: python3 skills/pave-init/tests/test_run_delta_census.py  (stdlib only)
+Run: python3 skills/pave-init/tests/test_run_write_report.py  (stdlib only)
 """
 
 from __future__ import annotations
@@ -30,9 +30,9 @@ from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS))
-SCRIPT = SCRIPTS / "run_delta_census.py"
+SCRIPT = SCRIPTS / "run_write_report.py"
 
-import run_delta_census as census_mod  # noqa: E402
+import run_write_report as report_mod  # noqa: E402
 
 CP_AT = "2026-09-10T10:00:00Z"
 BEFORE = "2026-09-10T09:00:00Z"
@@ -41,7 +41,7 @@ LATER = "2026-09-10T12:00:00Z"
 
 GRAPH_MAPPING = """pave:
   version: 0.3.0
-  name: census_fixture
+  name: report_fixture
   nodes:
     scope_next_increment:
       intent: execute
@@ -71,7 +71,7 @@ DECISIONS = """# Decisions
 Nothing about files here.
 
 ## §2 Build increments as scripts
-The lead cuts each build as `build-NNN.py` and re-cuts as build-NNN-r2.py.
+The lead cuts each build as `build-NNN.py` and retry copies as build-NNN-r2.py.
 Second line of the section.
 Third line of the section.
 Fourth line must not appear.
@@ -82,7 +82,7 @@ Every hardware run needs a grant file under leases/.
 
 LEAD_LOG = """§100 lane report
 §101 the reviewer caught a defect in build-017
-§102 fix landed in build-017-r2.py
+§102 fix applied in build-017-r2.py
 §103 unrelated
 §104 unrelated
 §105 unrelated
@@ -112,12 +112,12 @@ def rec(at: str, path: str, agent_type=None, tool="Write", written=None) -> str:
     return json.dumps(record)
 
 
-class CensusTree:
+class ReportTree:
     """One tmp run tree per test."""
 
     def __init__(self) -> None:
-        # resolve(): macOS puts tmp under a /var -> /private/var symlink; the census resolves --state
-        self.tmp = Path(tempfile.mkdtemp(prefix="census-")).resolve()
+        # resolve(): macOS puts tmp under a /var -> /private/var symlink; the write_report resolves --state
+        self.tmp = Path(tempfile.mkdtemp(prefix="write_report-")).resolve()
         self.ws = self.tmp / "artifacts"
         self.run = self.ws / "run"
         self.state = self.run / "run-state.json"
@@ -126,7 +126,7 @@ class CensusTree:
         self.memory = self.tmp / "memory"
         self.decisions = self.ws / "approvals" / "DECISIONS.md"
         self.log = self.ws / "approvals" / "lead-log.md"
-        # the locations the census discovers when no flag names them
+        # the locations the write_report discovers when no flag names them
         self.campaign_decisions = self.ws / "campaigns" / "c1" / "approvals" / "DECISIONS.md"
         self.campaign_log = self.ws / "campaigns" / "c1" / "approvals" / "lead-log.md"
 
@@ -174,19 +174,19 @@ class CensusTree:
         write(self.campaign_log, LEAD_LOG)
         write(self.memory / "old.md", "old")
         write(self.memory / "new.md", "new")
-        stale = census_mod.parse_at(BEFORE)
+        stale = report_mod.parse_at(BEFORE)
         os.utime(self.memory / "old.md", (stale, stale))
-        fresh = census_mod.parse_at(LATER)
+        fresh = report_mod.parse_at(LATER)
         os.utime(self.memory / "new.md", (fresh, fresh))
 
     def args(self, *extra: str) -> list[str]:
-        return ["--state", str(self.state), "--evolution-root", str(self.evo),
+        return ["--state", str(self.state), "--revision-folder", str(self.evo),
                 "--memory-dir", str(self.memory), "--log", str(self.log),
                 "--decisions", str(self.decisions), *extra]
 
     def bare(self, *extra: str) -> list[str]:
         """No --log / --decisions unless the caller adds them."""
-        return ["--state", str(self.state), "--evolution-root", str(self.evo), *extra]
+        return ["--state", str(self.state), "--revision-folder", str(self.evo), *extra]
 
     def listing(self) -> list[tuple[str, int, float]]:
         out = []
@@ -205,7 +205,7 @@ def run_cli(args: list[str]) -> subprocess.CompletedProcess:
 class TestCensusJson(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.tree = CensusTree()
+        cls.tree = ReportTree()
         cls.before = cls.tree.listing()
         proc = run_cli(cls.tree.args("--json", "--since-checkpoint"))
         assert proc.returncode == 0, proc.stderr
@@ -241,8 +241,8 @@ class TestCensusJson(unittest.TestCase):
         self.assertEqual(fs["distinct"], 7)          # build-017-r2.py logged twice
         self.assertEqual(fs["existing"], 5)          # 118-plan-block-proposal.md and /tmp/stray.txt absent
         self.assertEqual(fs["read_only"], 0)         # no record says written: false
-        # numbered names: the family is the token after the sequence number
-        self.assertEqual(fs["by_family"],
+        # numbered names: the name_group is the token after the sequence number
+        self.assertEqual(fs["by_name_group"],
                          {"build": 2, "check": 1, "grant": 1, "note": 1, "plan": 1, "stray": 1})
         self.assertEqual(fs["by_agent_type"],
                          {"lead": 5, "pave-init:implementer": 1, "vllm-neuron-parity:implementer": 1})
@@ -250,10 +250,10 @@ class TestCensusJson(unittest.TestCase):
         self.assertEqual(fs["by_root"][str(self.tree.external)], 1)
         self.assertEqual(fs["by_root"]["/tmp"], 1)
         self.assertEqual(
-            [os.path.basename(p) for p in fs["lap_suffixed"]],
+            [os.path.basename(p) for p in fs["round_suffixed"]],
             ["build-017-r2.py", "check-043-r3-20260910T120000Z.out"],
         )
-        self.assertEqual(fs["lap_suffixed_strict"], 1)  # only build-017-r2.py is <stem>-rN.<ext>
+        self.assertEqual(fs["round_suffix_strict"], 1)  # only build-017-r2.py is <stem>-rN.<ext>
 
     def test_bytes_since(self):
         # build-017.py 100 + build-017-r2.py 200 + check 50 + grant 10 + note 7;
@@ -291,7 +291,7 @@ class TestCensusJson(unittest.TestCase):
         cs = self.out["creating_sections"]
         self.assertEqual(cs["build"], [
             "## §2 Build increments as scripts",
-            "The lead cuts each build as `build-NNN.py` and re-cuts as build-NNN-r2.py.",
+            "The lead cuts each build as `build-NNN.py` and retry copies as build-NNN-r2.py.",
             "Second line of the section.",
             "Third line of the section.",
         ])
@@ -305,7 +305,7 @@ class TestCensusJson(unittest.TestCase):
 
 class TestCensusSummaryAndVariants(unittest.TestCase):
     def setUp(self) -> None:
-        self.tree = CensusTree()
+        self.tree = ReportTree()
 
     def test_plain_summary_15_lines_exit_0(self):
         proc = run_cli(self.tree.args())
@@ -313,7 +313,7 @@ class TestCensusSummaryAndVariants(unittest.TestCase):
         lines = proc.stdout.rstrip("\n").splitlines()
         summary_lines = [line for line in lines if not line.startswith("  ")]
         self.assertLessEqual(len(summary_lines), 15)
-        self.assertTrue(lines[0].startswith("census: "))
+        self.assertTrue(lines[0].startswith("write_report: "))
         self.assertIn("cp-20260910T100000Z", proc.stdout)
         self.assertIn("declared outcomes since: 3 of 5", proc.stdout)
         self.assertIn("bytes since: 367", proc.stdout)
@@ -326,7 +326,7 @@ class TestCensusSummaryAndVariants(unittest.TestCase):
         excerpt = [line for line in proc.stdout.splitlines() if line.startswith("  ")]
         self.assertEqual(excerpt[0],
                          "  build: ## §2 Build increments as scripts | The lead cuts each build as"
-                         " `build-NNN.py` and re-cuts as build-NNN-r2.py.")
+                         " `build-NNN.py` and retry copies as build-NNN-r2.py.")
         self.assertEqual(excerpt[1], "  grant: ## §3 Grants | Every hardware run needs a grant file under leases/.")
         self.assertEqual(excerpt[-1], "  cited-by: build=2, grant=2")
         self.assertLessEqual(len(excerpt), 9)
@@ -357,7 +357,7 @@ class TestCensusSummaryAndVariants(unittest.TestCase):
         self.assertEqual([line for line in plain.stdout.splitlines() if line.startswith("  ")], [])
 
     def test_read_only_records_are_excluded(self):
-        """`written: false` means the hook stat'ed the path and no write landed: the
+        """`written: false` means the hook stat'ed the path and no write applied: the
         record is reported as read_only and counted nowhere else."""
         probe = self.tree.ws / "campaigns" / "increments" / "probe-900.py"
         write(probe, "p" * 400)
@@ -375,7 +375,7 @@ class TestCensusSummaryAndVariants(unittest.TestCase):
         self.assertEqual(fs["read_only"], 2)
         self.assertEqual(fs["records"], 9)   # the 8 counted before plus the written: true one
         self.assertEqual(fs["distinct"], 7)  # the grant lease was already logged
-        self.assertNotIn("probe", fs["by_family"])
+        self.assertNotIn("probe", fs["by_name_group"])
         self.assertEqual(fs["by_agent_type"].get("pave-init:implementer"), 1)
         self.assertEqual(json.loads(proc.stdout)["bytes_since"], 367)  # probe-900.py's 400 bytes never count
 
@@ -409,10 +409,10 @@ class TestCensusSummaryAndVariants(unittest.TestCase):
 
         builtins.__import__ = no_yaml
         try:
-            ids, src = census_mod.declared_nodes(self.tree.evo / "workflow.pave.yaml")
+            ids, src = report_mod.declared_nodes(self.tree.evo / "workflow.pave.yaml")
             alt = self.tree.tmp / "alt.pave.yaml"
             write(alt, GRAPH_LIST)
-            ids2, src2 = census_mod.declared_nodes(alt)
+            ids2, src2 = report_mod.declared_nodes(alt)
         finally:
             builtins.__import__ = real_import
         self.assertEqual((src, src2), ("regex", "regex"))
@@ -426,37 +426,37 @@ class TestCensusSummaryAndVariants(unittest.TestCase):
         self.assertEqual(out["outcomes"]["since"], 0)
 
     def test_helpers(self):
-        self.assertEqual(census_mod.family_of("/x/build-017-r2.py"), "build")
-        self.assertEqual(census_mod.family_of("/x/run-state.json"), "run")
-        self.assertEqual(census_mod.family_of("/x/README.md"), "README")
-        self.assertEqual(census_mod.family_of("/x/.hidden-file"), ".hidden")
-        # numbered artifacts: the sequence number is a counter, not a family
-        self.assertEqual(census_mod.family_of("/x/039-grant-trn2-cache-warm.md"), "grant")
-        self.assertEqual(census_mod.family_of("/x/070-release-notes.md"), "release")
-        self.assertEqual(census_mod.family_of("/x/118-plan-block-proposal-r2.md"), "plan")
-        self.assertEqual(census_mod.family_of("/x/12a-grant-followup.md"), "grant")
-        self.assertEqual(census_mod.family_of("/x/007.txt"), "007")
-        self.assertTrue(census_mod.counted({"path": "p"}))
-        self.assertTrue(census_mod.counted({"path": "p", "written": True}))
-        self.assertFalse(census_mod.counted({"path": "p", "written": False}))
-        self.assertTrue(census_mod.is_lap_suffixed("a/build-1-r2.py"))
-        self.assertTrue(census_mod.is_lap_suffixed("a/check-r10-20260910T120000Z.out"))
-        self.assertTrue(census_mod.is_lap_suffixed("a/check-r10-20260910.tar.gz"))
-        # a hash or a word after the lap is still a re-cut
-        self.assertTrue(census_mod.is_lap_suffixed("a/launch-113-r5-a5b82c73.sh"))
-        self.assertTrue(census_mod.is_lap_suffixed("a/plan-block-r2-final.md"))
-        self.assertTrue(census_mod.is_lap_suffixed("a/build-017-r2"))
-        self.assertFalse(census_mod.is_lap_suffixed("a/build-r2x.py"))
-        self.assertFalse(census_mod.is_lap_suffixed("a/order-r.py"))
-        # strict: the <stem>-rN.<ext> form the runtime no-recut guard matches
-        self.assertTrue(census_mod.is_lap_strict("a/build-017-r2.py"))
-        self.assertFalse(census_mod.is_lap_strict("a/launch-113-r5-a5b82c73.sh"))
-        self.assertFalse(census_mod.is_lap_strict("a/plan-block-r2-final.md"))
-        self.assertFalse(census_mod.is_lap_strict("a/check-r10-20260910.tar.gz"))
-        self.assertFalse(census_mod.is_lap_strict("a/build-017-r2"))
+        self.assertEqual(report_mod.name_group_of("/x/build-017-r2.py"), "build")
+        self.assertEqual(report_mod.name_group_of("/x/run-state.json"), "run")
+        self.assertEqual(report_mod.name_group_of("/x/README.md"), "README")
+        self.assertEqual(report_mod.name_group_of("/x/.hidden-file"), ".hidden")
+        # numbered artifacts: the sequence number is a counter, not a name_group
+        self.assertEqual(report_mod.name_group_of("/x/039-grant-trn2-cache-warm.md"), "grant")
+        self.assertEqual(report_mod.name_group_of("/x/070-release-notes.md"), "release")
+        self.assertEqual(report_mod.name_group_of("/x/118-plan-block-proposal-r2.md"), "plan")
+        self.assertEqual(report_mod.name_group_of("/x/12a-grant-followup.md"), "grant")
+        self.assertEqual(report_mod.name_group_of("/x/007.txt"), "007")
+        self.assertTrue(report_mod.counted({"path": "p"}))
+        self.assertTrue(report_mod.counted({"path": "p", "written": True}))
+        self.assertFalse(report_mod.counted({"path": "p", "written": False}))
+        self.assertTrue(report_mod.is_retry_suffixed("a/build-1-r2.py"))
+        self.assertTrue(report_mod.is_retry_suffixed("a/check-r10-20260910T120000Z.out"))
+        self.assertTrue(report_mod.is_retry_suffixed("a/check-r10-20260910.tar.gz"))
+        # a hash or a word after the round is still a retry copy
+        self.assertTrue(report_mod.is_retry_suffixed("a/launch-113-r5-a5b82c73.sh"))
+        self.assertTrue(report_mod.is_retry_suffixed("a/plan-block-r2-final.md"))
+        self.assertTrue(report_mod.is_retry_suffixed("a/build-017-r2"))
+        self.assertFalse(report_mod.is_retry_suffixed("a/build-r2x.py"))
+        self.assertFalse(report_mod.is_retry_suffixed("a/order-r.py"))
+        # strict: the <stem>-rN.<ext> form the runtime no-retry-copy guard matches
+        self.assertTrue(report_mod.is_retry_strict("a/build-017-r2.py"))
+        self.assertFalse(report_mod.is_retry_strict("a/launch-113-r5-a5b82c73.sh"))
+        self.assertFalse(report_mod.is_retry_strict("a/plan-block-r2-final.md"))
+        self.assertFalse(report_mod.is_retry_strict("a/check-r10-20260910.tar.gz"))
+        self.assertFalse(report_mod.is_retry_strict("a/build-017-r2"))
 
     def test_hash_suffixed_recut_counts_as_a_lap_but_not_as_strict(self):
-        """A launcher re-cut carries the source hash after the lap; it is still a re-cut."""
+        """A launcher retry copy carries the source hash after the round; it is still a retry copy."""
         launcher = self.tree.ws / "campaigns" / "increments" / "launch-113-r5-a5b82c73.sh"
         write(launcher, "l" * 20)
         log = Path(str(self.tree.state) + ".write-log.jsonl")
@@ -464,13 +464,13 @@ class TestCensusSummaryAndVariants(unittest.TestCase):
         lines.append(rec(LATER, str(launcher), None, "Bash"))
         write(log, "\n".join(lines) + "\n")
         fs = json.loads(run_cli(self.tree.args("--json")).stdout)["files_since"]
-        self.assertIn("launch-113-r5-a5b82c73.sh", [os.path.basename(p) for p in fs["lap_suffixed"]])
-        self.assertEqual(len(fs["lap_suffixed"]), 3)
-        self.assertEqual(fs["lap_suffixed_strict"], 1)
+        self.assertIn("launch-113-r5-a5b82c73.sh", [os.path.basename(p) for p in fs["round_suffixed"]])
+        self.assertEqual(len(fs["round_suffixed"]), 3)
+        self.assertEqual(fs["round_suffix_strict"], 1)
 
     def test_only_the_top_families_are_scanned_for_text(self):
-        """The cited-by and creating-section scans are per family, so they stop at the
-        top 40 by count: a family ranked below that is never looked up in either file."""
+        """The cited-by and creating-section scans are per name_group, so they stop at the
+        top 40 by count: a name_group ranked below that is never looked up in either file."""
         lines = []
         for index in range(150):
             for copy_index in range(2 if index < 40 else 1):
@@ -482,7 +482,7 @@ class TestCensusSummaryAndVariants(unittest.TestCase):
         write(self.tree.decisions,
               f"## §1 About {inside}\nThe first line about it.\n\n## §2 About {outside}\nAnd about it.\n")
         out = json.loads(run_cli(self.tree.args("--json")).stdout)
-        self.assertEqual(len(out["files_since"]["by_family"]), 151)  # + build from generation 1
+        self.assertEqual(len(out["files_since"]["by_name_group"]), 151)  # + build from generation 1
         self.assertIn(inside, out["cited_by"])
         self.assertNotIn(outside, out["cited_by"])
         self.assertIn(inside, out["creating_sections"])
@@ -504,8 +504,8 @@ class TestCensusSummaryAndVariants(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         out = json.loads(proc.stdout)
         self.assertEqual(out["files_since"]["records"], 10_001)  # + build-017.py from generation 1
-        self.assertEqual(len(out["files_since"]["by_family"]), 51)
-        self.assertLess(elapsed, 2.0, f"census took {elapsed:.2f}s")
+        self.assertEqual(len(out["files_since"]["by_name_group"]), 51)
+        self.assertLess(elapsed, 2.0, f"write_report took {elapsed:.2f}s")
 
 
 if __name__ == "__main__":

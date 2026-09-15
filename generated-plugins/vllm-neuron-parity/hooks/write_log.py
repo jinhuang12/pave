@@ -5,10 +5,10 @@ Appends to `<state>.write-log.jsonl` beside the run state:
   {"at": "...Z", "session_id": "...", "agent_id": "...|null",
    "agent_type": "...|null", "tool": "Bash|Write|Edit", "path": "/abs/path"}
 For Write/Edit/MultiEdit the record names `tool_input.file_path`; for Bash it
-names every argv token that is a path (hooks/runtime_bindings.py
+names every argv token that is a path (hooks/write_limits.py
 `bash_path_tokens`: shlex-split, `>`/`>>` prefixes stripped, absolute, or
 resolving against the payload cwd to an existing path or one whose parent
-exists). The stop guard's audit branch and the census read this log; the
+exists). The stop guard's audit check and the write_report read this log; the
 router denies the lead writing it.
 
 Rotation: when the log exceeds 20 MB it is renamed to `.write-log.1.jsonl`
@@ -25,7 +25,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import runtime_bindings as rb  # noqa: E402
+import write_limits as rb  # noqa: E402
 
 
 def _rotate(log: Path) -> None:

@@ -13,7 +13,7 @@
 
 Start the gate's `pave-material-reviewer` through the active harness mechanism and retain that exact reviewer identity. Its scope, materiality, and severity contract is its native role prompt — the brief carries only the approved goal, the gate's artifacts, and the installation path. Continue the same reviewer through repair rounds so it keeps its earlier findings and repair history in context. Use a fresh reviewer at the final skill gate. Retire each reviewer when its gate closes.
 
-The plan gate opens early: start its reviewer when the first planning boundary closes, not when the bundle is assembled. Send each closed boundary to that retained reviewer through the active harness continuation mechanism as one unit — frozen parent contract, child graph, uncertainty ledger, ladder justification, contribution statement — so cross-boundary conflicts surface before deeper elaboration, and the reviewer arrives at the whole-bundle round with every boundary already in context. A boundary marked `stale` by a skeleton resynchronization reopens only that boundary's review; per the reviewer's reuse rule, unchanged boundary judgments stand. The whole-bundle review is the same gate, same reviewer, continued.
+The plan gate opens early: start its reviewer when the first planning node plan closes, not when the bundle is assembled. Send each closed node plan to that retained reviewer through the active harness continuation mechanism as one unit — frozen parent contract, child graph, uncertainty list, ladder justification, contribution statement — so cross-node plan conflicts surface before deeper elaboration, and the reviewer arrives at the whole-bundle round with every node plan already in context. A node plan marked `stale` by a root plan resynchronization reopens only that node plan's review; per the reviewer's reuse rule, unchanged node plan judgments stand. The whole-bundle review is the same gate, same reviewer, continued.
 
 If the native `pave-material-reviewer` role is unavailable, the plugin is not installed correctly — pause. Do not substitute a default worker and claim the adversarial gate passed.
 
@@ -27,12 +27,12 @@ Plan-review scope:
 - evidence can support the claims assigned to it;
 - recovery and completion do not fail open;
 - package plan can implement the graph without hidden policy;
-- the enforcement record sizes each prohibition and each seat honestly — neither prose for a violation that outlives its prose, nor a blocking hook without misfire-proof detection, nor a seat on a node a lead-run check settles;
-- the revision record matches the workflow's real lifetime — neither a ledger on a one-session workflow nor a multi-run workflow without one, and `landing: envelope` only where the plan states the envelope it will check;
+- the enforcement table sizes each prohibition and each seat honestly — neither prose for a violation that outlives its prose, nor a blocking hook without misfire-proof detection, nor a seat on a node a lead-run check decides;
+- the revision record matches the workflow's real lifetime — neither a revision log on a one-session workflow nor a multi-run workflow without one, and `approval: when_needed` only where the plan states the user-only changes it will check;
 - artifact conventions hold the document budget (`references/pave-spec.md` §8.4), every living document with a declared cap;
 - the plan approval brief (`reviews/plan-brief.md`) matches the bundle it renders, per the rendered-view rule in `references/approval-briefs.md`: the brief is what the user actually reads at the gate.
 
-When the plan composes nodes into child profiles, structure the brief into decomposition-boundary units — for each composed node: the parent contract, the child graph, the uncertainty ledger, the ladder justification, and the contribution statement, reviewed together as one unit. The same single reviewer covers all boundaries in one gate; never spawn per-node reviewers. Instruct the reviewer to detect findings at the nearest sub-goal but rate severity against the approved root goal, and to treat an unfalsifiable decomposition justification as a finding.
+When the plan composes nodes into child graph files, structure the brief into decomposition-node plan units — for each composed node: the parent contract, the child graph, the uncertainty list, the ladder justification, and the contribution statement, reviewed together as one unit. The same single reviewer covers all node plans in one gate; never spawn per-node reviewers. Instruct the reviewer to detect findings at the nearest sub-goal but rate severity against the approved root goal, and to treat an unfalsifiable decomposition justification as a finding.
 
 Final-review scope:
 
@@ -42,7 +42,7 @@ Final-review scope:
 - no contradiction between lead, roles, orchestration, schemas, and scripts;
 - no silent topology or acceptance changes;
 - helpers enforce only the mechanical rules they claim;
-- the generated lead carries the document budget (`references/pave-spec.md` §8.4) with its instrument: declared caps, the reviewer's per-round size line, section-scoped repair briefs;
+- the generated lead carries the document budget (`references/pave-spec.md` §8.4) with its implementation: declared caps, the reviewer's per-round size line, section-scoped repair briefs;
 - the delivered `README.md` and `VERSION` match the shipped package per `references/approval-briefs.md` — a rendered-view claim the package does not support, a workflow visual that shows undeclared nodes or edges, or a README section that restates a contract as new authority instead of linking it, is a finding.
 
 The lead reads every cited location and applies the same goal test the reviewer was given: does this finding prevent or materially impair the approved goal? Classify each finding:
@@ -51,7 +51,7 @@ The lead reads every cited location and applies the same goal test the reviewer 
 - `DEFER`: verified but orthogonal to the goal or outside the approved package.
 - `FALSE_POSITIVE`: unsupported, preference-only, speculative, or based on an unapproved requirement.
 
-Before choosing `FIX`, confirm that the failure is plausible, affects an approved requirement, and is not already caught by a later required gate before harm — the laps that build on a failure are harm (`references/pave-spec.md` §4.11). Do not add a new subsystem for theoretical hardening.
+Before choosing `FIX`, confirm that the failure is plausible, affects an approved requirement, and is not already caught by a later required gate before harm — the rounds that build on a failure are harm (`references/pave-spec.md` §4.11). Do not add a new subsystem for theoretical hardening.
 
 Only verified `BLOCKING` or `HIGH` findings stop the gate. Record review rounds under `reviews/`.
 
@@ -60,9 +60,9 @@ Only verified `BLOCKING` or `HIGH` findings stop the gate. Record review rounds 
 After the plan reviewer passes, present the reviewer-verified plan approval brief (`reviews/plan-brief.md`, rendered per `references/approval-briefs.md`) in full in the conversation. The user decides from the brief and drills into raw bundle artifacts only through its appendix links. The brief's sections carry the decisions the user is making:
 
 - intro: fitness verdict or override, and what approving authorizes;
-- workflow summary and visual: the at-a-glance stage diagram, then important topology choices in one faithful Mermaid diagram per profile;
+- workflow summary and visual: the at-a-glance stage diagram, then important topology choices in one faithful Mermaid diagram per graph file;
 - file structure: the generated package tree;
-- agents and hooks tables: authority rules, enforcement record, runtime bindings (including any `workflow_script` recommendation);
+- agents and hooks tables: authority rules, enforcement table, run setup (including any `workflow_script` recommendation);
 - tradeoffs and open decisions: extensions, runtime dependencies, known evidence gaps.
 
 Then ask one bounded approval question through the active harness mechanism. Its approval option must state that it approves the complete bundle. A request for changes returns to the narrowest affected planning node, then repeats review — re-render the brief after the repair, never patch it by hand.
@@ -74,7 +74,7 @@ After approval, derive build tasks from `skill-package-plan.md`.
 Safe fan-out rules:
 
 - one builder owns one non-overlapping file set;
-- a child profile and its realization mapping belong to one builder, never split;
+- a child graph file and its implementation mapping belong to one builder, never split;
 - shared files have one writer;
 - every task lists graph IDs and output paths;
 - builders receive the approved YAML and only necessary context;
@@ -85,9 +85,9 @@ Dispatch all `skill-builder` workers together through the active harness role me
 
 Generated packages use the active harness package shape from the lead and `skill-builder` role contracts: a native manifest, a lead skill under `skills/<workflow-name>/`, native role definitions when authority or context differs, explicit user gates, and retained-reviewer continuity where the graph requires them. The plugin name, lead-skill directory, and role prefix use one `<workflow-name>`, so separate builders cannot diverge. Every generated role `description` carries its dispatched by the lead only warning and rejects implicit triggering. For a manual-only generated skill, put the explicit-invocation prohibition in its `description`.
 
-When the approved enforcement record plans hooks, the package ships each hook script under the lead skill's `skills/<workflow-name>/hooks/` and registers it at the recorded native placement and actor scope, per the hook doctrine in `references/lead-alignment-hooks.md` §Hook doctrine. Declare the hook runtime dependency through the active harness compatibility metadata and say in the generated skill's `description` that it registers hooks — a skill's contents must not surprise the user who invokes it. Never register anything silently.
+When the approved enforcement table plans hooks, the package ships each hook script under the lead skill's `skills/<workflow-name>/hooks/` and registers it at the recorded native placement and actor scope, per the hook doctrine in `references/lead-hooks.md` §Hook doctrine. Declare the hook runtime dependency through the active harness compatibility metadata and say in the generated skill's `description` that it registers hooks — a skill's contents must not surprise the user who invokes it. Never register anything silently.
 
-A generated skill whose graph composes nodes instructs its lead to orchestrate each child profile itself, with the Runtime Binding duties of `references/pave-composition.md` section 12: open the child run, hold the parent pending, apply the terminal map, fail closed on an ambiguous return. Scripts never nest across profile boundaries.
+A generated skill whose graph composes nodes instructs its lead to orchestrate each child graph file itself, with the Run setup duties of `references/pave-composition.md` section 12: open the child run, hold the parent pending, apply the child outcome map, fail closed on an ambiguous return. Scripts never nest across graph files.
 
 For each approved `workflow_script` binding, the assigned builder compiles the subgraph to one harness-native script per its native role contract, applying the plan's per-node model, reasoning effort, and sandbox assignments verbatim. The generated `SKILL.md` must state both bindings: run the script when its runtime is available, otherwise the lead runs the same subgraph through concurrent native role dispatch. The graph, not the script, stays the authority. A generated skill that runs multi-agent orchestration must say so in its `description`, so the user opts in by invoking it.
 
@@ -98,13 +98,13 @@ The lead integrates builder outputs and removes placeholders or unused directori
 Run:
 
 1. The plugin structure check: use the active harness's plugin validator when available (manifest validity, component discovery, path references). Otherwise check the manifest and layout against current harness documentation and record the substitution in `reviews/validation.md`.
-2. The active harness skill-quality validator named in the lead skill on the generated skill. Its frontmatter allow-list can lag the runtime's current keys: when the only failure is an unexpected `hooks` key that the approved enforcement record placed there, record the validator lag and continue. Every other failure blocks.
-3. `scripts/validate_pave.py` on the generated canonical graph; it follows composition references and validates every child profile, terminal map, and boundary in the tree.
-4. `scripts/validate_traceability.py` on the canonical graph, traceability table, and generated skill root, including qualified child-profile rows and one `realization` row per composed node.
+2. The active harness skill-quality validator named in the lead skill on the generated skill. Its frontmatter allow-list can lag the runtime's current keys: when the only failure is an unexpected `hooks` key that the approved enforcement table placed there, record the validator lag and continue. Every other failure blocks.
+3. `scripts/validate_pave.py` on the generated canonical graph; it follows composition references and validates every child graph file, child outcome map, and graph-file boundary in the tree.
+4. `scripts/validate_traceability.py` on the canonical graph, traceability table, and generated skill root, including qualified child-graph file rows and one `implementation` row per composed node.
 5. Generated script and schema tests.
 6. For each generated Workflow script: confirm the `meta` block is a pure literal, every compiled node's outcome enum matches the graph's declared outcome codes, and every non-compiled destination (user gate, `return` endpoint) is handed back to the lead rather than handled inside the script.
-7. For each shipped hook: run its script against a passing and a failing input, confirm its registration (skill frontmatter, plugin-level, or fragment) matches the recorded placement and actor scope — a hook that must see a subagent's writes cannot live in skill frontmatter — and — when a settings fragment ships — confirm it references only scripts that exist and the generated `SKILL.md` carries the consent gate and decline path.
-8. Revision record: for a one-session workflow, confirm no ledger shipped; otherwise run the shipped `record_revision.py verify` on the package, confirm an edit of the live graph in a scratch copy fails `verify`, run the guard hook against a live-graph edit and a `.landing` edit when it is registered, and confirm the generated lead states the evolution contract's one-clause rules and rule 6's user-approval boundary as the plan's `landing` field requires.
+7. For each shipped hook: run its script against a passing and a failing input, confirm its registration (skill frontmatter, plugin-level, or settings snippet) matches the recorded placement and actor scope — a hook that must see a subagent's writes cannot live in skill frontmatter — and — when a settings snippet ships — confirm it references only scripts that exist and the generated `SKILL.md` carries the consent gate and decline path.
+8. Revision record: for a one-session workflow, confirm no revision log shipped; otherwise run the shipped `record_revision.py verify` on the package, confirm an edit of the live graph in a scratch copy fails `verify`, run the guard hook against a live-graph edit and a `.applying` edit when it is registered, and confirm the generated lead states the revision rules' one-clause rules and rule 6's user-approval boundary as the plan's `approval` field requires.
 9. Search for TODO placeholders, broken relative references, and unapproved auxiliary files.
 10. Confirm the delivered docs exist and are current: `README.md` rendered from the approved bundle and updated to what was actually built, `VERSION` seeded at `1.0.0` (or appended on an update run). Content accuracy is the final reviewer's scope; this step checks presence and section completeness per `references/approval-briefs.md`.
 

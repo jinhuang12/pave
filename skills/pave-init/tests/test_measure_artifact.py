@@ -1,4 +1,4 @@
-"""Tests for scripts/measure_artifact.py — the one size instrument."""
+"""Tests for scripts/measure_artifact.py — the one size implementation."""
 
 from __future__ import annotations
 

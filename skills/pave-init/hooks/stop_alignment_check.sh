@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# stop_alignment_check -- Stop hook (rung: socratic reinjection).
+# stop_alignment_check -- Stop hook (level: socratic reminder).
 #
 # The pave-init lead is a long-horizon agent and the recorded failure cause
 # in the field is context decay, not disobedience. A Stop while an active,
 # non-terminal run exists is the highest-risk decay moment: the run silently
-# stalls at its resume point and no user event fires to re-inject anything.
+# stalls at its resume point and no user event fires to restate anything.
 # This hook asks socratic questions instead of commanding continuation --
 # valid stops are common (a pending user decision, waiting on a background
 # reviewer, a recorded pause_for_user_authority). The questions (heredoc
@@ -20,11 +20,11 @@
 #   next STOP_EVERY-1 Stops: decrement the marker, exit 0. Stop passes.
 #   Marker spent -> the next Stop nudges again.
 # Default STOP_EVERY=3 (at most one nudge per 3 stops); override with
-# PAVE_INIT_STOP_EVERY (minimum 2 -- the breaker needs one free pass).
+# PAVE_INIT_STOP_EVERY (minimum 2 -- the stop limit needs one free pass).
 # stop_hook_active in the payload also short-circuits, so this cannot loop.
 #
 # Silent exit 0 when: no interpreter, unparsable payload, no run state found,
-# or terminal_classification.status is set (the run is closed; stopping is
+# or final_status.status is set (the run is closed; stopping is
 # correct). Lead-only by construction: Stop never fires inside a subagent
 # (that event is SubagentStop, which this skill does not register).
 #
@@ -100,7 +100,7 @@ try:
 except Exception:
     sys.exit(0)  # unparsable state is validate_run_state.py business
 
-terminal = state.get("terminal_classification")
+terminal = state.get("final_status")
 if isinstance(terminal, dict) and terminal.get("status"):
     print("TERMINAL")
     sys.exit(0)
@@ -135,14 +135,14 @@ lgtm. The next $((STOP_EVERY - 1)) stops pass before this fires again.
   1. Next practical step toward the approved goal, and why -- a declared edge
      after $LAST (references/pave-init.pave.yaml) or a graph change you will
      propose; never an invented edge.
-  2. Since the last check, any ceremony -- a seat a lead-run check settles, a
-     lap with no new world evidence, an agent for something knowable from
+  2. Since the last check, any ceremony -- a seat a lead-run check decides, a
+     round with no new external evidence, an agent for something knowable from
      disk? Cut it. One that recurs is a graph defect: record the evidence as
      a run-state entry plus one section in the standing review record (never
      a new file) and route it to the pave-evolve seats (skills/pave-evolve/
-     SKILL.md); a pave-init release lands the successor; never edit the
+     SKILL.md); a pave-init release applies the successor; never edit the
      installed skill or its live graph in place.
-  3. Landed work the next lap builds on that no review has seen?
+  3. Committed work the next round builds on that no review has seen?
   4. About to ask the user something a recorded approval already covers, or
      to decide something that is theirs?
   5. Anything routing depends on that lives only in your context, not in run

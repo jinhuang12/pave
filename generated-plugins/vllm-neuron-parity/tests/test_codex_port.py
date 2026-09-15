@@ -38,7 +38,7 @@ ACTIVE_STATE: dict[str, object] = {
     "completed_outcomes": [],
     "evidence_references": {},
     "open_questions": [],
-    "terminal_classification": None,
+    "final_status": None,
     "scan_entry_id": None,
     "design_entry_id": None,
 }
@@ -49,7 +49,7 @@ class PackageStructureTests(unittest.TestCase):
         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        self.assertEqual(manifest["version"], "1.5.6")
+        self.assertEqual(manifest["version"], "1.5.8")
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())
@@ -124,7 +124,7 @@ class PackageStructureTests(unittest.TestCase):
             self.assertIn(data["sandbox_mode"], {"read-only", "workspace-write"})
             contract = data["developer_instructions"]
             self.assertIn("VLLM_NEURON_PARITY_PLUGIN_ROOT", contract)
-            self.assertIn("VLLM_NEURON_PARITY_EVOLUTION_ROOT", contract)
+            self.assertIn("VLLM_NEURON_PARITY_REVISION_FOLDER", contract)
             self.assertIn("complete Codex role contract", contract)
             for legacy in ("SendMessage", "named teammate", " opus", " fable", " sonnet"):
                 self.assertNotIn(legacy, contract)
@@ -136,18 +136,12 @@ class PackageStructureTests(unittest.TestCase):
             PLUGIN_ROOT / "skills" / "vllm-neuron-parity" / "SKILL.md"
         ).read_text(encoding="utf-8")
         self.assertIn("$vllm-neuron-parity:vllm-neuron-parity", skill)
-        self.assertIn("spawn_agent", skill)
-        self.assertIn("followup_task", skill)
-        self.assertIn("wait_agent", skill)
-        self.assertIn("interrupt_agent", skill)
         self.assertIn("hooks/hooks.json", skill)
-        self.assertIn(
-            "VLLM_NEURON_PARITY_EVOLUTION_ROOT: <absolute project-local evolution",
-            skill,
-        )
-        # The Claude Code tool map sits beside the Codex names ("Harness").
-        for claude_tool in ("SendMessage", "TaskStop", "ListAgents"):
-            self.assertIn(claude_tool, skill)
+        self.assertIn("VLLM_NEURON_PARITY_REVISION_FOLDER", skill)
+        # The lead skill is harness-agnostic: no Codex or Claude tool names.
+        for tool_name in ("spawn_agent", "followup_task", "wait_agent",
+                          "interrupt_agent", "SendMessage", "TaskStop", "ListAgents"):
+            self.assertNotIn(tool_name, skill)
         self.assertNotIn("skill-frontmatter hooks", skill)
 
 
@@ -310,11 +304,11 @@ class HookSmokeTests(unittest.TestCase):
         }
         for guard, command in cases.items():
             terminal_state = dict(ACTIVE_STATE)
-            terminal_state["terminal_classification"] = {
+            terminal_state["final_status"] = {
                 "status": "accepted",
                 "endpoint": "done",
             }
-            for state in (None, terminal_state, {"terminal_classification": None}):
+            for state in (None, terminal_state, {"final_status": None}):
                 with self.subTest(guard=guard, state=state):
                     result = self._run_guard(guard, command, state)
                     self.assertEqual(result.returncode, 0, result.stderr)
@@ -346,7 +340,7 @@ class HookSmokeTests(unittest.TestCase):
 
 
 class RevisionLedgerTests(unittest.TestCase):
-    """The package root is itself an evolution root: one live graph, one ledger.
+    """The package root is itself a revision folder: one live graph, one revision_log.
 
     scripts/record_revision.py replaces the old workspace initializer -- a
     project root is seeded with `install <root> --from <plugin-root>` and
@@ -364,8 +358,8 @@ class RevisionLedgerTests(unittest.TestCase):
 
     def test_packaged_root_verifies(self) -> None:
         # Head-agnostic on purpose: a pinned revision number would break at
-        # every future landing, which is a test that fails for being correct.
-        # The invariant is that verify agrees with the ledger's last entry.
+        # every future applying, which is a test that fails for being correct.
+        # The invariant is that verify agrees with the revision_log's last entry.
         import yaml
 
         result = self._run("verify", str(PLUGIN_ROOT))
@@ -391,41 +385,41 @@ class RevisionLedgerTests(unittest.TestCase):
         import yaml
 
         entries = yaml.safe_load((PLUGIN_ROOT / "revisions.yaml").read_text())["entries"]
-        # The ledger is append-only and numbered from the delivered graph, so
-        # these hold at every head. A landed revision adds an entry; it never
+        # The revision_log is append-only and numbered from the delivered graph, so
+        # these hold at every head. An applied revision adds an entry; it never
         # renumbers, reorders, or rewrites one.
         revisions = [entry["revision"] for entry in entries]
         self.assertEqual(revisions, list(range(len(entries))))
         self.assertGreaterEqual(len(entries), 5)
         self.assertEqual(entries[0]["kind"], "graph")
         for entry in entries:
-            self.assertIn(entry["kind"], {"graph", "binding"})
+            self.assertIn(entry["kind"], {"graph", "run_setup"})
         self.assertIsNone(entries[0]["digest_before"])
         self.assertTrue(entries[0]["digest_after"].startswith("sha256:"))
-        # Each landing chains from the previous head.
+        # Each applying chains from the previous head.
         for later in range(1, len(entries)):
             self.assertEqual(entries[later]["digest_before"], entries[later - 1]["digest_after"])
         # History that cannot move: the delivered lean successors 1-4.
         self.assertEqual(
             [entry["kind"] for entry in entries[:5]],
-            ["graph", "graph", "binding", "graph", "binding"],
+            ["graph", "graph", "run_setup", "graph", "run_setup"],
         )
         # Revision 2 is the field root's live graph (the 1.3.x root the README migrates).
         self.assertEqual(
             entries[2]["digest_after"],
             "sha256:e9f063e2cde9752a0f530c4ceb9fe425873df2777f5c9dfa4135bc209e444e7c",
         )
-        # Revision 4 is the gate-2 loop bound and its instruments.
+        # Revision 4 is the gate-2 loop bound and its check_tools.
         self.assertEqual(
             entries[4]["digest_after"],
             "sha256:a81bb97d1b6842cdaee8ea85b3325304e02a44d551180fc2b4cc50e598b613b3",
         )
-        # Every landing keeps its patch, so any revision can be read back.
+        # Every applying keeps its patch, so any revision can be read back.
         for entry in entries[1:]:
             self.assertTrue(
                 (PLUGIN_ROOT / "history" / f"v{entry['revision']}.patch").is_file()
             )
-        # The manifest and the freeze script the ledger replaced are gone.
+        # The manifest and the freeze script the revision_log replaced are gone.
         self.assertFalse((PLUGIN_ROOT / "workflow-manifest.yaml").exists())
         self.assertFalse((PLUGIN_ROOT / "scripts" / "freeze_revision.py").exists())
         self.assertFalse(

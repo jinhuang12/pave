@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Census of what a run wrote since its last audit checkpoint. Read-only.
+"""Write report of what a run wrote since its last audit checkpoint. Read-only.
 
 Inputs: --state <run-state.json> (reads it, its sidecar <state>.audit-checkpoint.json
 for `outcomes_at` and `at`, and the write log <state>.write-log.jsonl plus the one
-rotated generation <state>.write-log.1.jsonl); --evolution-root <dir> (node ids from
+rotated generation <state>.write-log.1.jsonl); --revision-folder <dir> (node ids from
 its workflow.pave.yaml unless --graph names another); optional --memory-dir, --log
 (a lead or decision log for cited-by tallies), --decisions (creating-section excerpts), --json,
 --since-checkpoint. The caller names the workflow's declared decision record with
@@ -11,11 +11,11 @@ its workflow.pave.yaml unless --graph names another); optional --memory-dir, --l
 record); with neither, every act is unattributed and the summary says so. The paths
 used appear under `inputs`.
 A write-log record carrying `written: false` (the hook stat'ed the path and no write
-landed) is reported as files_since.read_only and counted nowhere else; a record
+happened) is reported as files_since.read_only and counted nowhere else; a record
 without the field is a write. The cited-by and creating-section scans cover the top
-40 families by count, so a log with hundreds of families stays fast. lap_suffixed
-counts every `-rN` re-cut however the name continues; lap_suffixed_strict counts only
-the `<stem>-rN.<ext>` form the runtime no-recut guard matches. Scans only directories
+40 name_groups by count, so a log with hundreds of name_groups stays fast. round_suffixed
+counts every `-rN` retry copy however the name continues; round_suffix_strict counts only
+the `<stem>-rN.<ext>` form the runtime no-retry-copy guard matches. Scans only directories
 present in the write log plus the run workspace root (parent of the state file's
 directory); never a bare /tmp or $TMPDIR. Writes nothing, hashes nothing; sizes come from os.stat. Stdlib only. Exit 0.
 """
@@ -43,7 +43,7 @@ NODE_ITEM_RE = re.compile(r"^\s*-\s*id:\s*(\S+)")
 SEQ_TOKEN = re.compile(r"\d+[a-z]?")
 EXCERPT_CAP = 200
 EXCERPT_LINES = 8
-TOP_FAMILIES = 40
+TOP_NAME_GROUPS = 40
 BARE_TMP = {"/tmp", "/private/tmp", "/var/tmp", "/"}
 
 
@@ -154,13 +154,13 @@ def declared_nodes(graph: Path) -> tuple[list[str], str]:
 
 
 # ------------------------------------------------------------------- helpers
-def family_of(path: str) -> str:
+def name_group_of(path: str) -> str:
     """The first basename token that is not a bare sequence number.
 
     Real runs number their artifacts (`039-grant-trn2.md`, `118-plan-block.md`), so
-    the leading token counts files rather than naming a family; skip every leading
+    the leading token counts files rather than naming a name_group; skip every leading
     counter token and take the next one. A name with nothing after its number
-    (`007.txt`) keeps the number as its family.
+    (`007.txt`) keeps the number as its name_group.
     """
     base = os.path.basename(path.rstrip("/"))
     stem = base
@@ -178,14 +178,14 @@ def counted(rec: dict) -> bool:
     return rec.get("written") is not False
 
 
-def is_lap_suffixed(path: str) -> bool:
-    """A re-cut name: `-rN` closed by `-`, `.` or the end of the basename, so a hash or
-    word after the lap (`launch-113-r5-a5b82c73.sh`, `plan-block-r2-final.md`) counts."""
+def is_retry_suffixed(path: str) -> bool:
+    """A retry copy name: `-rN` closed by `-`, `.` or the end of the basename, so a hash or
+    word after the round number (`launch-113-r5-a5b82c73.sh`, `plan-block-r2-final.md`) counts."""
     return bool(LAP_RE.search(os.path.basename(path)))
 
 
-def is_lap_strict(path: str) -> bool:
-    """The `<stem>-rN.<ext>` form the runtime no-recut guard matches, and nothing else."""
+def is_retry_strict(path: str) -> bool:
+    """The `<stem>-rN.<ext>` form the runtime no-retry-copy guard matches, and nothing else."""
     return bool(LAP_STRICT_RE.search(os.path.basename(path)))
 
 
@@ -193,13 +193,13 @@ def under(path: str, root: str) -> bool:
     return path == root or path.startswith(root.rstrip("/") + "/")
 
 
-def mention_re(family: str) -> re.Pattern:
-    return re.compile(r"(?<![A-Za-z0-9_])" + re.escape(family) + r"(?![A-Za-z0-9_])")
+def mention_re(name_group: str) -> re.Pattern:
+    return re.compile(r"(?<![A-Za-z0-9_])" + re.escape(name_group) + r"(?![A-Za-z0-9_])")
 
 
-def cited_by(lines: list[str], families: list[str]) -> dict[str, int]:
-    """Lines within CITE_WINDOW of a caught|found|defect|red line that mention the family."""
-    if not lines or not families:
+def cited_by(lines: list[str], name_groups: list[str]) -> dict[str, int]:
+    """Lines within CITE_WINDOW of a caught|found|defect|red line that mention the name_group."""
+    if not lines or not name_groups:
         return {}
     hot = [False] * len(lines)
     for i, line in enumerate(lines):
@@ -209,7 +209,7 @@ def cited_by(lines: list[str], families: list[str]) -> dict[str, int]:
                 hot[j] = True
     hot_lines = [line for line, on in zip(lines, hot) if on]
     out: dict[str, int] = {}
-    for fam in families:
+    for fam in name_groups:
         pat = mention_re(fam)
         n = sum(1 for line in hot_lines if pat.search(line))
         if n:
@@ -217,9 +217,9 @@ def cited_by(lines: list[str], families: list[str]) -> dict[str, int]:
     return out
 
 
-def creating_sections(lines: list[str], families: list[str]) -> dict[str, list[str]]:
-    """First `## ` section mentioning each family: header + its first 3 non-blank lines."""
-    if not lines or not families:
+def creating_sections(lines: list[str], name_groups: list[str]) -> dict[str, list[str]]:
+    """First `## ` section mentioning each name_group: header + its first 3 non-blank lines."""
+    if not lines or not name_groups:
         return {}
     sections: list[tuple[str, list[str]]] = []
     header, body = None, []
@@ -233,7 +233,7 @@ def creating_sections(lines: list[str], families: list[str]) -> dict[str, list[s
     if header is not None:
         sections.append((header, body))
     out: dict[str, list[str]] = {}
-    for fam in families:
+    for fam in name_groups:
         pat = mention_re(fam)
         for head, text in sections:
             if pat.search(head) or any(pat.search(t) for t in text):
@@ -287,12 +287,12 @@ def root_of(path: str, roots: list[str]) -> str:
     return best or os.path.dirname(path) or "/"
 
 
-# ------------------------------------------------------------------- census
-def census(args: argparse.Namespace) -> OrderedDict:
+# ------------------------------------------------------------------- write_report
+def write_report(args: argparse.Namespace) -> OrderedDict:
     state = Path(args.state).resolve()
     workspace_root = str(state.parent.parent)
-    evolution_root = Path(args.evolution_root).resolve()
-    graph = Path(args.graph).resolve() if args.graph else evolution_root / ROOT_GRAPH
+    revision_folder = Path(args.revision_folder).resolve()
+    graph = Path(args.graph).resolve() if args.graph else revision_folder / ROOT_GRAPH
 
     state_doc = read_json(state) or {}
     sidecar = read_json(Path(str(state) + SIDECAR_SUFFIX))
@@ -332,23 +332,23 @@ def census(args: argparse.Namespace) -> OrderedDict:
     read_only = len(windowed) - len(records)
 
     roots = scan_roots_from(all_records, workspace_root)
-    by_family: Counter = Counter()
+    by_name_group: Counter = Counter()
     by_root: Counter = Counter()
     by_agent: Counter = Counter()
-    lap: list[str] = []
-    lap_strict = 0
+    retry_copies: list[str] = []
+    retry_strict = 0
     seen: set[str] = set()
     for rec in records:
         path = rec["path"]
         if path in seen:
             continue
         seen.add(path)
-        by_family[family_of(path)] += 1
+        by_name_group[name_group_of(path)] += 1
         by_root[root_of(path, roots)] += 1
         by_agent[str(rec.get("agent_type") or "lead")] += 1
-        if is_lap_suffixed(path):
-            lap.append(path)
-            lap_strict += is_lap_strict(path)
+        if is_retry_suffixed(path):
+            retry_copies.append(path)
+            retry_strict += is_retry_strict(path)
 
     bytes_since = 0
     existing = 0
@@ -361,16 +361,16 @@ def census(args: argparse.Namespace) -> OrderedDict:
             existing += 1
             bytes_since += st.st_size
 
-    families = sorted(by_family, key=lambda f: (-by_family[f], f))
-    # The two text scans are per family, so a log with hundreds of families would
-    # re-read the inputs hundreds of times; only the top families carry a brief.
-    top_families = families[:TOP_FAMILIES]
+    name_groups = sorted(by_name_group, key=lambda f: (-by_name_group[f], f))
+    # The two text scans are per name_group, so a log with hundreds of name_groups would
+    # re-read the inputs hundreds of times; only the top name_groups carry a brief.
+    top_name_groups = name_groups[:TOP_NAME_GROUPS]
     trend = bytes_since / max(1, outcomes_since)
 
     out = OrderedDict()
     out["state"] = str(state)
     out["workspace_root"] = workspace_root
-    out["evolution_root"] = str(evolution_root)
+    out["revision_folder"] = str(revision_folder)
     out["graph"] = str(graph)
     out["node_source"] = node_source
     out["declared_nodes"] = len(nodes)
@@ -384,11 +384,11 @@ def census(args: argparse.Namespace) -> OrderedDict:
         distinct=len(seen),
         existing=existing,
         read_only=read_only,
-        by_family=OrderedDict((f, by_family[f]) for f in families),
+        by_name_group=OrderedDict((f, by_name_group[f]) for f in name_groups),
         by_root=OrderedDict(sorted(by_root.items(), key=lambda kv: (-kv[1], kv[0]))),
         by_agent_type=OrderedDict(sorted(by_agent.items(), key=lambda kv: (-kv[1], kv[0]))),
-        lap_suffixed=sorted(lap),
-        lap_suffixed_strict=lap_strict,
+        round_suffixed=sorted(retry_copies),
+        round_suffix_strict=retry_strict,
     )
     out["bytes_since"] = bytes_since
     out["run_state"] = OrderedDict(bytes=state_bytes, notes_over_500=notes_over_cap)
@@ -397,9 +397,9 @@ def census(args: argparse.Namespace) -> OrderedDict:
     decisions_path = args.decisions
     log_path = args.log or decisions_path             # cited-by falls back to the decision record
     out["inputs"] = OrderedDict(decisions=decisions_path, log=log_path)
-    out["cited_by"] = cited_by(read_lines(Path(log_path) if log_path else None), top_families)
+    out["cited_by"] = cited_by(read_lines(Path(log_path) if log_path else None), top_name_groups)
     out["creating_sections"] = creating_sections(
-        read_lines(Path(decisions_path) if decisions_path else None), top_families
+        read_lines(Path(decisions_path) if decisions_path else None), top_name_groups
     )
     out["trend"] = OrderedDict(bytes_per_outcome=round(trend, 1))
     return out
@@ -415,22 +415,22 @@ def summary(c: OrderedDict) -> str:
         return ", ".join(f"{k}={v}" for k, v in items) if items else "none"
 
     lines = [
-        f"census: {c['state']}",
+        f"write_report: {c['state']}",
         f"checkpoint: {cp.get('checkpoint_id') or 'none'} at {cp.get('at') or 'run start'} "
         f"(outcomes_at {cp.get('outcomes_at', 0)})",
         f"declared nodes: {c['declared_nodes']} ({c['node_source']}); "
         f"declared outcomes since: {c['outcomes']['since']} of {c['outcomes']['declared_total']}",
         f"files since: {fs['distinct']} distinct ({fs['records']} records, {fs['existing']} exist, "
         f"{fs['read_only']} read-only); bytes since: {c['bytes_since']}",
-        f"by family: {top(fs['by_family'], 8)}",
+        f"by name_group: {top(fs['by_name_group'], 8)}",
         f"by root: {top(fs['by_root'])}",
         f"by agent_type: {top(fs['by_agent_type'])}",
-        f"lap-suffixed: {len(fs['lap_suffixed'])} ({fs['lap_suffixed_strict']} strict)"
-        + (" e.g. " + os.path.basename(fs["lap_suffixed"][0]) if fs["lap_suffixed"] else ""),
+        f"round-suffixed: {len(fs['round_suffixed'])} ({fs['round_suffix_strict']} strict)"
+        + (" e.g. " + os.path.basename(fs["round_suffixed"][0]) if fs["round_suffixed"] else ""),
         f"run state: {c['run_state']['bytes']} bytes, {c['run_state']['notes_over_500']} notes over 500 chars",
         f"memory changed: {len(c['memory_changed'])}",
         f"cited-by: {top(c['cited_by']) if c['inputs']['log'] else 'unattributed (no --log or --decisions given)'}",
-        f"creating sections: {len(c['creating_sections'])} families matched",
+        f"creating sections: {len(c['creating_sections'])} name_groups matched",
         f"scan roots: {len(c['scan_roots'])}",
         f"trend: {c['trend']['bytes_per_outcome']} bytes per declared outcome",
     ]
@@ -438,16 +438,16 @@ def summary(c: OrderedDict) -> str:
 
 
 def excerpts(c: OrderedDict) -> str:
-    """The evidence under the counts: one creating-section excerpt per top family
+    """The evidence under the counts: one creating-section excerpt per top name_group
     (at most 8), then the cited-by tally. Empty when neither input matched."""
     sections = c["creating_sections"]
     lines: list[str] = []
-    for family in c["files_since"]["by_family"]:
-        entry = sections.get(family)
+    for name_group in c["files_since"]["by_name_group"]:
+        entry = sections.get(name_group)
         if not entry:
             continue
         first = entry[1].strip() if len(entry) > 1 else ""
-        lines.append(f"  {family}: {entry[0].strip()} | {first}"[:EXCERPT_CAP])
+        lines.append(f"  {name_group}: {entry[0].strip()} | {first}"[:EXCERPT_CAP])
         if len(lines) == EXCERPT_LINES:
             break
     cites = list(c["cited_by"].items())[:EXCERPT_LINES]
@@ -459,8 +459,8 @@ def excerpts(c: OrderedDict) -> str:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--state", required=True, help="run-state.json path")
-    p.add_argument("--evolution-root", required=True, help="dir holding workflow.pave.yaml")
-    p.add_argument("--graph", help="graph YAML (default: <evolution-root>/workflow.pave.yaml)")
+    p.add_argument("--revision-folder", required=True, help="dir holding workflow.pave.yaml")
+    p.add_argument("--graph", help="graph YAML (default: <revision-folder>/workflow.pave.yaml)")
     p.add_argument("--memory-dir", help="memory root; files with mtime after the checkpoint are listed")
     p.add_argument(
         "--log",
@@ -484,7 +484,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    result = census(args)
+    result = write_report(args)
     if args.json:
         json.dump(result, sys.stdout, indent=1)
         sys.stdout.write("\n")

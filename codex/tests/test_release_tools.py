@@ -36,7 +36,7 @@ DISPATCH_CONTRACT = '''Fixture dispatch contract.'''
 """
 ROLE_TEMPLATE = """---
 name: {role}
-description: Fixture stub contract used until the real role source lands.
+description: Fixture stub contract used until the real role source applies.
 ---
 
 Work only on the assigned proposal and return the result to the parent.
@@ -62,10 +62,10 @@ EVOLVE_OUTPUTS = {
 
 
 def stage_pending_sources(root: Path) -> None:
-    """Complete a copied tree with any 2.5.0 source that is not landed yet.
+    """Complete a copied tree with any 2.5.0 source that is not applied yet.
 
     Each stub is written only when the real file or binding table is absent, so a
-    fixture exercises the generator both before and after the sources land.
+    fixture exercises the generator both before and after the sources apply.
     """
     template = root / "sources" / "pave-evolve" / "SKILL.md.tmpl"
     if not template.is_file():
@@ -351,7 +351,7 @@ class ReleaseContractTests(unittest.TestCase):
             / "skills"
             / "pave-init"
             / "references"
-            / "lead-alignment-hooks.md"
+            / "lead-hooks.md"
         ).read_text(encoding="utf-8")
         claude = (REPO_ROOT / "skills" / "pave-init" / "SKILL.md").read_text(
             encoding="utf-8"
@@ -362,7 +362,7 @@ class ReleaseContractTests(unittest.TestCase):
 
         self.assertIn("Never re-brief a fresh reviewer mid-gate", template)
         self.assertIn("tool-forced selection", template)
-        self.assertIn("observing or reinjection by default", template)
+        self.assertIn("observing or reminder by default", template)
         self.assertIn("{{MODEL_RUNTIME_BINDING}}", template)
         self.assertIn("two roles", planner)
         self.assertIn("dispatched by the lead only", review)

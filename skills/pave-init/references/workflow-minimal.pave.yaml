@@ -31,7 +31,7 @@ pave:
       from: do_work.done
       to: accepted
 
-  control_endpoints:
+  control_nodes:
     accepted:
       kind: terminal
       meaning: The result satisfies the declared purpose.

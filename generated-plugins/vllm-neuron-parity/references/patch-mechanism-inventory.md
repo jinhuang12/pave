@@ -1,160 +1,53 @@
-# Patch mechanism inventory — vllm-neuron at the current pin
+# Patch mechanism inventory — how vllm-neuron hooks vLLM
 
-This inventory covers the vllm-neuron plugin at pin `vllm==0.21.0` (plugin version `0.21.0.1.0.0`, checkout `/Users/jinhun/GitHub/vllm-neuron`, branch `feature/p-eagle-gpt-oss-20b`, commit `0e19f00`). It is the authority a porter consults before choosing where a vendored upstream change lands. All paths are relative to the repo root. Line numbers move on a pin bump — re-derive them with grep and trust the mechanism over the line number.
-
-## Pin identity
-
-- vLLM pin: `requirements/core.txt:6` — `vllm==0.21.0`. Exact pin, no range. This file feeds the package's install requirements through `pyproject.toml:28` (`[tool.setuptools.dynamic] dependencies = {file = ["requirements/core.txt"]}`).
-- Plugin version: `pyproject.toml:10` — `version = "0.21.0.1.0.0"`.
-- Repo state: fork `jinhuang12/vllm-neuron`, branch `feature/p-eagle-gpt-oss-20b`, HEAD `0e19f00eb464b35d4436bf2a57450ad8b9c418e1`.
+The ways the fork already changes upstream vLLM behavior. A design that names a patch surface names one of these; the porter rules at the end say how to add one. Paths are relative to the vllm-neuron checkout. Line numbers move on every pin bump, so this file names functions, never lines: derive lines with grep at the current pin. Sections up to the porter rules were verified at the 0.21 pin; the 0.24 section says what changed.
 
 ## Entry point
 
-- Declaration: `pyproject.toml:24-25`
-  ```toml
-  [project.entry-points."vllm.platform_plugins"]
-  neuron = "vllm_neuron:register"
-  ```
-- vLLM's plugin loader imports `vllm_neuron` and calls `register()` (`vllm_neuron/__init__.py:201-222`). `register()`:
-  1. Returns `None` (no registration) if no `/dev/neuron*` device exists and neither `VLLM_NEURON_CPU_MODE=1` nor `VLLM_NEURON_CPU_COMPILE=1` is set (`__init__.py:210-215`).
-  2. Calls `_patch_dcp_config_validation()` (Mechanism 2) (`__init__.py:218-220`).
-  3. Returns the string `"vllm_neuron.vllm.platform.NeuronPlatform"` via `get_platform_class()` (`vllm_neuron/backend.py:85-93`). The return value is hardcoded; the `VLLM_NEURON_BACKEND` env var selects a `NeuronBackend` enum in `get_backend()` (`backend.py:24-77`), but `get_platform_class()` never consults it.
-- Platform class: `NeuronPlatform(Platform)` at `vllm_neuron/vllm/platform.py:118` (922-line file; subclasses `vllm.platforms.Platform`, imported at `platform.py:19`).
-- Importing `vllm_neuron` has side effects **before** `register()` runs. These execute in every process that imports the package, including spawn-mode worker subprocesses:
-  - `os.environ["CUDA_VISIBLE_DEVICES"] = ""` (`__init__.py:9`).
-  - Optional import redirector `torch_neuronx` → `libtorch_neuronx_lite`, a `sys.meta_path` finder gated on `VLLM_NEURON_LIBTORCH_NEURONX_LITE` (`__init__.py:14-17`, `vllm_neuron/utils/import_redirector.py:63-90`).
-  - `PROMETHEUS_MULTIPROC_DIR` default (`__init__.py:34-39`).
-  - `_init_backend()` (`__init__.py:68-192`): registers the `vllm_neuron` and `vllm_neuron_graph_capture` dynamo backends, installs `sys.modules["torch.neuron"]` (`__init__.py:113` or `:152`), and wraps `torch.accelerator.current_accelerator` (`__init__.py:164-179`; plus CPU-mode stream patches at `:182-186`).
-  - The port-hold patch (Mechanism 4) applies at module scope (`__init__.py:196-198`).
+`pyproject.toml` declares the `vllm.platform_plugins` entry point `neuron = "vllm_neuron:register"`. vLLM's plugin loader imports `vllm_neuron` and calls `register()`, which returns `None` when no `/dev/neuron*` device exists and neither `VLLM_NEURON_CPU_MODE=1` nor `VLLM_NEURON_CPU_COMPILE=1` is set, otherwise applies the DCP patch (mechanism 2) and returns the hardcoded class path `vllm_neuron.vllm.platform.NeuronPlatform` (the `VLLM_NEURON_BACKEND` variable does not change it).
 
-## Mechanism 1: Platform hook and config-slot injection (sanctioned plugin API)
+Importing `vllm_neuron` has side effects before `register()` runs, in every process that imports the package, spawn-mode workers included: `CUDA_VISIBLE_DEVICES` cleared; the optional `torch_neuronx` → `libtorch_neuronx_lite` import redirector (`vllm_neuron/utils/import_redirector.py`, gated on `VLLM_NEURON_LIBTORCH_NEURONX_LITE`); a `PROMETHEUS_MULTIPROC_DIR` default; `_init_backend()` (dynamo backends, `sys.modules["torch.neuron"]`, `torch.accelerator.current_accelerator` wrapper, CPU-mode stream patches); the collective dispatch registrations in `vllm_neuron/overrides/`; and the port-hold patch (mechanism 4).
 
-Not a monkeypatch. vLLM calls `NeuronPlatform` classmethod hooks; the plugin fills upstream config slots with dotted class paths. vLLM later imports those classes itself — including in worker subprocesses.
+## The six mechanisms
 
-- `check_and_update_config` (`vllm_neuron/vllm/platform.py:278-395`), runs at engine config build in the process that constructs `VllmConfig` (per the comment at `vllm_neuron/__init__.py:194-195`, the EngineCore subprocess never calls it):
-  - `parallel_config.worker_cls = "vllm_neuron.vllm.worker.neuron_worker.NeuronWorker"` — only when the slot is `"auto"` (`platform.py:322-325`). `NeuronWorker` then constructs `NeuronModelRunner` directly (`vllm_neuron/vllm/worker/neuron_worker.py:379-381`); the model runner has no config slot of its own.
-  - `scheduler_config.scheduler_cls = "vllm_neuron.vllm.core.scheduler.NeuronScheduler"` or `...NeuronAsyncScheduler` — only when the slot is `None` or one of the two upstream defaults; an explicit non-default value is kept and a warning is logged (`platform.py:375-395`).
-  - `_auto_set_neuron_connector_module_path` (`platform.py:733-755`) injects `kv_connector_module_path` for the connector names `NeuronNixlConnector` and `NeuronDecodeBenchConnector`.
-- `pre_register_and_update` (`platform.py:152-161`) registers `SyntheticNeuronModel` through `vllm.model_executor.models.registry.ModelRegistry.register_model` when `VLLM_NEURON_SYNTHETIC_MODEL=1`.
-- `get_attn_backend_cls` (`platform.py:663-670`) returns `"vllm_neuron.vllm.attention.attn.NeuronAttentionBackend"`.
-- `apply_config_platform_defaults` (`platform.py:173`) and `update_block_size_for_backend` (`platform.py:165`) mutate config defaults (optimization level O1, block_size 32).
-- KV connectors integrate by plain subclassing, no patching: `NeuronNixlAgentMetadata`/`NeuronNixlConnectorWorker`/`NeuronNixlConnector` (`vllm_neuron/vllm/kv_connector/neuron_nixl_connector.py:48/60/496`) subclass `vllm.distributed.kv_transfer.kv_connector.v1.nixl.*`; `NeuronDecodeBenchConnector*` (`neuron_decode_bench_connector.py:85/118/222`) subclass the upstream `DecodeBenchConnector*` classes plus `SupportsHMA`.
+1. **Platform hooks and config-slot injection (sanctioned, not a patch).** vLLM calls `NeuronPlatform` classmethods; the plugin fills upstream config slots with dotted class paths that vLLM imports itself, workers included. `check_and_update_config` sets `worker_cls` (only when `"auto"`), `scheduler_cls` (only when `None` or an upstream default; an explicit value is kept with a warning), and the connector module path for `NeuronNixlConnector` and `NeuronDecodeBenchConnector`. `pre_register_and_update` registers `SyntheticNeuronModel` under `VLLM_NEURON_SYNTHETIC_MODEL=1`; `get_attn_backend_cls` returns the Neuron attention backend; `apply_config_platform_defaults` and `update_block_size_for_backend` set defaults. KV connectors subclass upstream classes with no patching.
+2. **DCP config-validation patch.** `_patch_dcp_config_validation` in `platform.py` wraps `vllm.config.model.ModelConfig.verify_with_parallel_config` so the upstream DCP assertion is bypassed for prefill-DCP (degree above one, non-MLA model). Applied at registration; if `vllm.config.model` is not importable yet, a `sys.addaudithook` handler applies it on first import (the hook self-disables but cannot be removed). Idempotence: `_dcp_config_patched` global plus a `_neuron_dcp_patched` marker on the replacement.
+3. **Termination-timeout patches.** `_patch_termination_timeouts` in `platform.py` replaces `vllm.v1.utils.shutdown` AND `vllm.v1.engine.utils.shutdown` (both bindings, because `weakref.finalize` captured the second) and `MultiprocExecutor._ensure_worker_termination`, widening the SIGTERM-to-SIGKILL windows so profiling can flush. Called from `check_and_update_config`; a no-op while `VLLM_NEURON_WORKER_TERMINATION_TIMEOUT` is at its default of 5. Idempotence: class flag `_termination_timeout_patched`.
+4. **Port-hold patch.** `vllm_neuron/vllm/patches/port_hold_patch.py` rebinds `torch.distributed.init_process_group` at import of `vllm_neuron`: for loopback `tcp://` init, rank 0 binds the port at once (or a fresh one on `EADDRINUSE`), passes the fd to `TCPStore`, and publishes the real port through a `/tmp/vllm_dist_port_<port>` file the other ranks poll. Removes a port-theft race against sibling runtime processes; `env://`, multi-node, and explicit-store calls pass through. Import-time on purpose: the EngineCore subprocess never calls `check_and_update_config`. Idempotence: `_applied` global.
+5. **Parallel-state patching at worker init.** `vllm_neuron/parallel/neuron_parallel_state.py`: `_patch_destroy` wraps `vllm.distributed.parallel_state.destroy_model_parallel` (original saved and restored at teardown, the only reversible patch); `_patch_getters` adds about 24 `get_neuron_*` accessors to that module; `in_the_same_node_as` is replaced at two sites (`neuron_worker.py` production path, `neuron_parallel_state.py` test path) because the upstream version calls `torch.distributed.barrier()` and crashes on the PrivateUse1 backend. Chain: `NeuronWorker.init_device` → `_init_neuron_distributed_environment_and_runtime` → `init_neuron_distributed_environment`.
+6. **Pydantic schema mutation.** `_register_neuron_all2all_backend` in `platform.py` appends `"neuron"` to `ParallelConfig`'s `all2all_backend` literal and rebuilds `__pydantic_validator__`, unconditionally from `check_and_update_config`.
 
-## Mechanism 2: DCP config-validation patch (class-method rebinding with audit-hook fallback)
+Torch-level patches (import time, unconditional except the redirector): `init_process_group`, `sys.modules["torch.neuron"]`, `torch.accelerator.current_accelerator`, the meta-path redirector. Collective kernels register through `torch.library.impl` in `vllm_neuron/overrides/` (a dispatch seam, not a rebinding).
 
-- Site: `vllm_neuron/vllm/platform.py:53-115` (`_patch_dcp_config_validation`, `_apply_dcp_patch`; assignment at `:115`).
-- Target: `vllm.config.model.ModelConfig.verify_with_parallel_config`.
-- When: at plugin registration (`register()` → `__init__.py:220`). If `vllm.config.model` is not importable then (circular import), a `sys.addaudithook` handler (`platform.py:81-90`) applies the patch on the first successful import of `vllm.config.model`. The hook self-disables through a flag; it cannot be removed (CPython API limit).
-- What it replaces: wraps the original method so the upstream DCP assertion is bypassed when `decode_context_parallel_size > 1` and the model does not use MLA (prefill-DCP case).
-- Idempotence: module global `_dcp_config_patched` (`platform.py:49`) plus a `_neuron_dcp_patched` marker attribute on the replacement function (`platform.py:95-99, 114`).
+**Dead stub — do not use.** `vllm_neuron/vllm/patches/__init__.py` declares an `apply_patches()` "called from `check_and_update_config`"; its body is empty and nothing calls it. A patch placed there never runs. `pyproject.toml`'s coverage omit still lists the wrong path `vllm_neuron/patches/*`.
 
-## Mechanism 3: Termination-timeout patches (module-attribute and class-attribute rebinding)
+## How patches layer
 
-- Site: `vllm_neuron/vllm/platform.py:783-902` (`_patch_termination_timeouts` :783, `_patch_shutdown` :828, `_patch_ensure_worker_termination` :867; assignments at `:863-864` and `:902`).
-- Targets:
-  - `vllm.v1.utils.shutdown` AND `vllm.v1.engine.utils.shutdown` — both module bindings must be replaced, because `vllm/v1/engine/utils.py` does `from vllm.v1.utils import shutdown` and `weakref.finalize` captures that second binding (rationale at `platform.py:799-804`).
-  - `vllm.v1.executor.multiproc_executor.MultiprocExecutor._ensure_worker_termination` (staticmethod replaced on the class).
-- When: from `check_and_update_config` (`platform.py:282`). Conditional: it is a no-op when `VLLM_NEURON_WORKER_TERMINATION_TIMEOUT` is at its default of 5 (`vllm_neuron/envs.py:45`, resolver `:207-208`; guard `platform.py:810-820`).
-- What it replaces: the hardcoded 5 s (shutdown) and 4 s (worker termination) SIGTERM-to-SIGKILL windows, so Neuron profiling (`NEURON_RT_INSPECT_ENABLE=1`) can flush data.
-- Idempotence: class flag `_termination_timeout_patched` (`platform.py:135, 804-806`).
+Order in a full server start:
 
-## Mechanism 4: Port-hold patch (import-time function rebinding on torch)
+1. **Import of `vllm_neuron`** in every process: env defaults, redirector, `_init_backend()` torch patches, collective registration, port-hold patch.
+2. **Registration**: DCP patch (or its audit hook); `NeuronPlatform` installed.
+3. **Config build** in the process that constructs `VllmConfig` (never the EngineCore subprocess): `pre_register_and_update`, defaults, then `check_and_update_config` with the timeout patches, the pydantic patch, and slot injection.
+4. **Worker init**: `in_the_same_node_as` replacement, then `_patch_getters` and `_patch_destroy`.
 
-- Site: `vllm_neuron/vllm/patches/port_hold_patch.py` (204 lines; `apply_port_hold_patch` :191-204, assignment :201).
-- Target: `torch.distributed.init_process_group` (a torch API used by vLLM's distributed init, not a `vllm.*` symbol).
-- When: at import of `vllm_neuron`, from module scope (`vllm_neuron/__init__.py:196-198`). Import-time application is deliberate: it survives spawn-mode re-imports, and the EngineCore subprocess never calls `check_and_update_config` (comment at `__init__.py:194-195`).
-- What it replaces: for `tcp://127.0.0.1:<port>` init only, rank 0 binds the port immediately (or a fresh ephemeral port on `EADDRINUSE`), passes the fd to `TCPStore(master_listen_fd=)`, and publishes the actual port through a `/tmp/vllm_dist_port_<port>` rendezvous file that ranks 1..N poll. This removes a port-theft race against sibling NRT processes. Multi-node, `env://`, and explicit-store calls pass through unmodified (`port_hold_patch.py:56-62`).
-- Idempotence: module global `_applied` (`port_hold_patch.py:29, 195-196`).
+Precedence: rebinding is last-writer-wins and nothing defends a binding after application; each patch guards only against applying itself twice. Slot injection yields to explicit user config. Wrapper patches (DCP, `_patch_destroy`, port-hold) call the saved original; replacement patches (`shutdown`, `_ensure_worker_termination`, `in_the_same_node_as`) discard it. Only `_patch_destroy` can be undone.
 
-## Mechanism 5: Parallel-state module patching at worker init
+## At the 0.24 line and Neuron SDK 2.32
 
-- Site: `vllm_neuron/parallel/neuron_parallel_state.py` (imports the upstream module as `vllm_parallel_state` at `:33`).
-  - `_patch_destroy` (`:622-629`) rebinds `vllm.distributed.parallel_state.destroy_model_parallel` to a wrapper that also destroys the Neuron groups. It saves the original in `_ORIGINAL_DESTROY_MODEL_PARALLEL` (`:94`) and restores it during teardown (`:1255`).
-  - `_patch_getters` (`:631-662`) adds about 24 `get_neuron_*` accessor functions (EP, sampling DP, attention DP, embedding/LM-head/MLP DP, vision TP, DCP KV, wide-EP groups) as new attributes on `vllm.distributed.parallel_state`.
-  - `in_the_same_node_as` replacement, two sites for the same target `vllm.distributed.parallel_state.in_the_same_node_as`: `vllm_neuron/vllm/worker/neuron_worker.py:433-490` (assignment `:490`, production path) and `neuron_parallel_state.py:806-822` (assignment `:822`, test/MPExecutor path). Reason: upstream `in_the_same_node_as` calls `torch.distributed.barrier()`, which reaches the accelerator hooks before backend dispatch and crashes on Neuron's PrivateUse1 backend.
-- When: at worker initialization. `NeuronWorker.init_device` (`neuron_worker.py:346`) → `_init_neuron_distributed_environment_and_runtime` (`:492`) → the `in_the_same_node_as` patch (`:567`) → `init_neuron_distributed_environment` (`neuron_parallel_state.py:678`) → `_patch_getters(); _patch_destroy()` (`:757-758`). Test path: `neuron_parallel_state.py:935-936` and `vllm_neuron/utils/executor.py:986-987`.
+Measured on a port campaign at `release-0.24.0.1.1.0`, re-checked at that pin. Match the construct, not the line.
 
-## Mechanism 6: Pydantic schema mutation of ParallelConfig
+**Upstream decides at a consumer you did not patch.** Upstream branches on spec-class identity, on data-parallel degree above one, on a CUDA-alike platform test, and on per-architecture config hooks that rewrite fields before the platform gate reads them. So a feature that looks armed can be inert, a unification path can reject the port on class identity before reading a width, and admitting a name into the platform gate is not inert upstream. Duty: trace the resolver AND every downstream consumer's own gate before rating a feature armed or a config name inert, and prove inertness with a completed compile, never a read-audit. Measured: a config hook rewrote the checkpoint quantization method in place, so the platform allowlist and the plugin's quantization literal both had to admit the rewritten name. Also: `max_model_len` above the shipped single-shot-prefill constant makes segmented prefill mandatory; confirm the model family has that code path before compiling. (L-029, L-314, L-317, L-377, L-378, L-380, L-381, L-382)
 
-- Site: `vllm_neuron/vllm/platform.py:758-780` (`_register_neuron_all2all_backend`; validator rebuild at `:780`).
-- Target: `vllm.config.ParallelConfig.__pydantic_core_schema__` (the `all2all_backend` literal field) and `ParallelConfig.__pydantic_validator__`.
-- When: unconditionally from `check_and_update_config` (`platform.py:283`).
-- What it replaces: appends `"neuron"` to the accepted `all2all_backend` literal values and rebuilds the pydantic validator, because upstream only accepts CUDA backends.
-
-## Ad hoc monkeypatches
-
-Current verified count: **8 distinct vLLM-internal patch targets** across 8 patch sites — 6 named patch functions plus the two inline rebinding sites for `in_the_same_node_as` — plus 4 torch-level patch sites.
-
-| Patch site | Patched target | When it runs |
-|---|---|---|
-| `vllm_neuron/vllm/platform.py:93-115` (`_apply_dcp_patch`) | `vllm.config.model.ModelConfig.verify_with_parallel_config` | Plugin registration; audit-hook fallback fires on first import of `vllm.config.model` |
-| `vllm_neuron/vllm/platform.py:828-864` (`_patch_shutdown`) | `vllm.v1.utils.shutdown` and `vllm.v1.engine.utils.shutdown` (both bindings) | `check_and_update_config`; only when `VLLM_NEURON_WORKER_TERMINATION_TIMEOUT` is not 5 |
-| `vllm_neuron/vllm/platform.py:867-902` (`_patch_ensure_worker_termination`) | `vllm.v1.executor.multiproc_executor.MultiprocExecutor._ensure_worker_termination` | Same condition as above |
-| `vllm_neuron/vllm/platform.py:758-780` (`_register_neuron_all2all_backend`) | `vllm.config.ParallelConfig.__pydantic_core_schema__` / `__pydantic_validator__` | `check_and_update_config`, unconditional |
-| `vllm_neuron/parallel/neuron_parallel_state.py:622-629` (`_patch_destroy`) | `vllm.distributed.parallel_state.destroy_model_parallel` | Worker init (`init_neuron_distributed_environment`, `:757-758`); test path `:935-936`, `utils/executor.py:986-987` |
-| `vllm_neuron/parallel/neuron_parallel_state.py:631-662` (`_patch_getters`) | `vllm.distributed.parallel_state` — adds about 24 `get_neuron_*` attributes | Same call sites as `_patch_destroy` |
-| `vllm_neuron/vllm/worker/neuron_worker.py:433-490` | `vllm.distributed.parallel_state.in_the_same_node_as` | Worker init (`init_device` → `:567`) |
-| `vllm_neuron/parallel/neuron_parallel_state.py:806-822` | `vllm.distributed.parallel_state.in_the_same_node_as` (test/MPExecutor path) | Once per worker process on the test path |
-
-Torch-level patches (not vLLM internals, but they shape the same import-time layer):
-
-| Patch site | Patched target | When it runs |
-|---|---|---|
-| `vllm_neuron/vllm/patches/port_hold_patch.py:191-204` | `torch.distributed.init_process_group` | Import of `vllm_neuron` (`__init__.py:196-198`) |
-| `vllm_neuron/__init__.py:113, 152` | `sys.modules["torch.neuron"]`, `torch.neuron.*` | Import of `vllm_neuron` (`_init_backend`) |
-| `vllm_neuron/__init__.py:164-186` | `torch.accelerator.current_accelerator` (plus CPU-mode `current_stream` / `current_device_index`) | Import of `vllm_neuron` (`_init_backend`) |
-| `vllm_neuron/utils/import_redirector.py:63-90` | `sys.meta_path` finder: `torch_neuronx.*` → `libtorch_neuronx_lite.*`; blocks `libneuronxla` | Import of `vllm_neuron` (`__init__.py:16-17`), gated on `VLLM_NEURON_LIBTORCH_NEURONX_LITE` |
-
-Collective dispatch registration (a separate seam, not a rebinding): `vllm_neuron/overrides/` registers `_c10d_functional::*` kernels through `torch.library.impl` — 7 on `AutogradPrivateUse1` (`overrides/neuron_collectives.py:12, 30, 42, 62, 74, 88, 101`) and 4 on `XLA` (`overrides/xla_collectives.py:50, 85, 121, 164`). The package auto-imports both modules (`overrides/__init__.py:9-12`) and is imported from `_init_backend` (`__init__.py:111`).
-
-**Dead stub — do not use.** `vllm_neuron/vllm/patches/__init__.py` (16 lines) declares "All monkey-patches to upstream vLLM are applied here via `apply_patches()`. Called from `NeuronPlatform.check_and_update_config()`" and then defines `apply_patches()` with an empty body. Both claims are false: nothing calls it anywhere in the tree (a repo-wide grep for `apply_patches` matches only its own definition and its own docstring), and `check_and_update_config` does not reference it. A patch placed there never runs. Related stale config: `pyproject.toml:62` lists `vllm_neuron/patches/*` under `[tool.coverage.run] omit`, which does not match the real path `vllm_neuron/vllm/patches/*`.
-
-## How patches layer at the pin
-
-Application order in a full server start:
-
-1. **Import time of `vllm_neuron`** — in every process that imports the package, including spawn-mode subprocesses: env defaults, import redirector, `_init_backend()` torch patches, dynamo backend registration, collective dispatch registration, port-hold patch.
-2. **Plugin registration** — vLLM's plugin loader calls `register()`: DCP config-validation patch (or its audit hook), then `NeuronPlatform` is installed as the current platform from the returned class path.
-3. **Platform hooks during config build** — `pre_register_and_update` (model registry), `apply_config_platform_defaults`, `update_block_size_for_backend`, then `check_and_update_config`: termination-timeout patches (env-gated), pydantic all2all schema patch, worker_cls / scheduler_cls / connector-module-path slot injection. This runs in the process that constructs `VllmConfig`; the EngineCore subprocess does not call it (`__init__.py:194-195`).
-4. **Worker init** — `NeuronWorker.init_device`: `in_the_same_node_as` replacement, then `init_neuron_distributed_environment` applies `_patch_getters` / `_patch_destroy` onto `vllm.distributed.parallel_state`.
-
-Precedence rules:
-
-- Module- and class-attribute rebinding is last-writer-wins. Nothing in the plugin re-reads or defends a patched binding after application; every patch guards only against applying **itself** twice (flags `_dcp_config_patched`, `_neuron_dcp_patched`, `_termination_timeout_patched`, `_applied`).
-- Config-slot injection defers to explicit user values: `worker_cls` is set only when `"auto"`; `scheduler_cls` only when `None` or an upstream default. A user-supplied class displaces the Neuron subclass.
-- Wrapper patches (`_apply_dcp_patch`, `_patch_destroy`, port-hold) call the saved original, so they compose with the upstream behavior. Replacement patches (`shutdown`, `_ensure_worker_termination`, `in_the_same_node_as`) discard the original behavior entirely.
-- Only `_patch_destroy` supports un-application (`_ORIGINAL_DESTROY_MODEL_PARALLEL` restored at `neuron_parallel_state.py:1255`). All other patches are permanent for the process lifetime.
-
-## At the 0.24 line and Neuron SDK 2.32 — measured additions
-
-Pin note: every section above is the 0.21 checkout. The facts below were measured on a port campaign at vllm-neuron `release-0.24.0.1.1.0` and Neuron SDK 2.32 (compiler 2.27 line, runtime 2.34 line) on the same hardware class, and each was re-checked at that pin. Same discipline — match the construct, not the line number.
-
-**Upstream decides at a consumer you did not patch.** Upstream vLLM on this line branches on Python spec-class identity, on a data-parallel degree above one, on a CUDA-alike platform test, and on per-architecture config hooks that rewrite fields in place before the platform gate reads them. The Neuron platform sits at data parallel one, non-CUDA, with its own spec classes, and its resolver raises a ceiling rather than degrading. So a feature that looks armed can be inert because each consumer carries its own gate; an upstream unification path can reject the port on class identity before it ever reads a width; and admitting a name into the platform gate is not inert upstream. **Duty:** trace the resolver AND every downstream consumer's own gate before you rate a feature as armed or a config name as inert, and prove inertness with a completed compile, never with a read-audit. One measured case: a per-architecture config hook rewrote the checkpoint quantization method in place, keyed only on model type, so the platform allowlist and the plugin's own quantization-method literal both had to admit the rewritten name. A second gate to settle before you compile: when a plan sets `max_model_len` above the shipped single-shot-prefill constant, segmented prefill is mandatory — no `max_num_batched_tokens` value buys single-shot back — so confirm the target model family has a segmented-prefill code path first. (L-029, L-314, L-317, L-377, L-378, L-380, L-381, L-382)
-
-**Import time pins the venue before your code runs.** Importing the fork runs the meta-path redirector plus unconditional environment and torch mutations before the XLA runtime initializes: it disables XLA functionalization, adds an XLA fast-math flag, forces an always-all-reduce flag, and pins the XLA device to CPU; platform constants such as the fp8 clamp maximum freeze at first import; eight lazy operator overrides register with a one-shot setattr, two of them disabled unless you pass an explicit pattern; the torch top-k override patches torch globally and emits its custom call only for the largest-sorted-last-dimension case, falling back otherwise; a fused-softmax override does nothing without its own env flag; and the worker deletes any environment key absent from its inherited baseline. (L-122, L-145, L-187, L-285, L-299, L-320, L-331, L-333, L-341, L-371, L-373, L-388, L-389)
-
-For a probe that claims production tracing or lowering compatibility, match the runner's import order, construction context, parallel degree, dtype, and compile route. Set import-read overrides before import — a late override freezes a platform constant at the wrong value and corrupts numerics with no error — and confirm relevant package paths with `__file__`. Where the runner uses meta construction and mocked process groups, use that setup. Inspect the import mutations and override gates relevant to the claimed difference.
-
-An isolated numerical or parser probe may use a smaller context. State which property it tests and which production behavior remains untested. A CPU reference can test representable arithmetic; it cannot validate a device-only fp8 matmul implementation. This boundary keeps a cheap discriminator useful without treating it as production proof.
-
-The authoring observations below share the original evidence group: L-134, L-135, L-280, L-289, L-295, L-329, L-336 (the cited campaign and pin).
-
-**Match constant encoding to the lowering path.** At this pin, int64 legalization rejects constants outside signed int32 range, including dtype extrema synthesized for omitted clamp bounds. Inspect both lowered bounds on an affected clamp; choose explicit legal bounds only if they preserve the producer's required range. Otherwise use a supported representation or lowering. Express a bit-pattern sentinel as signed two's-complement only when its width and consumers preserve that bit interpretation; a numerical sentinel needs an equivalent numerical representation.
-
-**Choose scale rounding from the format.** The observed residual-limb encode required one final floored, clamped scale before any limb was quantized. A ceiling-of-log2 seed crossed its binade boundary, and separate limb scales caused saturation. For a format with that scale contract, a floor-of-log2 seed plus exact boundary fixups is a candidate. Check it against the format's reference at binade edges, clamp limits, zero, and residual saturation cases. Other low-bit formats can require different rounding or scale sharing; derive those from their encoding contract before selecting a recipe.
-
-**Keep constants compatible with tracing.** On the affected tracing path, constructing a tensor from a Python literal sequence inside forward creates a real tensor where a fake tensor is required. Choose a trace-compatible construction that preserves values, dtype, device, and indexing. Boundary counting with zero-dimensional comparisons followed by index select fits an ordered-boundary lookup; it is not a replacement for an arbitrary constant tensor. Verify the chosen form through the target trace and lowering path.
-
-**Resolve checkpoint contents before interpreting config.** The weights cache can create a decoy directory for a missed lookup. For cache-backed checkpoints, resolve the snapshot that contains the actual weights. Read those tensors and the upstream loader before accepting a mechanism or dimension named by a config field; a local checkpoint outside that cache still requires real weight files.
+**Import time pins the venue before your code runs.** Importing the fork runs the redirector plus unconditional environment and torch mutations before the XLA runtime initializes: XLA functionalization off, a fast-math flag on, an always-all-reduce flag forced, the XLA device pinned to CPU; platform constants such as the fp8 clamp maximum freeze at first import; lazy operator overrides register once, two disabled without an explicit pattern; the top-k override patches torch globally and emits its custom call only for the largest-sorted-last-dimension case; a fused-softmax override needs its own env flag; the worker deletes any environment key absent from its inherited baseline. Duty: a probe that claims production tracing or lowering compatibility matches the runner's import order, construction context, parallel degree, dtype, and compile route, sets import-read overrides before import, and confirms package paths with `__file__`. A smaller probe states which property it tests and which production behavior stays untested; a CPU reference cannot validate a device-only fp8 matmul. (L-122, L-145, L-187, L-285, L-299, L-320, L-331, L-333, L-341, L-371, L-373, L-388, L-389)
 
 ## Porter rules
 
-1. **Choose the layer by process scope.** If the change must be active in worker/EngineCore subprocesses under spawn, apply it at import time of `vllm_neuron` (pattern: `port_hold_patch.py` plus a call from `__init__.py`). If it only shapes engine configuration, put it in `NeuronPlatform.check_and_update_config`. If it needs an initialized distributed runtime, put it in the `NeuronWorker.init_device` chain.
-2. **Prefer sanctioned upstream slots over rebinding.** Use `worker_cls`, `scheduler_cls`, `kv_connector` plus `kv_connector_module_path`, `get_attn_backend_cls`, and `ModelRegistry.register_model` when upstream exposes the seam. Subclass upstream classes (pattern: the NIXL connectors) instead of patching their methods.
-3. **Do not put patches in `vllm_neuron/vllm/patches/__init__.py::apply_patches()`.** It is an empty stub with zero call sites. If you add a module under `vllm_neuron/vllm/patches/`, wire its `apply_*()` call explicitly from `vllm_neuron/__init__.py` or from a `NeuronPlatform` hook.
-4. **When you rebind a module-level function, find and rebind every binding of it.** Upstream `from X import y` statements create copies that keep the old function (proof: the dual `shutdown` rebinding at `platform.py:863-864`, forced by a `weakref.finalize` capture). Grep upstream vLLM for `from <module> import <symbol>` before you patch `<module>.<symbol>`.
-5. **Make every patch idempotent.** Guard with a module global or a marker attribute on the replacement (patterns: `_dcp_config_patched`, `_neuron_dcp_patched`, `_applied`, `_termination_timeout_patched`). Spawn re-imports and repeated platform-hook calls occur.
-6. **Wrap, do not replace, when the upstream behavior must survive a version bump.** Save the original and call it (patterns: `_apply_dcp_patch`, `_patch_destroy`, the port-hold pass-through for non-loopback cases).
-7. **Know what breaks a patch at a version bump:** the target module path moves or the symbol is renamed (the patch function then raises `ImportError` or `AttributeError` at apply time); upstream adds a new internal import binding of a patched function (rule 4); upstream changes the pydantic schema nesting that `_register_neuron_all2all_backend` walks (`platform.py:771-778` indexes four literal `"schema"` levels); circular-import timing at registration (only the DCP patch has an audit-hook fallback — copy that pattern if your patch must run at registration).
-8. **Respect env gating and user overrides.** The termination patches are inert at the default timeout; slot injections yield to explicit user config. A vendored change must not assume a patch is always active — check its guard condition first.
-9. **Do not conflate vLLM patches with torch patches.** `init_process_group`, `torch.neuron`, `torch.accelerator.*`, and the meta-path redirector patch torch, apply at import time, and are unconditional (the redirector excepted). Changes to torch-adjacent behavior land there, not in `NeuronPlatform`.
+1. **Choose the layer by process scope.** Active in spawn-mode worker or EngineCore subprocesses: import time of `vllm_neuron` (pattern: `port_hold_patch.py` called from `__init__.py`). Shapes engine configuration only: `NeuronPlatform.check_and_update_config`. Needs an initialized distributed runtime: the `NeuronWorker.init_device` chain.
+2. **Prefer sanctioned slots over rebinding.** `worker_cls`, `scheduler_cls`, `kv_connector` plus `kv_connector_module_path`, `get_attn_backend_cls`, `ModelRegistry.register_model`; subclass upstream classes (pattern: the NIXL connectors) instead of patching methods.
+3. **Never use `apply_patches()`.** Wire a new module under `vllm_neuron/vllm/patches/` explicitly from `__init__.py` or a `NeuronPlatform` hook.
+4. **Rebind every binding.** Upstream `from X import y` makes copies that keep the old function (proof: the dual `shutdown` rebinding). Grep upstream for `from <module> import <symbol>` before patching `<module>.<symbol>`.
+5. **Make every patch idempotent.** A module global or a marker attribute on the replacement; spawn re-imports and repeated hook calls happen.
+6. **Wrap, do not replace,** when upstream behavior must survive a version bump: save and call the original.
+7. **Know what breaks a patch at a bump:** a moved module path or renamed symbol (apply-time `ImportError`/`AttributeError`); a new upstream import binding (rule 4); a change in the pydantic schema nesting `_register_neuron_all2all_backend` walks; circular-import timing at registration (only the DCP patch has an audit-hook fallback; copy it if yours must run then).
+8. **Respect env gating and user overrides.** The timeout patches are inert at the default; slot injection yields to explicit config. Check a patch's guard before assuming it is active.
+9. **Torch patches are not vLLM patches.** `init_process_group`, `torch.neuron`, `torch.accelerator.*`, and the redirector patch torch at import time; torch-adjacent changes land there, not in `NeuronPlatform`.

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# LEAD-ALIGNMENT PAIR (2 of 2) -- state-staleness socratic reminder.
+# LEAD HOOK PAIR (2 of 2) -- state-staleness socratic reminder.
 # Supports P12 (declared outcomes and edges only) and P10 (the lead is the
 # single writer of run state) across long autonomous stretches where no user
-# event fires and nothing re-injects the run position.
+# event fires and nothing reminds the run position.
 #
 # OBSERVING: always exits 0 and speaks only through additionalContext. Fires
 # when the run-state file has not been written for STALE_SECONDS while tools
@@ -51,25 +51,35 @@ print(find(payload, "agent_id").replace("\n", " "))
 [ "$(printf '%s\n' "$FIELDS" | sed -n 1p)" = "OK" ] || exit 0  # fail open
 SESSION_ID="$(printf '%s\n' "$FIELDS" | sed -n 2p)"
 [ -n "$SESSION_ID" ] || SESSION_ID=default
-# Identity gate: only the lead holds the state-write duty this reminder names.
+# Caller check: only the lead holds the state-write duty this reminder names.
 case "$(printf '%s\n' "$FIELDS" | sed -n 3p)" in ""|main|lead|root|primary) ;; *) exit 0 ;; esac
 [ -n "$(printf '%s\n' "$FIELDS" | sed -n 4p)" ] && exit 0   # subagent: cannot act
 
 # --- run-state discovery (marker-authoritative; see stop-guard.sh) ----------
 FOUND_STATE=""
 FOUND_VIA=""
-for root in "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
-  [ -n "$root" ] || continue
-  marker="$root/.vllm-neuron-parity-run"
-  [ -f "$marker" ] || continue
-  candidate="$(head -n 1 "$marker" 2>/dev/null | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-  if [ -n "$candidate" ] && [ -f "$candidate" ]; then
-    FOUND_STATE="$candidate"; FOUND_VIA="marker"; break
-  fi
+# DECISIONS §1052/§1053 (2026-09-14): try each seed root and then every parent
+# up to / -- a seat whose cwd is a campaign subdirectory must still find the
+# marker at the project root.
+for seed in "${CODEX_PROJECT_DIR:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
+  [ -n "$seed" ] || continue
+  root="$seed"
+  while :; do
+    marker="$root/.vllm-neuron-parity-run"
+    if [ -f "$marker" ]; then
+      candidate="$(head -n 1 "$marker" 2>/dev/null | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+      if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+        FOUND_STATE="$candidate"; FOUND_VIA="marker"; break 2
+      fi
+    fi
+    parent="$(dirname "$root")"
+    [ "$parent" != "$root" ] || break
+    root="$parent"
+  done
 done
 [ "$FOUND_VIA" = "marker" ] || exit 0
 
-# --- lead-session identity gate ---------------------------------------------
+# --- lead-session caller check ---------------------------------------------
 # This pair is lead-only, but every full session in the project (teammates,
 # scratch sessions) fires the same events. The lead records its session id in
 # the sidecar <run-state>.lead-session (one line); when the sidecar exists and
@@ -102,10 +112,10 @@ except Exception:
     sys.exit(0)
 if not isinstance(state, dict):
     sys.exit(0)
-terminal = state.get("terminal_classification")
-settled = bool(terminal.get("status") or terminal.get("classification")) \
+terminal = state.get("final_status")
+decided = bool(terminal.get("status") or terminal.get("classification")) \
     if isinstance(terminal, dict) else bool(terminal)
-if settled:
+if decided:
     sys.exit(0)
 
 

@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
-"""Record and verify workflow revisions in an evolution root.
+"""Record and verify workflow revisions in a revision folder.
 
 A root holds one live canonical graph — workflow.pave.yaml plus any child
-<name>.pave.yaml beside it — and one append-only ledger, revisions.yaml. Entry 0
+<name>.pave.yaml beside it — and one append-only revision_log, revisions.yaml. Entry 0
 is the delivered graph; every successor is a unified-diff patch under history/,
-landed by appending an entry. A delivered package carrying entry 0 and no
+applied by appending an entry. A delivered package carrying entry 0 and no
 patches is a valid root too, so verify runs on a package and on an installed
-project root alike. kind (graph | binding | pin) is declared by the proposer,
-never inferred from digests: a binding revision moves the live digest as well,
-because instruments live in the YAML. The pinned bundle is the newest graph or
-binding entry, the active graph revision is the last graph entry, and pin
-entries are informational: a pin never closes an audit cycle. A .landing marker
-exists only while land, pin, or rollback runs; verify reports a leftover marker
-as an interrupted landing, distinct from an unrecorded edit (the live digest
+project root alike. kind (graph | run_setup | pin) is declared by the proposer,
+never inferred from digests: a run-setup revision moves the live digest as well,
+because implementations live in the YAML. The pinned bundle is the newest graph or
+run-setup entry, the active graph revision is the last graph entry, and pin
+entries are informational: a pin never closes an audit cycle. A .applying marker
+exists only while apply, pin, or rollback runs; verify reports a leftover marker
+as an interrupted apply step, distinct from an unrecorded edit (the live digest
 moved, no entry explains it).
 
-A proposal whose envelope_check is changed_pending_approval proposes but never
-lands: land refuses it until the user's approval is recorded verbatim. land
-records who drafted the patch in drafted_by (workflow-updater when the
---proposal path, size and mtime match a stamp in the --stamps sidecar's
-stamped_proposals; unstamped otherwise). propose and land refuse a
-runtime_bindings deny glob that matches a path the graph itself declares under
+A proposal whose user_only_changes is pending proposes but never
+applies: apply refuses it until the user's approval is recorded verbatim. apply
+records who drafted the patch in written_by (workflow-updater when the
+--proposal path, size and mtime match a hook_record in the --hook-records sidecar's
+hook_recorded_writes; unverified otherwise). propose and apply refuse a
+write_limits blocked path pattern that matches a path the graph itself declares under
 evidence, state, produces or consumes — matched the way the runtime guard matches
 it, against the whole path and every trailing-component suffix, so `increments/*`
 is refused against a declared campaigns/<c>/increments/ directory.
@@ -48,29 +48,29 @@ except ImportError:
     sys.exit(2)
 
 VALIDATOR = Path(__file__).resolve().parent / "validate_pave.py"
-LEDGER = "revisions.yaml"
-MARKER = ".landing"
+REVISION_LOG = "revisions.yaml"
+MARKER = ".applying"
 ROOT_GRAPH = "workflow.pave.yaml"
-BUNDLE_KINDS = ("graph", "binding")
+BUNDLE_KINDS = ("graph", "run_setup")
 DIFF_START = ("diff --git ", "--- ")
 ENTRY_FIELDS = (
-    "revision", "kind", "landed_at", "digest_before", "digest_after", "semantic_diff",
-    "approval", "envelope_check", "plan_evidence", "usage_evidence", "review", "drafted_by",
+    "revision", "kind", "applied_at", "digest_before", "digest_after", "semantic_diff",
+    "approval", "user_only_changes", "plan_evidence", "usage_evidence", "review", "written_by",
     "patch", "commit", "derived_from", "run_id",
 )
 PREAMBLE_FIELDS = (
-    "kind", "semantic_diff", "envelope_check", "plan_evidence", "usage_evidence",
+    "kind", "semantic_diff", "user_only_changes", "plan_evidence", "usage_evidence",
     "changelog_entry",
 )
 ENUMS = {
     "kind": BUNDLE_KINDS,
-    "envelope_check": ("unchanged", "changed_with_approval", "changed_pending_approval"),
+    "user_only_changes": ("none", "approved", "pending"),
     "plan_evidence": ("verified", "provisional"),
     "usage_evidence": ("none", "clean_room", "field"),
 }
-PENDING = "changed_pending_approval"
-PENDING_MESSAGE = ("envelope change awaits the user's approval; re-propose with"
-                   " changed_with_approval and the approval verbatim")
+PENDING = "pending"
+PENDING_MESSAGE = ("a user-only change awaits the user's approval; re-propose with"
+                   " approved and the approval verbatim")
 PIN_HELP = "append the pin entry for a run: informational; never closes an audit cycle"
 # Keys whose string values may declare a path relative to the run workspace.
 DECLARING_KEYS = ("evidence", "state", "produces", "consumes")
@@ -78,7 +78,7 @@ PATH_LIKE = re.compile(r"[^\s/]\S*")
 
 
 class Refusal(ValueError):
-    """A refusal with its own exit code: 3 = envelope pending, 4 = glob on a declared path."""
+    """A refusal with its own exit code: 3 = user_only_changes pending, 4 = glob on a declared path."""
 
     def __init__(self, message: str, code: int):
         super().__init__(message)
@@ -105,7 +105,7 @@ def graph_files(root: Path) -> dict:
     """Map graph file name -> path, rejecting symlinks and hard links."""
     files = {path.name: path for path in sorted(root.glob("*.pave.yaml"))}
     if ROOT_GRAPH not in files:
-        raise ValueError(f"{root / ROOT_GRAPH} not found; not an evolution root")
+        raise ValueError(f"{root / ROOT_GRAPH} not found; not a revision folder")
     for path in files.values():
         check_regular(path)
     return files
@@ -115,10 +115,10 @@ def live_digest(root: Path) -> str:
     return bundle_digest({n: file_digest(p) for n, p in graph_files(root).items()})
 
 
-def read_ledger(root: Path) -> list:
-    path = root / LEDGER
+def read_revision_log(root: Path) -> list:
+    path = root / REVISION_LOG
     if not path.is_file():
-        raise ValueError(f"{path} not found; not an evolution root")
+        raise ValueError(f"{path} not found; not a revision folder")
     document = yaml.safe_load(path.read_text()) or {}
     entries = document.get("entries") if isinstance(document, dict) else None
     if not isinstance(entries, list) or not entries:
@@ -126,21 +126,21 @@ def read_ledger(root: Path) -> list:
     return entries
 
 
-def write_ledger(root: Path, entries: list):
-    (root / LEDGER).write_text(yaml.safe_dump({"entries": entries}, sort_keys=False))
+def write_revision_log(root: Path, entries: list):
+    (root / REVISION_LOG).write_text(yaml.safe_dump({"entries": entries}, sort_keys=False))
 
 
 def head_entry(entries: list) -> dict:
-    """The newest graph or binding entry: the pinned bundle."""
+    """The newest graph or run-setup entry: the pinned bundle."""
     bundle = [e for e in entries if e.get("kind") in BUNDLE_KINDS]
     if not bundle:
-        raise ValueError(f"{LEDGER}: no graph or binding entry")
+        raise ValueError(f"{REVISION_LOG}: no graph or run-setup entry")
     return bundle[-1]
 
 
 def make_entry(**fields) -> dict:
-    """One ledger entry, every field present in a fixed order, unset fields null."""
-    fields["landed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    """One revision_log entry, every field present in a fixed order, unset fields null."""
+    fields["applied_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return {name: fields.get(name) for name in ENTRY_FIELDS}
 
 
@@ -192,7 +192,7 @@ def apply_diff(diff: str, cwd: Path, reverse: bool = False):
     flags = ["-R"] if reverse else []
     # Inside a git work tree, `git apply` reads patch paths relative to the top
     # level and silently skips files outside the current directory, so a root
-    # below the top level would "land" nothing. Re-anchor the paths at the root.
+    # below the top level would "apply" nothing. Re-anchor the paths at the root.
     prefix = subprocess.run(["git", "rev-parse", "--show-prefix"], cwd=str(cwd),
                             capture_output=True, text=True)
     if prefix.returncode == 0 and prefix.stdout.strip():
@@ -241,20 +241,20 @@ def glob_covers(declared: str, pattern: str) -> bool:
 
 
 def check_deny_globs(root: Path):
-    """Refuse (exit 4) a runtime_bindings deny glob that reaches a path the bundle
+    """Refuse (exit 4) a write_limits blocked path pattern that reaches a path the bundle
     declares, matched the way the runtime guard matches it (see glob_covers)."""
     documents = [yaml.safe_load(path.read_text()) or {} for path in graph_files(root).values()]
     paths = set().union(*(declared_paths(document) for document in documents))
     for document in documents:
         pave = document.get("pave") if isinstance(document, dict) else None
-        for rule in ((pave or {}).get("runtime_bindings") or {}).get("deny") or []:
+        for rule in ((pave or {}).get("write_limits") or {}).get("deny") or []:
             glob = rule.get("glob") if isinstance(rule, dict) else None
             if not isinstance(glob, str):
                 continue
             for declared in sorted(paths):
                 if glob_covers(declared, glob):
-                    raise Refusal(f"runtime_bindings deny glob {glob!r} matches the declared path"
-                                  f" {declared!r}; a binding never denies what the graph declares", 4)
+                    raise Refusal(f"write_limits blocked path pattern {glob!r} matches the declared path"
+                                  f" {declared!r}; a run-setup entry never denies what the graph declares", 4)
 
 
 def validate_graph(root: Path):
@@ -265,10 +265,10 @@ def validate_graph(root: Path):
 
 
 def snapshot(root: Path) -> dict:
-    """Remember every file a landing may rewrite, so a caught failure can undo it."""
+    """Remember every file an apply step may rewrite, so a caught failure can undo it."""
     saved = {path.name: path.read_bytes() for path in root.glob("*.pave.yaml")}
-    if (root / LEDGER).is_file():
-        saved[LEDGER] = (root / LEDGER).read_bytes()
+    if (root / REVISION_LOG).is_file():
+        saved[REVISION_LOG] = (root / REVISION_LOG).read_bytes()
     return saved
 
 
@@ -283,7 +283,7 @@ def restore(root: Path, saved: dict):
 def take_marker(root: Path, revision: int) -> Path:
     marker = root / MARKER
     if marker.exists():
-        raise ValueError("landing interrupted: restore the root from version control, remove .landing, then verify")
+        raise ValueError("applying interrupted: restore the root from version control, remove .applying, then verify")
     marker.write_text(f"{revision}\n")
     return marker
 
@@ -291,8 +291,8 @@ def take_marker(root: Path, revision: int) -> Path:
 def check_chain(root: Path) -> tuple[list, str]:
     """Verify the marker, the digest chain, the patch files, and the live digest."""
     if (root / MARKER).exists():
-        raise ValueError("landing interrupted: restore the root from version control, remove .landing, then verify")
-    entries = read_ledger(root)
+        raise ValueError("applying interrupted: restore the root from version control, remove .applying, then verify")
+    entries = read_revision_log(root)
     live = live_digest(root)
     previous = None
     for entry in entries:
@@ -318,7 +318,7 @@ def check_chain(root: Path) -> tuple[list, str]:
         if kind in BUNDLE_KINDS:
             previous = entry
     if previous is None:
-        raise ValueError(f"{LEDGER}: no graph or binding entry")
+        raise ValueError(f"{REVISION_LOG}: no graph or run-setup entry")
     if live != previous["digest_after"]:
         raise ValueError(f"unrecorded edit: the live digest {live} is not revision"
                          f" {previous['revision']} digest_after")
@@ -327,11 +327,11 @@ def check_chain(root: Path) -> tuple[list, str]:
 
 def init(args) -> int:
     root = Path(args.root)
-    if (root / LEDGER).exists():
-        raise ValueError(f"{root / LEDGER} already exists; a root is initialised once")
+    if (root / REVISION_LOG).exists():
+        raise ValueError(f"{root / REVISION_LOG} already exists; a root is initialised once")
     files = graph_files(root)
     digest = bundle_digest({n: file_digest(p) for n, p in files.items()})
-    write_ledger(root, [make_entry(
+    write_revision_log(root, [make_entry(
         revision=0, kind="graph", digest_after=digest, approval=args.approval,
         plan_evidence=args.plan_evidence, usage_evidence=args.usage_evidence,
     )])
@@ -345,9 +345,9 @@ def install(args) -> int:
         raise ValueError(f"{root} is not a directory")
     if root.is_dir() and any(root.iterdir()):
         raise ValueError(f"{root} is not empty; install targets a new or empty directory")
-    if not (source / LEDGER).is_file():
-        raise ValueError(f"{source} is not an evolution root: no {LEDGER}")
-    names = list(graph_files(source)) + [LEDGER]
+    if not (source / REVISION_LOG).is_file():
+        raise ValueError(f"{source} is not a revision folder: no {REVISION_LOG}")
+    names = list(graph_files(source)) + [REVISION_LOG]
     root.mkdir(parents=True, exist_ok=True)
     for name in names:
         shutil.copyfile(source / name, root / name)
@@ -379,38 +379,38 @@ def propose(args) -> int:
     return 0
 
 
-def commit_landing(root: Path, revision: int, patch: str) -> str | None:
+def commit_apply(root: Path, revision: int, patch: str) -> str | None:
     proc = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=str(root),
                           capture_output=True, text=True)
     if proc.returncode != 0 or proc.stdout.strip() != "true":
         print(f"WARN: {root} is not inside a git work tree; nothing committed", file=sys.stderr)
         return None
-    names = [path.name for path in sorted(root.glob("*.pave.yaml"))] + [LEDGER, patch]
+    names = [path.name for path in sorted(root.glob("*.pave.yaml"))] + [REVISION_LOG, patch]
     git(["add", "--", *names], root)
-    git(["commit", "-m", f"land revision {revision}"], root)
+    git(["commit", "-m", f"apply revision {revision}"], root)
     return git(["rev-parse", "HEAD"], root).stdout.strip()
 
 
-def drafted_by(proposal: Path | None, stamps: Path | None) -> str:
-    """workflow-updater when the proposal's path, size and mtime match a hook stamp; else unstamped."""
-    if proposal is None or stamps is None:
-        return "unstamped"
-    if not stamps.is_file():
-        raise ValueError(f"{stamps} not found; the stamps sidecar is hook-written")
+def written_by(proposal: Path | None, hook_records: Path | None) -> str:
+    """workflow-updater when the proposal's path, size and mtime match a hook hook_record; else unverified."""
+    if proposal is None or hook_records is None:
+        return "unverified"
+    if not hook_records.is_file():
+        raise ValueError(f"{hook_records} not found; the hook records sidecar is hook-written")
     try:
-        sidecar = json.loads(stamps.read_text())
+        sidecar = json.loads(hook_records.read_text())
     except json.JSONDecodeError as error:
-        raise ValueError(f"{stamps}: not JSON ({error})")
+        raise ValueError(f"{hook_records}: not JSON ({error})")
     stat = proposal.stat()
-    for stamp in (sidecar.get("stamped_proposals") if isinstance(sidecar, dict) else None) or []:
-        if not isinstance(stamp, dict):
+    for hook_record in (sidecar.get("hook_recorded_writes") if isinstance(sidecar, dict) else None) or []:
+        if not isinstance(hook_record, dict):
             continue
-        same_path = Path(str(stamp.get("path", ""))).resolve() == proposal.resolve()
-        same_size = stamp.get("size") == stat.st_size
-        same_mtime = isinstance(stamp.get("mtime"), (int, float)) and abs(stamp["mtime"] - stat.st_mtime) < 1e-6
+        same_path = Path(str(hook_record.get("path", ""))).resolve() == proposal.resolve()
+        same_size = hook_record.get("size") == stat.st_size
+        same_mtime = isinstance(hook_record.get("mtime"), (int, float)) and abs(hook_record["mtime"] - stat.st_mtime) < 1e-6
         if same_path and same_size and same_mtime:
             return "workflow-updater"
-    return "unstamped"
+    return "unverified"
 
 
 def stage_proposal(root: Path, patch: str, proposal: Path) -> bool:
@@ -427,20 +427,20 @@ def stage_proposal(root: Path, patch: str, proposal: Path) -> bool:
     return True
 
 
-def land(args) -> int:
+def apply(args) -> int:
     root = Path(args.root)
     patch = f"history/v{args.revision}.patch"
     proposal = Path(args.proposal) if args.proposal else None
-    stamps = Path(args.stamps) if args.stamps else None
+    hook_records = Path(args.hook_records) if args.hook_records else None
     preamble, diff = read_proposal(proposal or root / patch)
-    if preamble["envelope_check"] == PENDING:
+    if preamble["user_only_changes"] == PENDING:
         raise Refusal(PENDING_MESSAGE, 3)
-    drafter = drafted_by(proposal, stamps)
+    drafter = written_by(proposal, hook_records)
     entries, digest_before = check_chain(root)
     head = head_entry(entries)
     if args.revision != head["revision"] + 1:
         raise ValueError(f"revision {args.revision} does not follow the pinned revision"
-                         f" {head['revision']}; land v{head['revision'] + 1}")
+                         f" {head['revision']}; apply v{head['revision'] + 1}")
     saved = snapshot(root)
     marker = take_marker(root, args.revision)
     copied = False
@@ -452,17 +452,17 @@ def land(args) -> int:
         validate_graph(root)
         digest_after = live_digest(root)
         if digest_after == digest_before:
-            raise ValueError("the patch changed no graph file; nothing to land")
+            raise ValueError("the patch changed no graph file; nothing to apply")
         fields = dict(preamble, revision=args.revision, digest_before=digest_before,
-                      digest_after=digest_after, patch=patch, drafted_by=drafter)
+                      digest_after=digest_after, patch=patch, written_by=drafter)
         fields["approval"] = args.approval or preamble.get("approval")
         fields["review"] = args.review or preamble.get("review")
         entry = make_entry(**fields)
         entries.append(entry)
-        write_ledger(root, entries)
+        write_revision_log(root, entries)
         if args.commit:
-            entry["commit"] = commit_landing(root, args.revision, patch)
-            write_ledger(root, entries)
+            entry["commit"] = commit_apply(root, args.revision, patch)
+            write_revision_log(root, entries)
     except (ValueError, OSError):
         restore(root, saved)
         if copied:
@@ -470,7 +470,7 @@ def land(args) -> int:
         marker.unlink(missing_ok=True)
         raise
     marker.unlink(missing_ok=True)
-    print(f"PASS: landed revision {args.revision} (kind {entry['kind']}) {entry['digest_after']}")
+    print(f"PASS: applied revision {args.revision} (kind {entry['kind']}) {entry['digest_after']}")
     return 0
 
 
@@ -483,7 +483,7 @@ def pin(args) -> int:
     try:
         entries.append(make_entry(revision=head["revision"], kind="pin", digest_before=live,
                                   digest_after=live, run_id=args.run_id))
-        write_ledger(root, entries)
+        write_revision_log(root, entries)
     finally:
         marker.unlink(missing_ok=True)
     print(f"PASS: pinned run {args.run_id} to revision {head['revision']} {live}")
@@ -496,15 +496,15 @@ def verify(args) -> int:
     head = head_entry(entries)
     if args.pinned_revision is None and args.pinned_digest is None:
         print(f"PASS: {root} is intact at revision {head['revision']}"
-              f" ({len(entries)} ledger entries) {digest}")
+              f" ({len(entries)} revision_log entries) {digest}")
         return 0
     if args.pinned_revision is None or args.pinned_digest is None:
         raise ValueError("--pinned-revision and --pinned-digest go together")
     match = next((e for e in entries if e.get("kind") in BUNDLE_KINDS
                   and e.get("revision") == args.pinned_revision), None)
     if match is None:
-        raise ValueError(f"the pin names revision {args.pinned_revision}; the ledger records"
-                         " no graph or binding entry for it")
+        raise ValueError(f"the pin names revision {args.pinned_revision}; the revision_log records"
+                         " no graph or run-setup entry for it")
     if match["digest_after"] != args.pinned_digest:
         raise ValueError(f"the pinned digest is not revision {args.pinned_revision} digest_after")
     newer = [e for e in entries if e.get("kind") in BUNDLE_KINDS
@@ -514,9 +514,9 @@ def verify(args) -> int:
         return 0
     graphs = [e["revision"] for e in newer if e["kind"] == "graph"]
     if graphs:
-        print(f"ROUTE: graph landed since pin (revision {max(graphs)})")
+        print(f"ROUTE: graph applied since pin (revision {max(graphs)})")
         return 3
-    print(f"ROUTE: binding landed since pin (revision {max(e['revision'] for e in newer)})")
+    print(f"ROUTE: run setup applied since pin (revision {max(e['revision'] for e in newer)})")
     return 4
 
 
@@ -527,12 +527,12 @@ def rollback(args) -> int:
     target = next((e for e in entries if e.get("kind") in BUNDLE_KINDS
                    and e.get("revision") == args.to), None)
     if target is None:
-        raise ValueError(f"the ledger records no graph or binding revision {args.to}")
+        raise ValueError(f"the revision_log records no graph or run-setup revision {args.to}")
     undone = [e for e in entries if e.get("kind") in BUNDLE_KINDS and e["revision"] > args.to]
     if not undone:
         raise ValueError(f"revision {args.to} is already the pinned revision; nothing to undo")
     revision = head["revision"] + 1
-    kind = "graph" if any(e["kind"] == "graph" for e in undone) else "binding"
+    kind = "graph" if any(e["kind"] == "graph" for e in undone) else "run_setup"
     patch = f"history/v{revision}.patch"
     saved = snapshot(root)
     marker = take_marker(root, revision)
@@ -541,7 +541,7 @@ def rollback(args) -> int:
         for side in ("a", "b"):
             (scratch / side).mkdir()
         for name, data in saved.items():
-            if name != LEDGER:
+            if name != REVISION_LOG:
                 (scratch / "a" / name).write_bytes(data)
         for entry in reversed(undone):
             apply_diff(split_patch((root / entry["patch"]).read_text())[1], root, reverse=True)
@@ -559,7 +559,7 @@ def rollback(args) -> int:
         fields = dict(
             revision=revision, kind=kind, digest_before=digest_before, digest_after=digest_after,
             semantic_diff=args.semantic_diff, approval=args.approval,
-            envelope_check="changed_with_approval", plan_evidence=target.get("plan_evidence"),
+            user_only_changes="approved", plan_evidence=target.get("plan_evidence"),
             usage_evidence=target.get("usage_evidence"), patch=patch, derived_from=args.to,
         )
         preamble = {field: fields.get(field) for field in PREAMBLE_FIELDS}
@@ -567,7 +567,7 @@ def rollback(args) -> int:
         (root / "history").mkdir(exist_ok=True)
         (root / patch).write_text(yaml.safe_dump(preamble, sort_keys=False) + forward)
         entries.append(make_entry(**fields))
-        write_ledger(root, entries)
+        write_revision_log(root, entries)
     except (ValueError, OSError):
         restore(root, saved)
         (root / patch).unlink(missing_ok=True)
@@ -576,7 +576,7 @@ def rollback(args) -> int:
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     marker.unlink(missing_ok=True)
-    print(f"PASS: landed revision {revision} (kind {kind}) back to revision {args.to}"
+    print(f"PASS: applied revision {revision} (kind {kind}) back to revision {args.to}"
           f" {digest_after}")
     return 0
 
@@ -586,7 +586,7 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("init", help="write revisions.yaml with entry 0 beside a delivered graph")
-    p.add_argument("root", help="the evolution root: holds workflow.pave.yaml and no ledger yet")
+    p.add_argument("root", help="the revision folder: holds workflow.pave.yaml and no revision log yet")
     p.add_argument("--plan-evidence", choices=["verified", "provisional"], required=True)
     p.add_argument("--approval", required=True, help="the approval that authorized delivery, verbatim")
     p.add_argument("--usage-evidence", choices=["none", "clean_room"], default="none")
@@ -596,33 +596,33 @@ def main() -> int:
     p.add_argument("--from", dest="from_root", required=True, help="the package root to copy")
     p.set_defaults(func=install)
     p = sub.add_parser("propose", help="check a proposal against a root without touching the root:"
-                       " exit 4 when a deny glob matches a declared path")
+                       " exit 4 when a blocked path pattern matches a declared path")
     p.add_argument("root")
     p.add_argument("--patch", required=True, help="the proposal: YAML preamble then unified diff")
     p.set_defaults(func=propose)
-    p = sub.add_parser("land", help="apply history/vN.patch and append its ledger entry; exit 3"
-                       f" when envelope_check is {PENDING}")
+    p = sub.add_parser("apply", help="apply history/vN.patch and append its revision log entry; exit 3"
+                       f" when user_only_changes is {PENDING}")
     p.add_argument("root")
     p.add_argument("revision", type=int, help="N: the successor revision number")
     p.add_argument("--proposal", default=None,
                    help="a proposal file to copy to history/vN.patch before applying")
-    p.add_argument("--stamps", default=None,
-                   help="the hook-written sidecar whose stamped_proposals decide drafted_by:"
-                        " workflow-updater when --proposal path, size and mtime match; else unstamped")
+    p.add_argument("--hook-records", default=None,
+                   help="the hook-written sidecar whose hook_recorded_writes decide written_by:"
+                        " workflow-updater when --proposal path, size and mtime match; else unverified")
     p.add_argument("--approval", default=None, help="overrides the preamble's approval")
     p.add_argument("--review", default=None, help="the review verdict and rounds")
-    p.add_argument("--commit", action="store_true", help="also git add and git commit the landing")
-    p.set_defaults(func=land)
+    p.add_argument("--commit", action="store_true", help="also git add and git commit the apply step")
+    p.set_defaults(func=apply)
     p = sub.add_parser("pin", help=PIN_HELP, description=PIN_HELP)
     p.add_argument("root")
     p.add_argument("--run-id", required=True)
     p.set_defaults(func=pin)
-    p = sub.add_parser("verify", help="check the live graph against the ledger, and a run's pin")
+    p = sub.add_parser("verify", help="check the live graph against the revision log, and a run's pin")
     p.add_argument("root")
     p.add_argument("--pinned-revision", type=int, default=None)
     p.add_argument("--pinned-digest", default=None)
     p.set_defaults(func=verify)
-    p = sub.add_parser("rollback", help="reverse-apply down to revision N and land the result")
+    p = sub.add_parser("rollback", help="reverse-apply down to revision N and apply the result")
     p.add_argument("root")
     p.add_argument("--to", type=int, required=True)
     p.add_argument("--approval", required=True, help="the approval for the rollback, verbatim")

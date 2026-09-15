@@ -11,7 +11,7 @@ schema on a bare python3. A schema keyword the subset does not implement is a
 loud failure (exit 1), never a silent pass. The graph validator
 scripts/validate_pave.py keeps its separate fail-closed dependency contract.
 
-Length caps (pave-spec section 8.1) - OBSERVING rung this release:
+Length caps (pave-spec section 8.1) - OBSERVING level this release:
   Every per-entry free-text field in the schema declares a maxLength. In both
   modes a cap violation is a WARNING, not an error: the validator prints one
   "WARN: <json path>: <n> chars > cap <cap>" line per violation and still
@@ -118,7 +118,7 @@ def _stdlib_validate(value, schema, path="<root>", warnings=None):
 
     Returns the list of problems (errors). maxLength violations are appended
     to `warnings` instead, so a cap overflow never becomes an exit 1 on the
-    observing rung.
+    observing level.
     """
     if warnings is None:
         warnings = []
@@ -202,7 +202,7 @@ def _render_path(parts):
 
 
 def _jsonschema_validate(state, schema, warnings):
-    """Run jsonschema and split maxLength errors into warnings (observing rung)."""
+    """Run jsonschema and split maxLength errors into warnings (observing level)."""
     import jsonschema
 
     problems = []

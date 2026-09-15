@@ -39,7 +39,7 @@
         "checks",
         "nodes",
         "edges",
-        "control_endpoints",
+        "control_nodes",
         "state"
       ],
       "properties": {
@@ -81,7 +81,7 @@
           "type": "array",
           "items": {"$ref": "#/$defs/edge"}
         },
-        "control_endpoints": {
+        "control_nodes": {
           "type": "object",
           "minProperties": 1,
           "propertyNames": {"$ref": "#/$defs/identifier"},
@@ -90,7 +90,7 @@
         "state": {"type": "object"},
         "completion": {"type": "object"},
         "extensions": {"type": "object"},
-        "runtime_bindings": {"$ref": "#/$defs/runtimeBindings"}
+        "write_limits": {"$ref": "#/$defs/runtimeBindings"}
       },
       "patternProperties": {
         "^x_[a-z][a-z0-9_]*$": {}
@@ -258,9 +258,9 @@
     },
     "runtimeCap": {
       "type": "object",
-      "required": ["family_glob", "max_per_checkpoint", "created_by"],
+      "required": ["name_group_glob", "max_per_checkpoint", "created_by"],
       "properties": {
-        "family_glob": {"$ref": "#/$defs/nonEmptyString"},
+        "name_group_glob": {"$ref": "#/$defs/nonEmptyString"},
         "max_per_checkpoint": {"type": "integer", "minimum": 1},
         "created_by": {"$ref": "#/$defs/nonEmptyString"}
       },

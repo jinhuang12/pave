@@ -1,12 +1,12 @@
 entries:
 - revision: 0
   kind: graph
-  landed_at: '2026-09-03T19:12:09Z'
+  applied_at: '2026-09-03T19:12:09Z'
   digest_before: null
   digest_after: sha256:3e89ee56ce84645c6c0d3f2d53a0fb6d12bf96f1774420a6265a51c7a28bc8a3
   semantic_diff: null
   approval: approve plan
-  envelope_check: null
+  user_only_changes: null
   plan_evidence: verified
   usage_evidence: clean_room
   review: null
@@ -16,7 +16,7 @@ entries:
   run_id: null
 - revision: 1
   kind: graph
-  landed_at: '2026-09-03T20:30:30Z'
+  applied_at: '2026-09-03T20:30:30Z'
   digest_before: sha256:3e89ee56ce84645c6c0d3f2d53a0fb6d12bf96f1774420a6265a51c7a28bc8a3
   digest_after: sha256:dcc6df32620ba206552e085037e8d99f23dd7a2b1b4b606a14824e72403c0dff
   semantic_diff: 'Lands the graph layer of the seven amendments the field root applied
@@ -58,7 +58,7 @@ entries:
     deep, whatever the campaign. No existing check changes; two existing edges gain
     a check.'
   approval: approve revision 1
-  envelope_check: changed_with_approval
+  user_only_changes: approved
   plan_evidence: verified
   usage_evidence: field
   review: 'PASS after 2 rounds (review-2-4-2 as update-reviewer stand-in); deferred:
@@ -69,8 +69,8 @@ entries:
   derived_from: null
   run_id: null
 - revision: 2
-  kind: binding
-  landed_at: '2026-09-03T20:30:30Z'
+  kind: run_setup
+  applied_at: '2026-09-03T20:30:30Z'
   digest_before: sha256:dcc6df32620ba206552e085037e8d99f23dd7a2b1b4b606a14824e72403c0dff
   digest_after: sha256:e9f063e2cde9752a0f530c4ceb9fe425873df2777f5c9dfa4135bc209e444e7c
   semantic_diff: 'Re-entry instruments on screen_pin_and_progress and preregister_acceptance,
@@ -86,7 +86,7 @@ entries:
     check strength is unchanged. Why it holds for runs in general: a priced seat re-run
     over byte-unchanged inputs buys no evidence, in any run.'
   approval: approve revision 1
-  envelope_check: unchanged
+  user_only_changes: none
   plan_evidence: verified
   usage_evidence: field
   review: PASS after 2 rounds (review-2-4-2 as update-reviewer stand-in)
@@ -96,7 +96,7 @@ entries:
   run_id: null
 - revision: 3
   kind: graph
-  landed_at: '2026-09-03T22:49:36Z'
+  applied_at: '2026-09-03T22:49:36Z'
   digest_before: sha256:e9f063e2cde9752a0f530c4ceb9fe425873df2777f5c9dfa4135bc209e444e7c
   digest_after: sha256:af5ca2285e90a42d7e357023f74d755a2579bde4c22012abd480f16938cdda1d
   semantic_diff: 'Gate-2 materiality and the design repair loop, plus set-sized scoping
@@ -168,7 +168,7 @@ entries:
     low-complexity items wait pays a scoping lap per item for no evidence.'
   approval: "Approve revisions 3 + 4 (Recommended) \u2014 user selection at the AskUserQuestion\
     \ gate, 2026-09-03"
-  envelope_check: changed_with_approval
+  user_only_changes: approved
   plan_evidence: verified
   usage_evidence: field
   review: 'update-reviewer (review-2-4-2): round 1 REVISE (2 HIGH, 4 LOW), round 2
@@ -178,8 +178,8 @@ entries:
   derived_from: null
   run_id: null
 - revision: 4
-  kind: binding
-  landed_at: '2026-09-03T22:49:36Z'
+  kind: run_setup
+  applied_at: '2026-09-03T22:49:36Z'
   digest_before: sha256:af5ca2285e90a42d7e357023f74d755a2579bde4c22012abd480f16938cdda1d
   digest_after: sha256:a81bb97d1b6842cdaee8ea85b3325304e02a44d551180fc2b4cc50e598b613b3
   semantic_diff: 'Instruments on five existing nodes, declared per node; no node,
@@ -219,7 +219,7 @@ entries:
     argument history in self-defense.'
   approval: "Approve revisions 3 + 4 (Recommended) \u2014 user selection at the AskUserQuestion\
     \ gate, 2026-09-03"
-  envelope_check: changed_with_approval
+  user_only_changes: approved
   plan_evidence: verified
   usage_evidence: field
   review: 'update-reviewer (review-2-4-2): round 1 REVISE (2 HIGH, 4 LOW), round 2
@@ -230,7 +230,7 @@ entries:
   run_id: null
 - revision: 5
   kind: graph
-  landed_at: '2026-09-05T03:48:40Z'
+  applied_at: '2026-09-05T03:48:40Z'
   digest_before: sha256:a81bb97d1b6842cdaee8ea85b3325304e02a44d551180fc2b4cc50e598b613b3
   digest_after: sha256:f4d76a53e78c1047f442d21c477298d73a5a36e86837f4a504301918110879f7
   semantic_diff: 'Three evidence-strength changes in one graph revision: an acceptance
@@ -352,7 +352,7 @@ entries:
     seat that never fired, so nothing here retires one.'
   approval: "Approve revision 5 (f4d76a53) + release 1.5.0 (Recommended) \u2014 user\
     \ selection at the AskUserQuestion gate, 2026-09-05"
-  envelope_check: changed_with_approval
+  user_only_changes: approved
   plan_evidence: verified
   usage_evidence: field
   review: 'update-reviewer (reviewer-parity-v5, opus): round 1 graph PASS / release
@@ -366,7 +366,7 @@ entries:
   run_id: null
 - revision: 6
   kind: graph
-  landed_at: '2026-09-08T16:36:20Z'
+  applied_at: '2026-09-08T16:36:20Z'
   digest_before: sha256:f4d76a53e78c1047f442d21c477298d73a5a36e86837f4a504301918110879f7
   digest_after: sha256:d00e951b0e874ef88edbeae69798f1fcf5ff8694713212c99b21654806e35f12
   semantic_diff: 'Ten recorded graph-layer defects in one revision, every one of them
@@ -552,7 +552,7 @@ entries:
     and assume that is my decision" and the 2026-09-08 instruction to fix every known
     problem rather than defer; lead landed and disclosed; rollback is the reversal
     path'
-  envelope_check: changed_with_approval
+  user_only_changes: approved
   plan_evidence: verified
   usage_evidence: none
   review: 'update-reviewer reviewer-parity-rev6: PASS round 1 (one LOW, a preamble
@@ -564,7 +564,7 @@ entries:
   run_id: null
 - revision: 7
   kind: graph
-  landed_at: '2026-09-09T22:11:52Z'
+  applied_at: '2026-09-09T22:11:52Z'
   digest_before: sha256:d00e951b0e874ef88edbeae69798f1fcf5ff8694713212c99b21654806e35f12
   digest_after: sha256:7122658f420f313cba40f50163cd9c7df11dc2f618ef4666e3e534fbc82b3163
   semantic_diff: 'No digest of a living document or of a run input anywhere in the
@@ -631,7 +631,7 @@ entries:
   approval: 'user, 2026-09-09: ''ultracode this investigation as well to see if we
     should cut it and bundle into these changes as well'' then ''1. delete 2. relax
     3. land prose first'''
-  envelope_check: changed_with_approval
+  user_only_changes: approved
   plan_evidence: verified
   usage_evidence: field
   review: 'adversarial-investigator (fable) a7dee763eb15575bd: round 1 REVISE (H1-H4),
@@ -643,7 +643,7 @@ entries:
   run_id: null
 - revision: 8
   kind: graph
-  landed_at: '2026-09-11T00:09:00Z'
+  applied_at: '2026-09-11T00:09:00Z'
   digest_before: sha256:7122658f420f313cba40f50163cd9c7df11dc2f618ef4666e3e534fbc82b3163
   digest_after: sha256:c1a8576f55e72dd9e4e769767f4f16d8f21bb6a7c77fdb2ba29bba4a083b44ac
   semantic_diff: 'Envelope-changing revision, approved by the user: one outcome, one
@@ -692,7 +692,7 @@ entries:
     authority is the user''s ruling recorded verbatim in the campaign log at 2026-09-10T17:05:11Z
     (a lane repairs its own test, control, launcher, checker or bundle defects without
     waiting for the lead).'
-  envelope_check: changed_with_approval
+  user_only_changes: approved
   plan_evidence: verified
   usage_evidence: field
   review: 'Fable adversarial review, six rounds over the 2.6.0/1.5.5 batch (31 + 7
@@ -701,14 +701,14 @@ entries:
     round 3 PASS, round 4 PASS after the control/bundle wording matched the ruling
     verbatim. Hook findings through round 6 were identity- and path-alias holes in
     the audit guard, fixed in the same batch.'
-  drafted_by: unstamped
+  written_by: unverified
   patch: history/v8.patch
   commit: null
   derived_from: null
   run_id: null
 - revision: 9
   kind: graph
-  landed_at: '2026-09-11T01:09:29Z'
+  applied_at: '2026-09-11T01:09:29Z'
   digest_before: sha256:c1a8576f55e72dd9e4e769767f4f16d8f21bb6a7c77fdb2ba29bba4a083b44ac
   digest_after: sha256:4f8e0734cb862c7e8814e63f5a56c5afce5adb56004530783b9d0a145601e794
   semantic_diff: 'Envelope-changing revision, approved by the user: one check meaning
@@ -748,7 +748,7 @@ entries:
     or launch scripts, not product code. Today every commit before a hardware run
     needs a review." (b) "Do not count a CPU-only test run on an assigned machine
     against the hardware attempt budget. Today the campaign log counts it."
-  envelope_check: changed_with_approval
+  user_only_changes: approved
   plan_evidence: verified
   usage_evidence: field
   review: 'Fable adversarial review of the revision-9 proposal, two rounds: round
@@ -756,8 +756,264 @@ entries:
     log counted CPU-mode launches on the leased host in the attempt loop; the preamble
     misdescribed the budget), round 2 PASS with no material finding after the clause
     moved to the attempt counter and the budget field.'
-  drafted_by: unstamped
+  written_by: unverified
   patch: history/v9.patch
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 10
+  kind: graph
+  applied_at: '2026-09-11T16:31:55Z'
+  digest_before: sha256:4f8e0734cb862c7e8814e63f5a56c5afce5adb56004530783b9d0a145601e794
+  digest_after: sha256:cb4f2cd541b6cfd5e8e6a8491368ccdb965dd157ad51b8baada960f91fa7dd0e
+  semantic_diff: 'Vocabulary rename only, approved by the user. Three keys change
+    name: the runtime_bindings block is now write_limits, control_endpoints is now
+    control_nodes, and the state field terminal_classification is now final_status.
+    Description text now uses the plain words of the approved glossary (round for
+    lap, apply for land, revision log for ledger (plan row where ledger meant the
+    living plan''s row), write report for census, retry copy for re-cut, stop limit
+    for breaker, external for world-produced, and the rest). No node, outcome, edge,
+    check, or role is added, removed, or renamed. No meaning changes. Counts unchanged:
+    32 nodes, 96 edges, 17 checks, 89 outcomes.'
+  approval: 'User, 2026-09-11: "rename it all in one go, fuck the ledger migration,
+    all you''re doing is replacing it with words I can understand okay??? I don''t
+    know what envelope_exceeded means, replace with simple english YAML key" and,
+    on the glossary: "these are fine as is: traversal, socratic, semantic diff, semantic_change_required,
+    successor, approve all others".'
+  user_only_changes: approved
+  plan_evidence: verified
+  usage_evidence: field
+  review: vocabulary rename only; user-approved glossary; no reviewer seat, no meaning
+    change
+  written_by: unverified
+  patch: history/v10.patch
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 11
+  kind: graph
+  applied_at: '2026-09-11T20:41:27Z'
+  digest_before: sha256:cb4f2cd541b6cfd5e8e6a8491368ccdb965dd157ad51b8baada960f91fa7dd0e
+  digest_after: sha256:0abfc7846d754afb85750bcdcff0d5d033ec6849a9842050cfcac67ef48992eb
+  semantic_diff: 'Node merges, user-directed, fable adversarial review 2026-09-11
+    (2 KEEP, 6 MODIFY with the named fixes applied, 1 REJECT honored). 32 nodes become
+    22; 96 edges become 68; 89 outcomes become 68; checks stay 17 (closure_evidence_settled
+    removed, changeset_complete added). Merges - (1) screen_pin_and_progress, draft_increment_plan,
+    assemble_regression_matrix, preregister_acceptance, assemble_design_record become
+    design_campaign with outcomes design_ready, infeasibility_recorded, design_blocked;
+    the comparator commitment moves to the design_ready exit edge and the infeasibility
+    guard to the infeasibility exit edge; the node may run sequential seats under
+    one id. (2) assemble_delta_report folds into cost_routes_and_rank_backlog; evidence_gap
+    folds into reports_insufficient. (3) record_changeset is removed; scope_next_increment
+    assembles the changeset on plan_satisfied and the lead check changeset_complete
+    routes a gap back to scoping with its class. (4) acquire_hardware_lease and replicate_campaign_venv
+    become prepare_host with full and probe-only entry modes. (5) run_candidate_measurements
+    and stabilize_and_package_evidence become measure_candidate; revision_stamped
+    moves to its exit edge. (6) realize_measurement_procedures and capture_baseline_reference
+    become prepare_measurements with both SSH permissions kept verbatim. (7) review_measurement_verdict
+    is removed; adjudicate_results names the consequence (gates_passed, correctness_shortfall,
+    no_benefit, regression_failed); its no_progress outcome is removed; review_pr_evidence
+    now consumes the verdict; the review principle no longer lists measurement verdicts.
+    (8) verify_run_closure becomes a lead-only node recording world-issued identifiers
+    (PR number on the fork, commit hash of the artifact update); the duplicate check
+    closure_evidence_settled is removed. review_implementation is kept unchanged (merge
+    9 rejected). All routes, recovery paths, role boundaries, and P1-P13 mechanisms
+    survive.
+
+    PART TWO - LEASES AS RESERVATIONS, QUEUE AS A TOOL (folded into this same revision
+    at the user''s word, 2026-09-11: "just put it in revision 11"; the merge part
+    above was reviewed in rounds 1-3, the lease part in rounds 5-6, by the same fable
+    reviewer). Combined diff against revision 10: 48 hunks, 703 added lines against
+    1216 removed.
+
+    A hardware lease becomes a reservation of named non-shareable pools on a host,
+    never the whole host, and the hardware queue becomes a tool the requesting seat
+    invokes, not the lead. This revision also ports the live run''s proposal v10 (drafted
+    by pave-init:workflow-updater against revision 9, passed by pave-init:update-reviewer
+    round 1, requested by the user 2026-09-11 ~15:00Z: grants only for jobs that consume
+    non-shareable resources - N Neuron devices, compile RAM - so jobs run in parallel
+    when capacity is free) onto the 22-node graph of this same revision, and adds
+    the one change the field evidence asks for beyond it - the lead leaves the grant
+    loop. The lease part is prose inside the merged structure - 9 hunks, 107 added
+    lines against 44 removed, 2272 to 2335 lines. Node ids, outcomes, required_evidence,
+    edges, checks, evidence, control nodes, write limits, and the state.required list
+    are equal field by field (proved by parsing both graphs); two role lists change
+    (the lead leaves prepare_host and recover_leased_host) and two state fields gain
+    a meaning (instance_roster, hardware_lease_record).
+
+    LAYER TEST (pave-spec 2.1). What a lease means, who may write a lease record,
+    what host_ready and no_host_available settle on, and what a node may do on a shared
+    host are graph meaning - kind graph. Pool sizes, the lease request form, the lock
+    file, and the queue tool''s command line are Runtime Binding (run inputs in instance_roster;
+    a plugin script shipped with this release) - the graph names their classes only.
+
+    (1) LEASE = RESERVATION, TWO GRAINS, ONE NOUN (prepare_host purpose, host_ready,
+    no_host_available). The campaign lease reserves nothing and binds the campaign
+    to the host''s verified identity; every job that takes non-shareable capacity
+    holds its own job lease naming the pools and amounts - Neuron devices, compile
+    memory, CPU cores for a long compile or a many-worker start-up (the r14 serving
+    start-up lost its rendezvous window to a concurrent CPU-only test, so cores are
+    a pool the roster may size), the compile-cache write slot as a pool of one - and
+    starts when they fit the remaining capacity, derived from open job leases, never
+    a stored counter. Jobs of different campaigns share a host when their reservations
+    fit; "exclusive", "leased elsewhere", and "claimed" leave the text. A job that
+    reserves nothing holds no job lease and runs under the campaign lease on its own
+    identity probe and attempt record; P8 still counts it through the attempt records
+    the loop writes.
+
+    (2) THE QUEUE IS A TOOL, NOT THE LEAD (prepare_host purpose, activities, effects;
+    execute_attempt_loop and recover_leased_host effects; lead role purpose; roles
+    at two nodes). Field evidence (v10 usage read, 2026-09-11): 291 lease records
+    against 0 acquire-seat traversals - the lead ran the queue by hand, one chat round
+    trip per grant and per release (~10 KB each), every job CPU-only. Now the hardware
+    queue tool is the single writer of every lease record - grant, release, amendment,
+    one file per event - taking the grant under a per-host lock so two jobs never
+    both get the last unit; the requesting seat invokes it and never writes a record
+    by hand; the lead freezes the roster at intake, reads the records for scheduling,
+    and arbitrates nothing per grant. P10 narrows to run state and the four cross-run
+    artifacts; one writer per record (pave-spec 8.2) holds, the writer is a tool.
+    The lead leaves the roles of prepare_host and recover_leased_host because no lead
+    action remains in either node.
+
+    (3) SHARED-HOST RECOVERY AND CHARGING (recover_leased_host purpose, first activity,
+    effects; execute_attempt_loop host_faulted). One recovery per host at a time -
+    the first recorded fault owns it; co-tenants wait for the owner''s record, re-verify
+    identity, and exit with the owner''s outcome through the edges they already have;
+    every campaign that faulted in the episode consumes its allowance. A whole-host
+    action while another campaign''s job lease is open is a forbidden effect. Every
+    attempt in flight at the fault is host-faulted and uncharged except one whose
+    fault evidence names its own use beyond its job lease - a failed attempt, fingerprinted
+    and charged.
+
+    (4) STATE MEANINGS (instance_roster, hardware_lease_record). The roster is a run
+    input frozen at intake with pool sizes; an unsized pool is indivisible, so a roster
+    that sizes no pools behaves as one job per host and the revision degrades gracefully.
+    The lease record field points at the one-file-per-event records the tool writes;
+    remaining capacity is derived, never stored.
+
+    ROUND-5 REVIEW FIXES (fable reviewer, 2026-09-11): a co-tenant entering recovery
+    releases its open job leases first, so the owner''s reboot is never barred by
+    a dead attempt''s lease; the no-lease rule is one test everywhere - a job holds
+    no job lease only when it takes nothing the roster sizes; lease and recovery records
+    are keyed by host and readable by every campaign leasing it, a boot-identifier
+    amendment applies to every campaign lease naming the host, and the boot-identifier
+    delta reads any campaign''s recovery records for that host; a leaked grant (attempt
+    record closed, no release) is released by the tool on its next invocation; an
+    oversize reservation is a request defect, corrected and re-requested, never a
+    wait; runtime restart is a whole-host action; the charging exception reads the
+    transcript or fault telemetry. ROUND-6 FIX (same reviewer): the no-lease test
+    is "takes no pool" - a job that needs a pool the roster leaves unsized reserves
+    the host whole instead of skipping its lease, so a roster that sizes no pools
+    really does behave as one job per host; the recovery allowed effect covers the
+    co-tenant''s faulted-attempt releases; lease and recovery records are both readable
+    across campaigns.
+
+    NOT DONE. No refusal for capacity that exists but is busy - a job that does not
+    fit now waits (scheduling is Runtime Binding; a refusal would need an outcome
+    and edge no field case asked for). No hook - over-use of a reservation is detectable
+    only after the fact from host telemetry; the rung is prose plus record (lease
+    record, use in the transcript, fault evidence naming the over-user), recorded
+    with its reason (pave-spec 9.14.1). Dependent text lands with the release, not
+    here: SKILL.md P10 row and stage row 7 ("lease records are lead-written"), roles
+    table, agents/implementer.md prepare_host and recovery bullets, artifact-layout
+    4.2 pair 7 (job, pools, amounts, release added), run-state schema hardware_lease_record
+    description, and the new scripts/hardware_queue.py (grant, release, amend, status;
+    per-host lock; one file per event).'
+  approval: 'User, 2026-09-11: "approve revision 11, but run-state.json would need
+    to be updated right? how does that happen"; on the lease model, to the run lead:
+    "use /pave-init:pave-evolve to explore updating grants to only apply for jobs
+    that consume non-sharable resources (i.e. multiple agents want to use N neuron
+    devices, if there is available, then they can run in parallel.) This could also
+    apply for RAM (i.e. compilations that take X amount of memory but do not want
+    to exceed host capacity). CPU tests are rarely applicable since they are not long
+    running"; on folding both into one revision: "just put it in revision 11"'
+  user_only_changes: approved
+  plan_evidence: verified
+  usage_evidence: field
+  review: 'fable adversarial reviewer da-merge, 2026-09-11: merge part rounds 1-3
+    (REVISE, REVISE, PASS with all six hunks verified from disk); lease part round
+    5 REVISE (H1 co-tenant deadlock, H2 lease-trigger contradiction, H3 cross-campaign
+    record visibility) fixed with notes L1-L6, round 6 REVISE (H4 the no-lease test
+    must be "takes no pool" so an unsized-but-needed pool reserves the host whole)
+    fixed with notes L-a and L-b; round 7 re-verification of the applied bytes requested'
+  written_by: unverified
+  patch: history/v11.patch
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 12
+  kind: graph
+  applied_at: '2026-09-15T14:31:00Z'
+  digest_before: sha256:0abfc7846d754afb85750bcdcff0d5d033ec6849a9842050cfcac67ef48992eb
+  digest_after: sha256:7f4f812122433fdf34e17f5f302ad48889d777369255b91e6eb4dbe2cb6f38c3
+  semantic_diff: 'Text-only fix of three lines the update-reviewer flagged as LOW
+    notes on 2026-09-15 against revision 11. No node, outcome, edge, check, role,
+    evidence path, or state field changes; the skeleton is identical - 22 nodes, 68
+    edges, 68 outcomes, 17 checks, 24 evidence, 5 control nodes, state.required and
+    every role list equal, proved by parsing both graphs (/tmp/vt/rev12/make_v13.py).
+    Diff: 3 hunks, 5 added lines against 5 removed; 2336 lines stay 2336.
+
+    (1) design_campaign, check narrow_delta_scoped (line 285): "with the kickoff-declared
+    criteria digest unchanged" becomes "with the kickoff-declared criteria unchanged
+    (value-level read against the kickoff record)". No digest of the registration
+    record exists anywhere - run-state comparator_registrations holds artifact and
+    committed_at only, and references/artifact-layout.md 4.5 pins the record as subject
+    plus timestamp, write-once. The check''s own last sentence already demands the
+    value-level read; the new words name the read the check already requires. Same
+    meaning: a narrow repair must not rewrite the criteria. Revision 7 (revisions.yaml,
+    the kept-digest list) kept this digest as a write-once subject; this revision
+    supersedes that keep-list entry for this site because the digest was never stored
+    - no schema field or record holds it.
+
+    (2) control_nodes.run_paused (lines 2215-2216): the sentence "A run that closes
+    in this condition records terminal classification incomplete." is removed. Revision
+    10 renamed terminal_classification to final_status and missed this copy. No enum
+    value fits: schemas/run-state.schema.json final_status.status allows accepted,
+    blocked, closed_unaccepted, null, and its description says status mirrors the
+    terminal_status values the graph''s control nodes declare and is null while the
+    run is paused; incomplete is a pave-spec 9.13 status that no control node of this
+    graph declares; closed_unaccepted belongs to run_aborted and requires the user''s
+    verbatim reason; blocked means no declared route remains, and a pause has one
+    - resume. A pause node closes nothing (pave-spec control-node table: suspend the
+    run and preserve resumable state), and the graph declares no edge from run_paused
+    to a terminal, so the sentence was prose handling an undeclared route (evolution
+    contract rule 2). The duty it hinted at - a walked-away run must not stay active
+    - already lives in skills/vllm-neuron-parity/SKILL.md ("If you walk away from
+    a run, set the final status or remove the state"). Cutting the sentence removes
+    the phantom value and adds nothing. If the user later wants abandoned runs recorded
+    as such, that is a graph-plus-schema change (a terminal node with terminal_status
+    incomplete and the matching enum value), not a text fix.
+
+    (3) prepare_host, outcome host_ready (line 1514): "capacity is settled per job
+    by its job lease, never here" becomes "capacity is decided per job by its job
+    lease, never here". The same outcome text two lines above (workflow.pave.yaml:1511)
+    already says "decided by the lease record"; one verb for one idea. Same meaning.
+
+    Every copy: one release-layer copy existed - skills/vllm-neuron-parity/SKILL.md:170
+    said "run_paused (resumable; a run that closes here records final status incomplete)";
+    it is corrected to "run_paused (resumable)" in 1.5.8 alongside this revision,
+    the package''s precedent (revision 7: release-layer copies corrected in the release,
+    the revision is the graph copy). Outside that line, history/, and the append-only
+    revisions.yaml, the three old wordings occur nowhere else - references, schemas,
+    hooks, tests, and the Codex port searched. Usage evidence: the predecessors''
+    usage records (v10 usage read - 291 lease records, 0 acquire-seat traversals)
+    were answered by revision 11; this revision changes no seat and the records ask
+    for nothing more. Layer test (pave-spec 2.1): description text of one check, one
+    outcome, and one control node - kind graph; no runtime binding touched.'
+  approval: approve & commit
+  user_only_changes: none
+  plan_evidence: verified
+  usage_evidence: field
+  review: 'pave-init:update-reviewer (opus seat rev12-reviewer), 2026-09-15: round
+    1 REVISE - one HIGH (skills/vllm-neuron-parity/SKILL.md:170 still carried ''records
+    final status incomplete''; struck in the 1.5.8 release layer), two LOW (preamble:
+    9.14.3 citation contradicted revision 7''s keep-list; glossary pair unquotable,
+    now cites :1511). Round 2 PASS: diff body byte-identical to round 1, 3 hunks +5/-5,
+    skeleton 22/68/17/24/5 identical by independent parse, propose PASS digest_after
+    sha256:7f4f8121..., zero survivors of the deleted sentence outside history/ and
+    revisions.yaml.'
+  written_by: unverified
+  patch: history/v12.patch
   commit: null
   derived_from: null
   run_id: null

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # P3 -- No `cp -a` venv cloning; no pip writes into /opt.
 #
-# Enforcement rung: BLOCKING PreToolUse hook (P3 in the prohibitions table
+# Enforcement level: BLOCKING PreToolUse hook (P3 in the prohibitions table
 # of skills/vllm-neuron-parity/SKILL.md).
 # Same shape as P2: the venv-replication dead-end pressure makes the shortcut
 # likely (the run-wide reflection of realize_increment's addition), /opt damage
@@ -143,7 +143,7 @@ writing packages into /opt. A cloned venv breaks on absolute paths and burns
 attempts on a fault that is not the campaign's; /opt is co-tenant territory and
 the damage is not yours to undo.
 
-Do this instead: build the campaign environment the way replicate_campaign_venv
+Do this instead: build the campaign environment the way prepare_host
 declares -- create it fresh and install from the pinned requirement set, in a
 path you own under the campaign worktree or lease scope. If replication keeps
 failing, that is replication_failed or host_faulted: take the declared route.

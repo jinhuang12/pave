@@ -2,7 +2,7 @@
 """Measure a living document against its document-budget cap.
 
 `references/pave-spec.md` section 8.4: each living document declares a cap —
-default 400 lines and 60 KB, both. This script is the one instrument that
+default 400 lines and 60 KB, both. This script is the one implementation that
 reports a document's size, so seats, reviewers, hooks, and tests all read the
 same numbers instead of each counting their own way.
 

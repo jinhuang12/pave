@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Validate PAVE 0.3.0 workflow definitions: JSON Schema, graph cross-references, runtime bindings.
+"""Validate PAVE 0.3.0 workflow definitions: JSON Schema, graph cross-references, run setup.
 
-When a profile declares the composition extension, referenced child profiles are
+When a graph_file declares the composition extension, referenced child graph files are
 resolved, validated recursively, and checked against the composition contract
 (references/pave-composition.md).
 
@@ -34,10 +34,10 @@ X_FIELD = re.compile(r"\Ax_[a-z][a-z0-9_]*\Z")
 VERSION = "0.3.0"
 REQUIRED_ROOT_FIELDS = [
     "version", "name", "purpose", "entrypoints", "roles", "evidence",
-    "checks", "nodes", "edges", "control_endpoints", "state",
+    "checks", "nodes", "edges", "control_nodes", "state",
 ]
 OPTIONAL_ROOT_FIELDS = [
-    "status", "scope", "principles", "completion", "extensions", "runtime_bindings",
+    "status", "scope", "principles", "completion", "extensions", "write_limits",
 ]
 DECLARED_PATH_KEYS = {"evidence", "state", "produces", "consumes"}
 CHECK_STYLES = ["reflective", "socratic", "reviewed", "mechanical"]
@@ -107,18 +107,18 @@ def glob_covers(declared: str, pattern: str) -> bool:
     return any(fnmatch.fnmatchcase(candidate, pattern) for candidate in candidates)
 
 
-def validate_runtime_bindings(pave: dict) -> list[str]:
-    """A deny glob or cap family must not reach a path the graph declares, matched the
+def validate_write_limits(pave: dict) -> list[str]:
+    """A blocked path pattern or capped name group must not reach a path the graph declares, matched the
     way the runtime guard matches: whole path or any trailing-component suffix."""
     errors: list[str] = []
-    bindings = mapping(pave.get("runtime_bindings"))
-    if not bindings:
+    limits = mapping(pave.get("write_limits"))
+    if not limits:
         return errors
     paths = sorted(declared_paths(pave))
-    for section, field in (("deny", "glob"), ("caps", "family_glob")):
-        for index, entry in enumerate(listing(bindings.get(section))):
+    for section, field in (("deny", "glob"), ("caps", "name_group_glob")):
+        for index, entry in enumerate(listing(limits.get(section))):
             entry = mapping(entry)
-            location = f"pave.runtime_bindings.{section}[{index}]"
+            location = f"pave.write_limits.{section}[{index}]"
             pattern = entry.get(field)
             if section == "deny" and entry.get("bound_to") != ["lead"]:
                 errors.append(f"{location}.bound_to: must be exactly [lead]; no other identity is bindable")
@@ -128,7 +128,7 @@ def validate_runtime_bindings(pave: dict) -> list[str]:
                 if glob_covers(declared, pattern):
                     errors.append(
                         f"{location}.{field}: {pattern!r} matches declared path {declared!r};"
-                        " a binding must not cover a path the graph declares"
+                        " a write limit must not cover a path the graph declares"
                     )
     return errors
 
@@ -191,7 +191,7 @@ def validate_document(
     evidence = mapping(pave.get("evidence"))
     checks = mapping(pave.get("checks"))
     nodes = mapping(pave.get("nodes"))
-    endpoints = mapping(pave.get("control_endpoints"))
+    endpoints = mapping(pave.get("control_nodes"))
     edges = listing(pave.get("edges"))
     state = mapping(pave.get("state"))
     state_fields = (
@@ -202,14 +202,14 @@ def validate_document(
 
     for section, entries in (
         ("roles", roles), ("evidence", evidence), ("checks", checks),
-        ("nodes", nodes), ("control_endpoints", endpoints),
+        ("nodes", nodes), ("control_nodes", endpoints),
     ):
         for entry_id in entries:
             if not identifier(entry_id):
                 add(f"pave.{section}.{entry_id}", "key must be an identifier")
 
     for collision in set(nodes) & set(endpoints):
-        add("pave", f"node and control endpoint collide: {collision}")
+        add("pave", f"node and control node collide: {collision}")
 
     entrypoints = listing(pave.get("entrypoints"))
     if not entrypoints:
@@ -249,13 +249,13 @@ def validate_document(
             if route not in nodes and route not in endpoints:
                 add(
                     f"pave.checks.{check_id}.on_failure_route",
-                    f"unknown destination {route!r}; must name a declared node or control endpoint",
+                    f"unknown destination {route!r}; must name a declared node or control node",
                 )
             elif route in endpoints:
                 endpoint = mapping(endpoints.get(route))
                 if endpoint.get("kind") == "terminal" and not endpoint.get("terminal_status"):
                     add(
-                        f"pave.control_endpoints.{route}",
+                        f"pave.control_nodes.{route}",
                         f"is the on_failure_route of check {check_id} but declares no"
                         " terminal_status; a designed stop must name the classification"
                         " the run records",
@@ -293,12 +293,12 @@ def validate_document(
     for endpoint_id, body in endpoints.items():
         body = mapping(body)
         if body.get("kind") not in ENDPOINT_KINDS:
-            add(f"pave.control_endpoints.{endpoint_id}.kind", f"must be one of {', '.join(ENDPOINT_KINDS)}")
+            add(f"pave.control_nodes.{endpoint_id}.kind", f"must be one of {', '.join(ENDPOINT_KINDS)}")
         meaning = body.get("meaning")
         if not (isinstance(meaning, str) and meaning):
-            add(f"pave.control_endpoints.{endpoint_id}", "missing meaning")
+            add(f"pave.control_nodes.{endpoint_id}", "missing meaning")
     if not any(mapping(body).get("kind") == "terminal" for body in endpoints.values()):
-        add("pave.control_endpoints", "must contain at least one terminal endpoint")
+        add("pave.control_nodes", "must contain at least one terminal endpoint")
 
     routed: dict[str, list[str]] = {}
     outcome_edges: dict[tuple[str, str], list[int]] = {}
@@ -367,7 +367,7 @@ def validate_document(
                     f"pave.checks.{check_id}",
                     f"guards the sole edge from {node_id}.{outcome} but declares no"
                     " on_failure_route - a failure here is a designed stop with no"
-                    " destination; name a declared node or control endpoint"
+                    " destination; name a declared node or control node"
                     f" (terminal endpoints: {', '.join(terminal_endpoints) or 'none declared'})",
                 )
 
@@ -388,7 +388,7 @@ def validate_document(
     elif "composition" in required_extensions:
         add("pave.extensions.required", "declares composition but no composition block is present")
 
-    errors.extend(validate_runtime_bindings(pave))
+    errors.extend(validate_write_limits(pave))
 
     return errors
 
@@ -412,9 +412,9 @@ def validate_composition(
     nodes = mapping(pave.get("nodes"))
     evidence = mapping(pave.get("evidence"))
 
-    for node_id, realization in mapping(composition.get("realizations")).items():
-        realization = mapping(realization)
-        path = f"pave.extensions.composition.realizations.{node_id}"
+    for node_id, implementation in mapping(composition.get("implementations")).items():
+        implementation = mapping(implementation)
+        path = f"pave.extensions.composition.implementations.{node_id}"
 
         node = mapping(nodes.get(node_id))
         if node_id not in nodes:
@@ -426,28 +426,28 @@ def validate_composition(
             add(path, f"composition depth exceeds {MAX_COMPOSITION_DEPTH}")
             continue
 
-        profile_ref = realization.get("profile")
+        profile_ref = implementation.get("graph_file")
         if source_path is None:
-            add(f"{path}.profile", "cannot resolve child profile without a source file path")
+            add(f"{path}.graph_file", "cannot resolve child graph file without a source file path")
             continue
         child_path = (source_path.parent / str(profile_ref)).resolve()
         if child_path in ancestors or child_path == source_path.resolve():
-            add(f"{path}.profile", f"profile reference cycle: {profile_ref}")
+            add(f"{path}.graph_file", f"graph_file reference cycle: {profile_ref}")
             continue
         if not child_path.is_file():
-            add(f"{path}.profile", f"child profile not found: {profile_ref}")
+            add(f"{path}.graph_file", f"child graph file not found: {profile_ref}")
             continue
 
-        digest = realization.get("profile_digest")
+        digest = implementation.get("graph_file_digest")
         if digest:
             actual = "sha256:" + hashlib.sha256(child_path.read_bytes()).hexdigest()
             if digest != actual:
-                add(f"{path}.profile_digest", f"digest mismatch: declared {digest}, actual {actual}")
+                add(f"{path}.graph_file_digest", f"digest mismatch: declared {digest}, actual {actual}")
 
         try:
             child_document = yaml.safe_load(child_path.read_text())
         except yaml.YAMLError as error:
-            add(f"{path}.profile", f"child profile YAML error: {error}")
+            add(f"{path}.graph_file", f"child graph file YAML error: {error}")
             continue
 
         child_errors = validate_document(
@@ -457,11 +457,11 @@ def validate_composition(
             depth + 1,
         )
         for child_error in child_errors:
-            add(f"{path}.profile[{profile_ref}]", child_error)
+            add(f"{path}.graph_file[{profile_ref}]", child_error)
 
         child_pave = mapping(mapping(child_document).get("pave"))
         child_nodes = mapping(child_pave.get("nodes"))
-        child_endpoints = mapping(child_pave.get("control_endpoints"))
+        child_endpoints = mapping(child_pave.get("control_nodes"))
         child_evidence = mapping(child_pave.get("evidence"))
         child_terminals = {
             endpoint_id
@@ -469,27 +469,27 @@ def validate_composition(
             if mapping(body).get("kind") == "terminal"
         }
 
-        entrypoint = realization.get("entrypoint")
+        entrypoint = implementation.get("entrypoint")
         if entrypoint and entrypoint not in child_nodes:
             add(f"{path}.entrypoint", f"unknown child node {entrypoint}")
 
-        terminal_map = mapping(realization.get("terminal_map"))
-        for child_terminal, parent_outcome in terminal_map.items():
+        child_outcome_map = mapping(implementation.get("child_outcome_map"))
+        for child_terminal, parent_outcome in child_outcome_map.items():
             if child_terminal not in child_terminals:
-                add(f"{path}.terminal_map.{child_terminal}", "does not name a child terminal endpoint")
+                add(f"{path}.child_outcome_map.{child_terminal}", "does not name a child terminal endpoint")
             if parent_outcome not in parent_outcomes:
-                add(f"{path}.terminal_map.{child_terminal}", f"unknown parent outcome {parent_outcome}")
+                add(f"{path}.child_outcome_map.{child_terminal}", f"unknown parent outcome {parent_outcome}")
             else:
                 outcome_body = mapping(parent_outcomes.get(parent_outcome))
                 if not listing(outcome_body.get("required_evidence")):
                     add(
                         f"pave.nodes.{node_id}.outcomes.{parent_outcome}",
-                        "terminal-mapped outcome must declare required_evidence",
+                        "outcome named in child_outcome_map must declare required_evidence",
                     )
-        for child_terminal in sorted(child_terminals - set(terminal_map)):
-            add(f"{path}.terminal_map", f"unmapped child terminal endpoint {child_terminal}")
+        for child_terminal in sorted(child_terminals - set(child_outcome_map)):
+            add(f"{path}.child_outcome_map", f"unmapped child terminal endpoint {child_terminal}")
 
-        for index, export in enumerate(listing(realization.get("evidence_exports"))):
+        for index, export in enumerate(listing(implementation.get("evidence_exports"))):
             export = mapping(export)
             export_path = f"{path}.evidence_exports[{index}]"
             if export.get("child") not in child_evidence:
@@ -497,7 +497,7 @@ def validate_composition(
             if export.get("parent") not in evidence:
                 add(export_path, f"unknown parent evidence {export.get('parent')!r}")
 
-        delegated = listing(realization.get("delegated_effects"))
+        delegated = listing(implementation.get("delegated_effects"))
         allowed = listing(node.get("allowed_effects"))
         if delegated and allowed:
             for effect in delegated:
@@ -534,8 +534,8 @@ def main(argv: list[str]) -> int:
             pave = mapping(mapping(document).get("pave"))
             nodes = mapping(pave.get("nodes"))
             edges = listing(pave.get("edges"))
-            endpoints = mapping(pave.get("control_endpoints"))
-            print(f"PASS {path}: {len(nodes)} nodes, {len(edges)} edges, {len(endpoints)} control endpoints")
+            endpoints = mapping(pave.get("control_nodes"))
+            print(f"PASS {path}: {len(nodes)} nodes, {len(edges)} edges, {len(endpoints)} control nodes")
 
     return 1 if failed else 0
 

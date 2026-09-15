@@ -3,10 +3,10 @@
 
 Advisory only, edge-triggered: fires ONLY when the Agent/Task dispatch targets
 a node that already has a completed traversal in the active run's state (a
-re-entry dispatch), and asks whether the seat's question is already settled by
+re-entry dispatch), and asks whether the seat's question is already decided by
 verified on-disk evidence. Never blocks. Silent without the run marker.
 Throttled per node via its own counter file (H3.1: every-spawn firing is
-wallpaper).
+noise).
 """
 import json
 import os
@@ -39,21 +39,17 @@ def main() -> None:
             return
     completed = state.get("completed_outcomes") or []
 
-    # Nodes carrying a declared re-entry instrument in the landed graph
-    # (binding revisions 2 and 4), plus the design-lap gate. Edge trigger = the
+    # Nodes carrying a declared re-entry check_tool in the applied graph
+    # (run-setup revisions 2 and 4), plus the design-round gate. Edge trigger = the
     # dispatch names a node that already completed at least one traversal this run.
-    instrumented = {
-        "screen_pin_and_progress": "lead-mechanical target-pin compare + standing "
-        "pin_feasibility_note citation (seat only on first entry or "
-        "feasibility-questioning evidence / new findings-history entries)",
-        "preregister_acceptance": "lead-mechanical four-slice check on the "
-        "byte-unchanged registration (seat only on first registration or a "
-        "registered-value touch, which keeps the full value-level read)",
-        "assemble_design_record": "lead-performed delta when the only changed "
-        "input is a verified block diff whose blocks keep their contracts "
-        "complete (seat on any other changed input, a gap, or ambiguity); "
-        "superseded lap banners deleted (never a full re-copy)",
-        "scope_next_increment": "lead-settled from the persisted inputs, lap "
+    check_tools = {
+        "design_campaign": "lead-mechanical re-entry when the campaign_target_pins "
+        "entry equals its source with the standing note cited, the registration is "
+        "byte-unchanged with no finding naming a registered value, and the only "
+        "change is a block diff you have read (seat on a registered-value touch, a "
+        "screen-fact finding, a self-check gap, or ambiguity); superseded round "
+        "material deleted",
+        "scope_next_increment": "lead-decided from the persisted inputs, round "
         "record carrying its commands and outputs (implementer seat only for a "
         "contradiction candidate or a findings-history versus lap-record "
         "disagreement)",
@@ -63,11 +59,11 @@ def main() -> None:
         "re-entry (the lead presents it to the user)",
     }
     hits = []
-    for node, instrument in instrumented.items():
+    for node, check_tool in check_tools.items():
         if node in prompt:
             n = sum(1 for e in completed if e.get("node") == node)
             if n >= 1:
-                hits.append((node, n, instrument))
+                hits.append((node, n, check_tool))
     if not hits:
         return
 
@@ -90,13 +86,13 @@ def main() -> None:
 
     lines = [
         "[dispatch-advisory] Re-entry dispatch detected - the amended v1 graph "
-        "declares a cheaper instrument for this node when its inputs are "
+        "declares a cheaper check_tool for this node when its inputs are "
         "unchanged since the current design_entry_id was minted:"
     ]
-    for node, n, instrument in fresh:
-        lines.append(f"- {node}: {n} completed traversal(s) this run. Instrument: {instrument}.")
+    for node, n, check_tool in fresh:
+        lines.append(f"- {node}: {n} completed traversal(s) this run. Check tool: {check_tool}.")
     lines.append(
-        "If the inputs are unchanged, settle mechanically and record the basis "
+        "If the inputs are unchanged, decide mechanically and record the basis "
         "in run state INSTEAD of dispatching this seat. Dispatch anyway when a "
         "finding questions those inputs, on a first entry for a new campaign, "
         "or when the mode is ambiguous (ambiguity runs the seat). Advisory "

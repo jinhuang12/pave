@@ -7,8 +7,8 @@ or translate the Claude skill at run time.
 
 That structure follows PAVE's own layer model:
 
-- the PAVE design language and Graph Profile stay unchanged;
-- the Codex files provide a different Runtime Binding; and
+- the PAVE design language and graph file stay unchanged;
+- the Codex files provide a different Run setup; and
 - each live run still writes the same Workflow Run state and evidence.
 
 ## Package contents
@@ -66,7 +66,7 @@ any differing generated file, so a hand edit cannot disappear silently.
    This gives each session 16 child slots and 17 total V2 slots. Remove
    `agents.max_depth`; it applies only to V1.
 
-   Codex layers user, project, profile, and command-line configuration. The live
+   Codex layers user, project, graph file, and command-line configuration. The live
    preflight below is the authority for the effective runtime.
 4. Install the required custom agents into the target project:
 
@@ -123,7 +123,7 @@ unless you pass `--force`.
 
 ## What changed from Claude Code
 
-The narrow harness binding is `sources/bindings/codex.toml`. Its load-bearing
+The narrow harness binding is `sources/bindings/codex.toml`. Its decisive
 differences are:
 
 - `$pave-init:pave-init` replaces `/pave-init`.
@@ -141,7 +141,7 @@ differences are:
 - Plugin-level `hooks/hooks.json` replaces skill-frontmatter hook registration.
 - The goal-restatement hook (`SessionStart` resume|compact, `SubagentStart`)
   is not registered for Codex: its event coverage there is unverified. This is
-  the recorded omission; the Resume duty in SKILL.md carries the goal
+  the written reason for leaving it out; the Resume duty in SKILL.md carries the goal
   reconciliation as prose.
 - `apply_patch` needs a path/content adapter for the planning-layout hook.
 - Direct Codex caller identity is preserved so the canonical hooks remain the
@@ -208,7 +208,7 @@ and complete two turns on one reviewer thread is a release failure.
 
 ## Known runtime limitation
 
-### Custom-agent selection and sandbox provenance
+### Custom-agent selection and sandbox source
 
 PAVE Init fails closed unless each V2 spawn returns one canonical task path and
 the child rollout persists the expected role instructions, model, effort, and
@@ -220,7 +220,7 @@ Codex 0.153.2 preserves the parent permission state when it applies a custom
 role. The read-only release probe therefore proves the effective read-only
 sandbox for the reviewer and delegate, but it cannot prove that their TOML
 `sandbox_mode` caused that state. PAVE Init keeps every declared role sandbox
-unchanged and records this Codex runtime limit instead of claiming provenance.
+unchanged and records this Codex runtime limit instead of claiming source.
 
 ### PostToolUse identity
 
@@ -231,5 +231,5 @@ lead-versus-worker decisions to the canonical hooks.
 
 A runtime that omits worker identity cannot preserve the identity-sensitive
 parts of the policy: a worker can receive the lead-only staleness reminder, and
-its `frontier.yaml` write can look lead-owned. Record that runtime as degraded
+its `planning-queue.yaml` write can look lead-owned. Record that runtime as degraded
 instead of claiming equivalent hook enforcement.

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Regression tests for the runtime_bindings block in scripts/validate_pave.py.
+"""Regression tests for the write_limits block in scripts/validate_pave.py.
 
 Covers: a graph with no block or an empty block passes; a valid deny plus caps
-block passes; a deny glob or cap family that matches a declared evidence or
+block passes; a blocked path pattern or capped name group that matches a declared evidence or
 state path is rejected and both names appear; a glob the runtime guard would widen
 onto a declared directory through its trailing components is rejected too;
 bound_to other than [lead] is rejected; an extra property is rejected; the CLI
@@ -60,7 +60,7 @@ GRAPH = {
         "edges": [
             {"id": "done_to_accepted", "from": "do_work.done", "to": "accepted"},
         ],
-        "control_endpoints": {
+        "control_nodes": {
             "accepted": {"kind": "terminal", "meaning": "Accepted."},
         },
         "state": {
@@ -78,7 +78,7 @@ DENY = {
     "created_by": "cp-20260910T193405Z",
 }
 CAP = {
-    "family_glob": "leases/*-grant-*.md",
+    "name_group_glob": "leases/*-grant-*.md",
     "max_per_checkpoint": 20,
     "created_by": "cp-20260910T193405Z",
 }
@@ -87,22 +87,22 @@ CAP = {
 INCREMENTS_DIR = "artifacts/campaigns/parity/increments/"
 
 
-def graph_with(bindings: object | None) -> dict:
+def graph_with(limits: object | None) -> dict:
     document = copy.deepcopy(GRAPH)
-    if bindings is not None:
-        document["pave"]["runtime_bindings"] = bindings
+    if limits is not None:
+        document["pave"]["write_limits"] = limits
     return document
 
 
-def graph_declaring_a_directory(bindings: object) -> dict:
+def graph_declaring_a_directory(limits: object) -> dict:
     """A real campaign declares its increments as a directory, not one file."""
-    document = graph_with(bindings)
+    document = graph_with(limits)
     document["pave"]["evidence"]["build_record"]["artifact"] = INCREMENTS_DIR
     return document
 
 
 @unittest.skipIf(validate_document is None, "pyyaml and jsonschema are required")
-class RuntimeBindingsTests(unittest.TestCase):
+class WriteLimitsTests(unittest.TestCase):
     def test_no_block_passes(self) -> None:
         self.assertEqual(validate_document(graph_with(None)), [])
 
@@ -118,15 +118,15 @@ class RuntimeBindingsTests(unittest.TestCase):
         deny = dict(DENY, glob="increments/build-*.py")
         errors = validate_document(graph_with({"deny": [deny]}))
         self.assertEqual(len(errors), 1, errors)
-        self.assertTrue(errors[0].startswith("pave.runtime_bindings.deny[0].glob:"), errors)
+        self.assertTrue(errors[0].startswith("pave.write_limits.deny[0].glob:"), errors)
         self.assertIn("increments/build-*.py", errors[0])
         self.assertIn("increments/build-01.py", errors[0])
 
     def test_cap_family_matching_declared_state_path_rejected(self) -> None:
-        cap = dict(CAP, family_glob="leases/*.md")
+        cap = dict(CAP, name_group_glob="leases/*.md")
         errors = validate_document(graph_with({"caps": [cap]}))
         self.assertEqual(len(errors), 1, errors)
-        self.assertTrue(errors[0].startswith("pave.runtime_bindings.caps[0].family_glob:"), errors)
+        self.assertTrue(errors[0].startswith("pave.write_limits.caps[0].name_group_glob:"), errors)
         self.assertIn("leases/grant-log.md", errors[0])
 
     def test_glob_covers_matches_the_runtime_guard(self) -> None:
@@ -145,15 +145,15 @@ class RuntimeBindingsTests(unittest.TestCase):
         for pattern in ("increments/*", "campaigns/*/increments/*", "*"):
             with self.subTest(glob=pattern):
                 errors = validate_document(graph_declaring_a_directory({"deny": [dict(DENY, glob=pattern)]}))
-                widened = [e for e in errors if e.startswith("pave.runtime_bindings.deny[0].glob:")]
+                widened = [e for e in errors if e.startswith("pave.write_limits.deny[0].glob:")]
                 self.assertTrue(widened, errors)
                 self.assertIn(INCREMENTS_DIR, " ".join(widened))
                 self.assertIn(pattern, widened[0])
 
     def test_cap_family_glob_the_guard_would_widen_rejected(self) -> None:
-        errors = validate_document(graph_declaring_a_directory({"caps": [dict(CAP, family_glob="increments/*")]}))
+        errors = validate_document(graph_declaring_a_directory({"caps": [dict(CAP, name_group_glob="increments/*")]}))
         self.assertEqual(len(errors), 1, errors)
-        self.assertTrue(errors[0].startswith("pave.runtime_bindings.caps[0].family_glob:"), errors)
+        self.assertTrue(errors[0].startswith("pave.write_limits.caps[0].name_group_glob:"), errors)
         self.assertIn(INCREMENTS_DIR, errors[0])
 
     def test_glob_off_the_declared_tree_still_passes(self) -> None:
@@ -171,7 +171,7 @@ class RuntimeBindingsTests(unittest.TestCase):
                 errors = validate_document(graph_with({"deny": [deny]}))
                 self.assertTrue(errors, "expected a rejection")
                 self.assertTrue(
-                    any(e.startswith("pave.runtime_bindings.deny[0].bound_to: must be exactly [lead]") for e in errors),
+                    any(e.startswith("pave.write_limits.deny[0].bound_to: must be exactly [lead]") for e in errors),
                     errors,
                 )
 
@@ -181,9 +181,9 @@ class RuntimeBindingsTests(unittest.TestCase):
             "deny": {"deny": [dict(DENY, severity="high")]},
             "cap": {"caps": [dict(CAP, note="x")]},
         }
-        for label, bindings in cases.items():
+        for label, limits in cases.items():
             with self.subTest(level=label):
-                errors = validate_document(graph_with(bindings))
+                errors = validate_document(graph_with(limits))
                 self.assertTrue(any("Additional properties are not allowed" in e for e in errors), errors)
 
     def test_schema_rejects_bad_scalars(self) -> None:
@@ -205,7 +205,7 @@ class RuntimeBindingsTests(unittest.TestCase):
             self.assertEqual(result.returncode, 1, result.stderr)
             lines = result.stderr.splitlines()
             self.assertTrue(lines[0].startswith(f"FAIL {path}: "), lines)
-            violations = [line for line in lines[1:] if line.startswith("  pave.runtime_bindings")]
+            violations = [line for line in lines[1:] if line.startswith("  pave.write_limits")]
             self.assertTrue(any("bound_to" in line for line in violations), lines)
             self.assertTrue(any("increments/build-01.py" in line for line in violations), lines)
 
@@ -214,7 +214,7 @@ class RuntimeBindingsTests(unittest.TestCase):
                 [sys.executable, str(SCRIPT), str(path)], capture_output=True, text=True,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue(result.stdout.startswith(f"PASS {path}: 1 nodes, 1 edges, 1 control endpoints"), result.stdout)
+            self.assertTrue(result.stdout.startswith(f"PASS {path}: 1 nodes, 1 edges, 1 control nodes"), result.stdout)
 
 
 if __name__ == "__main__":

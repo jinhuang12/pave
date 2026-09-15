@@ -1,0 +1,1313 @@
+kind: graph
+semantic_diff: >-
+  Vocabulary rename only, approved by the user. Three keys change name: the
+  runtime_bindings block is now write_limits, control_endpoints is now control_nodes,
+  and the state field terminal_classification is now final_status. Description text
+  now uses the plain words of the approved glossary (round for lap, apply for land,
+  revision log for ledger (plan row where ledger meant the living plan's row), write report for census, retry copy for re-cut, stop limit
+  for breaker, external for world-produced, and the rest). No node, outcome, edge,
+  check, or role is added, removed, or renamed. No meaning changes. Counts unchanged:
+  32 nodes, 96 edges, 17 checks, 89 outcomes.
+user_only_changes: approved
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 10 (graph): plain-English vocabulary. Keys renamed: write_limits (was
+  runtime_bindings), control_nodes (was control_endpoints), final_status (was
+  terminal_classification). Description text uses the approved glossary. No meaning change.
+approval: >-
+  User, 2026-09-11: "rename it all in one go, fuck the ledger migration, all you're
+  doing is replacing it with words I can understand okay??? I don't know what
+  envelope_exceeded means, replace with simple english YAML key" and, on the glossary:
+  "these are fine as is: traversal, socratic, semantic diff, semantic_change_required,
+  successor, approve all others".
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index 38a8d0c..ffb1ca5 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -41,21 +41,21 @@ pave:
+     artifact - route verdicts, campaign designs, implementations (pre-hardware-spend
+     and pre-PR), measurement verdicts.
+   - CPU-first increments before any hardware attempt; no attempt caps - two-tier
+-    breaker instead (fingerprint no-identical-retry; halt and re-derive at every
++    stop limit instead (fingerprint no-identical-retry; halt and re-derive at every
+     10 budget-counted hardware attempts per target - host faults are recorded
+     but never charged).
+   - Kernel-substrate rule - new kernel-class functionality not already provided
+     by the Neuron NKI library is implemented in NKI, never as torch-level fallback
+     (torch stays legitimate for orchestration and glue); substrate is a per-increment
+     design declaration checked at the design and implementation review gates (split
+-    rung - mechanical substrate-fidelity check for items declared kernel-class;
+-    reviewed rung for the classification itself, since no mechanical scan can
++    enforcement level - mechanical substrate-fidelity check for items declared kernel-class;
++    reviewed level for the classification itself, since no mechanical scan can
+     tell kernel-class torch from legitimate glue).
+-  - Cross-run artifacts (scorecard, backlog, debt ledger, fingerprints) have one
++  - Cross-run artifacts (scorecard, backlog, debt list, fingerprints) have one
+     serialized writer (lead) and never live on campaign branches.
+   - All hardware work is in-band over SSH within the workflow; out-of-band handoff
+     files are the named anti-pattern.
+-  - Success evidence settles on world-produced signals (resolvable PR URLs, command
++  - Success evidence decides on external signals (resolvable PR URLs, command
+     transcripts, stable measurement artifacts), never doer self-report.
+   roles:
+     lead:
+@@ -78,7 +78,7 @@ pave:
+         and write stable evidence artifacts; never adjudicates.
+     adjudicator:
+       purpose: Issue gate verdicts from stable, pre-registered evidence; never
+-        the agent that measured; also settles run closure.
++        the agent that measured; also decides run closure.
+     adversarial_reviewer:
+       purpose: Material-findings-only adversarial review of high-stakes artifacts;
+         independent of the artifact's producer.
+@@ -184,13 +184,13 @@ pave:
+     run_closure_verdict:
+       kind: judgment
+       produced_by: verify_run_closure
+-      subject: per-campaign closure verification against world evidence
++      subject: per-campaign closure verification against external evidence
+       artifact: artifacts/run/closure/
+     pin_feasibility_note:
+       kind: derivation
+       produced_by: screen_pin_and_progress
+       subject: feasibility-at-pin verdict with re-checkable absence evidence or
+-        the named viable design lever per lap
++        the named viable design lever per round
+       artifact: artifacts/campaigns/<campaign>/design/
+     increment_plan_draft:
+       kind: derivation
+@@ -215,7 +215,7 @@ pave:
+     increment_lap_record:
+       kind: observation
+       produced_by: scope_next_increment
+-      subject: per-lap reconciliation - selected work item or set with its realization
++      subject: per-round reconciliation - selected work item or set with its implementation
+         order, declared CPU-mode acceptance per item, findings answered, stuck and
+         gap identities, the open review batch with the lead's size call, the plan's
+         revision-log line after landed-block collapse, and any join conflict of a concurrent-eligible
+@@ -225,7 +225,7 @@ pave:
+       kind: observation
+       produced_by: realize_increment
+       subject: per-increment passing evidence or persisted investigation records
+-        on stuck laps
++        on stuck rounds
+       artifact: artifacts/campaigns/<campaign>/increments/
+     measurement_procedure_record:
+       kind: observation
+@@ -284,27 +284,27 @@ pave:
+         text, design-record, or registration surfaces, with the kickoff-declared
+         criteria digest unchanged and the screen inputs (pin, feasibility, and
+         progress facts) untouched since the current design_entry_id was minted -
+-        and does no standing material finding repeat a prior narrow lap's finding fingerprint
++        and does no standing material finding repeat a prior narrow round's finding fingerprint
+         (same node, surface, and claim) without a gap-closing artifact produced
+-        since that lap? Recurrence fails this check - the full lap owns it, where
++        since that round? Recurrence fails this check - the full round owns it, where
+         the screen's progress_exhausted door bounds repetition. Among the three
+         narrow edges the lead selects exactly one by the surface the findings
+         name - a registered-value touch beats record, record beats plan text.
+-        Ambiguity fails this check (fail closed into the full design lap).
++        Ambiguity fails this check (fail closed into the full design round).
+       evaluated_by: lead
+       on_failure_route: screen_pin_and_progress
+     design_loop_within_bound:
+       style: mechanical
+       question: Counting this campaign's gate-2 review rounds from the findings
+         records since the later of the last verbatim user decision at this gate
+-        and the last entry into the design boundary from outside it (the gate-1
++        and the last entry into the design phase from outside it (the gate-1
+         fan-out, a rederivation, or an implementation-side defect route) - are
+         there fewer than eight rounds without design_sound, and fewer than two
+         consecutive rounds in which half or more of the standing material findings
+         carry the repair-introduced class (the finding sits on a block the previous
+-        lap's block diff touched and no earlier round's findings record named that
++        round's block diff touched and no earlier round's findings record named that
+         surface - decidable from the block diff plus the findings record; a whole-plan
+-        lap carries no block diff, so the class is not assigned in the round after
++        round carries no block diff, so the class is not assigned in the round after
+         it and the consecutive count restarts)? Evaluated first
+         on every repair edge out of the gate. Failure is the designed stop of the
+         design repair loop - this node re-enters for the user's disposition, the
+@@ -312,7 +312,7 @@ pave:
+         and the user's verbatim decision selects the outcome - design_sound with
+         the findings disposed (deferred as carried items to a named later design
+         touch, or accepted as repaired without a further review round), or one
+-        more repair lap under a fresh count. A finding that would move a frozen
++        more repair round under a fresh count. A finding that would move a frozen
+         or registered value is never disposed this way (P9).
+       evaluated_by: lead
+       on_failure_route: review_campaign_design
+@@ -341,7 +341,7 @@ pave:
+         exit zero with an empty evaluated-threshold list when the criterion it needed
+         was never recorded, so a gate that reads the exit code passes silently on
+         the one case that matters, and the artifact reads like a pass, which is why
+-        prose and review are not enough. A bundle that realizes several criteria and
++        prose and review are not enough. A bundle that implements several criteria and
+         evaluates one of them fails the same way, so the count runs against the
+         criteria the registration names, never against the list the producing seat
+         supplies. The lead reads the bundle's own evaluated-threshold
+@@ -365,7 +365,7 @@ pave:
+       on_failure_route: review_implementation
+     prerequisite_is_in_plan:
+       style: mechanical
+-      question: Is the prerequisite the lap record names for the held item a block
++      question: Is the prerequisite the round record names for the held item a block
+         the approved increment plan already carries with no passing evidence record
+         yet - an ordering fact - rather than a surface the plan never designed?
+       evaluated_by: lead
+@@ -376,7 +376,7 @@ pave:
+         Does every landed increment outside the currently open review batch carry a
+         batch-review findings section (one findings record per review node, a dated
+         section per round - layout reference 4.1) under artifacts/reviews/<campaign>/, and is the
+-        open batch still below the size the lead declared for it in the lap record
++        open batch still below the size the lead declared for it in the round record
+         (1 for a complex commit - a new kernel, runner, scheduler, or weight-loading
+         change - up to 3 when the batch is low complexity in aggregate)? On the
+         plan_satisfied edge the open batch closes regardless of size, so any
+@@ -386,8 +386,8 @@ pave:
+     closure_evidence_settled:
+       style: mechanical
+       question: Does the closure record carry the verbatim gate-3 approval and
+-        world-produced evidence (a PR URL resolvable on the fork, or the recorded
+-        no-benefit or blocked bundle), and do the scorecard, backlog, debt ledger,
++        external evidence (a PR URL resolvable on the fork, or the recorded
++        no-benefit or blocked bundle), and do the scorecard, backlog, debt list,
+         and fingerprint file reflect it?
+       evaluated_by: lead
+       on_failure_route: close_campaign
+@@ -415,7 +415,7 @@ pave:
+         a runnable procedure with a passing smoke record and a fixed invocation,
+         recorded before any measured run that cites that procedure revision -
+         and does the same smoke record show the procedure FAILING on its registered
+-        tripwire input, the negative control that proves this instrument can fail
++        known-bad input, the negative control that proves this check tool can fail
+         at all?
+       evaluated_by: lead
+       on_failure_route: realize_measurement_procedures
+@@ -444,7 +444,7 @@ pave:
+         present, venv replication precondition (Neuron private-index or DLAMI-preinstalled
+         dependency check), cross-run artifacts loaded with every scorecard row
+         AND every debt-ledger entry re-verified against the frozen pin (no row
+-        or entry carries forward as settled across a pin change - delta scan covers
++        or entry carries forward as decided across a pin change - delta scan covers
+         requested targets only, so unrequested targets go stale here or nowhere),
+         prior-run carry-over decisions surfaced to the user. Out of scope - any
+         fork sync (manual, user-owned) and any provisioning.
+@@ -559,32 +559,32 @@ pave:
+         torch-level fallback where the run's kernel-substrate rule requires NKI
+         builds the wrong thing, and so does the classification itself when wrong
+         (an increment recorded non-kernel-class whose planned work is kernel-class
+-        functionality). Every other finding - cite hygiene, counts and census,
++        functionality). Every other finding - cite hygiene, counts and scans,
+         wording, stale paths, record-only items, anything the consumer re-derives
+         from persisted inputs - is bookkeeping. The reviewer records bookkeeping
+         in the same findings record, marked as such with the surface it names;
+         bookkeeping never selects an outcome. The lead applies each bookkeeping
+         finding as a direct edit to the plan or the record (one revision-log line
+         in the edited document, the edit and its revision-log line in run state) - no
+-        seat and no lap, whichever outcome the material findings select; lead
++        seat and no round, whichever outcome the material findings select; lead
+         edits land before any repair seat is briefed, and the brief names the
+         post-edit revision-log line. For each material finding the reviewer labels the defect
+         class - including repair-introduced, when the finding sits on a block the
+-        previous lap's block diff touched and no earlier round named that surface
+-        (a whole-plan lap resets the class for the next round) - and names the
++        previous round's block diff touched and no earlier round named that surface
++        (a whole-plan round resets the class for the next round) - and names the
+         surfaces it touches, so the lead's classification (narrow_delta_scoped)
+         and the loop bound (design_loop_within_bound) stay mechanical. When the
+         loop bound trips, this node re-enters for the user's disposition - the
+         lead presents the standing findings with a close-anyway recommendation
+         and records the user's verbatim decision. Re-entry
+-        instrument - the reviewer seat reads the whole design on the first review
+-        of a design entry and on every full-lap re-entry; at the bound re-entry
++        check tool - the reviewer seat reads the whole design on the first review
++        of a design entry and on every full-round re-entry; at the bound re-entry
+         no reviewer seat is dispatched. After a block-scoped
+         repair it reads the touched blocks the block diff names, their cascade
+-        (blocks that cite or depend on them), and one scripted whole-plan census;
++        (blocks that cite or depend on them), and one scripted whole-plan scan;
+         the lead reads the diff to confirm no unnamed block moved before briefing
+         the seat and records that check in run state. A diff that
+-        touches blocks the brief did not name, or a whole-plan lap, gets the whole
++        touches blocks the brief did not name, or a whole-plan round, gets the whole
+         read. The challenger is retained across the rounds of one design entry
+         - a fresh seat opens with each new design entry, never per round (spec
+         section 9.4).
+@@ -612,8 +612,8 @@ pave:
+           - gate_approval_record
+         material_findings:
+           meaning: Material findings stand and the repair needs the full design
+-            lap - a finding names a screen fact (pin, feasibility, progress) or
+-            a kickoff-declared criterion, repeats a prior lap's fingerprint, or
++            round - a finding names a screen fact (pin, feasibility, progress) or
++            a kickoff-declared criterion, repeats a prior round's fingerprint, or
+             the narrow classification is ambiguous (fail closed).
+         narrow_findings:
+           meaning: Material findings stand, and every one of them names only increment-plan
+@@ -640,7 +640,7 @@ pave:
+         too. Every increment already carries a batch-review record from
+         review_increment_batch; this pass reads the changeset as ONE unit for
+         cross-increment integration and the mechanical scans, and does not re-review
+-        per-increment substance a batch record already settled.
++        per-increment substance a batch record already decided.
+       roles:
+       - adversarial_reviewer
+       consumes:
+@@ -660,13 +660,13 @@ pave:
+       instance_per: approved_campaigns
+       purpose: >-
+         Adversarial, material-findings-only review of one batch of 1-3 landed increment
+-        commits before the next scope lap, so a defect is caught while its dependents
++        commits before the next scope round, so a defect is caught while its dependents
+         are still unbuilt. The lead composes the batch and records its size call in the
+-        lap record - 1 for a complex commit (a new kernel, runner, scheduler, or
++        round record - 1 for a complex commit (a new kernel, runner, scheduler, or
+         weight-loading change), up to 3 when the commits are low complexity in
+         aggregate (config, tests, wiring, citation repairs). A fresh reviewer per batch,
+         independent of the realizer, reads the batch diff, its evidence records, and the
+-        plan blocks or ledger rows it claims to realize. Material means - the code does
++        plan blocks or plan rows it claims to implement. Material means - the code does
+         not do what its block declares; the acceptance is hollow (it would pass on wrong
+         code); a frozen or registered value moved (P9); a kernel-class item rides a torch
+         substitute, or a non-kernel declaration hides kernel-class substance (the
+@@ -703,16 +703,16 @@ pave:
+           required_evidence:
+           - adversarial_review_findings
+         design_contradicted:
+-          meaning: The batch realizes its block faithfully and the block itself is
++          meaning: The batch implements its block faithfully and the block itself is
+             wrong against the reference or the repo - a plan defect, not a build
+-            defect, recorded with the observing evidence. Realizes the parent outcome
++            defect, recorded with the observing evidence. Implements the parent outcome
+             design_defect_found.
+           required_evidence:
+           - adversarial_review_findings
+     rederive_approach:
+       intent: plan
+       instance_per: approved_campaigns
+-      purpose: First-principles re-derivation after the breaker trips, a measurement
++      purpose: First-principles re-derivation after the stop limit trips, a measurement
+         path dead-ends, a repair loop reports no progress, or the user declines
+         a close-out - re-read the accumulated evidence and produce exactly one
+         of - a revised design, a route-change proposal (a kickoff-criteria change
+@@ -835,7 +835,7 @@ pave:
+       - pr_evidence_package
+       outcomes:
+         pr_package_ready:
+-          meaning: The package is complete and every claim links to world evidence.
++          meaning: The package is complete and every claim links to external evidence.
+           required_evidence:
+           - pr_evidence_package
+         evidence_gap_found:
+@@ -869,7 +869,7 @@ pave:
+         the verbatim user decision, execute exactly one approved closure - push
+         the branch and open the PR on the fork, record the no-benefit bundle with
+         its upstream-issue draft, or record the blocked terminal - then apply
+-        the serialized single-writer updates to the scorecard, backlog, debt ledger,
++        the serialized single-writer updates to the scorecard, backlog, debt list,
+         and fingerprint file. Out of scope - merging the PR (human) and any write
+         to a campaign branch during artifact updates.
+       roles:
+@@ -893,7 +893,7 @@ pave:
+       - More than one closure type per campaign.
+       outcomes:
+         closure_recorded:
+-          meaning: Exactly one closure executed with its world evidence and the
++          meaning: Exactly one closure executed with its external evidence and the
+             cross-run artifacts updated.
+           required_evidence:
+           - closure_record
+@@ -903,13 +903,13 @@ pave:
+             work; routed to re-derivation.
+     verify_run_closure:
+       intent: review
+-      purpose: Settle the run outcome from world evidence only - for each gate-1-approved
++      purpose: Decide the run outcome from external evidence only - for each gate-1-approved
+         campaign, read its close-out approval record and its closure evidence
+         (PR URL resolvable on the fork, or the recorded no-benefit or blocked
+         bundle) and confirm the cross-run artifacts on disk reflect every closure.
+-        Never settled by the lead's own assertion. Runs at each campaign closure;
+-        holds until all campaigns settle. When a failed verification and open
+-        campaigns co-hold, closure_unverified settles first - the discrepant campaign
++        Never decided by the lead's own assertion. Runs at each campaign closure;
++        holds until every campaign is decided. When a failed verification and open
++        campaigns co-hold, closure_unverified decides first - the discrepant campaign
+         re-enters close-out while the join keeps holding for the rest.
+       roles:
+       - adjudicator
+@@ -980,7 +980,7 @@ pave:
+         (for example a documented support flip with no code evidence), and record
+         the finding either way.
+       - Close the report with a residual-gaps section (possibly empty) naming
+-        what could not be settled and why - an honestly recorded gap satisfies
++        what could not be decided and why - an honestly recorded gap satisfies
+         sufficiency for costing, which prices uncertainty instead of inheriting
+         it silently.
+       allowed_effects:
+@@ -995,7 +995,7 @@ pave:
+           meaning: This target's delta report exists with every costing-required
+             section - plugin-side state, A1 trace, A2 applicability and trace
+             or dead-end, runner-entanglement verdict, externalized-subsystem flag,
+-            doc-claim verification, residual gaps - each load-bearing claim carrying
++            doc-claim verification, residual gaps - each decisive claim carrying
+             its command transcript. Sufficiency is satisfied by honest residual-gap
+             recording, not by gap absence.
+           required_evidence:
+@@ -1005,7 +1005,7 @@ pave:
+             the partial per-target record is preserved for resume.
+     assemble_delta_report:
+       intent: review
+-      purpose: 'Settle scan_upstream_delta''s definition of done across the whole
++      purpose: 'Decide scan_upstream_delta''s definition of done across the whole
+         target set - verify every requested target has a per-target report, check
+         each report against the fixed costing-sufficiency rubric (satisfied by
+         honest residual-gap recording, never by gap absence), drive at most one
+@@ -1075,24 +1075,24 @@ pave:
+     screen_pin_and_progress:
+       intent: explore
+       instance_per: approved_campaigns
+-      purpose: Entry triage for this campaign's design lap. Settle two questions
++      purpose: Entry triage for this campaign's design round. Decide two questions
+         against read-only evidence - (1) feasibility at the pin - does every capability
+         the kickoff-declared target needs still exist in the pinned repo (the
+         expected real failure - a target whose required subsystem left the repo
+         at the pin, needing re-scope or an upstream-issue path); (2) progress
+-        - does the adversarial findings history from prior design laps leave a
+-        viable untried design lever (an empty history on the first lap passes
+-        by definition). Re-entry instrument - the investigator seat runs on the
++        - does the adversarial findings history from prior design rounds leave a
++        viable untried design lever (an empty history on the first round passes
++        by definition). Re-entry check tool - the investigator seat runs on the
+         FIRST entry into
+-        this campaign's design boundary and on any re-entry whose trigger carries
++        this campaign's design phase and on any re-entry whose trigger carries
+         feasibility-questioning evidence (a finding or defect naming the pin,
+         a missing surface, or a capability doubt) or new findings-history entries
+-        since the last screen. Every other re-entry the lead settles mechanically
++        since the last screen. Every other re-entry the lead decides mechanically
+         with no seat - the campaign's campaign_target_pins entry compared equal to
+         its source (pinned_release, or the kickoff-declared upgrade base),
+         the standing pin_feasibility_note cited, and the named viable lever confirmed
+         current - recorded in run state without re-authoring the note. An unchanged,
+-        already-verified fact settles mechanically; a changed input to a judgment
++        already-verified fact decides mechanically; a changed input to a judgment
+         gets fresh eyes. Ambiguity about the mode runs the seat, and a record_incomplete
+         re-entry naming the screen as owning sibling always runs the seat. Out
+         of scope - any design authoring, code change, or hardware contact.
+@@ -1109,7 +1109,7 @@ pave:
+       - The note records the detector basis - the compared findings entry references
+         and the design-evidence-movement comparison - even though the frozen outcome
+         declares no required_evidence.
+-      - On a lead-settled re-entry the run-state entry records the target-pin
++      - On a lead-decided re-entry the run-state entry records the target-pin
+         compare, the prior note cited, and the progress-facts basis; no fresh
+         note artifact is authored.
+       forbidden_effects:
+@@ -1118,8 +1118,8 @@ pave:
+       outcomes:
+         screen_passed:
+           meaning: Target realizable at the pin, and the findings history (empty
+-            on first lap) leaves a viable design lever, named in the note on re-entry
+-            laps.
++            on first round) leaves a viable design lever, named in the note on re-entry
++            rounds.
+           required_evidence:
+           - pin_feasibility_note
+         pin_infeasible:
+@@ -1134,7 +1134,7 @@ pave:
+           - pin_feasibility_note
+         progress_exhausted:
+           meaning: The findings history shows the same material finding recurring
+-            across design laps with no untried lever; feeds the parent's no_progress
++            across design rounds with no untried lever; feeds the parent's no_progress
+             route to first-principles re-derivation. Yields to pin_infeasible
+             when both hold.
+     draft_increment_plan:
+@@ -1144,11 +1144,11 @@ pave:
+         plan, lease plan, and refined predicted file surface, all under the kickoff
+         contract. Per increment the plan declares - a stable increment id; the
+         file surface it touches; the CPU-mode acceptance command WITH its expected
+-        result (a rung-1 measurement against a declared threshold, never a bare
++        result (a tier-1 measurement against a declared threshold, never a bare
+         exit check - downstream refuses a plan without per-increment acceptance
+         rather than inventing criteria); test-layout additions (upstream ships
+         no test suite; the fork uses an overlay re-applied per rebase); and single-agent-context
+-        sizing. Any touch of the patch-application entry point or the ad hoc monkeypatches,
++        size check. Any touch of the patch-application entry point or the ad hoc monkeypatches,
+         and any patch centralization, is a design decision recorded here - never
+         implementer initiative. Every increment records a substrate decision -
+         kernel-class (NKI required for kernel-class functionality the existing
+@@ -1166,14 +1166,14 @@ pave:
+         precondition for dependencies that do not resolve from public PyPI. The
+         draft is authored against the target artifacts on disk - checkpoint configuration,
+         weight index, source at the pin - never from memory of them; a plan that
+-        cites an artifact the lap did not read is a defect of this node. The plan
++        cites an artifact the round did not read is a defect of this node. The plan
+         is a living document under the layout reference's cap, every block
+         addressable by a stable id. On re-entry the brief names the blocks to touch
+-        and the finding or contradiction each answers; the lap hands back a block
+-        diff - the touched blocks, nothing else - never a whole-plan rewrite, and a lap that finds
++        and the finding or contradiction each answers; the round hands back a block
++        diff - the touched blocks, nothing else - never a whole-plan rewrite, and a round that finds
+         it must touch a block the brief did not name stops and reports the cascade
+-        for a re-brief instead of editing it. A whole-plan lap (a deletion or
+-        reconciliation under the cap) is its own briefed lap and gets a whole-plan
++        for a re-brief instead of editing it. A whole-plan round (a deletion or
++        reconciliation under the cap) is its own briefed round and gets a whole-plan
+         review. Out of scope - acceptance-criteria authoring, code changes, hardware
+         contact.
+       roles:
+@@ -1188,7 +1188,7 @@ pave:
+       activities:
+       - Per-increment contract - stable id, file surface, CPU-mode acceptance
+         command with expected result, test-layout additions, single-agent-context
+-        sizing.
++        size check.
+       - Monkeypatch and patch-centralization decisions recorded as design decisions
+         with rationale.
+       - Per increment - substrate decision (kernel-class with NKI substrate, or
+@@ -1204,7 +1204,7 @@ pave:
+         plan_drafted:
+           meaning: Increment plan, test layout, venv plan, lease plan, and refined
+             predicted file surface drafted; every increment carries its full per-increment
+-            contract. On a block-scoped re-entry the block diff is the lap's
++            contract. On a block-scoped re-entry the block diff is the round's
+             evidence.
+           required_evidence:
+           - increment_plan_draft
+@@ -1252,10 +1252,10 @@ pave:
+             rows for a kickoff-declared cell; names the gap. Criteria changes
+             need an explicit user decision, so this feeds the parent's no_progress
+             route to re-derivation. When this and scope_exceeded co-hold, matrix_blocked
+-            is emitted - a confirmed criteria gap survives any re-sizing - and
++            is emitted - a confirmed criteria gap survives any re-scoping - and
+             the blocked record carries the scope-breach evidence as an annex so
+             nothing is lost. Claimable only for a cell whose non-adjudicability
+-            was settled on evidence read in full; a suspicion formed on a partial
++            was decided on evidence read in full; a suspicion formed on a partial
+             read is not a blocker.
+         scope_exceeded:
+           meaning: Matrix assembly breaches this node's bounded context; names
+@@ -1276,17 +1276,17 @@ pave:
+         is surfaced, never reworded, because kickoff-declared criteria change
+         only by explicit user decision. Record known measurement-tool pitfalls
+         per procedure as pre-emptions the measurement design must honor. Register
+-        each criterion's instrument-liveness pair beside the criterion - the value
+-        that must appear as evaluated in the evidence, and a tripwire input the
+-        procedure must fail on - because an instrument nobody has seen fail grades
+-        nothing, and a criterion whose instrument has no such tripwire is surfaced
++        each criterion's check-tool liveness pair beside the criterion - the value
++        that must appear as evaluated in the evidence, and a known-bad input the
++        procedure must fail on - because a check tool nobody has seen fail grades
++        nothing, and a criterion whose check tool has no such known-bad input is surfaced
+         as unadjudicable rather than registered. Inputs
+-        are route- and lap-conditional - backport-route instances arrive without
++        are route- and round-conditional - backport-route instances arrive without
+         regression_matrix_draft (the matrix node is never instantiated on that
+-        route), and first-lap instances arrive without adversarial_review_findings
++        route), and first-round instances arrive without adversarial_review_findings
+         (the findings history is empty before the first gate-2 review); neither
+         absence is a gap. The registration artifact goes to the lead for commitment
+-        into run state before any measurement starts. Re-entry instrument - the
++        into run state before any measurement starts. Re-entry check tool - the
+         implementer seat runs on
+         the FIRST preregistration and on any re-entry whose repair touched a registered-value
+         surface - comparator identity, configuration, or version, a criterion,
+@@ -1295,7 +1295,7 @@ pave:
+         (P9 stands unwaived - the frozen acceptance registration is never opened,
+         and a repair that would move a registered value STOPs for the user). Every other re-entry - registration
+         byte-unchanged by digest and mtime, no standing finding naming a registered
+-        value - the lead settles mechanically with the four-slice verification
++        value - the lead decides mechanically with the four-slice verification
+         against the frozen registration, recorded in run state, no seat and no
+         fresh verification artifact. Ambiguity runs the seat. Out of scope - any
+         measurement, code change, or hardware contact.
+@@ -1312,8 +1312,8 @@ pave:
+       - Criteria registered verbatim with procedure references, scoped to this
+         campaign's route.
+       - Per-procedure measurement-pitfall pre-emptions recorded.
+-      - Per-criterion instrument-liveness pair registered as adjudicable values
+-        - the value that must appear evaluated, and the tripwire input the procedure
++      - Per-criterion check-tool liveness pair registered as adjudicable values
++        - the value that must appear evaluated, and the known-bad input the procedure
+         must fail on (shape in references/artifact-layout.md section 4.5).
+       - Consecutive-read stability count and minimum re-read spacing for stable-read
+         collection declared as adjudicable values; they enter the campaign design
+@@ -1333,8 +1333,8 @@ pave:
+         criteria_unadjudicable:
+           meaning: A kickoff-declared criterion cannot be registered as adjudicable
+             without changing it; names the criterion and the ambiguity for an
+-            explicit user decision. A criterion whose instrument cannot be shown
+-            to fail on any tripwire input lands here too - it cannot be graded,
++            explicit user decision. A criterion whose check tool cannot be shown
++            to fail on any known-bad input lands here too - it cannot be graded,
+             and rewording it is forbidden.
+     assemble_design_record:
+       intent: plan
+@@ -1351,7 +1351,7 @@ pave:
+         when no patch surface is touched; the substrate register is present, with
+         an explicit non-kernel-class declaration for every increment that declares
+         no substrate; the coverage trace is present - every kickoff-declared deliverable
+-        and criterion traces to the increments that realize it and the registered
++        and criterion traces to the increments that implement it and the registered
+         acceptance that judges it; the consecutive-read stability count and minimum
+         re-read spacing are declared; the refined file surface, test layout, venv
+         plan, lease plan, and (for upgrade-route campaigns) the regression matrix
+@@ -1360,18 +1360,18 @@ pave:
+         draft path close-out needs. The assembler refuses to run without the current
+         lead-minted design-entry id - a missing or ambiguous id is a blocked precondition,
+         never an outcome emission - and every artifact it emits carries that id.
+-        Re-entry instrument - on re-entry the assembler updates in place only
++        Re-entry check tool - on re-entry the assembler updates in place only
+         the sections whose
+         inputs changed since the current design_entry_id was minted, then re-runs
+         the completeness self-check on the updated record - never a full re-copy
+-        of unchanged text. Per-lap banners, finding histories, and repair narratives
++        of unchanged text. Per-round banners, finding histories, and repair narratives
+         never belong to the current record - the current record carries the
+-        current revision's design content only, and superseded lap material is
++        current revision's design content only, and superseded round material is
+         deleted at each re-entry, the supersession recorded as one revision-log
+         line in the record plus the run-state entry (layout reference deletion
+         rule).
+-        An artifact no lap re-produced is not superseded - it stays in the read
+-        path stamped forward. A record that grows monotonically with lap count
++        An artifact no round re-produced is not superseded - it stays in the read
++        path stamped forward. A record that grows monotonically with round count
+         is a defect of this node. When the only input changed since the current
+         design_entry_id is a block diff the lead has read, touching no unnamed
+         block, whose touched blocks keep their per-increment contracts complete, the lead performs
+@@ -1415,7 +1415,7 @@ pave:
+             names the owning sibling for a bounded repair loop. Outranks both
+             evidence-bearing outcomes - a record with a named gap loops to its
+             owning sibling before it reaches gate 2 or close-out. The stall detector
+-            behind this loop reads only lap entries carrying the current design-entry
++            behind this loop reads only round entries carrying the current design-entry
+             id; superseded design entries' artifacts are deleted from the read
+             path.
+         infeasibility_recorded:
+@@ -1436,14 +1436,14 @@ pave:
+         worktree and branch preconditions (worktree present, branch based on this
+         campaign''s entry in campaign_target_pins, no protected base branch touched).
+         Then emit exactly one of: the next pending work item - or a set of pending
+-        items sized as one realization by the same complexity call the batch review
++        items sized as one implementation by the same complexity call the batch review
+         uses (one item when any is complex - a new kernel, runner, scheduler, or
+         weight-loading change - up to three low-complexity items in aggregate)
+-        - as a recorded lap entry naming each item''s design increment id, declared
+-        acceptance, and the findings it must answer, plus the set''s realization
++        - as a recorded round entry naming each item''s design increment id, declared
++        acceptance, and the findings it must answer, plus the set''s implementation
+         order (a set whose items declare pairwise-disjoint file-and-method surfaces
+         under the collision ranking''s declared-scope rule is marked eligible for
+-        concurrent realization; any other set is realized in the recorded order);
++        concurrent implementation; any other set is implemented in the recorded order);
+         or the completion, defect, exhaustion, or no-progress verdict. Work-item classes and their declared acceptance: build or repair
+         increments (the design''s CPU-mode command); coverage-gap items (the recomputed
+         gap check that found the gap - the missing increment''s own CPU-mode command
+@@ -1456,24 +1456,24 @@ pave:
+         artifacts/reviews/ - repeated identical material findings, keyed on exactly
+         the finding fingerprint the reviewed sibling fixed (the artifact-layout
+         impl/review pair entry is the shape authority): the triple increment id
+-        + surface + defect class - identical-across-laps is a mechanical string
+-        match of triples against prior lap records with no new passing increment
++        + surface + defect class - identical-across-rounds is a mechanical string
++        match of triples against prior round records with no new passing increment
+         evidence record for that item since the triple was last answered. (2)
+-        This boundary''s own lap records'' gap and stuck entries - this node would
++        This boundary''s own round records'' gap and stuck entries - this node would
+         emit the same named gap (or an identical gap set) or re-select the same
+-        stuck increment it recorded on a prior lap while no new passing increment
+-        evidence record for that item has appeared since that lap and the item''s
++        stuck increment it recorded on a prior round while no new passing increment
++        evidence record for that item has appeared since that round and the item''s
+         declared acceptance has not advanced (the detector compares the recorded
+         gap list, the stuck-increment id, and the passing-record set against the
+-        prior lap''s record, persisted in the lap records; conjunct 1 is scoped
++        prior round''s record, persisted in the round records; conjunct 1 is scoped
+         to passing records deliberately - realize_increment persists its growing
+-        investigation record on every stuck lap, so a raw directory-unchanged
+-        conjunct would be false on exactly the laps this leg must catch; the directory-unchanged
+-        idiom is sound in prepare_pr, which routes gaps out and writes no per-lap
++        investigation record on every stuck round, so a raw directory-unchanged
++        conjunct would be false on exactly the rounds this leg must catch; the directory-unchanged
++        idiom is sound in prepare_pr, which routes gaps out and writes no per-round
+         investigation records, and needed adapting here, not copying). Recorded
+         detector, no attempt caps. Design-approved monkeypatches arrive as debt
+         notes, never findings: they mint no work item and enter neither detector
+-        input. Empty histories on a first lap can never fire either input. When
++        input. Empty histories on a first round can never fire either input. When
+         more than one verdict holds at once, report exactly one outcome by this
+         precedence: (1) plan_unrealizable_as_designed - a concrete recorded contradiction
+         outranks every repetition signal; (2) no_new_route - repetition proves
+@@ -1481,20 +1481,20 @@ pave:
+         (4) prerequisite_unlanded when the item the rule would select declares a
+         prerequisite that is an unlanded block the plan already carries; (5) plan_satisfied
+         when nothing is pending; (6) increment_selected otherwise.
+-        A landed item''s plan block collapses to its ledger row at the lap that
++        A landed item''s plan block collapses to its plan row at the round that
+         first reads its passing record (the layout reference''s cap rule), and
+-        the lap record names the plan''s revision-log line after the collapse. Instrument
+-        - every lap the lead settles mechanically from the persisted inputs with
++        the round record names the plan''s revision-log line after the collapse. Check tool
++        - every round the lead decides mechanically from the persisted inputs with
+         no seat: the landed set from the passing records, the gate table and milestone
+         order from the plan, the ascending increment id within the released items,
+         the open batch with its size call, the two detector inputs, and the worktree
+-        precondition checks; the lap record is the lead''s and carries the commands
++        precondition checks; the round record is the lead''s and carries the commands
+         and outputs it derived from, never a bare conclusion. The implementer seat
+-        runs only when the lap needs a judgment the rule does not settle - a contradiction
++        runs only when the round needs a judgment the rule does not decide - a contradiction
+         candidate the worktree precondition check surfaces that no realizer record
+         has yet recorded (plan_unrealizable_as_designed needs a recorded contradiction,
+         and the realizer''s evidence_contradicts_design stays the usual door),
+-        or a disagreement between the findings history and the lap records about
++        or a disagreement between the findings history and the round records about
+         whether a triple was answered. Ambiguity runs the seat. Out of scope
+         - any code change, any test run.
+ 
+@@ -1516,16 +1516,16 @@ pave:
+       allowed_effects:
+       - Reads of the campaign worktree, design record, findings history, and increment
+         evidence records.
+-      - Writes of lap records inside this campaign's evidence directory only.
++      - Writes of round records inside this campaign's evidence directory only.
+       forbidden_effects:
+       - Any write to the campaign worktree source tree or any branch.
+       outcomes:
+         increment_selected:
+-          meaning: The next pending work item, or a set sized as one realization,
+-            is recorded in the lap record - each item with its design increment
++          meaning: The next pending work item, or a set sized as one implementation,
++            is recorded in the round record - each item with its design increment
+             id, its declared CPU-mode acceptance command, and the review findings
+-            it answers, plus the set's realization order or concurrent-eligibility
+-            mark - settled by the lap record resolving
++            it answers, plus the set's implementation order or concurrent-eligibility
++            mark - decided by the round record resolving
+             item-by-item against the approved design record and findings history
+             on disk, a derivation any reader can re-run from the same two inputs.
+           required_evidence:
+@@ -1533,7 +1533,7 @@ pave:
+         prerequisite_unlanded:
+           meaning: The item the rule would select declares a prerequisite that is
+             a block the approved plan already carries and no passing evidence record
+-            yet covers. The lap record holds the item by id and names the prerequisite
++            yet covers. The round record holds the item by id and names the prerequisite
+             as the next selection, re-armed at the prerequisite's landing - an ordering
+             hold the check on its edge distinguishes from a design change. Routes
+             back to this node.
+@@ -1549,34 +1549,34 @@ pave:
+           meaning: The design's increment plan contradicts the repo state this
+             node can observe - a named surface or precondition does not exist
+             as designed (for example a subsystem that left the repo at the pinned
+-            base) - with the contradiction recorded. Realizes the parent outcome
++            base) - with the contradiction recorded. Implements the parent outcome
+             design_defect_found.
+         no_new_route:
+           meaning: Either the findings history shows repeated identical material
+-            findings - identity settled by exact match of the finding fingerprint
+-            triple (increment id + surface + defect class) against prior lap records,
++            findings - identity decided by exact match of the finding fingerprint
++            triple (increment id + surface + defect class) against prior round records,
+             with no new passing increment evidence record for that item since
+             those triples were last answered (the anchor is the answering record
+             itself - a finding re-raised identically after its repair's passing
+             record, with nothing newer, satisfies this conjunct - so a doer-reviewer
+             disagreement loop, where repairs keep passing their declared acceptance
+             while the reviewer re-raises the same triple, fires this outcome rather
+-            than spinning unseen behind gate 2) - or this boundary's own lap records
++            than spinning unseen behind gate 2) - or this boundary's own round records
+             show the same named gap (or an identical gap set) or the same stuck
+-            increment recurring from a prior lap while no new passing increment
+-            evidence record for that item has appeared since that lap and the
++            increment recurring from a prior round while no new passing increment
++            evidence record for that item has appeared since that round and the
+             item's declared acceptance has not advanced (the asymmetry is DELIBERATE
+-            - passing evidence records exist only on pass, stuck laps write investigation
+-            records; a plan-scoping choice, not an oversight). Lap records prove
+-            either repetition mechanically. Realizes the parent outcome no_progress.
++            - passing evidence records exist only on pass, stuck rounds write investigation
++            records; a plan-scoping choice, not an oversight). Round records prove
++            either repetition mechanically. Implements the parent outcome no_progress.
+         plan_exceeds_node:
+           meaning: The reconciled remaining work cannot fit this node as sized
+-            - the exhaustion evidence (lap records, attempt fingerprints, remaining-item
+-            list) is recorded. Realizes the parent outcome scope_exceeded.
++            - the exhaustion evidence (round records, attempt fingerprints, remaining-item
++            list) is recorded. Implements the parent outcome scope_exceeded.
+     realize_increment:
+       intent: execute
+       instance_per: approved_campaigns
+-      purpose: 'Realize the selected work item - or each item of the selected set,
++      purpose: 'Implement the selected work item - or each item of the selected set,
+         every item with its own code change, tests, acceptance transcript, commit,
+         and one-file evidence record - in this campaign''s isolated worktree (one
+         checkout per item for a concurrent-eligible set) on its campaign branch:
+@@ -1587,29 +1587,29 @@ pave:
+         CPU-mode acceptance (VLLM_NEURON_CPU_MODE=1) to a recorded command transcript,
+         and write the increment''s one-file evidence record (command, exit status,
+         diff stat, commit hash). When the selected item is a coverage-gap item,
+-        the work is to close the named gap and settle on the recomputed gap check
+-        that found it, as the lap record declares - the missing increment''s own
++        the work is to close the named gap and decide on the recomputed gap check
++        that found it, as the round record declares - the missing increment''s own
+         CPU-mode command, the evidence-index coverage recomputation, the import
+         scan re-run over the repaired diff, or the substrate-fidelity check re-run
+         over the repaired diff. When the selected item is a repackaging item (review
+         found the changeset not reviewable as one unit against the increment plan),
+         the work is instead to regroup the campaign branch''s commits and increment
+-        records so the changeset reads as one unit per plan increment, settling
+-        on the recomputed one-unit coverage check the lap record declares - same
++        records so the changeset reads as one unit per plan increment, deciding
++        on the recomputed one-unit coverage check the round record declares - same
+         branch authority, no new code behavior. A set converges here - the node''s
+         outcome is recorded once every item of the set has reached its verdict,
+         by the outcome precedence applied over the set (a recorded contradiction
+         on any item outranks; then increment_stuck when any item lacks a passing
+         record, the passed items'' records standing and landing; then increment_passed);
+-        whether a concurrent-eligible set is realized by one hand in order or by
+-        one hand per item at once is runtime binding, declared per node (spec section
+-        2.1). Instrument for a set - by default the one retained doer thread
+-        realizes the set in the recorded order, item by item, each item to its
++        whether a concurrent-eligible set is implemented by one hand in order or by
++        one hand per item at once is run setup, declared per node (spec section
++        2.1). Check tool for a set - by default the one retained doer thread
++        implements the set in the recorded order, item by item, each item to its
+         own commit and evidence record; a set marked concurrent-eligible may instead
+         run one seat per item at once when the lead gives each item its own checkout
+         and lands the items onto the campaign branch at the join in the recorded
+         order, a conflict at the join being a scheduling defect recorded in the
+-        lap record that returns the set to the serial default. Dispatch delegate skills only
++        round record that returns the set to the serial default. Dispatch delegate skills only
+         through the run''s guardrails. Out of scope - hardware attempts, any write
+         outside the campaign worktree and branch, and any change to kickoff- or
+         design-declared acceptance criteria.
+@@ -1653,15 +1653,15 @@ pave:
+             command transcript and exit status for build and repair increments,
+             the recomputed gap check that found the gap for coverage-gap items,
+             or the recomputed one-unit coverage check for repackaging items -
+-            and its evidence record is written; settled by values produced by
+-            the instrument, not the doer's judgment. Routes back to scoping for
++            and its evidence record is written; decided by values produced by
++            the check tool, not the doer's judgment. Routes back to scoping for
+             the next item.
+           required_evidence:
+           - increment_evidence_records
+         evidence_contradicts_design:
+-          meaning: The increment cannot be realized as designed and the contradiction
++          meaning: The increment cannot be implemented as designed and the contradiction
+             is recorded with the observing evidence (the designed seam, API, or
+-            precondition does not hold in the worktree). Realizes the parent outcome
++            precondition does not hold in the worktree). Implements the parent outcome
+             design_defect_found. Outranks both other outcomes when results co-hold
+             - a concrete recorded contradiction beats a green transcript reached
+             by deviating from the design (deviation is out of scope, so such a
+@@ -1671,9 +1671,9 @@ pave:
+           meaning: Honest repair attempts on this increment are exhausted for
+             this dispatch without a passing acceptance; the persisted investigation
+             record carries what was checked, ruled out, and found, and the stuck
+-            increment's id persists in the lap record so recurrence feeds the
++            increment's id persists in the round record so recurrence feeds the
+             no-progress detector. Routes back to scoping, which re-selects with
+-            the new evidence or detects no-progress from the lap history. Reported
++            the new evidence or detects no-progress from the round history. Reported
+             only when neither a recorded contradiction stands nor the declared
+             acceptance passed on work done as designed - the last door in the
+             precedence. For a set, names each stuck item; the passed items' records
+@@ -1682,7 +1682,7 @@ pave:
+       intent: execute
+       instance_per: approved_campaigns
+       purpose: 'Assemble this campaign''s implementation_changeset as the parent''s
+-        settling artifact: the campaign branch diff against this campaign''s target
++        deciding artifact: the campaign branch diff against this campaign''s target
+         base recorded in campaign_target_pins, the index proving every planned
+         and repair increment carries a passing CPU-mode evidence record, the transcript
+         of a mechanical NxDI-import scan over the diff (zero hits required - the
+@@ -1720,9 +1720,9 @@ pave:
+           meaning: The changeset artifact holds the git-produced branch diff,
+             an evidence index in which every planned increment resolves to a passing
+             record, the import-scan transcript with zero NxDI hits, and the substrate-fidelity
+-            transcript (every declared-NKI increment shows NKI usage) - settled
+-            by re-reading those four world-produced components, each recomputable
+-            by a reviewer from the branch and the records. Realizes the parent
++            transcript (every declared-NKI increment shows NKI usage) - decided
++            by re-reading those four external components, each recomputable
++            by a reviewer from the branch and the records. Implements the parent
+             outcome increments_ready.
+           required_evidence:
+           - implementation_changeset
+@@ -1735,7 +1735,7 @@ pave:
+             the import scan hit (acceptance = the import scan re-run over the
+             repaired diff), or (d) a substrate-fidelity hit (acceptance = the
+             substrate-fidelity check re-run over the repaired diff). The gap identity
+-            persists in the lap record so recurrence feeds the no-progress detector.
++            persists in the round record so recurrence feeds the no-progress detector.
+     acquire_hardware_lease:
+       intent: execute
+       purpose: Obtain an exclusive lease on a target-capable Neuron host from
+@@ -1780,7 +1780,7 @@ pave:
+           meaning: A lease record written by the lead names this campaign as the
+             exclusive holder of one named host whose live identity markers matched
+             the roster (or whose sole delta is a boot-identifier change explained
+-            by a logged reboot) - settled by reading the lease record plus the
++            by a logged reboot) - decided by reading the lease record plus the
+             identity-probe transcript in the attempt log, never by this node's
+             assertion.
+           required_evidence:
+@@ -1817,7 +1817,7 @@ pave:
+         precedence when both hold - a build failure whose cause is host-level
+         (disk exhaustion, device errors, unreachability) is host_faulted, never
+         replication_failed; recipe verdicts on a faulted host are unreliable,
+-        and routing a host-caused build failure to the breaker path would force
++        and routing a host-caused build failure to the stop limit path would force
+         approach re-derivation for a hardware problem. Out of scope - any write
+         to the shared DLAMI venv or /opt.
+       roles:
+@@ -1855,7 +1855,7 @@ pave:
+         venv_ready:
+           meaning: The per-campaign venv exists at its discovered path with the
+             worktree editable-installed, and all three self-verification probes
+-            passed - settled by the probe artifacts (package metadata showing
++            passed - decided by the probe artifacts (package metadata showing
+             a real private-index distribution, the sentinel round-trip output)
+             recorded in the attempt log, never by the builder's claim.
+           required_evidence:
+@@ -1867,7 +1867,7 @@ pave:
+             fingerprints recorded - or the pre-retry read of the persisted per-target
+             counts shows the tier-2 threshold reached, exiting with all fingerprints
+             attached instead of retrying; recipe dead ends are approach-level
+-            and route to the breaker path. Host-level causes never land here (precedence
++            and route to the stop limit path. Host-level causes never land here (precedence
+             - host_faulted wins the mixed case).
+         host_faulted:
+           meaning: The host itself failed under the build (unreachable, disk or
+@@ -1890,7 +1890,7 @@ pave:
+         holds - assigned or leased - is not a hardware attempt and is never charged
+         to that budget; only a run that opens a Neuron device counts. Outcome precedence
+         when both hold - a host fault on the threshold-reaching attempt routes
+-        to host_faulted first; a host-caused failure recorded as the breaker's
++        to host_faulted first; a host-caused failure recorded as the stop limit's
+         final datum would feed re-derivation contaminated evidence. The attempt
+         count stands, so the pre-attempt tier-2 check trips breaker_tripped immediately
+         on resume, with the fault annotated. Delegate dispatch from this loop
+@@ -1943,7 +1943,7 @@ pave:
+       outcomes:
+         candidate_serving:
+           meaning: The candidate engine compiles and serves inference on the leased
+-            host - settled by the serving transcript (request/response pairs actually
++            host - decided by the serving transcript (request/response pairs actually
+             returned by the engine) and the in-band gate's machine-readable result
+             recorded in the attempt log, never by the implementer's claim; downstream
+             measurement independently re-exercises the endpoint.
+@@ -1955,7 +1955,7 @@ pave:
+             tier 1 leaves no materially different attempt to launch, recorded
+             as an early-exhaustion enumeration of the attempted configuration
+             space with the reason no material variation remains (falsifiable by
+-            rederive_approach against the same fingerprint records) - settled
++            rederive_approach against the same fingerprint records) - decided
+             by the attempt count and fingerprint records; maps to the parent's
+             breaker_tripped. Yields to host_faulted when the final attempt's failure
+             is host-caused (precedence in purpose).
+@@ -1966,7 +1966,7 @@ pave:
+             first. Takes precedence over breaker_tripped on the threshold-reaching
+             attempt. The faulted attempt itself is never charged to the per-target
+             budget; the count already standing from earlier budget-counted attempts
+-            is never rolled back - that standing count is what re-trips the breaker
++            is never rolled back - that standing count is what re-trips the stop limit
+             on resume.
+       instance_per: approved_campaigns
+     recover_leased_host:
+@@ -1990,7 +1990,7 @@ pave:
+         recovery record. Recovery never touches the shared compile cache as a
+         remedy. Out of scope - the GPU baseline instance always (user confirmation
+         only, and it is never leased here); any host not named in this campaign's
+-        lease; approach-level fixes (the breaker path owns those).
++        lease; approach-level fixes (the stop limit path owns those).
+       roles:
+       - implementer
+       - lead
+@@ -2029,9 +2029,9 @@ pave:
+         host_restored:
+           meaning: The leased host answers over SSH with identity re-verified
+             and the new boot identifier recorded to the lease record, and its
+-            Neuron devices enumerable - settled by the post-recovery probe transcript
+-            in the recovery record, never by the recoverer's claim. The settlement
+-            rung is conditional - rung-1 provenance binding where a boot identifier
++            Neuron devices enumerable - decided by the post-recovery probe transcript
++            in the recovery record, never by the recoverer's claim. The decision
++            tier is conditional - tier-1 source binding where a boot identifier
+             exists; where none exists, the downstream re-execution is the catch
+             (the venv node re-runs its verification probes before the loop resumes).
+             This consumes the host's one recovery allowance for this campaign
+@@ -2059,9 +2059,9 @@ pave:
+         matrix instead of correctness+perf) - each with a fixed invocation, declared
+         inputs, and a declared output shape, smoke-verified end-to-end on scratch
+         inputs before any measured run that cites that procedure revision. The
+-        measurer realizes what the design record froze; it never chooses or alters
++        measurer implements what the design record froze; it never chooses or alters
+         a comparator. On re-entry with a procedure-defect record, revise the defective
+-        realization to match the frozen comparator - never the comparator itself
++        implementation to match the frozen comparator - never the comparator itself
+         - and re-verify by smoke. Out of scope - any measured run against the
+         candidate or the baseline.
+       consumes:
+@@ -2072,19 +2072,19 @@ pave:
+       - Read the frozen comparator set and route-scoped acceptance procedures
+         from the design record; enumerate every declared measurement this campaign
+         must produce.
+-      - Realize each declared measurement as a runnable procedure with a fixed
++      - Implement each declared measurement as a runnable procedure with a fixed
+         invocation, reusing verified in-repo primitives where they match the declared
+         method and building thin harnesses where no repeatable procedure exists.
+-      - Realize no procedure that reproduces a trap recorded in
++      - Implement no procedure that reproduces a trap recorded in
+         references/measurement-pitfalls.md; where a trap is in what the procedure
+-        counts, swapping the instrument that exposed it is not the remedy.
++        counts, swapping the check tool that exposed it is not the remedy.
+       - Smoke-verify every procedure end-to-end on scratch inputs and record the
+         smoke evidence and the fixed invocation per procedure. The same smoke run
+-        feeds the registered tripwire input and records the procedure failing on
+-        it; a procedure that passes its own tripwire is not verified.
++        feeds the registered known-bad input and records the procedure failing on
++        it; a procedure that passes its own known-bad input is not verified.
+       - On re-entry with a procedure-defect record, revise only the defective
+-        realization against the frozen comparator, re-smoke it, and record the
+-        revision in the procedure record - revision entries VERSION each realization
++        implementation against the frozen comparator, re-smoke it, and record the
++        revision in the procedure record - revision entries VERSION each implementation
+         and NAME the comparisons a revision touches.
+       allowed_effects:
+       - In-band SSH to leased Neuron hosts for smoke verification only.
+@@ -2097,7 +2097,7 @@ pave:
+             runnable, smoke-verified procedure with a fixed invocation recorded
+             before any measured run that cites that procedure revision, each
+             smoke record carrying the negative-control result for its registered
+-            tripwire input.
++            known-bad input.
+           required_evidence:
+           - measurement_procedure_record
+         procedure_unrealizable:
+@@ -2169,7 +2169,7 @@ pave:
+         in place. Every run record stamps the measured git revision read at measurement
+         time from the checked-out commit on the leased host (a git-issued identifier,
+         never a branch name), plus the invocation, configuration, and environment
+-        used. When outcomes co-hold they settle in the precedence order fixed
++        used. When outcomes co-hold they decide in the precedence order fixed
+         in the activities. Out of scope - any verdict on the numbers produced.
+       consumes:
+       - measurement_procedure_record
+@@ -2187,20 +2187,20 @@ pave:
+         and environment.
+       - Write every defect finding (procedure or reference) as its own event file
+         under the runs directory, so the shared per-measurement repair budget
+-        stays derivable by counting defect-record files by path - one instrument,
++        stays derivable by counting defect-record files by path - one check tool,
+         two predicates, both magnitudes and the novelty derivation pinned once
+         at references/artifact-layout.md section 4.4.
+       - On a lost serving state, re-establish serving from the recorded attempt
+         recipe within the declared retry bound, re-verify the checked-out revision,
+         then resume.
+       - When a measurement's shared repair budget is already spent at either tier's
+-        threshold, record the defect and complete forward - packaging settles
++        threshold, record the defect and complete forward - packaging decides
+         declared_measurement_unproducible; do not route backward at either threshold.
+-      - 'Settle co-held outcomes in this order, with these reasons: serving_exhausted
++      - 'Decide co-held outcomes in this order, with these reasons: serving_exhausted
+         first (nothing in this boundary executes without the leased serving state
+         - even smoke verification needs it - and re-derivation receives the full
+         defect trail as evidence); procedure_defect_found second (a defective
+-        realization invalidates both the reference captured with it and every
++        implementation invalidates both the reference captured with it and every
+         number it produced, and its repair re-traverses reference capture, so
+         it subsumes a co-held reference defect on the same measurement); reference_defect_found
+         third (reference repair with no co-held procedure defect); runs_complete
+@@ -2217,15 +2217,15 @@ pave:
+             from the checked-out commit at measurement time; a measurement whose
+             shared repair budget is spent at either tier - threshold reached or
+             already at the ceiling when a further defect appears - completes forward
+-            with its defect trail recorded for packaging to settle. Taken last
++            with its defect trail recorded for packaging to decide. Taken last
+             in the fixed precedence order - only when no defect or serving outcome
+             holds within budget.
+           required_evidence:
+           - candidate_measurement_runs
+         procedure_defect_found:
+           meaning: A run exposes a procedure that measured the wrong property
+-            - a defective realization of a frozen comparator; routed back to procedure
+-            realization within the shared per-measurement repair budget. Subsumes
++            - a defective implementation of a frozen comparator; routed back to procedure
++            implementation within the shared per-measurement repair budget. Subsumes
+             a co-held reference defect on the same measurement, since the repaired
+             procedure re-traverses reference capture.
+         reference_defect_found:
+@@ -2244,18 +2244,18 @@ pave:
+       roles:
+       - measurer
+       purpose: Assemble the campaign's measurement evidence bundles - one file
+-        per event under the campaign measurements directory - and settle their
++        per event under the campaign measurements directory - and decide their
+         completeness and stability before any verdict. Each bundle names the GPU-side
+         vLLM version and the known cross-version behavior differences from the
+         skew record, carries the measured git revision copied verbatim from the
+         run records (this node never mints or rewrites it), and links the pre-registered
+-        comparator and procedure it realizes. Each bundle also records, per criterion
+-        it realizes, the threshold that was evaluated with the value read and the
++        comparator and procedure it implements. Each bundle also records, per criterion
++        it implements, the threshold that was evaluated with the value read and the
+         result of the comparison, plus the negative-control result from that procedure's
+         smoke record - an exit status is not an evaluation. Completeness is checked against
+         the kickoff-declared acceptance procedures for this campaign's route (upgrade
+         routes execute the regression matrix instead of correctness+perf); stability
+-        is settled by consecutive matching re-reads over time, never a first sighting.
++        is decided by consecutive matching re-reads over time, never a first sighting.
+       consumes:
+       - campaign_design_record
+       - baseline_reference_capture
+@@ -2271,11 +2271,11 @@ pave:
+       - Check bundle completeness against the route-scoped declared measurement
+         list; record any gap or instability as its own defect-record event file,
+         so the shared per-measurement repair count stays derivable by counting
+-        defect-record files by path - one instrument, two predicates, pinned once
++        defect-record files by path - one check tool, two predicates, pinned once
+         at references/artifact-layout.md section 4.4.
+       - Re-read every bundle until the declared count of consecutive matching
+         reads passes; record the stability trace.
+-      - Settle exhaustion - a measurement whose shared repair budget (derived
++      - Decide exhaustion - a measurement whose shared repair budget (derived
+         from its on-disk defect-record files) is spent at either tier and still
+         defective is declared unproducible; never route it backward.
+       allowed_effects:
+@@ -2300,9 +2300,9 @@ pave:
+           meaning: A declared measurement cannot be produced after its shared
+             repair budget - derived by counting its defect-record files, magnitudes
+             pinned once at references/artifact-layout.md section 4.4 - is spent
+-            at either tier; routed to re-derivation with the evidence. Settles
++            at either tier; routed to re-derivation with the evidence. Decides
+             only when NO declared measurement retains repair budget; while any
+-            does, collection_defect_found settles.
++            does, collection_defect_found decides.
+   edges:
+   - id: preconditions_to_delta_scan
+     from: verify_run_preconditions.preconditions_met
+@@ -2311,7 +2311,7 @@ pave:
+       for_each: requested_targets
+     checks:
+     - preflight_record_complete
+-    rationale: Entry into the decomposed scan boundary - one tracer per requested
++    rationale: Entry into the decomposed scan phase - one tracer per requested
+       target (item 24); the lead mints a scan_entry_id at each boundary entry
+       before dispatch. preflight_record_complete adopted from the preflight boundary
+       review (round-1 recommendation, judged correctly sized).
+@@ -2330,7 +2330,7 @@ pave:
+   - id: costing_gap_to_delta_scan
+     from: cost_routes_and_rank_backlog.evidence_gap
+     to: assemble_delta_report
+-    rationale: Re-entry lands at the settle node - assemble drives at most one
++    rationale: Re-entry lands at the decide node - assemble drives at most one
+       bounded re-trace per deficient target under a fresh scan_entry_id; the operator-visible
+       stop on the outer loop is costing_stalled to run_paused (item 18).
+   - id: stalled_costing_to_pause
+@@ -2369,9 +2369,9 @@ pave:
+     to: screen_pin_and_progress
+     checks:
+     - design_loop_within_bound
+-    rationale: Full-lap re-entry edges into the design boundary land at the screen
++    rationale: Full-round re-entry edges into the design phase land at the screen
+       (item 25); narrow re-entries land at their resolving node. The lead mints
+-      a design_entry_id at each entry into the design boundary by any edge (item
++      a design_entry_id at each entry into the design phase by any edge (item
+       31(a)).
+   - id: narrow_registration_repair
+     from: review_campaign_design.narrow_findings
+@@ -2379,7 +2379,7 @@ pave:
+     checks:
+     - design_loop_within_bound
+     - narrow_delta_scoped
+-    rationale: Severity triage for the design lap. Narrow findings that touch registered values re-enter
++    rationale: Severity triage for the design round. Narrow findings that touch registered values re-enter
+       at the registration node so the fresh value-level adversarial read is preserved;
+       hash-only verification does not satisfy it. Mutually exclusive with narrow_record_repair
+       by registered-value touch.
+@@ -2521,7 +2521,7 @@ pave:
+     from: trace_target_delta.source_unreachable
+     to: assemble_delta_report
+     rationale: The partial per-target record is preserved; the run-level reachability
+-      verdict is settled at assembly under its declared outcome precedence.
++      verdict is decided at assembly under its declared outcome precedence.
+   - id: insufficient_reports_to_retrace
+     from: assemble_delta_report.reports_insufficient
+     to:
+@@ -2538,7 +2538,7 @@ pave:
+     to: assemble_design_record
+     checks:
+     - pin_infeasibility_socratic_guard
+-    rationale: The record's infeasibility variant settles the campaign toward
++    rationale: The record's infeasibility variant decides the campaign toward
+       close-out; the guard holds the expensive false-infeasibility direction (screen
+       boundary review, item 31 family).
+   - id: screen_exhaustion_to_rederivation
+@@ -2559,7 +2559,7 @@ pave:
+   - id: plan_scope_valve_to_rederivation
+     from: draft_increment_plan.scope_exceeded
+     to: rederive_approach
+-    rationale: Sizing-valve firing maps to the parent no_progress door under the
++    rationale: Size-valve firing maps to the parent no_progress door under the
+       c9 widening.
+   - id: matrix_to_preregistration
+     from: assemble_regression_matrix.matrix_assembled
+@@ -2572,7 +2572,7 @@ pave:
+   - id: matrix_scope_valve_to_rederivation
+     from: assemble_regression_matrix.scope_exceeded
+     to: rederive_approach
+-    rationale: Sizing-valve firing under the c9 widening, matrix side.
++    rationale: Size-valve firing under the c9 widening, matrix side.
+   - id: preregistration_to_record
+     from: preregister_acceptance.acceptance_preregistered
+     to: assemble_design_record
+@@ -2611,7 +2611,7 @@ pave:
+     to: rederive_approach
+     rationale: Exhaustion door - fires only on the exhaustion predicate pinned
+       once in the artifact-layout reference (the same named gap recurs AND no
+-      gap-closing artifact for that gap has been produced since that lap); otherwise
++      gap-closing artifact for that gap has been produced since that round); otherwise
+       the sibling repair edges carry the traffic (item 25).
+   - id: selected_to_realization
+     from: scope_next_increment.increment_selected
+@@ -2622,8 +2622,8 @@ pave:
+     checks:
+     - prerequisite_is_in_plan
+     rationale: An in-plan, unlanded prerequisite is an ordering hold, not a plan
+-      defect - the lap re-enters with the prerequisite selected and the held item
+-      named, so no selection row stands unexplained and the design boundary is
++      defect - the round re-enters with the prerequisite selected and the held item
++      named, so no selection row stands unexplained and the design phase is
+       not re-entered for an ordering fact (field record 2026-09-10 - a held selection
+       the lead resolved by ruling on a route the graph did not declare).
+   - id: passed_to_next_scoping
+@@ -2642,17 +2642,17 @@ pave:
+   - id: batch_review_to_redesign
+     from: review_increment_batch.design_contradicted
+     to: screen_pin_and_progress
+-    rationale: Realizes the parent design_defect_found door at the design boundary
++    rationale: Implements the parent design_defect_found door at the design phase
+       entry, like contradiction_to_redesign.
+   - id: stuck_to_rescoping
+     from: realize_increment.increment_stuck
+     to: scope_next_increment
+     rationale: Scoping re-selects with the persisted investigation record or detects
+-      no-progress from the lap history.
++      no-progress from the round history.
+   - id: contradiction_to_redesign
+     from: realize_increment.evidence_contradicts_design
+     to: screen_pin_and_progress
+-    rationale: Realizes the parent design_defect_found door - lands at the design
++    rationale: Implements the parent design_defect_found door - lands at the design
+       boundary entry like every re-entry (item 25).
+   - id: plan_satisfied_to_recording
+     from: scope_next_increment.plan_satisfied
+@@ -2671,7 +2671,7 @@ pave:
+   - id: replication_dead_end_to_rederivation
+     from: replicate_campaign_venv.replication_failed
+     to: rederive_approach
+-    rationale: Recipe dead ends are approach-level and route to the breaker path.
++    rationale: Recipe dead ends are approach-level and route to the stop limit path.
+   - id: venv_host_fault_to_recovery
+     from: replicate_campaign_venv.host_faulted
+     to: recover_leased_host
+@@ -2682,7 +2682,7 @@ pave:
+     from: recover_leased_host.host_restored
+     to: replicate_campaign_venv
+     rationale: The venv node re-runs its verification probes before the loop resumes
+-      - the downstream catch for the conditional settlement rung (27(i)).
++      - the downstream catch for the conditional decision tier (27(i)).
+   - id: unrecoverable_host_to_reacquisition
+     from: recover_leased_host.host_unrecoverable
+     to: acquire_hardware_lease
+@@ -2697,7 +2697,7 @@ pave:
+   - id: unrealizable_procedure_to_rederivation
+     from: realize_measurement_procedures.procedure_unrealizable
+     to: rederive_approach
+-    rationale: One of the four blocked terminals realizing the parent measurement_blocked
++    rationale: One of the four blocked terminals implementing the parent measurement_blocked
+       door (item 26).
+   - id: reference_to_candidate_runs
+     from: capture_baseline_reference.reference_captured
+@@ -2727,11 +2727,11 @@ pave:
+     from: stabilize_and_package_evidence.collection_defect_found
+     to: run_candidate_measurements
+     rationale: Within the shared per-measurement repair budget; at either tier's
+-      threshold the flow completes forward and packaging settles declared_measurement_unproducible.
++      threshold the flow completes forward and packaging decides declared_measurement_unproducible.
+   - id: unproducible_measurement_to_rederivation
+     from: stabilize_and_package_evidence.declared_measurement_unproducible
+     to: rederive_approach
+-  control_endpoints:
++  control_nodes:
+     run_complete:
+       kind: terminal
+       meaning: Every gate-1-approved campaign reached exactly one verified gate-3
+@@ -2759,7 +2759,7 @@ pave:
+       kind: join
+       meaning: Hold until every approved campaign instance reaches its verified
+         closure; run-closure verification re-runs at each closure.
+-  runtime_bindings:
++  write_limits:
+     deny: []
+     caps: []
+   state:
+@@ -2782,13 +2782,13 @@ pave:
+     - completed_outcomes
+     - evidence_references
+     - open_questions
+-    - terminal_classification
++    - final_status
+     - scan_entry_id
+     - design_entry_id
+     fields:
+       cross_run_artifact_refs:
+         meaning: References to the four cross-run artifacts - the parity scorecard,
+-          the backlog, the debt ledger, and the repo-tracked failure-fingerprint
++          the backlog, the debt list, and the repo-tracked failure-fingerprint
+           file - loaded at intake and updated only by the lead's serialized writes
+           at campaign closure. The fingerprint file lives at the concrete repo-tracked
+           path declared in the artifact layout reference; an absent file reads
+@@ -2817,20 +2817,20 @@ pave:
+           whenever a campaign design refines its predicted surface.
+       hardware_attempt_counts:
+         meaning: Per-target shared budget across all routes that spend hardware
+-          attempts; the tier-2 breaker reads it at every 10. A CPU-mode run that
++          attempts; the tier-2 stop limit reads it at every 10. A CPU-mode run that
+           opens no Neuron device is not a hardware attempt on any host and never
+           increments it.
+       campaign_states:
+         meaning: Pointer per campaign to its own state and evidence directory
+           (one-file-per-event); never inlined into run state.
+       scan_entry_id:
+-        meaning: Minted by the lead at each entry into the scan boundary and stamped
+-          into grant files and report metadata; settlement refuses to run without
++        meaning: Minted by the lead at each entry into the scan phase and stamped
++          into grant files and report metadata; decision refuses to run without
+           it (item 24 - external runtime dependency carried in briefs). Re-trace
+           grants are counted under scan-entry ids, never a stored integer.
+       design_entry_id:
+-        meaning: Minted by the lead at each entry into the design boundary and
+-          stamped into every design-lap artifact; superseded lap artifacts are
++        meaning: Minted by the lead at each entry into the design phase and
++          stamped into every design-round artifact; superseded round artifacts are
+           deleted from the read path per the layout reference; serves the screen progress
+           detector and the record_incomplete detector (item 31(a)). The record
+           assembler refuses to run without it.
+@@ -2843,7 +2843,7 @@ pave:
+       after_every_consequential_transition: true
+   completion:
+     acceptance: Every gate-1-approved campaign closed through gate 3 as exactly
+-      one declared closure, each verified against world-produced evidence, with
++      one declared closure, each verified against external evidence, with
+       all four cross-run artifacts updated.
+-    closure: The run records an honest terminal classification and preserves open
++    closure: The run records an honest final status and preserves open
+       risks, discoveries, and resumable state.

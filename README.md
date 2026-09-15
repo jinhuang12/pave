@@ -45,12 +45,12 @@ named — before any design work starts.
 | Outcome | How a node ended. It names the situation (`baseline_captured`, `review_needs_evidence`), never the destination. |
 | Evidence | Why the graph believes an outcome — an artifact the world produced, not the actor's own report that it worked. |
 | Edge | How the graph responds: this outcome, from this node, moves the run there. Routing is declared before the run, never invented during it. |
-| Control endpoint | A destination that is not work: a terminal, a pause for the user, a join for parallel branches. |
+| Control node | A destination that is not work: a terminal, a pause for the user, a join for parallel branches. |
 | Role | The perspective that acts in a node — including the user, whose approval gates are declared in the graph like any other node. |
 
 Every node carries one of four intents — Plan, Explore, Execute, Review
 (PEER) — and the success outcome's contract is the node's definition of done:
-a condition settled by an act on world-produced evidence.
+a condition decided by an act on external evidence.
 
 ### The patterns
 
@@ -70,8 +70,8 @@ every workflow can reuse them (spec §4 and §9).
   its goal within one context; otherwise decompose it, never "try harder".
 - **Designed stopping** — every loop names its stop; unlimited attempts are
   legal only with persisted investigation records and an operator-owned stop.
-- **Proportional enforcement** — match the rung to the consequence: prose,
-  then reinjection, then a blocking hook; never a blocking hook that can
+- **Proportional enforcement** — match the enforcement level to the consequence: prose,
+  then reminder, then a blocking hook; never a blocking hook that can
   misfire.
 - **Smallest sufficient graph** — ceremony must earn its place; a rule nobody
   can violate cheaply needs no machinery.
@@ -152,12 +152,12 @@ shareable, each split into two trees:
 - [`planning-records/`](planning-records/) — one directory per plugin:
   the complete pave-init run workspace that produced it (requirements,
   exploration, the approved graph, every review-gate record, and the
-  full run-state history). Provenance only; kept out of the plugin
+  full run-state history). Source only; kept out of the plugin
   source so marketplace installs ship just the package.
 
 Current plugins:
 
-| Plugin | What it does | Provenance |
+| Plugin | What it does | Source |
 |---|---|---|
 | [`vllm-neuron-parity`](generated-plugins/vllm-neuron-parity/) | Drives a vLLM-Neuron fork to parity with upstream GPU vLLM through user-gated, evidence-backed campaigns. See its [README](generated-plugins/vllm-neuron-parity/README.md) for prerequisites (delegate Neuron skills). | [record](planning-records/vllm-neuron-parity/) |
 
@@ -168,7 +168,7 @@ Install one the same way as pave-init:
 ```
 
 Generated plugins currently ship Claude Code bindings. Their canonical
-PAVE graphs are harness-neutral, so a Codex variant can land later as a
+PAVE graphs are harness-neutral, so a Codex variant can apply later as a
 sibling binding inside the same plugin directory (`.codex-plugin/` +
 `codex/`), mirroring how this repo packages pave-init itself.
 
@@ -180,6 +180,6 @@ sibling binding inside the same plugin directory (`.codex-plugin/` +
 - [`skills/pave-init/references/pave-spec.md`](skills/pave-init/references/pave-spec.md)
   — the PAVE language specification.
 - [`skills/pave-init/references/technique-selection.md`](skills/pave-init/references/technique-selection.md)
-  — when debate, monitors, audits, and ledgers earn their cost, and when
+  — when debate, monitors, audits, and revision logs earn their cost, and when
   they hurt.
 - [`skills/pave-init/VERSION`](skills/pave-init/VERSION) — the changelog.

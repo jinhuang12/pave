@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # _find_run_state.sh -- sourceable run-state discovery shared by the two
-# lead-alignment hooks.
+# lead hooks.
 #
 # Usage:
 #   HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"

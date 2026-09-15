@@ -11,15 +11,15 @@
 2. What graph engineering means
 3. What verifiable means
 4. PAVE philosophy
-5. Core graph vocabulary — node contract §5.1, evidence §5.3, acceptance evidence ladder §5.3.1, guard §5.4
+5. Core graph vocabulary — node contract §5.1, evidence §5.3, acceptance evidence ranking §5.3.1, guard §5.4
 6. PEER node intents
 7. Roles and perspectives
 8. State and external memory — document budget §8.4, written for the reader §8.5
-9. Reusable graph patterns — enforcement rungs §9.14, what a digest may pin §9.14.3, node sizing §9.12, porting §9.12.2
+9. Reusable graph patterns — enforcement levels §9.14, what a digest may pin §9.14.3, one-agent check §9.12, porting §9.12.2
 10. How to engineer a graph with PAVE
 11. Lightweight design canvas
 12. Worked example: AMMO GPU optimization
-13. Common graph-design smells
+13. Common graph-design warning signs
 14. PAVE design review
 
 ## 1. What PAVE is
@@ -43,16 +43,16 @@ process. A workflow can use the patterns that fit its risks and goals.
 PAVE calls a workflow **PAVE-informed** when its design uses this language to
 make important decisions explicit. There is no conformance claim.
  
-### 1.1 This document and its reference profile
+### 1.1 This document and its format spec
  
 This document defines meaning. It does not define syntax.
  
-A team that wants a machine-checkable file format can use a **reference
-profile**: a document that fixes a schema, an identifier grammar, and
+A team that wants a machine-checkable file format can use a **format
+spec**: a document that fixes a schema, an identifier grammar, and
 validity rules for a specific serialization. `pave-yaml.md` and
-`pave.schema.json` are one such profile.
+`pave.schema.json` are one such format spec.
  
-Keep the two separate. A change of syntax is a profile change. A change of
+Keep the two separate. A change of syntax is a format spec change. A change of
 meaning is a change to this document.
  
 ## 2. What graph engineering means
@@ -81,30 +81,30 @@ carry that separation.
 | Layer | What it is | Responsibility |
 |---|---|---|
 | **Design guide** | This document | Meaning, principles, patterns, and review questions |
-| **Graph Profile** | One graph definition | The workflow graph and its domain policy |
-| **Runtime Binding** | Runtime code, configuration, or a declared extension | Actor assignment, persistence, hooks, scheduling, resource isolation, parallel dispatch |
-| **Workflow Run** | Live state and evidence artifacts | One execution of the Graph Profile |
+| **graph file** | One graph definition | The workflow graph and its domain policy |
+| **Run setup** | Runtime code, configuration, or a declared extension | Actor assignment, persistence, hooks, scheduling, resource isolation, parallel dispatch |
+| **Workflow Run** | Live state and evidence artifacts | One execution of the graph file |
  
 Most design arguments become easy once the layers are named. Ask which layer
 a question belongs to before answering it.
  
-- Which model or person performs a node? Runtime Binding.
-- Whether a node exists at all? Graph Profile.
-- Where evidence is stored? Runtime Binding.
-- What evidence a decision requires? Graph Profile.
-- Which instrument answers a node at each entry — a lead-run mechanical check,
-  a seat dispatched only when a named trigger fires, or a full seat? Runtime
-  Binding: declared per node at design time, chosen per traversal. A node
+- Which model or person performs a node? Run setup.
+- Whether a node exists at all? graph file.
+- Where evidence is stored? Run setup.
+- What evidence a decision requires? graph file.
+- Which implementation answers a node at each entry — a lead-run mechanical check,
+  a seat dispatched only when a named trigger fires, or a full seat? Run
+  setup: declared per node at design time, chosen per traversal. A node
   whose common-path outcome any reader re-derives from persisted inputs takes
   the lead-run check whatever role its parent carries; a judgment bundled
   with that path is its own conditional seat, never averaged into one medium
-  seat. Tiers bind to roles; instruments bind to nodes — a child inherits its
+  seat. Tiers bind to roles; implementations bind to nodes — a child inherits its
   parent's roles, never a seat.
-- How many workers run one node? Runtime Binding.
-- Whether the work has distinct sub-goals? Graph Profile.
+- How many workers run one node? Run setup.
+- Whether the work has distinct sub-goals? graph file.
 The last pair matters most. "Too much work for one agent" has two different
 fixes. Decompose the graph when the work has distinct sub-goals that need
-their own outcomes, evidence, or recovery. Use the Runtime Binding when the
+their own outcomes, evidence, or recovery. Use the run setup when the
 work is one goal executed by many hands. Do not add graph structure to solve
 a labor problem the binding already solves.
  
@@ -204,10 +204,10 @@ declared location, and let the later node read them. §8 covers this.
  
 **Instructions decay inside one actor.** A long-running agent follows its
 contract until that contract leaves its context window. Nothing is disobeyed.
-The rule simply stops being present. Repeating a rule more loudly at the
+The rule stops being present. Repeating a rule more loudly at the
 start does not help, because the start is what gets dropped.
  
-The answer to the second kind is reinjection at the moment the rule binds.
+The answer to the second kind is reminder at the moment the rule binds.
 Put the reminder where the decision happens, not where the run begins. A rule
 that must hold on every action of a long run needs a mechanism that fires on
 every action. A rule that one transition evaluates needs no such mechanism,
@@ -243,9 +243,9 @@ design that nobody has run yet. Give the two states different names and
 different authority:
  
 - A **draft** is editable. It carries design authority only.
-- A **landed revision** is immutable. It records the graph and the evidence
-  that stood behind it at the moment it landed.
-Delivery lands the approved draft as revision 0; the first real execution
+- An **applied revision** is immutable. It records the graph and the evidence
+  that stood behind it at the moment it applied.
+Delivery applies the approved draft as revision 0; the first real execution
 pins it, so the record tells a delivered graph from one that has run. Later
 revisions succeed earlier ones and record what changed and why. Version
 numbers record succession, not quality.
@@ -262,9 +262,9 @@ work it governs. This principle is that counterweight.
 - Add a node, role, seat, edge, loop, state field, reviewer, or control only
   for an approved requirement or a credible material failure.
 - Prefer one existing gate over a second gate that checks the same claim —
-  the same claim before the same harm: a gate after a loop whose laps build
-  on each other fires after every lap has built on the failure, so it is
-  not the existing gate for the laps inside (§9.4).
+  the same claim before the same harm: a gate after a loop whose rounds build
+  on each other fires after every round has built on the failure, so it is
+  not the existing gate for the rounds inside (§9.4).
 - Remove any element whose absence does not change required routing,
   authority, evidence, recovery, or acceptance.
 - Compare the cost of the added structure with the risk it removes — priced
@@ -276,7 +276,7 @@ The burden of proof is on adding structure, never on staying simple.
 ## 5. Core graph vocabulary
  
 PAVE uses six core terms: **Node**, **Outcome**, **Evidence**, **Guard**,
-**Edge**, and **Control endpoint**.
+**Edge**, and **Control node**.
  
 ```mermaid
 flowchart LR
@@ -286,7 +286,7 @@ flowchart LR
     V --> G
     G --> E["Edge selects a possible next move"]
     E --> N2["Next node"]
-    E --> C["Control endpoint: pause, join, return, or stop"]
+    E --> C["Control node: pause, join, return, or stop"]
 ```
  
 These terms are design tools. PAVE does not require a specific schema or
@@ -309,30 +309,30 @@ The contract has five parts:
 | Roles | The perspectives that act (§7) |
  
 The **definition of done** is the success outcome's contract, written as one
-statement: *condition — settled by act on world-produced evidence*. A condition
-that nothing can settle is not a definition of done (§3).
+statement: *condition — decided by act on external evidence*. A condition
+that nothing can decide is not a definition of done (§3).
  
 Two failures make a node unready to build on. You can state the condition but
-cannot name an act that settles it. Or the only thing the act reads is the
+cannot name an act that decides it. Or the only thing the act reads is the
 actor's own report that the work is done. Success is acceptance-bearing, so its
 evidence comes from the world — a file, command output, a measurement, or a
 verdict from someone who did not do the work — and never from the doer's
-assertion. §5.3.1 gives the two rungs and the one exemption.
+assertion. §5.3.1 gives the two tiers and the one exemption.
  
 A **node run** is one attempt at the goal, and a run ends by reporting exactly
-one declared outcome. Only the settling act selects the success outcome; every
+one declared outcome. Only the deciding step selects the success outcome; every
 other outcome names a situation that ends the run without that claim.
  
-The actor settles it; because the evidence persists (§5.3), a reviewer who did
+The actor decides it; because the evidence persists (§5.3), a reviewer who did
 not do the work can re-run the act and reach the same verdict — the guard on
-the success edge (§5.4) is that re-settling built into the graph. A definition
-of done a reviewer cannot re-settle from the artifacts is not verifiable (§3).
+the success edge (§5.4) is that re-deciding built into the graph. A definition
+of done a reviewer cannot re-decide from the artifacts is not verifiable (§3).
  
 Intent is a derived label, not a sixth decision. Choose PEER (§6) by reading
 the purpose; it fixes authority and perspective and catches a node that mixes
 unrelated work.
  
-A reference profile need not give every part its own field. In `pave-yaml.md`,
+A format spec need not give every part its own field. In `pave-yaml.md`,
 purpose, intent, roles, and outcomes are node fields; effects are
 `allowed_effects`, `forbidden_effects`, and `produces`; and the definition of
 done lives on the success outcome as the evidence it requires (§5.3) and a
@@ -348,7 +348,7 @@ Inputs: Frozen workload contract, incumbent revision
 Effects: Creates a timing record and a golden output; may run the workload;
   may not modify the incumbent
 Outcomes:
-  - baseline_credible: three runs fall within a 2% spread — settled by
+  - baseline_credible: three runs fall within a 2% spread — decided by
     comparing the three times in the timing record the runs wrote
   - baseline_invalid: the spread exceeds 2%, or a run failed
 Roles: Observer
@@ -357,14 +357,14 @@ Roles: Observer
 A node should be split when it combines conflicting responsibilities. For
 example, implementation and independent approval are clearer as two nodes.
  
-Write the contract before deciding how the node is realized: a part you can
+Write the contract before deciding how the node is implemented: a part you can
 fill only vaguely means the goal is not ready to size. Whether one agent can
 achieve it is a separate feasibility judgment — §9.12.
  
 **Steps are not nodes.** A sequence of actions inside one node is an
 *activity list*. Actions become separate nodes only when they need their own
 outcomes, evidence, authority, recovery route, or resume point. Splitting for
-tidiness adds routing cost and buys nothing. §9.12 gives the sizing
+tidiness adds routing cost and buys nothing. §9.12 gives the one-agent check
 procedure.
  
 ### 5.2 Outcome: what happened
@@ -399,7 +399,7 @@ Two rules keep the separation real:
    during the failure it was written to describe. This rule is cheap to check
    and removes a whole class of design defect.
 3. **Exactly one outcome means success, and it is acceptance-bearing.** Its
-   condition and settling act are the node's definition of done (§5.1), and
+   condition and deciding step are the node's definition of done (§5.1), and
    §5.3.1 sets its evidence bar. An outcome that only routes control needs no
    evidence.
 ### 5.3 Evidence: why the graph believes it
@@ -430,32 +430,32 @@ or another durable reference. The format should fit the workflow. Prefer
 pointing at a standing document over minting a new file per outcome or per
 round; §8.4 sets the document budget.
  
-#### 5.3.1 Acceptance evidence ladder
+#### 5.3.1 Acceptance evidence ranking
  
-Evidence for an acceptance-bearing outcome is produced by the world, not
-asserted by the actor that did the work. Two rungs; use the highest that
+Evidence for an outcome that decides acceptance is produced by the world, not
+asserted by the actor that did the work. Two tiers; use the highest that
 honestly fits.
  
 1. **Measurement against a declared threshold.** Command output, test result,
    benchmark, or metric. The threshold is part of the acceptance condition:
    "latency measured" verifies nothing, "p50 at or below baseline minus ten
    percent" does. The doer may run the measurement, because the value comes
-   from the instrument and not from its judgment.
+   from the check tool and not from its judgment.
 2. **Judgment against a rubric written in advance.** For a qualitative
    property that has no honest measurement — an LLM judge or a human reviewer
-   is the same rung. Three conditions: the rubric exists before the work and
+   is the same tier. Three conditions: the rubric exists before the work and
    was not authored by the actor whose work it will judge, the judge is not
    the doer, and rubric and verdict both persist. Missing any one makes it an
    opinion rather than evidence. Author-written criteria are how a proposal
    grades itself through an independent judge (§9.2).
-Doer self-report sits below the ladder. It is never the sole evidence for an
+Doer self-report sits below the ranking. It is never the sole evidence for an
 acceptance decision.
 
-When the doer itself writes an acceptance-bearing artifact, bind it to the
+When the doer itself writes an artifact that decides acceptance, bind it to the
 world: record an identifier the doer cannot mint — a job id, commit hash, or
 run id issued by the executing system — and persist that identifier in a
 second artifact the doer does not write, so the claim traces to the run that
-produced it. An artifact whose provenance rests only on the doer's own text
+produced it. An artifact whose source rests only on the doer's own text
 is a self-report regardless of its format.
  
 Scripts own derived numbers. A number computed from evidence — a speedup, a
@@ -464,10 +464,10 @@ that carries it records the recompute command. A number an actor derives by
 hand can err or drift toward the answer it wants, and nobody can re-check it
 cheaply.
 
-Two guards keep the ladder from backfiring. A metric that does not measure the
+Two guards keep the ranking from backfiring. A metric that does not measure the
 acceptance property is as much a defect as missing evidence, so do not invent
-numbers to reach rung 1. And the ladder binds acceptance-bearing evidence only.
-Every node's definition of done is acceptance-bearing (§5.1). A control-flow
+numbers to reach tier 1. And the ranking binds evidence that decides acceptance only.
+Every node's definition of done decides acceptance (§5.1). A control-flow
 outcome with a self-explanatory code is not, needs no evidence, and demanding
 it everywhere trains designers to manufacture artifacts.
  
@@ -492,13 +492,13 @@ dialogue, a human, a script, a hook, or a test. §9.14 covers how to choose.
 A guard on an outcome's only edge is a designed stop when it fails: the
 design names the route the run takes instead, and a terminal destination
 carries its status. A stop with no declared destination strands the run at
-exactly the moment judgment said "do not proceed". The reference profile
+exactly the moment judgment said "do not proceed". The format spec
 makes this mechanical (`pave-yaml.md` §9, `on_failure_route`).
  
 ### 5.5 Edge: how the graph responds
  
 An **Edge** is a possible movement from one node to another node or to a
-control endpoint. It is usually associated with an outcome and one or more
+control node. It is usually associated with an outcome and one or more
 guards.
  
 ```text
@@ -559,9 +559,9 @@ Fan-out is the only legitimate way to reach several destinations from one
 outcome. Give each item and each run a stable identity, and say where the
 runs converge. §9.6 covers the join.
  
-### 5.6 Control endpoint: destinations that are not work
+### 5.6 Control node: destinations that are not work
  
-A **Control endpoint** is a named destination that the workflow's control
+A **Control node** is a named destination that the workflow's control
 plane handles rather than an actor. It gives the graph somewhere to point
 when the next move is not a piece of work.
  
@@ -570,10 +570,10 @@ when the next move is not a piece of work.
 | `pause` | Suspend the run and preserve resumable state |
 | `join` | Wait for a declared set of node runs |
 | `return` | Resume a previously recorded node or edge context |
-| `control` | Perform behavior the profile defines for its control plane |
+| `control` | Perform behavior the graph file defines for its control plane |
 | `terminal` | Close the run with a declared status (§9.13) |
  
-Control endpoints do not perform PEER work. If a destination must analyze,
+Control nodes do not perform PEER work. If a destination must analyze,
 change, or judge the system, it is a node.
  
 Naming these destinations is what makes convergence, waiting, and stopping
@@ -630,7 +630,7 @@ authority.
  
 A **Role** describes a responsibility or perspective used by a node. A role is
 not tied to one model or runtime process. Which actor fills a role is a
-Runtime Binding decision.
+run setup decision.
  
 Common roles include:
  
@@ -724,7 +724,7 @@ node that any edge re-enters may not price its success outcome on a fresh
 user-authority artifact. Record the approval once, with the frozen inputs
 the decision was made over; on re-entry, recompute those inputs and pass
 when nothing moved, asking again only when something did. Mark evidence a
-person authors with `authority: user`, so the record and its latch are
+person authors with `authority: user`, so the record and its saved approval are
 checkable rather than remembered. A gate no edge re-enters keeps its
 once-per shape.
 
@@ -753,15 +753,15 @@ Run state (§8) is the fourth artifact and already exists. A workflow that
 needs another standing document records the justification in the graph, like
 any other structure (§4.11).
 
-Events do not mint files. A revision, review round, repair, lap, or ruling
-lands as a run-state entry, a one-line revision-log entry in the living
+Events do not mint files. A revision, review round, repair, or ruling
+is recorded as a run-state entry, a one-line revision-log entry in the living
 document it changed, or a section appended to the decision record — never as
 a new file. Delete superseded prose outright: no archive directories, no
 tombstones, no supersession chains. History is the revision log plus run
 state.
 
 The budget binds standing prose documents. Two things sit outside it:
-world-produced evidence — the bytes a command printed, a measurement
+external evidence — the bytes a command printed, a measurement
 capture, an attempt record — lives at its declared evidence path and may be
 per-event, because there the event itself is the evidence; and
 collision-safety working state — a fresh scratch path minted per dispatch so
@@ -770,10 +770,10 @@ close, never a standing document. Neither exemption reaches the script that
 produced the evidence, nor a builder, self-test, or control written for that
 script: those are working state under a per-file cap the layout reference
 declares — one current revision, edited in place, the superseded copy
-deleted in the same lap, never re-cut under a new name (a digest pin on the
+deleted in the same round, never re-created under a new name (a digest pin on the
 script is the usual cause — §9.14.3).
 
-Per-event evidence lands at the event. A node that reads or changes the
+Per-event evidence is written at the event. A node that reads or changes the
 world persists each event's raw output before any claim cites it; batching
 transcripts to the end of a pass is how the one loss no re-read can cure
 happens. Key this on world contact, not on the evidence label, and apply it
@@ -788,18 +788,15 @@ file — §5.3.1 governs evidence strength, not file count. A count table
 inside a living document is script output under §5.3.1: it carries its
 recompute command and is never hand-edited.
 
-The cap is kept by shrinking, not by a rule. A landed item collapses to one
-ledger row — id, plain name, tier, commit, evidence pointer — and its frozen
+The cap is kept by shrinking, not by a rule. A finished item collapses to one
+row — id, plain name, tier, commit, evidence pointer — and its frozen
 values stay at the evidence path. A repair brief names the sections the seat
-may touch; a whole-file reconciliation is its own briefed lap. The reviewer
+may touch; a whole-file reconciliation is its own briefed round. The reviewer
 reports the document's lines and bytes every round; over cap is a material
-finding, and its repair is a deletion lap before the next review lap. A
+finding, and its repair is a trim round before the next review round. A
 living document carries no defensive prose: no argument history, no ruling
 quotes, no per-clause justification essays. This budget is a measured
-failure, not a preference: one design loop minted a file per event and grew
-a stage to fifty-plus files; a later one kept the three documents but let
-the living plan grow uncapped to 2,455 lines over 46 laps, until one repair
-lap cost half an hour of re-reading.
+failure, not a preference.
 
 ### 8.5 Written for the reader
 
@@ -819,7 +816,7 @@ plain english:
 - An identifier is a pointer, never a noun. Pair each id with its plain
   name at first use in the entry — "the rotary increment (`inc-025`)" —
   and never chain bare ids where a sentence should stand.
-- Machine-check output — digests, censuses, counters, byte totals — lives
+- Machine-check output — digests, counts, byte totals — lives
   in run state or the check's own log and is cited in one line, never
   interleaved with narrative prose.
 - The test is a stranger: one read of the entry says what happened, what
@@ -867,7 +864,7 @@ magnitude, and a report can summarize evidence without replacing it.
 **Independent proposal:** when framing convergence is a risk, generate
 alternatives independently before any cross-critique.
 
-**Dispatch admission:** a plan node that selects work for an expensive
+**Pre-dispatch check:** a plan node that selects work for an expensive
 execute node discharges the cheap half of the acceptance first, from inputs
 it already reads. Three questions: does every name, path, value, and count
 in the selected item's acceptance resolve in those inputs; are the item's
@@ -884,7 +881,7 @@ or measure — a screen that must compile is not a cheap screen.
 **Inputs before design:** a design node's contract names which inputs are
 world artifacts on disk and which are premises. A draft written on a premise
 is provisional: it gets one review round, and its repair loop opens only
-when the artifact lands — polishing a premise is the paper lap §9.8 bounds.
+when the artifact arrives — polishing a premise is the text-only round §9.8 bounds.
 When acquiring the artifact is real work, it is its own node upstream of
 the design — the sibling §5.1 requires.
  
@@ -907,13 +904,13 @@ reviewer, or human.
 Use this pattern when self-confirmation is a meaningful risk.
 
 Place the review where the work it has not yet seen stays small. On a loop
-that lands work later laps build on — commits, plan blocks, measurements a
+that produces work later rounds build on — commits, plan blocks, measurements a
 verdict will cite — the review sits inside the loop as a seat dispatched
 when a batch closes (§2.1). The planner declares the cadence: batch size
-follows the complexity of what landed — one item for a new mechanism, a few
+follows the complexity of what was built — one item for a new mechanism, a few
 for wiring, config, or tests — and the lead makes the call per batch and
 records it, with the reason, in run state. A review after the loop reviews
-nothing until the loop ends, and every lap in between builds on unreviewed
+nothing until the loop ends, and every round in between builds on unreviewed
 work; the whole-composition review at promotion (§9.7) is in addition, not
 instead.
  
@@ -932,7 +929,7 @@ Give every review a scope contract:
   per-event record is itself a defect (§8.4).
 - A finding is one line — location, what is wrong, what right looks like,
   its defect class (§9.8) — recorded in run state, never in a per-round
-  report file. Its repair lands
+  report file. Its repair goes
   in the living document with one revision-log line.
 - Only findings that prevent or materially impair the goal block progress.
 - For an intermediate artifact — a plan, a design, a brief — the goal test
@@ -941,7 +938,7 @@ Give every review a scope contract:
   value would move. A cite, a count, or a wording the consumer re-derives
   from persisted inputs is bookkeeping, routed as §9.8's lead edit.
 - A repair round reviews the sections the repair brief named (§8.4) plus
-  one scripted whole-artifact census; a whole-file lap — a deletion, a
+  one scripted whole-artifact check; a whole-file round — a deletion, a
   reconciliation — gets a whole-file review. Re-falsifying the whole
   artifact every round is how a repair loop stops converging.
 - A clean pass is a successful review. Issue count is not a quality measure.
@@ -978,10 +975,10 @@ Parallel work comes in four shapes, and each needs its own join rule:
   Preserve identity and evidence for each candidate.
 - **Complementary tracks.** Several units that all contribute to one result.
   Define dependencies and the exact integration point.
-- **Dynamic cohort.** One node run per runtime item. Give each item and each
+- **One run per item.** One node run per runtime item. Give each item and each
   run a stable identity, and define pairing, isolation, and join behavior.
-- **Parallel exploration.** Independent lenses on one subject, to reduce blind
-  spots. Give each lens one bounded question and preserve its source evidence.
+- **Parallel exploration.** Independent angles on one subject, to reduce blind
+  spots. Give each angle one bounded question and preserve its source evidence.
 Do not begin integration until every required track has reached an allowed
 terminal outcome.
  
@@ -990,7 +987,7 @@ terminal outcome.
 Review the exact combination that will be accepted or promoted. Individual
 success does not establish that several changes work together. This is the
 last gate on the composition, not the only review of its parts: each change a
-loop landed met its in-loop review first (§9.4).
+loop produced met its in-loop review first (§9.4).
  
 ### 9.8 Repair loop
  
@@ -1002,15 +999,15 @@ Weak design -> Plan
 Implementation defect -> Execute
 Untrusted conclusion -> Review again
 Invalid objective -> Revisit purpose
-Text or bookkeeping defect -> Lead edit (a lead-run instrument, §2.1)
+Text or bookkeeping defect -> Lead edit (a lead-run check, §2.1)
 ```
 
 A review node's outcomes partition its findings by the rows its graph
 routes: an outcome that bundles a bookkeeping defect with a design defect
 sends every finding down the costlier route.
  
-The same rule sizes the landing: land a repair edge at the node that resolves
-the finding, not at the boundary entrance — an entry-point landing
+The same rule places a repair edge: at the node that resolves
+the finding, not at the boundary entrance — an entry-point repair
 re-traverses siblings whose inputs the repair never touched.
  
 Use a repair loop only when the cause and the bounded fix are both known. When
@@ -1026,34 +1023,34 @@ persisted investigation record plus a designed stop the operator controls
 (§9.13). An unbounded loop with neither is repeated guessing wearing a
 process costume. Say what happens at the bound: quarantine a bounded scope,
 pause, or change the plan. A counter bounds guessing; it cannot tell a paper
-lap from an evidence-driven one. A lap that re-enters a design node with no
-new world-produced evidence about its inputs since the last lap — an
-artifact landed, a measurement taken; a review verdict on the draft is not
-one — is a paper lap, text polished against premises, so a design loop
-also bounds consecutive paper laps (default two) and says what the bound
+round from an evidence-driven one. A round that re-enters a design node with no
+new external evidence about its inputs since the last round — an
+artifact produced, a measurement taken; a review verdict on the draft is not
+one — is a text-only round, text polished against premises, so a design loop
+also bounds consecutive text-only rounds (default two) and says what the bound
 does: acquire the evidence the design waits on, or take the declared stop.
  
 Record each repair: the finding, the change, the evidence the change
 invalidated, and the result — and the evidence it did not invalidate: what
-stays settled is the cheap path for every node the repair re-enters. Scale
-the re-entered node's instrument to that record: an unchanged,
-already-verified fact settles mechanically; a changed input to a judgment
+stays decided is the cheap path for every node the repair re-enters. Scale
+the re-entered node's implementation to that record: an unchanged,
+already-verified fact decides mechanically; a changed input to a judgment
 gets fresh eyes. The record is a run-state entry plus the revision-log line
 in the document the repair changed — not a new file (§8.4).
 
 Count a repair loop's recurrence by defect class, not by site. The reviewer
 labels each finding's class from the first round — a label the loop's
-record can count across laps, ignoring node, surface, and wording, because
+record can count across rounds, ignoring node, surface, and wording, because
 an identity fingerprint (same node, same surface, same claim) is a stop
 that recurrence in new clothes never trips. Repair-introduced — a finding
-on text the previous lap minted — is a class of its own: a loop whose
+on text the previous round minted — is a class of its own: a loop whose
 repairs are its main defect source has stopped converging, and the class
 count is what shows it. The second occurrence of a
 class at any site widens the repair from the named line to a sweep of the
 whole artifact: the repair publishes the population it swept and the
 command it used, and the next review checks that population, not the one
 site. The third occurrence routes to the stop the loop already declares,
-with the class named. A loop that declares a total lap counter needs none
+with the class named. A loop that declares a total round counter needs none
 of this.
  
 **Default recovery for undeclared failures.** A failure the graph has no
@@ -1067,7 +1064,7 @@ loop:
    what was found. The record is the loop's memory — without it, every
    later iteration repeats closed ground. Open with the cheap priors:
    documentation, release notes, issue trackers, the failure text
-   searched in public sources. A claim found there settles nothing —
+   searched in public sources. A claim found there decides nothing —
    §5.3.1 binds acceptance, not investigation inputs — but it is a prior
    that directs which expensive measurement to run first.
 3. Match the process weight to what the investigation found:
@@ -1093,26 +1090,26 @@ repeating the same failed approach with different wording. Keep exhaustion
 memory, so a later round can tell an untried approach from a closed one.
 Judge exhaustion over channels as well as items: a source list exhausted is
 not an investigation exhausted while an evidence channel — documentation,
-issue trackers, another instrument class — stands untried.
+issue trackers, another check-tool class — stands untried.
  
 ### 9.10 Evidence refresh
  
 Ask whether system changes made earlier evidence stale. Refresh only the
 evidence affected by the change.
 
-The instrument that produced accepted evidence is itself an artifact.
+The check tool that produced accepted evidence is itself an artifact.
 Register it once in the measurement-procedure record the graph already
 declares: path, the commit that holds it, the fixed way it is invoked, and
 its first clean run. A later node doing the same job runs the registered
-instrument from that path at the commit it records, or records why it was
+implementation from that path at the commit it records, or records why it was
 unusable and what it changed. Content-address it only when it lives outside version control
-(§9.14.3); an instrument still under revision is never pinned, because a pin
-turns every fix into a new file. Retyping a validated instrument is how a
+(§9.14.3); an implementation still under revision is never pinned, because a pin
+turns every fix into a new file. Retyping a validated implementation is how a
 transcription slip enters a measurement that already passed.
  
 ### 9.11 Child graph
  
-When a node's work needs its own routing, evidence, or recovery, realize that
+When a node's work needs its own routing, evidence, or recovery, implement that
 node with a bounded child graph. The child returns a result to the parent.
  
 ```text
@@ -1135,29 +1132,29 @@ Three rules keep the boundary honest:
   advance what an ambiguous return means.
 - Do not draw edges across the boundary. A child returns; it does not jump
   into the parent's graph.
-- Carry evidence across the boundary with its provenance intact.
-A reference profile can formalize this boundary. `pave-composition.md` does so
-for `pave-yaml.md`: a `terminal_map` from child terminal endpoints to parent
+- Carry evidence across the boundary with its source intact.
+A format spec can formalize this boundary. `pave-composition.md` does so
+for `pave-yaml.md`: a `child_outcome_map` from child terminal endpoints to parent
 outcome codes, no cross-boundary edges, and evidence exports that keep
-provenance.
+source.
  
-**Contribution chain.** Each child's purpose states how it serves its parent
+**Purpose chain.** Each child's purpose states how it serves its parent
 node's purpose, one level at a time. Repeated up the tree, that rule yields
 traceability to the root goal without any child arguing its case to the root.
 A contribution statement is descriptive: it does not select an edge, authorize
 a transition, prove the parent outcome, or replace evidence. A negative result
 can contribute, because disproving an approach supports an `exhausted` or
 replan outcome.
-### 9.12 Node sizing: the one-agent test
+### 9.12 One-agent check: the one-agent test
  
 Decomposition is the most expensive design decision in a graph, and the
 easiest one to make for the wrong reason. Size every node with one question,
-applied recursively: **can one agent achieve this goal and settle its
+applied recursively: **can one agent achieve this goal and decide its
 definition of done in one bounded context?** Yes — the node is atomic, and its
 internal steps are activities. No — frame the sub-goals as nodes and ask the
 same question of each. Recursion stops when every leaf passes. Child results
 integrate upward and are verified against the parent purpose, up to the root
-goal. "Agent" here means whatever single actor the Runtime Binding assigns.
+goal. "Agent" here means whatever single actor the run setup assigns.
  
 The question is a feasibility judgment about work volume, uncertainty, and
 capability. It is not a property of the written contract: any goal that can be
@@ -1182,13 +1179,13 @@ Warning signs that one agent is not enough:
 - the evidence one judgment needs exceeds one bounded context; or
 - a step needs a capability the evidence does not show the actor has.
 Signs hint; none of them gates, and their absence proves nothing. Before
-splitting for volume alone, check §2.1: the Runtime Binding may already solve
+splitting for volume alone, check §2.1: the run setup may already solve
 it with fan-out or many hands under one goal.
  
-Both verdicts are claims, not settled facts. Record one falsifiable line with
-either: what one agent does and how it settles the definition of done, or
-what forces the split. Sizing decides whether the node exists; the instrument
-(§2.1) decides who answers it, recorded beside the sizing line; a dispatched
+Both verdicts are claims, not decided facts. Record one falsifiable line with
+either: what one agent does and how it decides the definition of done, or
+what forces the split. One-agent check decides whether the node exists; the implementation
+(§2.1) decides who answers it, recorded beside the one-agent check line; a dispatched
 seat's entry is §9.14.1's. A review challenges both lines against the evidence, and
 a deeper planning pass may overturn it. Wrong-sized in either direction is the
 same defect — an unjustified child inflates the graph, and an oversized atomic
@@ -1203,10 +1200,10 @@ parent's (§9.11) — not a runtime boundary. A flat graph keeps every edge,
 guard, and piece of evidence visible in one place, at any depth, and needs no
 depth rule at all.
  
-Package a subgraph as a child Graph Profile only when the boundary earns its
+Package a subgraph as a child graph file only when the boundary earns its
 cost: the subgraph is reused elsewhere, owned or delivered separately, or so
-large that one profile stops being reviewable. `pave-composition.md` gives the
-packaging contract. Packaging never changes meaning — a profile boundary is a
+large that one graph file stops being reviewable. `pave-composition.md` gives the
+packaging contract. Packaging never changes meaning — a graph file boundary is a
 publishing decision, not a design one.
  
 "More organized" is not a reason to decompose, and a justification the author
@@ -1269,14 +1266,14 @@ Not every workflow needs the strongest level. Mechanical enforcement suits a
 violation that is likely, costly, and precisely detectable. It is a poor
 substitute for domain judgment, and a wrong match can strand a run.
 `technique-selection.md` gives the selection guidance for the review-shaped
-rungs: when debate, an advisory monitor, or a stage audit earns its cost.
+enforcement levels: when debate, an advisory monitor, or a stage audit earns its cost.
  
-#### 9.14.1 The enforcement record
+#### 9.14.1 The enforcement table
  
 For every run-wide prohibition, every guard on a costly transition, and
 every dispatched seat, record two things: the strength chosen, and the reason
-the neighboring rungs are wrong — the stronger unnecessary, and, where the
-chosen rung carries standing cost (a dispatched agent, a repeated run, an
+the neighboring enforcement levels are wrong — the stronger unnecessary, and, where the
+chosen enforcement level carries standing cost (a dispatched agent, a repeated run, an
 always-on control), the cheaper insufficient to catch the defect it names,
 with that defect's expected frequency over the traversals the node can carry.
  
@@ -1285,16 +1282,16 @@ for a likely, costly, detectable violation is as much a defect as a
 mechanical subsystem built for a failure that has never occurred. The record
 forces the comparison, and it gives a later reviewer something to challenge.
  
-**Evidence gameability.** For every node whose success evidence the doer
+**Evidence fakeability.** For every node whose success evidence the doer
 produces, judge whether the doer could mint, narrow, or stale-date that
 evidence — by error or by optimizing for the check instead of the goal —
-and record the judgment in the enforcement record. Record "not gameable"
+and record the judgment in the enforcement table. Record "not fakeable"
 too: the plan reviewer challenges every entry, and silence hides exactly
 the blind spot this judgment exists to catch.
  
-When evidence is gameable, harden it before adding process, in this order:
+When evidence is fakeable, harden it before adding process, in this order:
  
-1. Provenance the doer cannot fake — bind the doer-written artifact to
+1. Source the doer cannot fake — bind the doer-written artifact to
    the world per §5.3.1: an identifier the doer cannot mint, persisted
    in a second artifact the doer does not write.
 2. A check the doer does not run — a validator or capture produced by
@@ -1304,7 +1301,7 @@ When evidence is gameable, harden it before adding process, in this order:
    the evidence cannot be hardened or a false pass is severe.
  
 The order matters: a reviewer reading forgeable evidence can be fooled by
-the same forged artifact, so review is the rung above hardened evidence,
+the same forged artifact, so review is the enforcement level above hardened evidence,
 never a substitute for it.
  
 #### 9.14.2 Always-on invariants
@@ -1323,13 +1320,13 @@ the run. Justify blocking only when the violation is likely, costly,
 irreversible before the next required guard, and precisely detectable.
  
 Where a control is registered, which actors it binds, and how it is scoped are
-Runtime Binding concerns (§2.1). Record the mechanism with the enforcement
-record. The Graph Profile states the rule; the binding states the wiring.
+run setup concerns (§2.1). Record the mechanism with the enforcement
+table. The graph file states the rule; the binding states the wiring.
  
 #### 9.14.3 What a digest may pin
  
 Content-address only what never changes again: a write-once value file, a
-ledger entry, a build stamp, or world state no repository holds. Never digest
+revision log entry, a build stamp, or world state no repository holds. Never digest
 a file still being edited: the pin makes every fix a new file plus a re-pin
 of all that named it, and the writer of the bytes also wrote the number
 (§9.14.1 step 1 unmet). For anything in version control the commit is the
@@ -1363,7 +1360,7 @@ Sort what you know before you group. Four knowledge states, four actions:
 Apply this sort at every planning boundary, not only at the root. A planner
 that elaborates one subgoal owes the same four answers for its own level.
  
-These are planning aids, not PAVE primitives. PEER carries them at run time:
+These are planning aids, not PAVE core concepts. PEER carries them at run time:
 Plan organizes, Explore resolves and probes, Execute acts on current evidence,
 and Review exposes what is missing.
  
@@ -1376,7 +1373,7 @@ reveals conflicting purposes.
  
 Apply the one-agent test (§9.12): a feasibility judgment, recorded as one
 falsifiable line for either verdict. A split adds child nodes to the same
-graph (§9.12.1). Check first whether the Runtime Binding already solves a
+graph (§9.12.1). Check first whether the run setup already solves a
 volume problem (§2.1).
  
 ### Step 5: Name possible outcomes
@@ -1402,7 +1399,7 @@ review a material-defect scope (§9.4).
 ### Step 9: Add recovery and convergence
  
 Design repair routes, pivots, child graphs, joins, rollback, and escalation.
-Name the control endpoints these need.
+Name the control nodes these need.
  
 ### Step 10: Select external memory
  
@@ -1417,7 +1414,7 @@ which terminal status each ending carries.
 ### Step 12: Choose enforcement strength
  
 Use reminders, review, durable records, or mechanical controls according to
-the failure cost. Write the enforcement record.
+the failure cost. Write the enforcement table.
  
 ### Step 13: Remove what does not earn its place
  
@@ -1467,12 +1464,12 @@ Out of scope:
 Inputs:
 Effects: creates / may change / must not touch:
 Outcomes, one per way the run ends:
-  Success: <condition> - settled by <act> on <world-produced evidence>
+  Success: <condition> - decided by <act> on <external evidence>
   Others: <code>: <situation that ends the run without the claim>
 Useful roles:
 PEER intent, read from the purpose:
-Realization: atomic | linear child | general child
-Sizing justification, either verdict:
+Implementation: atomic | linear child | general child
+One-agent check justification, either verdict:
 ```
  
 ### Edge card
@@ -1480,7 +1477,7 @@ Sizing justification, either verdict:
 ```text
 Source outcome:
 Question before proceeding:
-Next node or control endpoint:
+Next node or control node:
 Route when the question fails (required on an outcome's only edge; a terminal names its status):
 What makes this edge exclusive of its siblings:
 ```
@@ -1521,8 +1518,8 @@ What does each one mean for the operator?
 What failure does this rule prevent?
 How costly is the failure? How detectable?
 Which strength is chosen?
-Why is the next stronger rung unnecessary?
-For a rung with standing cost, why is the next cheaper rung insufficient?
+Why is the next stronger enforcement level unnecessary?
+For an enforcement level with standing cost, why is the next cheaper enforcement level insufficient?
 Is this an always-on invariant, or does one transition check it?
 ```
  
@@ -1572,15 +1569,15 @@ honest stop.
 Two of AMMO's choices are domain decisions, not PAVE rules. It requires
 candidate debate even where a simpler graph would move straight from Explore
 to Execute. And it applies strong enforcement — each entry recording why a
-lighter rung is insufficient — only to failure modes that can invalidate
+lighter enforcement level is insufficient — only to failure modes that can invalidate
 expensive work: workload drift, contaminated measurements, wrong environment
 or worktree, unreserved shared resources, incomplete parallel cohorts, stale
 evidence, self-approved consequential claims, and premature stopping.
 Another PAVE-informed workflow can address similar risks with lighter
 techniques when the consequences are lower. Which actor fills each role stays
-a Runtime Binding decision (§2.1, §7); the graph is valid under any of them.
+a run setup decision (§2.1, §7); the graph is valid under any of them.
  
-## 13. Common graph-design smells
+## 13. Common graph-design warning signs
  
 ### Monolithic node
  
@@ -1596,7 +1593,7 @@ in §9.12 forces a node.
 ### Structure used to solve a labor problem
  
 The graph grew nodes because one actor could not do the volume. Check the
-Runtime Binding first.
+run setup first.
  
 ### Mirrored source structure
  
@@ -1628,8 +1625,8 @@ for safe continuation.
 ### A file per event, or one file without a cap
 
 Every revision, review round, repair, or ruling mints a new file — or the one
-living plan grows unbounded because landed work is never collapsed. Either
-way agents need tooling to edit the set and every lap pays to re-read it.
+living plan grows unbounded because finished work is never collapsed. Either
+way agents need tooling to edit the set and every round pays to re-read it.
 Hold the §8.4 budget and its cap: delete or collapse, never archive.
 
 ### Approval by artifact
@@ -1665,7 +1662,7 @@ the discovery back to planning instead.
 ### Repetition without learning
  
 The workflow retries the same mechanism without recording why it failed. Keep
-exhaustion memory and require a genuine pivot.
+tried list and require a genuine pivot.
  
 ### Stopping by fatigue
  
@@ -1679,8 +1676,8 @@ failure. Declare the terminal statuses.
  
 ### Review parked behind a loop
 
-The loop lands work lap after lap and the only review waits at the exit.
-Every lap builds on unreviewed work, and the first finding forces rework
+The loop produces work round after round and the only review waits at the exit.
+Every round builds on unreviewed work, and the first finding forces rework
 across all of them. Put the review inside the loop on a batch cadence (§9.4)
 and keep the exit review for the composition (§9.7).
 
@@ -1688,7 +1685,7 @@ and keep the exit review for the composition (§9.7).
  
 The workflow adds hooks, schemas, or approvals without stating the failure they
 prevent. Start with the failure mode, then choose the lightest useful control,
-and write the enforcement record.
+and write the enforcement table.
  
 ## 14. PAVE design review
  
@@ -1716,7 +1713,7 @@ Use these questions:
 16. Where do failure and uncertainty lead?
 17. What causes a genuine pivot?
 18. How does the workflow decide to stop, and what does each ending mean?
-19. Which risks deserve stronger enforcement, and why is a lighter rung
+19. Which risks deserve stronger enforcement, and why is a lighter enforcement level
     insufficient?
 20. Which process can be removed without losing useful confidence?
 The review is successful when the workflow becomes easier to explain, operate,

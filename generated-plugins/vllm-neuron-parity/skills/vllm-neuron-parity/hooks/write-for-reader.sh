@@ -3,7 +3,7 @@
 # Registered in hooks/hooks.json. Advisory only: it always exits 0, it never
 # makes a permission decision, and it speaks only through additionalContext.
 #
-# Why: the prose duty at references/artifact-layout.md §4.13 is followed only
+# Why: the plain-writing rule at references/artifact-layout.md §4.13 is followed only
 # while its text is still in the context window. After that, agents drift
 # back to identifier chains, pasted checker output, and short notes no
 # stranger can read. This hook repeats the duty at the moment it applies:
@@ -23,16 +23,16 @@
 # kickoff/, approvals/, verdicts/, rederivations/, pr/, closure/, reviews/).
 #
 # increments/ is not exempt; it gets a different sentence. The first run
-# under this plugin put 10,844 files there, two thirds of them re-cuts of
-# scripts under a new lap suffix, none deleted, with 25-line header essays
+# under this plugin put 10,844 files there, two thirds of them retry copies of
+# scripts under a new round suffix, none deleted, with 25-line header essays
 # (parity 1.5.4 changelog). For a .py, .sh, .md, or .txt write under any
 # increments/ component the hook measures lines and header lines (the
 # leading comment, blank, and docstring block) and names the increments cap
 # (VLLM_NEURON_PARITY_INCR_CAP_LINES, default 200; header
 # VLLM_NEURON_PARITY_INCR_HEADER_LINES, default 20) with the edit-in-place
-# and delete-superseded duties of section 4.12. A name carrying a lap suffix
-# (-rN) is named as the re-cut it is. Other extensions there (.out, .err,
-# bundles) are world-produced output and stay silent.
+# and delete-superseded duties of section 4.12. A name carrying a round suffix
+# (-rN) is named as the retry copy it is. Other extensions there (.out, .err,
+# bundles) are external output and stay silent.
 #
 # Throttle: the 1st matching write in a session reminds, then every Nth
 # after (VLLM_NEURON_PARITY_READER_EVERY, default 3). The counter lives at
@@ -43,17 +43,17 @@
 # Cap notice (references/artifact-layout.md section 4.12): when the written
 # document is over its cap (VLLM_NEURON_PARITY_CAP_LINES, default 400;
 # VLLM_NEURON_PARITY_CAP_BYTES, default 61440) the reminder names the size and
-# the deletion-lap duty. That sentence bypasses the throttle once per session
+# the deletion-round duty. That sentence bypasses the throttle once per session
 # and file, so the first over-cap write is never silently swallowed. The cap
 # binds living documents only; the hook cannot tell a write-once record or a
 # transcript from a plan by path, so the sentence says which class to shrink
 # and the writer classifies. Under increments/ the same once-per-file bypass
-# fires for an over-cap file, an over-cap header, or a lap suffix.
+# fires for an over-cap file, an over-cap header, or a round suffix.
 #
 # Run discovery is marker-only: .vllm-neuron-parity-run at a candidate root
 # (CODEX_PROJECT_DIR, CLAUDE_PROJECT_DIR, payload cwd, PWD). Its first line
 # is the absolute path of run-state.json. No scan fallback. A run whose
-# terminal_classification.status is set is inactive, so the hook is silent.
+# final_status.status is set is inactive, so the hook is silent.
 #
 # Silent exit 0 when: interpreter missing, payload unparsable, no marker, no
 # state file, state unparsable, run terminal, write is not markdown (outside
@@ -61,7 +61,7 @@
 # the workspace, write is in an exempt directory, or the throttle window
 # holds.
 #
-# Decline path (hook runtime unavailable): the prose duty in SKILL.md stands.
+# Decline path (hook runtime unavailable): the plain-writing rule in SKILL.md stands.
 #
 # Interpreter: python3 by default; override with VLLM_NEURON_PARITY_PYTHON.
 
@@ -116,7 +116,7 @@ except ValueError:
     incr_cap, incr_header = 200, 20
 
 INCR_EXTS = {".py", ".sh", ".md", ".txt"}
-LAP_SUFFIX = re.compile(r"-r\d+[a-z]?(?=[-.]|$)")
+RETRY_SUFFIX = re.compile(r"-r\d+[a-z]?(?=[-.]|$)")
 
 
 def header_lines(path, ext):
@@ -168,9 +168,21 @@ if ext not in INCR_EXTS:
 # --- run-state discovery (marker only) --------------------------------------
 payload_cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) else ""
 state_path = None
-for root in (codex_root, claude_root, payload_cwd, pwd_root):
-    if not root:
+# DECISIONS §1052/§1053 (2026-09-14): each seed root and then every parent up
+# to / -- a seat whose cwd is a campaign subdirectory must still find the marker.
+_roots = []
+for _seed in (codex_root, claude_root, payload_cwd, pwd_root):
+    if not _seed:
         continue
+    _p = os.path.abspath(_seed)
+    while True:
+        if _p not in _roots:
+            _roots.append(_p)
+        _parent = os.path.dirname(_p)
+        if _parent == _p:
+            break
+        _p = _parent
+for root in _roots:
     marker = os.path.join(root, ".vllm-neuron-parity-run")
     if not os.path.isfile(marker):
         continue
@@ -185,7 +197,7 @@ for root in (codex_root, claude_root, payload_cwd, pwd_root):
 if state_path is None:
     sys.exit(0)
 
-# A run with a settled terminal is inactive: nothing to remind about.
+# A run with a decided terminal is inactive: nothing to remind about.
 try:
     with open(state_path, encoding="utf-8") as handle:
         state = json.load(handle)
@@ -193,12 +205,12 @@ except Exception:
     sys.exit(0)
 if not isinstance(state, dict):
     sys.exit(0)
-terminal = state.get("terminal_classification")
+terminal = state.get("final_status")
 if isinstance(terminal, dict):
-    settled = bool(terminal.get("status") or terminal.get("classification"))
+    decided = bool(terminal.get("status") or terminal.get("classification"))
 else:
-    settled = bool(terminal)
-if settled:
+    decided = bool(terminal)
+if decided:
     sys.exit(0)
 
 # --- workspace = parent of the run-state directory --------------------------
@@ -233,10 +245,10 @@ except Exception:
     size, lines = 0, 0  # unreadable target: nothing to measure
 if in_increments:
     header = header_lines(target, ext) if ext in (".py", ".sh") else 0
-    lap = bool(LAP_SUFFIX.search(target.name))
-    over_cap = lines > incr_cap or header > incr_header or lap
+    retry_copy = bool(RETRY_SUFFIX.search(target.name))
+    over_cap = lines > incr_cap or header > incr_header or retry_copy
 else:
-    header, lap = 0, False
+    header, retry_copy = 0, False
     over_cap = lines > cap_lines or size > cap_bytes
 
 # --- throttle ---------------------------------------------------------------
@@ -273,16 +285,16 @@ if in_increments:
         f"{lines} lines"
         + (f", {header} header lines" if ext in (".py", ".sh") else "")
         + f". The increments cap is {incr_cap} lines and {incr_header} header "
-        "lines (references/artifact-layout.md section 4.12). An instrument is "
-        "edited in place; a re-cut under a new lap suffix is a defect - delete "
-        "the superseded copy in this lap. A command's own output is evidence "
+        "lines (references/artifact-layout.md section 4.12). A working file is "
+        "edited in place; a retry copy under a new round suffix is a defect - delete "
+        "the superseded copy in this round. A command's own output is evidence "
         "and is kept whole; the script that produced it is not evidence and "
         "needs no self-test, builder, or control of its own."
     )
-    if lap:
-        text += " This name carries a lap suffix (-rN): edit the current file instead."
+    if retry_copy:
+        text += " This name carries a round suffix (-rN): edit the current file instead."
     if lines > incr_cap:
-        text += f" It is over the {incr_cap}-line cap: cut it before the next lap."
+        text += f" It is over the {incr_cap}-line cap: cut it before the next round."
     if header > incr_header:
         text += (f" Its header is {header} lines against a cap of {incr_header}: "
                  "what it does, its inputs, its one output - nothing else.")
@@ -310,8 +322,8 @@ if over_cap:
         f" This document is {lines} lines and {-(-size // 1024)} KB, over its cap of "
         f"{cap_lines} lines / {cap_bytes // 1024} KB for a living document "
         "(references/artifact-layout.md section 4.12). If it is a living document "
-        "- edited in place, current state only - run a deletion lap before the "
-        "next review lap: collapse landed increments to ledger rows, move frozen "
+        "- edited in place, current state only - run a trim round before the "
+        "next review round: collapse landed increments to plan rows, move frozen "
         "values to the registration record, and drop narration. A write-once "
         "record, an append-only record, or a transcript sits outside the cap: "
         "leave it."

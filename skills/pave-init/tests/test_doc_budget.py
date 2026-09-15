@@ -1,4 +1,4 @@
-"""pave-init's own documents against pinned ceilings — a ratchet.
+"""pave-init's own documents against pinned ceilings — a size_ceiling_test.
 
 `references/pave-spec.md` section 8.4 binds pave-init itself: a spec that
 only grows is the defect it warns generated workflows about. Every standing
@@ -11,7 +11,7 @@ document below has a (lines, bytes) ceiling pinned at its current size.
 
 `VERSION` is excluded on purpose: it is the append-only changelog, history
 by design. Measurement comes from `scripts/measure_artifact.py`, the one
-instrument every seat, hook, and test shares.
+implementation every seat, hook, and test shares.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ import measure_artifact as ma  # noqa: E402
 
 # path (repo-relative) -> (max lines, max bytes). Pinned 2026-09-03 (2.5.0):
 # deliberate growth for the update path (four nodes, ten edges, two seats) and
-# the ledger contract; pave-material-reviewer shrank through the shared fragment.
+# the revision_log contract; pave-material-reviewer shrank through the shared node_draft.
 # 2026-09-09: stop-hook question 7 (plain words to the user) grows the hooks
 # reference by one template question; the spec grows 24 bytes for the same rule.
 # 2026-09-09: the goal-restatement hook (SessionStart resume|compact +
@@ -37,40 +37,40 @@ import measure_artifact as ma  # noqa: E402
 # tree line to the README; review then added the template's run-state fallback
 # line and the restatement's decline path and test invariant to the reference.
 # 2026-09-09 (2.5.4): the spec gains the working-state rule in 8.4, the
-# instrument-by-commit rewrite of 9.10 and the digest-subject rule 9.14.3;
+# implementation-by-commit rewrite of 9.10 and the digest-subject rule 9.14.3;
 # SKILL.md gains the evidence-bound and digest mapping bullets; the revisions,
 # briefs, reviewer and planner texts each gain one clause of the same rule.
 # 2026-09-10 (2.6.0): the audit checkpoint adds its branch, sidecar, write log
 # and two write guards to the hooks reference, the binding-revision clause to
 # pave-revisions, audit mode to the updater, item 19 to the reviewer, and the
-# land flags to pave-evolve; SKILL.md gains the hook-pair sentence.
-# 2026-09-11 (2.6.1): the no-strand re-cut rule's declared scope gains shell
+# apply flags to pave-evolve; SKILL.md gains the hook-pair sentence.
+# 2026-09-11 (2.6.1): the always-fixable retry copy rule's declared scope gains shell
 # commands and the parked-marker sibling in the hooks reference.
 CEILINGS = {
-    "skills/pave-init/SKILL.md": (267, 38092),
-    "skills/pave-init/README.md": (448, 26136),
-    "skills/pave-evolve/SKILL.md": (72, 8744),
-    "skills/pave-init/references/approval-briefs.md": (72, 9502),
-    "skills/pave-init/references/lead-alignment-hooks.md": (479, 47944),
-    "skills/pave-init/references/pave-composition.md": (186, 10814),
-    "skills/pave-init/references/pave-init-traceability.md": (169, 21886),
-    "skills/pave-init/references/pave-revisions.md": (81, 16811),
-    "skills/pave-init/references/pave-spec.md": (1723, 76571),
-    "skills/pave-init/references/pave-yaml.md": (431, 17816),
-    "skills/pave-init/references/planning-layout.md": (52, 4116),
-    "skills/pave-init/references/technique-selection.md": (202, 9954),
-    "skills/pave-init/orchestration/explore-and-plan.md": (174, 15313),
-    "skills/pave-init/orchestration/interview-and-fitness.md": (131, 6948),
-    "skills/pave-init/orchestration/review-and-build.md": (134, 14400),
-    "sources/fragments/reviewer-core.md": (21, 3264),
+    "skills/pave-init/SKILL.md": (267, 38031),
+    "skills/pave-init/README.md": (448, 26027),
+    "skills/pave-evolve/SKILL.md": (65, 8508),
+    "skills/pave-init/references/approval-briefs.md": (72, 9498),
+    "skills/pave-init/references/lead-hooks.md": (479, 47886),
+    "skills/pave-init/references/pave-composition.md": (186, 10792),
+    "skills/pave-init/references/pave-init-traceability.md": (169, 21888),
+    "skills/pave-init/references/pave-revisions.md": (81, 16744),
+    "skills/pave-init/references/pave-spec.md": (1720, 76427),
+    "skills/pave-init/references/pave-yaml.md": (431, 17721),
+    "skills/pave-init/references/planning-layout.md": (50, 4066),
+    "skills/pave-init/references/technique-selection.md": (202, 9904),
+    "skills/pave-init/orchestration/explore-and-plan.md": (174, 15273),
+    "skills/pave-init/orchestration/interview-and-fitness.md": (131, 6946),
+    "skills/pave-init/orchestration/review-and-build.md": (134, 14386),
+    "sources/fragments/reviewer-core.md": (21, 3261),
     "sources/roles/forward-tester.md.tmpl": (21, 1783),
-    "sources/roles/node-planner.md.tmpl": (72, 12800),
-    "sources/roles/pave-material-reviewer.md.tmpl": (95, 15858),
-    "sources/roles/research-delegate.md.tmpl": (63, 2682),
-    "sources/roles/skill-builder.md.tmpl": (44, 4700),
-    "sources/roles/system-explorer.md.tmpl": (23, 1536),
-    "sources/roles/update-reviewer.md.tmpl": (73, 8984),
-    "sources/roles/workflow-updater.md.tmpl": (77, 11158),
+    "sources/roles/node-planner.md.tmpl": (72, 12795),
+    "sources/roles/pave-material-reviewer.md.tmpl": (91, 15549),
+    "sources/roles/research-delegate.md.tmpl": (58, 2422),
+    "sources/roles/skill-builder.md.tmpl": (44, 4703),
+    "sources/roles/system-explorer.md.tmpl": (23, 1510),
+    "sources/roles/update-reviewer.md.tmpl": (65, 8735),
+    "sources/roles/workflow-updater.md.tmpl": (77, 11056),
 }
 
 SLACK = 0.10

@@ -90,7 +90,7 @@ class PackageStructureTests(unittest.TestCase):
             self.assertIn(data.get("sandbox_mode"), {"read-only", "workspace-write"})
             self.assertIn("PAVE_PLUGIN_ROOT", data["developer_instructions"])
             self.assertIn("complete role contract", data["developer_instructions"])
-            self.assertNotIn("runtime-binding.md", data["developer_instructions"])
+            self.assertNotIn("run-setup.md", data["developer_instructions"])
             self.assertNotIn("read `<root>/agents/", data["developer_instructions"])
             names.add(data["name"])
         self.assertEqual(names, AGENT_NAMES)
@@ -133,7 +133,7 @@ class PackageStructureTests(unittest.TestCase):
         self.assertNotIn("Codex V1", codex)
         self.assertIn("Remove `agents.max_depth`", codex)
         self.assertNotIn("skill-creator:skill-creator", codex)
-        self.assertNotIn("runtime-binding.md", codex)
+        self.assertNotIn("run-setup.md", codex)
         self.assertNotIn("Read `<root>/skills/pave-init/SKILL.md`", codex)
         self.assertNotIn("Claude Code", codex)
 
@@ -218,7 +218,7 @@ class PatchAdapterTests(unittest.TestCase):
 *** Add File: planning/a.draft.pave.yaml
 +id: n1
 +kind: node
-*** Update File: planning/frontier.yaml
+*** Update File: planning/planning-queue.yaml
 @@
 -old
 +new
@@ -235,7 +235,7 @@ class PatchAdapterTests(unittest.TestCase):
             sections,
             [
                 ("planning/a.draft.pave.yaml", "id: n1\nkind: node\nid: c7\n"),
-                ("planning/frontier.yaml", "new\n"),
+                ("planning/planning-queue.yaml", "new\n"),
                 ("planning/obsolete.draft.pave.yaml", ""),
                 ("planning/b.draft.pave.yaml", "id: c7\n"),
             ],
@@ -364,7 +364,7 @@ class CanonicalHookIntegrationTests(unittest.TestCase):
                 {
                     "run_identity": {"run_id": "test-run"},
                     "traversal_history": [{"node": "n1", "outcome": "active"}],
-                    "terminal_classification": {},
+                    "final_status": {},
                 }
             ),
             encoding="utf-8",

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # state_staleness_reminder -- PostToolUse (Bash|Write|Edit), observing
-# (rung: socratic reinjection; always exit 0).
+# (level: socratic reminder; always exit 0).
 #
 # A long autonomous stretch (many tool calls, no user prompt, no compaction)
-# gets zero reinjection of the run-state duty. This hook fills that window:
+# gets zero reminder of the run-state duty. This hook fills that window:
 # when run-state.json has not been written for STALE_SECONDS while tools keep
 # running, it asks whether an outcome has occurred that was never recorded,
 # via non-blocking additionalContext. It never blocks.
@@ -15,7 +15,7 @@
 # Silent exit 0 when: interpreter missing, payload shows a subagent
 # (agent_type / agent_id -- the lead is the sole state writer, so only the
 # lead can act on this), no run state found, state fresh, throttled, state
-# unparsable, or terminal_classification.status set.
+# unparsable, or final_status.status set.
 #
 # Decline path (hook runtime unavailable): degrades to the checkpoint duty
 # in SKILL.md (Run workspace: append a traversal entry at every checkpoint
@@ -113,7 +113,7 @@ try:
 except Exception:
     sys.exit(0)  # unparsable state is validate_run_state.py business
 
-terminal = state.get("terminal_classification")
+terminal = state.get("final_status")
 if isinstance(terminal, dict) and terminal.get("status"):
     sys.exit(0)  # closed run: staleness is expected
 

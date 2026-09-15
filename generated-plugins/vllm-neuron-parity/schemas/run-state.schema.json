@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "vllm-neuron-parity-run-state",
   "title": "vllm-neuron-parity run state (run-state.json)",
-  "description": "Single shape authority for a vllm-neuron-parity run's persisted state, realizing the state contract of workflow.pave.yaml (pave.state). The required list mirrors pave.state.required exactly. State points; artifacts prove: fields hold positions, statuses, counters, pins, and artifact paths - never artifact content. The lead is the only writer (P10) and checkpoints after every consequential transition (pave.state.checkpoint). No prose anywhere restates this field list. Per-entry free-text fields declare maxLength caps (pave-spec section 8.1); an entry that needs more cites an artifact path instead. Path-typed fields carry no cap: scripts/validate_run_state.py resolves them against the project root and warns on a missing target. `notes` is this file's single deliberately unconstrained escape hatch, counted against a whole-file warn threshold of 131072 bytes - the validator warns past it and names the compaction action, never refusing the write. On this release's observing rung every cap violation is a warning, not an error.",
+  "description": "Single shape authority for a vllm-neuron-parity run's persisted state, implementing the state contract of workflow.pave.yaml (pave.state). The required list mirrors pave.state.required exactly. State points; artifacts prove: fields hold positions, statuses, counters, pins, and artifact paths - never artifact content. The lead is the only writer (P10) and checkpoints after every consequential transition (pave.state.checkpoint). No prose anywhere restates this field list. Per-entry free-text fields declare maxLength caps (pave-spec section 8.1); an entry that needs more cites an artifact path instead. Path-typed fields carry no cap: scripts/validate_run_state.py resolves them against the project root and warns on a missing target. `notes` is this file's single deliberately unconstrained escape hatch, counted against a whole-file warn threshold of 131072 bytes - the validator warns past it and names the compaction action, never refusing the write. On this release's observing enforcement level every cap violation is a warning, not an error.",
   "type": "object",
   "required": [
     "workflow_identity",
@@ -23,7 +23,7 @@
     "completed_outcomes",
     "evidence_references",
     "open_questions",
-    "terminal_classification",
+    "final_status",
     "scan_entry_id",
     "design_entry_id"
   ],
@@ -31,15 +31,15 @@
   "properties": {
     "workflow_identity": {
       "type": "object",
-      "description": "Run identity plus the revision this instance is pinned to. Recorded at run start and verified at start and every resume with 'record_revision.py verify <root> --pinned-revision <active_revision> --pinned-digest <bundle_digest>': exit 0 is current, exit 3 routes to rule 7 (graph landed since pin), exit 4 routes to rule 9 (binding landed since pin). A landing mid-run does not move a running instance by itself.",
+      "description": "Run identity plus the revision this instance is pinned to. Recorded at run start and verified at start and every resume with 'record_revision.py verify <root> --pinned-revision <active_revision> --pinned-digest <bundle_digest>': exit 0 is current, exit 3 routes to rule 7 (graph applied since pin), exit 4 routes to rule 9 (run setup applied since pin). An apply step mid-run does not move a running instance by itself.",
       "required": ["run_id"],
       "additionalProperties": false,
       "properties": {
         "run_id": {"type": "string", "minLength": 1, "maxLength": 200},
         "started": {"type": "string", "maxLength": 200},
-        "active_revision": {"type": ["integer", "null"], "minimum": 0, "description": "The ledger revision number this run is pinned to; a fresh install pins the head of the installed ledger (entry 0 is the delivered graph)."},
-        "bundle_digest": {"type": ["string", "null"], "maxLength": 200, "description": "The pinned entry's digest_after from revisions.yaml - the bundle digest over the live graph files at the ledger head when the run pinned."},
-        "move_declined": {"type": ["string", "null"], "maxLength": 500, "description": "Rule 7: the user's verbatim decline of a move to a newer landed revision, with its date. While it stands the run stays pinned, 'verify' keeps printing the route, and the lead does not re-ask at each resume. Null or absent when no decline stands."},
+        "active_revision": {"type": ["integer", "null"], "minimum": 0, "description": "The revision log revision number this run is pinned to; a fresh install pins the head of the installed revision log (entry 0 is the delivered graph)."},
+        "bundle_digest": {"type": ["string", "null"], "maxLength": 200, "description": "The pinned entry's digest_after from revisions.yaml - the bundle digest over the live graph files at the newest revision when the run pinned."},
+        "move_declined": {"type": ["string", "null"], "maxLength": 500, "description": "Rule 7: the user's verbatim decline of a move to a newer applied revision, with its date. While it stands the run stays pinned, 'verify' keeps printing the route, and the lead does not re-ask at each resume. Null or absent when no decline stands."},
         "plugin_version": {"type": "string", "maxLength": 200}
       }
     },
@@ -61,13 +61,16 @@
     },
     "instance_roster": {
       "type": "array",
-      "description": "Hardware instance types available to the run, frozen at intake.",
+      "description": "Hosts available to the run, frozen at intake: each host's identity markers, target class, and non-shareable pools with sizes. The hardware queue tool reads this list (--roster <run-state.json>); a pool sized null is indivisible.",
       "items": {
         "type": "object",
         "required": ["instance"],
         "additionalProperties": false,
         "properties": {
           "instance": {"type": "string", "minLength": 1, "maxLength": 200},
+          "target_class": {"type": "string", "maxLength": 100},
+          "identity_markers": {"type": "object", "additionalProperties": {"type": ["string", "null"], "maxLength": 300}},
+          "pools": {"type": "object", "description": "Pool name to size; null = unsized, indivisible.", "additionalProperties": {"type": ["integer", "null"], "minimum": 0}},
           "status": {"type": "string", "maxLength": 200},
           "note": {"type": "string", "maxLength": 300, "description": "One-line roster context. Longer content lives in an artifact, never here."}
         }
@@ -146,12 +149,12 @@
     },
     "hardware_attempt_counts": {
       "type": "object",
-      "description": "Per-target shared budget across all routes that spend hardware attempts, keyed by target; the tier-2 breaker reads it at every 10.",
+      "description": "Per-target shared budget across all routes that spend hardware attempts, keyed by target; the second stop limit reads it at every 10.",
       "additionalProperties": {"type": "integer", "minimum": 0}
     },
     "hardware_lease_record": {
       "type": ["object", "null"],
-      "description": "The lead-only lease record: a pointer to the one-file-per-event record directory plus the current holder per leased host. Null before any lease.",
+      "description": "Pointer to the lease records, written only by the hardware queue tool (scripts/hardware_queue.py): the one-file-per-event record directory plus the open leases per host - campaign leases (reserve nothing; bind identity) and job leases (pools and amounts reserved). Several campaigns may hold one host; remaining capacity is derived from open job leases, never stored. Null before any lease.",
       "additionalProperties": false,
       "properties": {
         "record_dir": {"type": "string", "minLength": 1},
@@ -164,6 +167,9 @@
             "properties": {
               "host": {"type": "string", "minLength": 1, "maxLength": 200},
               "campaign": {"type": "string", "minLength": 1, "maxLength": 200},
+              "kind": {"type": "string", "enum": ["campaign", "job"]},
+              "job": {"type": "string", "maxLength": 200},
+              "pools": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
               "boot_identifier": {"type": "string", "maxLength": 200},
               "markers_verified": {"type": "boolean"},
               "status": {"type": "string", "maxLength": 200},
@@ -225,7 +231,7 @@
     },
     "evidence_references": {
       "type": "object",
-      "description": "Evidence index: each key is an evidence id declared in workflow.pave.yaml's evidence block; each value is the artifact path, or the list of per-campaign paths, that realizes it. Paths only - never content.",
+      "description": "Evidence index: each key is an evidence id declared in workflow.pave.yaml's evidence block; each value is the artifact path, or the list of per-campaign paths, that implements it. Paths only - never content.",
       "additionalProperties": {
         "oneOf": [
           {"type": "string", "minLength": 1},
@@ -249,16 +255,16 @@
         }
       }
     },
-    "terminal_classification": {
+    "final_status": {
       "type": ["object", "null"],
-      "description": "The run's honest terminal classification. status mirrors the terminal_status values declared by the graph's control endpoints; null while the run is live or paused.",
+      "description": "The run's honest final status. status mirrors the terminal_status values declared by the graph's control nodes; null while the run is live or paused.",
       "additionalProperties": false,
       "properties": {
         "status": {
           "type": ["string", "null"],
           "enum": ["accepted", "blocked", "closed_unaccepted", null]
         },
-        "endpoint": {"type": "string", "maxLength": 200, "description": "The control endpoint id the run reached."},
+        "endpoint": {"type": "string", "maxLength": 200, "description": "The control node id the run reached."},
         "reason": {"type": "string", "maxLength": 1000},
         "at": {"type": "string", "maxLength": 200}
       }
@@ -266,12 +272,12 @@
     "scan_entry_id": {
       "type": ["string", "null"],
       "maxLength": 200,
-      "description": "Minted by the lead at each entry into the scan boundary and stamped into grant files and report metadata; settlement refuses to run without it. Re-trace grants are counted under scan-entry ids, never a stored integer."
+      "description": "Minted by the lead at each entry into the scan phase and written into grant files and report metadata; decision refuses to run without it. Re-trace grants are counted under scan-entry ids, never a stored integer."
     },
     "design_entry_id": {
       "type": ["string", "null"],
       "maxLength": 200,
-      "description": "Minted by the lead at each entry into the design boundary and stamped into every design-lap artifact; serves the screen progress detector and the record_incomplete detector. The record assembler refuses to run without it."
+      "description": "Minted by the lead at each entry into the design phase and written into every design-round artifact; serves the design node's progress and record-gap detectors. The design node refuses to run without it."
     },
     "discrepant_campaigns": {
       "type": ["array", "null"],

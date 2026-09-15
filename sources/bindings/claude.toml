@@ -36,7 +36,7 @@ hooks:
         - type: command
           command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/stop_alignment_check.sh"
 ---'''
-PRODUCT_INTRO = '''Turn a system or engineering process into a validated PAVE Graph Profile and a Claude Code plugin: a lead workflow skill plus registered role agents. The user's stated goal drives the run: clarify it until it is designable, then design. Treat the approved PAVE YAML as the workflow authority.'''
+PRODUCT_INTRO = '''Turn a system or engineering process into a validated PAVE graph file and a Claude Code plugin: a lead workflow skill plus registered role agents. The user's stated goal drives the run: clarify it until it is designable, then design. Treat the approved PAVE YAML as the workflow authority.'''
 MULTI_AGENT_CONTRACT = '''Every worker role is a registered agent type from this plugin. Its role contract is the harness-loaded system prompt, so a brief carries task context, not a role file to read. Resolve this skill's absolute installation path before dispatch and include it in briefs so workers can resolve `references/...`, `schemas/...`, and `scripts/...`.
 
 - Dispatch one-shot workers with the Agent tool and `subagent_type: pave-init:<role>`. Give each a complete prompt and no `name`. Start independent workers together.
@@ -48,10 +48,10 @@ If a required `pave-init:*` agent type is unavailable, pause and report an incom
 PACKAGE_IDENTITY = '''The delivered unit is a Claude Code plugin — the same shape as pave-init itself.'''
 MANIFEST_COMPONENT = '''the plugin manifest (`.claude-plugin/plugin.json`: name, description, version); the plugin name is `<workflow-name>` — one string serving as the manifest name, lead-skill directory, and `subagent_type` prefix;'''
 ROLE_COMPONENT = '''role contracts as registered Markdown agents under the plugin root's `agents/`, when authority or context differs;'''
-HOOK_COMPONENT = '''hook scripts under `skills/<workflow-name>/hooks/`, registered per the approved enforcement record — in generated skill frontmatter when only the lead's tool calls or lead-only events matter, in the plugin's `hooks/hooks.json` when the hook must see subagent tool calls (a skill-frontmatter hook fires only for the agent that invoked the skill) — plus one consent-gated settings fragment only for rules neither placement can carry;'''
+HOOK_COMPONENT = '''hook scripts under `skills/<workflow-name>/hooks/`, registered per the approved enforcement table — in generated skill frontmatter when only the lead's tool calls or lead-only events matter, in the plugin's `hooks/hooks.json` when the hook must see subagent tool calls (a skill-frontmatter hook fires only for the agent that invoked the skill) — plus one consent-gated settings fragment only for rules neither placement can carry;'''
 ROLE_RUNTIME_BINDING = '''Roles map to registered plugin agents (`agents/<role>.md`) only when they need distinct authority or context. The lead dispatches `subagent_type: <workflow-name>:<role>` and pauses when it is unavailable; it never substitutes an ordinary worker.'''
 MODEL_RUNTIME_BINDING = '''Map the approved capability tier to Claude model slugs explicitly: top-capability planning roles use `fable`, strong judgment roles use `opus`, and small, fast evidence roles use `sonnet`. A reviewer or adjudicator seat binds at or above the producer whose artifact it judges — a judge below its producer misses the findings that need the producer's whole reasoning to see. Preserve the approved effort in agent frontmatter and each scripted agent call.'''
-HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement record. Register it by the actor it watches: skill frontmatter for a hook that only the lead's tool calls or lead-only events (Stop, UserPromptSubmit, SessionStart) must reach; the plugin's `hooks/hooks.json` for a hook that must see a subagent's tool calls — a skill-frontmatter hook fires only for the agent that invoked the skill (measured on Claude Code 2.1.258). A settings fragment ships only behind the generated skill's run-start consent gate, for rules neither placement can carry.'''
+HOOK_RUNTIME_BINDING = '''A prohibition that must hold after its prose leaves context maps to a hook per the approved enforcement table. Register it by the actor it watches: skill frontmatter for a hook that only the lead's tool calls or lead-only events (Stop, UserPromptSubmit, SessionStart) must reach; the plugin's `hooks/hooks.json` for a hook that must see a subagent's tool calls — a skill-frontmatter hook fires only for the agent that invoked the skill (measured on Claude Code 2.1.258). A settings fragment ships only behind the generated skill's run-start consent gate, for rules neither placement can carry.'''
 SCRIPT_RUNTIME_BINDING = '''A subgraph with an approved `workflow_script` binding maps to one Claude Agent SDK `@beta` workflow script per the native `skill-builder` contract, with lead-driven Agent calls as fallback when the script runtime is unavailable.'''
 DELIVERY_INSTALL_BULLET = '''- the one-line install: `claude --plugin-dir <package-root>` loads it for a session; a marketplace install makes it permanent;'''
 SKILL_VALIDATION_BINDING = '''the `skill-creator:skill-creator` quick validator'''
@@ -66,8 +66,8 @@ name: pave-evolve
 description: >-
   Revise a delivered PAVE workflow — pave-init included — from recorded defect
   and usage evidence: a workflow-updater drafts a successor patch, an
-  update-reviewer judges it, the user approves where the authority envelope
-  moved, and the lead lands it in the append-only revision ledger. Manual-only:
+  update-reviewer judges it, the user approves where the user-only changes
+  moved, and the lead applies it in the append-only revision log. Manual-only:
   use only when the user explicitly invokes /pave-evolve, or when a PAVE lead
   routes here from a run paused on a defect in its own graph. Registers no
   hooks.

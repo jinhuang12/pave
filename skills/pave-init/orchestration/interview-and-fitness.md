@@ -19,7 +19,7 @@ Confirm that the user explicitly invoked pave-init through the active harness me
 
 Verify the validation runtime now: `python3 -c "import yaml, jsonschema"`. Validation fails closed at Stage 3, so resolve a missing package with the user (or record an approved alternate interpreter) before requirements approval, not after planning is spent.
 
-A goal is sufficient for graph design when it settles, or lets the sources settle:
+A goal is sufficient for graph design when it decides, or lets the sources decide:
 
 - target system and source locations;
 - the result the generated workflow must produce;
@@ -34,7 +34,7 @@ For a repository, default the planning workspace to `.pave/<workflow-name>/`. If
 
 Inspect local sources before asking anything: they answer most sufficiency gaps without a question. Then interview in rounds of one bounded user-question interaction with two to four questions, using the active harness mechanism in the lead contract, and re-inspect between rounds. Stop interviewing as soon as the goal is sufficient — the interview exists to make the goal designable, not to fill a form. Never ask what the invocation or the sources already answered. Confirm an extracted requirement only when it is ambiguous.
 
-Lead with gaps that can change graph topology or acceptance. A goal statement usually settles purpose, target, and naming but rarely authority, recovery, acceptance, or forbidden effects — check those first.
+Lead with gaps that can change graph topology or acceptance. A goal statement usually decides purpose, target, and naming but rarely authority, recovery, acceptance, or forbidden effects — check those first.
 
 Shape each question for the tool: a bounded decision with two to four concrete options, a recommended option first when one exists, and honest descriptions of tradeoffs. The user can always pick "Other" for free text. When a gap needs open-ended discovery rather than a choice — for example, "describe the current process" — ask in plain conversation text instead.
 
@@ -43,14 +43,14 @@ Sufficiency checklist — a gap in any category blocks graph design only if the 
 | Category | Sufficient when |
 |---|---|
 | Purpose | Concrete result and why it matters |
-| Scope | Included work, exclusions, and target boundary |
+| Scope | Included work, exclusions, and target limits |
 | Authority | Incumbent, policy owners, and conflict precedence |
 | Effects | What actors may read, change, approve, or invoke |
 | Evidence | Sources, artifacts, freshness, and claim authority |
 | Roles | Responsibilities, independence, and decision authority |
 | Current workflow | Existing stages, tools, handoffs, and known gaps |
 | Recovery | Repair, investigation, replan, rollback, pause, and exhaustion |
-| Parallel work | Independent lenses, build units, joins, and resource isolation |
+| Parallel work | Independent angles, build units, joins, and resource isolation |
 | State | Resume data, ownership, schema, and history |
 | Completion | Accepted, closed-unaccepted, blocked, incomplete, and exhausted |
 | Runtime | Harness features, external services, hardware, and deployment |

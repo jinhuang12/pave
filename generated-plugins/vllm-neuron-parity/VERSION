@@ -1,4 +1,110 @@
-version: 1.5.6
+version: 1.5.8
+
+## 1.5.8 — 2026-09-11
+
+Graph revision 11, two parts in one revision at the user's word. Part one: the
+same workflow in 22 nodes instead of 32. Fourteen nodes that split one bounded
+job into steps merge into seven; no user gate or user decision changes. Part
+two: a hardware lease reserves named pools, never the whole host, and the
+hardware queue is a tool, not the lead. `history/v11.patch` carries the exact
+diff; the revision log entry records the user's words and the six review
+rounds (three per part). Graph revision 12 (`history/v12.patch`, text only)
+follows in the same release: the criteria check reads values, not a digest
+nobody stored; the pause endpoint no longer names a final status the schema
+forbids; one "settled" becomes "decided". One review round each, PASS.
+
+- `design_campaign` replaces the five design nodes (screen, plan, regression
+  matrix, registration, record). One design-entry id, four steps, sequential
+  seats on a large campaign; the investigator keeps the screen step. Outcomes:
+  `design_ready`, `infeasibility_recorded`, `design_blocked`.
+- `cost_routes_and_rank_backlog` absorbs `assemble_delta_report`; a thin report
+  re-fans from costing (`reports_insufficient`).
+- `record_changeset` is gone. The lead assembles the changeset on
+  `plan_satisfied`; the new mechanical check `changeset_complete` fails a gap
+  back into scoping with its class.
+- `prepare_host` replaces the lease and venv nodes, with a full door and a
+  probe-only door after recovery.
+- `prepare_measurements` replaces the procedure and baseline nodes, both SSH
+  permissions kept word for word. `measure_candidate` replaces the runs and
+  bundle nodes; `revision_stamped` moves to its exit edge.
+- `review_measurement_verdict` is gone. The adjudicator names the consequence
+  (`gates_passed`, `correctness_shortfall`, `no_benefit`, `regression_failed`,
+  `evidence_unstable`); the PR review reads the verdict.
+- `verify_run_closure` is lead-run with no seat, on the `gh pr view` transcript
+  and the artifact-update commit; `closure_evidence_settled` is removed.
+- Kept as they were: `review_implementation`, every gate, every hook.
+- Leases: a lease reserves named pools (Neuron devices, compile memory, CPU
+  cores, the compile-cache write slot as a pool of one) from the roster frozen
+  at intake. The campaign lease reserves nothing and binds identity; each job
+  that takes a pool holds its own job lease; a job that takes no pool holds
+  none; a pool the roster leaves unsized is indivisible, so a roster that sizes
+  no pools behaves as one job per host; jobs of different campaigns share
+  a host when their reservations fit. Reason: the run's usage read showed 291
+  lease grants and releases, every one a lead round trip, for CPU-only jobs
+  that reserved nothing, and one serving start-up lost its rendezvous window
+  to a concurrent CPU-only test.
+- The queue is a tool: new `scripts/hardware_queue.py` (grant, release, amend,
+  status) is the only writer of lease records, under a per-host lock so two
+  jobs never both get the last unit; the seat calls it, the lead writes no
+  lease record, and the lead leaves the roles of `prepare_host` and
+  `recover_leased_host`. P10 now reads one writer per record. A leaked grant
+  is released by the tool on its next call; an oversize request is a request
+  defect, never a wait.
+- Shared-host recovery: one recovery per host at a time; a co-tenant releases
+  its job leases, waits for the owner's record, and exits with the owner's
+  outcome; in-flight attempts are uncharged except a proven over-user.
+- References rewritten for the reader, every rule kept, ceilings lowered:
+  `artifact-layout.md` 550 to 431 lines (ceiling 440; §4.8, §4.9, §4.11
+  folded away, the lead-transcription workaround and the design-argument
+  paragraphs cut, every graph-declared folder now has an owner row);
+  `collision-ranking.md` 132 to 43 (ceiling 50; the stale line index is
+  gone, the table and five rules stay); `measurement-pitfalls.md` 158 to
+  153 with a quarter fewer words (ceiling 160; short traps, pointer
+  evidence, all 18 rules kept); `patch-mechanism-inventory.md` 160 to 53
+  (ceiling 70; six mechanisms, layering, nine porter rules; the four fp8
+  numerics notes cut); `toolchain-evidence-pitfalls.md` 371 to 266
+  (ceiling 270; all 13 rules kept, glossary words swapped). The registration record is subject
+  plus timestamp; the only digests left are the revision tool's bundle
+  digest and the composition schema's child-file digest.
+
+Dependent text follows the graph: the lead skill's role and stage tables,
+the README diagrams and counts, the agent contracts and their Codex copies,
+`references/artifact-layout.md`, `hooks/dispatch_advisory.py`, and the venv
+guard message.
+
+Installed runs migrate by hand, as for 1.5.7: copy `history/v11.patch` into the
+live revision folder, run `record_revision.py apply <root> 11`, then re-pin
+`active_revision` and the bundle digest in run state when `verify` exits 3.
+Open node instances on a merged node continue under the new node's name;
+history rows keep their old names.
+
+## 1.5.7 — 2026-09-11
+
+Plain-English vocabulary, in step with pave-init 2.6.2. The same invented words
+are gone from the lead skill, the references, the agent contracts, the hooks,
+and the graph text (the pave-init 2.6.2 entry lists the glossary). Graph
+revision 10 renames three keys and nothing else: `runtime_bindings` ->
+`write_limits`, `control_endpoints` -> `control_nodes`, and the state field
+`terminal_classification` -> `final_status`; no node, outcome, edge, or check
+changed. Hook modes: `runtime-bindings` -> `write-limits`, `no-recut` ->
+`no-retry-copy`, `audit-stamp` -> `audit-hook-record`; the helper module
+`hooks/runtime_bindings.py` is now `hooks/write_limits.py`. Files the hooks
+name: `streamlining-findings.md` -> `audit-findings.md`,
+`.audit-census-<cp>.txt` -> `.audit-write-report-<cp>.txt`, proposals
+`<cp>-binding.patch` -> `<cp>-run-setup.patch`, `artifacts/run/usage-ledger.md`
+-> `usage-log.md`. Environment variable `VLLM_NEURON_PARITY_EVOLUTION_ROOT` ->
+`VLLM_NEURON_PARITY_REVISION_FOLDER`. Sidecar key `stamped_proposals` ->
+`hook_recorded_writes`; close marker `no_change_warranted` -> `no_change_needed`.
+Kept: "land" and "landed" for increments and commits, seat, lease, grant,
+increment, campaign, and every node and outcome id of the graph.
+
+Installed runs, by the user's decision, migrate by hand: rename the keys in the
+live `revisions.yaml` the same way (`envelope_check` -> `user_only_changes` with
+`none | approved | pending`, `drafted_by` -> `written_by`, `unstamped` ->
+`unverified`, `landed_at` -> `applied_at`, `kind: binding` -> `kind: run_setup`),
+copy `history/v10.patch` into the live folder and run `record_revision.py apply
+<root> 10`, rename the two files above, and rename `terminal_classification` in
+run state. Audit mode now needs pave-init 2.6.2 or later.
 
 ## 1.5.6 — 2026-09-11
 

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "pave-init-run-state",
   "title": "pave-init run state (run-state.json)",
-  "description": "Single shape authority for a pave-init run's persisted state, realizing the state contract in references/pave-init.pave.yaml. State points; artifacts prove: fields hold positions, statuses, counters, and artifact paths - never artifact content. Per-entry free-text fields declare maxLength caps (references/pave-spec.md section 8.1); an entry that needs more cites an artifact path instead. `notes` is this file's single deliberately unconstrained escape hatch, counted against a whole-file warn threshold of 131072 bytes - scripts/validate_run_state.py warns past it and names the compaction action, never refusing the write. $defs.frontier and $defs.fragment are the shape authorities for the Stage 3 planning files (planning/frontier.yaml and planner draft fragments); scripts/validate_run_state.py --frontier checks instances of them plus the hand rules a shape schema cannot express (see references/planning-layout.md).",
+  "description": "Single shape authority for a pave-init run's persisted state, implementing the state contract in references/pave-init.pave.yaml. State points; artifacts prove: fields hold positions, statuses, counters, and artifact paths - never artifact content. Per-entry free-text fields declare maxLength caps (references/pave-spec.md section 8.1); an entry that needs more cites an artifact path instead. `notes` is this file's single deliberately unconstrained escape hatch, counted against a whole-file warn threshold of 131072 bytes - scripts/validate_run_state.py warns past it and names the compaction action, never refusing the write. $defs.planning_queue and $defs.node_draft are the shape authorities for the Stage 3 planning files (planning/planning-queue.yaml and planner drafts); scripts/validate_run_state.py --planning-queue checks instances of them plus the hand rules a shape schema cannot express (see references/planning-layout.md).",
   "type": "object",
   "required": [
     "run_identity",
@@ -13,10 +13,10 @@
     "requirements_status",
     "fitness_verdict",
     "fitness_override",
-    "exploration_lenses",
+    "exploration_angles",
     "explorer_results",
-    "frontier_entries",
-    "boundary_review_results",
+    "planning_queue_entries",
+    "node_plan_reviews",
     "approval_bundle_revisions",
     "plan_review_rounds",
     "user_plan_approval",
@@ -24,8 +24,8 @@
     "validation_results",
     "final_review_rounds",
     "forward_test_result",
-    "revision_ledger_state",
-    "terminal_classification",
+    "revision_log_state",
+    "final_status",
     "traversal_history"
   ],
   "additionalProperties": false,
@@ -63,31 +63,31 @@
         "approved_at": {"type": "string"}
       }
     },
-    "exploration_lenses": {"type": "array", "items": {"type": "string"}},
+    "exploration_angles": {"type": "array", "items": {"type": "string"}},
     "explorer_results": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["lens"],
+        "required": ["angle"],
         "additionalProperties": false,
         "properties": {
-          "lens": {"type": "string", "maxLength": 200},
-          "artifact": {"type": "string", "description": "Path of the persisted exploration/<lens>.md report."},
+          "angle": {"type": "string", "maxLength": 200},
+          "artifact": {"type": "string", "description": "Path of the persisted exploration/<angle>.md report."},
           "status": {"type": "string", "maxLength": 200}
         }
       }
     },
-    "frontier_entries": {
+    "planning_queue_entries": {
       "type": ["string", "null"],
-      "description": "Path of planning/frontier.yaml, which is the authority for entries and their lifecycle; null before Stage 3. Its shape authority is $defs.frontier in this schema; check it with scripts/validate_run_state.py --frontier."
+      "description": "Path of planning/planning-queue.yaml, which is the authority for entries and their lifecycle; null before Stage 3. Its shape authority is $defs.planning_queue in this schema; check it with scripts/validate_run_state.py --planning-queue."
     },
-    "boundary_review_results": {
+    "node_plan_reviews": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "boundary": {"type": "string", "maxLength": 200},
+          "node_plan": {"type": "string", "maxLength": 200},
           "verdict": {"type": "string", "maxLength": 200},
           "artifact": {"type": "string"}
         }
@@ -116,11 +116,11 @@
       "type": ["string", "null"],
       "description": "Path of reviews/forward-test.md; null before the forward test."
     },
-    "revision_ledger_state": {
+    "revision_log_state": {
       "type": ["string", "null"],
-      "description": "One line at delivery: the shipped revisions.yaml entry 0 digest and location, or the recorded omission for a one-session workflow (references/pave-revisions.md). Null before delivery."
+      "description": "One line at delivery: the shipped revisions.yaml entry 0 digest and location, or the written reason for leaving it out for a one-session workflow (references/pave-revisions.md). Null before delivery."
     },
-    "terminal_classification": {
+    "final_status": {
       "type": ["object", "null"],
       "additionalProperties": false,
       "properties": {
@@ -148,21 +148,21 @@
     }
   },
   "$defs": {
-    "frontier": {
+    "planning_queue": {
       "type": "object",
-      "title": "planning/frontier.yaml",
-      "description": "The Stage 3 planning queue. The lead is the only writer. Per-entry free-text fields declare maxLength caps; the frontier-level `notes` is this file's single unconstrained escape hatch, counted against the same 131072-byte whole-file warn threshold as run-state.json. A shape schema cannot express the write-ownership and lifecycle rules; those live in references/planning-layout.md and the hand rules of validate_run_state.py --frontier.",
+      "title": "planning/planning-queue.yaml",
+      "description": "The Stage 3 planning queue. The lead is the only writer. Per-entry free-text fields declare maxLength caps; the planning queue-level `notes` is this file's single unconstrained escape hatch, counted against the same 131072-byte whole-file warn threshold as run-state.json. A shape schema cannot express the write-ownership and lifecycle rules; those live in references/planning-layout.md and the hand rules of validate_run_state.py --planning-queue.",
       "required": ["entries"],
       "additionalProperties": false,
       "properties": {
         "entries": {
           "type": "object",
-          "description": "One entry per frontier node, keyed by node id.",
-          "additionalProperties": {"$ref": "#/$defs/frontierEntry"}
+          "description": "One entry per planning queue node, keyed by node id.",
+          "additionalProperties": {"$ref": "#/$defs/planningQueueEntry"}
         },
         "conflicts": {
           "type": "array",
-          "description": "The run's conflict register. Conflict ids are lead-assigned here and nowhere else; a planner fragment that mints one is a validator error.",
+          "description": "The run's conflict list. Conflict ids are lead-assigned here and nowhere else; a planner node draft that mints one is a validator error.",
           "items": {"$ref": "#/$defs/conflict"}
         },
         "notes": {
@@ -170,7 +170,7 @@
         }
       }
     },
-    "frontierEntry": {
+    "planningQueueEntry": {
       "type": "object",
       "required": ["status", "contract"],
       "additionalProperties": false,
@@ -190,7 +190,7 @@
         "prediction": {
           "type": "string",
           "maxLength": 400,
-          "description": "The framing planner's sizing prediction with its one-line rationale; the node's own dispatch confirms or overturns it."
+          "description": "The framing planner's one-agent check prediction with its one-line rationale; the node's own dispatch confirms or overturns it."
         },
         "dependencies": {
           "type": "array",
@@ -201,7 +201,7 @@
         "notes": {
           "type": "string",
           "maxLength": 2000,
-          "description": "Entry prose: dispatch notes, review summaries, retractions. Capped per entry; content that needs more lives in an artifact cited by path. The frontier-level notes field is the file's one unconstrained escape hatch, not this."
+          "description": "Entry prose: dispatch notes, review summaries, retractions. Capped per entry; content that needs more lives in an artifact cited by path. The planning queue-level notes field is the file's one unconstrained escape hatch, not this."
         }
       }
     },
@@ -217,13 +217,13 @@
         },
         "summary": {"type": "string", "minLength": 1, "maxLength": 500},
         "status": {"enum": ["open", "resolved", "deferred_to_user"]},
-        "raised_by": {"type": "string", "description": "Frontier entry key that reported it."}
+        "raised_by": {"type": "string", "description": "Planning queue entry key that reported it."}
       }
     },
-    "fragment": {
+    "node_draft": {
       "type": "object",
-      "title": "planner draft fragment (*.draft.pave.yaml for a dispatched boundary)",
-      "description": "A node planner's draft for one dispatched node: authored child node bodies plus planning marks. The dispatched node's own five-part contract is frozen in the parent draft; the fragment references it via extensions.x_planning and never carries slots for it - a fragment that re-authors its dispatched node under nodes is a validator error. The root skeleton draft is a full profile, not a fragment; validate_pave.py owns it.",
+      "title": "planner drafts (*.draft.pave.yaml for a dispatched node plan)",
+      "description": "A node planner's draft for one dispatched node: authored child node bodies plus planning marks. The dispatched node's own five-part contract is frozen in the parent draft; the node draft references it via extensions.x_planning and never carries slots for it - a node draft that re-authors its dispatched node under nodes is a validator error. The root plan draft is a full graph file, not a node draft; validate_pave.py owns it.",
       "required": ["pave"],
       "additionalProperties": false,
       "properties": {
@@ -249,7 +249,7 @@
               "properties": {
                 "x_planning": {
                   "type": "object",
-                  "description": "Planning marks: dispatched_node, frozen_contract_reference (path + node), elaboration verdicts and predictions, evidence questions, interface findings. Intentionally loose - except that no mapping under it may carry an 'id' key in the lead-owned conflict namespace (c<N>): those ids are lead-assigned in frontier.yaml's conflict register; node-local labels (n1, e1, ...) are fine (validator hand rule)."
+                  "description": "Planning marks: dispatched_node, frozen_contract_reference (path + node), elaboration verdicts and predictions, evidence questions, interface findings. Intentionally loose - except that no mapping under it may carry an 'id' key in the lead-owned conflict namespace (c<N>): those ids are lead-assigned in planning-queue.yaml's conflict list; node-local labels (n1, e1, ...) are fine (validator hand rule)."
                 }
               }
             }

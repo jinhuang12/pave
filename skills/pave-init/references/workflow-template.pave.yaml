@@ -155,7 +155,7 @@ pave:
       from: review_candidate.blocked
       to: blocked
 
-  control_endpoints:
+  control_nodes:
     accepted:
       kind: terminal
       meaning: The exact candidate satisfies declared acceptance conditions.
@@ -182,7 +182,7 @@ pave:
       - evidence_references
       - traversal_history
       - open_questions
-      - terminal_classification
+      - final_status
     checkpoint:
       after_every_consequential_transition: true
 

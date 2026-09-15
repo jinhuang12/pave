@@ -3,7 +3,7 @@
 
 Covers the stdlib fallback's parity with jsonschema on the cheap assertions
 (required, minLength, enum, const), the warn-only maxLength contract, the
-derived unenforced-keyword list, and --frontier's dependency contract.
+derived unenforced-keyword list, and --planning-queue's dependency contract.
 
 Run: python3 skills/pave-init/tests/test_validate_run_state.py
 Stdlib only. Passes with or without jsonschema installed: the stdlib-mode
@@ -41,7 +41,7 @@ def importable(name):
 
 
 HAVE_JSONSCHEMA = importable("jsonschema")
-HAVE_FRONTIER_DEPS = HAVE_JSONSCHEMA and importable("yaml")
+HAVE_QUEUE_DEPS = HAVE_JSONSCHEMA and importable("yaml")
 
 
 def valid_state():
@@ -55,10 +55,10 @@ def valid_state():
         "requirements_status": "approved",
         "fitness_verdict": "fit",
         "fitness_override": None,
-        "exploration_lenses": ["structure"],
-        "explorer_results": [{"lens": "structure"}],
-        "frontier_entries": None,
-        "boundary_review_results": [],
+        "exploration_angles": ["structure"],
+        "explorer_results": [{"angle": "structure"}],
+        "planning_queue_entries": None,
+        "node_plan_reviews": [],
         "approval_bundle_revisions": 0,
         "plan_review_rounds": 0,
         "user_plan_approval": None,
@@ -66,8 +66,8 @@ def valid_state():
         "validation_results": None,
         "final_review_rounds": 0,
         "forward_test_result": None,
-        "revision_ledger_state": None,
-        "terminal_classification": None,
+        "revision_log_state": None,
+        "final_status": None,
         "traversal_history": [{"node": "interview_system", "outcome": "requirements_ready"}],
     }
 
@@ -177,7 +177,7 @@ class StdlibAssertions(unittest.TestCase):
 class CapContractBothModes(unittest.TestCase):
     def test_cli_cap_overflow_warns_and_exits_zero(self):
         state = valid_state()
-        state["explorer_results"][0]["lens"] = "l" * 201
+        state["explorer_results"][0]["angle"] = "l" * 201
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "run-state.json"
             path.write_text(json.dumps(state), encoding="utf-8")
@@ -199,7 +199,7 @@ class CapContractBothModes(unittest.TestCase):
         broken["traversal_history"] = [{"outcome": "x"}]
         cases.append(broken)
         capped = valid_state()
-        capped["terminal_classification"] = {"status": "s" * 201}
+        capped["final_status"] = {"status": "s" * 201}
         cases.append(capped)
         cases.append(valid_state())
         for state in cases:
@@ -224,7 +224,7 @@ class UnenforcedKeywordList(unittest.TestCase):
 
     def test_injected_unknown_keyword_is_named_in_output(self):
         schema = copy.deepcopy(SCHEMA)
-        schema["properties"]["exploration_lenses"]["minItems"] = 1
+        schema["properties"]["exploration_angles"]["minItems"] = 1
         schema["properties"]["traversal_history"]["items"]["properties"]["at"]["format"] = "date-time"
         with schema_override(schema):
             rc, out = run_in_process(valid_state())
@@ -234,19 +234,19 @@ class UnenforcedKeywordList(unittest.TestCase):
         self.assertIn("NOT enforced:", out)
 
 
-class FrontierMode(unittest.TestCase):
-    FRONTIER = "entries:\n  root:\n    status: pending\n    contract: planning/root-contract.md\n"
+class PlanningQueueMode(unittest.TestCase):
+    QUEUE = "entries:\n  root:\n    status: pending\n    contract: planning/root-contract.md\n"
 
     def test_minimal_valid_frontier(self):
         with tempfile.TemporaryDirectory() as tmp:
             planning = Path(tmp) / "planning"
             planning.mkdir()
-            frontier = planning / "frontier.yaml"
-            frontier.write_text(self.FRONTIER, encoding="utf-8")
-            rc, out = run_cli("--frontier", str(frontier))
-        if HAVE_FRONTIER_DEPS:
+            planning_queue = planning / "planning-queue.yaml"
+            planning_queue.write_text(self.QUEUE, encoding="utf-8")
+            rc, out = run_cli("--planning-queue", str(planning_queue))
+        if HAVE_QUEUE_DEPS:
             self.assertEqual(rc, 0, out)
-            self.assertIn("PASS (frontier (1 entries, 0 fragments checked", out)
+            self.assertIn("PASS (planning_queue (1 entries, 0 node_drafts checked", out)
         else:
             self.assertEqual(rc, 2, out)
             self.assertIn("fails closed", out)

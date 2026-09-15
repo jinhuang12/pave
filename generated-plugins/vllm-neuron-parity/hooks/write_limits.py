@@ -3,14 +3,15 @@
 
 Stdlib only. Everything here is a pure function or a small file read; the
 hooks decide what to print and how to exit. Every helper fails OPEN: an input
-it cannot read yields "no run", "no bindings", or "no paths", never an error
+it cannot read yields "no run", "no limits", or "no paths", never an error
 that could strand a write.
 
 Run discovery (marker only, same candidates as the other hooks): the file
 `.vllm-neuron-parity-run` at CODEX_PROJECT_DIR, CLAUDE_PROJECT_DIR, the
-payload cwd, or the process cwd; its first line is the run-state path. The
+payload cwd, the process cwd, or any parent directory of those (DECISIONS
+§1052/§1053); its first line is the run-state path. The
 workspace root is the parent of the run-state directory (artifacts/ for
-artifacts/run/run-state.json); the evolution root is
+artifacts/run/run-state.json); the revision folder is
 `<project-root>/.vllm-neuron-parity/evolution` beside the marker.
 
 Actor identity: a payload carrying `agent_id` (a subagent) or a session other
@@ -24,19 +25,19 @@ carries one. The lead-session sidecar accepts only a Write whose content is the
 writing session's own id. Protected paths are compared by on-disk spelling
 (true_case) and casefolded basename, so a case-aliased name never slips past.
 
-Bindings: `runtime_bindings.deny` / `.caps` from `<evolution-root>/workflow.pave.yaml`
+Limits: `write_limits.deny` / `.caps` from `<revision-folder>/workflow.pave.yaml`
 at the top level or under `pave:`. PyYAML is used when importable; otherwise a
 tolerant indent parser reads exactly this block (mappings, `- ` items, quoted
-scalars, `[a, b]` flow lists). A parse error, or a `.landing` marker in the
-evolution root, yields no bindings.
+scalars, `[a, b]` flow lists). A parse error, or a `.applying` marker in the
+revision folder, yields no limits.
 
-Glob matching: a relative deny glob is matched (fnmatchcase) against the
+Glob matching: a relative blocked path pattern is matched (fnmatchcase) against the
 target's workspace-relative path and every trailing component suffix of it, so
 `increments/build-*.py` matches `campaigns/c1/increments/build-x.py`; paths
 outside the workspace never match a relative glob. A glob starting with `/` is
-matched against the absolute path, so a scratch family outside the workspace
+matched against the absolute path, so a scratch name_group outside the workspace
 (`/tmp/<dir>/*.py`) can be cut. The run-state file, its hook-owned sidecars and
-the evolution root's ledger, graph and history are never denied: their own
+the revision folder's revision_log, graph and history are never denied: their own
 guards own them.
 """
 
@@ -53,10 +54,10 @@ import tempfile
 from typing import Any
 
 MARKER = ".vllm-neuron-parity-run"
-EVOLUTION_REL = Path(".vllm-neuron-parity") / "evolution"
-FINDINGS_NAME = "streamlining-findings.md"
+REVISION_FOLDER_REL = Path(".vllm-neuron-parity") / "evolution"
+FINDINGS_NAME = "audit-findings.md"
 PROPOSALS_DIR = "proposals"
-LAP_SUFFIX = re.compile(r"^(?P<stem>.+)-r\d+(?P<ext>\.[A-Za-z0-9]+)$")
+RETRY_SUFFIX = re.compile(r"^(?P<stem>.+)-r\d+(?P<ext>\.[A-Za-z0-9]+)$")
 WRITE_LOG_ROTATE_BYTES = 20 * 1024 * 1024
 _REDIRECT_PREFIX = re.compile(r"^(?:\d?>>?|&>>?|<)+")
 _TOKEN_TRIM = "\"'`;,()"
@@ -88,13 +89,17 @@ def candidate_roots(payload: dict[str, Any]) -> list[Path]:
             root = Path(value).expanduser().resolve()
         except OSError:
             continue
-        if root not in roots:
-            roots.append(root)
+        # DECISIONS §1052/§1053 (2026-09-14): each candidate and then every
+        # parent up to the filesystem root -- a seat whose cwd is a campaign
+        # subdirectory must still find the marker at the project root.
+        for candidate in (root, *root.parents):
+            if candidate not in roots:
+                roots.append(candidate)
     return roots
 
 
 def terminal_is_settled(state: dict[str, Any]) -> bool:
-    terminal = state.get("terminal_classification")
+    terminal = state.get("final_status")
     if isinstance(terminal, dict):
         return bool(terminal.get("status") or terminal.get("classification"))
     return bool(terminal)
@@ -111,8 +116,8 @@ class RunContext:
         return self.state_path.parent.parent
 
     @property
-    def evolution_root(self) -> Path:
-        return self.project_root / EVOLUTION_REL
+    def revision_folder(self) -> Path:
+        return self.project_root / REVISION_FOLDER_REL
 
     @property
     def sidecar_path(self) -> Path:
@@ -190,7 +195,7 @@ def lead_session_content_ok(payload: dict[str, Any]) -> bool:
     return isinstance(content, str) and content.strip() == session.strip()
 
 
-# --- runtime_bindings block --------------------------------------------------
+# --- write_limits block --------------------------------------------------
 
 
 def _strip_scalar(text: str) -> Any:
@@ -271,7 +276,7 @@ def _next_indent(lines: list[str], index: int) -> int:
 def _parse_minimal(text: str) -> dict[str, Any] | None:
     lines = text.splitlines()
     for index, raw in enumerate(lines):
-        if raw.strip() != "runtime_bindings:":
+        if raw.strip() != "write_limits:":
             continue
         indent = len(raw) - len(raw.lstrip(" "))
         child_indent = _next_indent(lines, index + 1)
@@ -283,7 +288,7 @@ def _parse_minimal(text: str) -> dict[str, Any] | None:
     return {}
 
 
-def parse_runtime_bindings(text: str, use_yaml: bool = True) -> dict[str, list[dict[str, Any]]]:
+def parse_write_limits(text: str, use_yaml: bool = True) -> dict[str, list[dict[str, Any]]]:
     """Return {'deny': [...], 'caps': [...]} or raise ValueError on any parse problem."""
     block: Any = None
     if use_yaml:
@@ -294,33 +299,33 @@ def parse_runtime_bindings(text: str, use_yaml: bool = True) -> dict[str, list[d
     if use_yaml:
         doc = yaml.safe_load(text)  # type: ignore[name-defined]
         if isinstance(doc, dict):
-            block = doc.get("runtime_bindings")
+            block = doc.get("write_limits")
             if block is None and isinstance(doc.get("pave"), dict):
-                block = doc["pave"].get("runtime_bindings")
+                block = doc["pave"].get("write_limits")
     else:
         block = _parse_minimal(text)
     if block is None:
         return {"deny": [], "caps": []}
     if not isinstance(block, dict):
-        raise ValueError("runtime_bindings is not a mapping")
+        raise ValueError("write_limits is not a mapping")
     out: dict[str, list[dict[str, Any]]] = {}
     for key in ("deny", "caps"):
         items = block.get(key) or []
         if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
-            raise ValueError(f"runtime_bindings.{key} is not a list of mappings")
+            raise ValueError(f"write_limits.{key} is not a list of mappings")
         out[key] = items
     return out
 
 
-def load_bindings(run: RunContext) -> dict[str, list[dict[str, Any]]]:
-    """Bindings at the ledger head; empty (fail OPEN) on parse error or during a landing."""
+def load_limits(run: RunContext) -> dict[str, list[dict[str, Any]]]:
+    """Limits at the newest revision; empty (fail OPEN) on parse error or during an apply step."""
     empty: dict[str, list[dict[str, Any]]] = {"deny": [], "caps": []}
-    root = run.evolution_root
-    if (root / ".landing").exists():
+    root = run.revision_folder
+    if (root / ".applying").exists():
         return empty
     try:
         text = (root / "workflow.pave.yaml").read_text(encoding="utf-8")
-        return parse_runtime_bindings(text)
+        return parse_write_limits(text)
     except Exception:
         return empty
 
@@ -333,15 +338,15 @@ def glob_matches(rel_posix: str, glob: str) -> bool:
 
 
 def never_denied(path: Path, run: RunContext) -> bool:
-    """Run state, its sidecars, and the evolution root's ledger, graph and history."""
+    """Run state, its sidecars, and the revision folder's revision_log, graph and history."""
     if same_name(path, run.state_path) or is_hook_owned(path, run) or is_lead_session_file(path, run):
         return True
-    evolution = true_case(run.evolution_root.resolve())
+    evolution = true_case(run.revision_folder.resolve())
     try:
         rel = path.relative_to(evolution).as_posix().casefold()
     except ValueError:
         return False
-    return rel in ("revisions.yaml", ".landing") or rel.endswith(".pave.yaml") or rel.startswith("history/")
+    return rel in ("revisions.yaml", ".applying") or rel.endswith(".pave.yaml") or rel.startswith("history/")
 
 
 def _absolute_glob_forms(glob: str) -> set[str]:
@@ -404,10 +409,10 @@ def true_case(path: Path) -> Path:
     return cur
 
 
-def is_ledger_surface(path: Path, run: RunContext) -> bool:
-    """<evolution-root>/*.pave.yaml or revisions.yaml, or the evolution root itself (a
-    move, a recursive copy over it, a removal): written only by a landing."""
-    evolution = true_case(run.evolution_root.resolve())
+def is_revision_log_surface(path: Path, run: RunContext) -> bool:
+    """<revision-folder>/*.pave.yaml or revisions.yaml, or the revision folder itself (a
+    move, a recursive copy over it, a removal): written only by an apply step."""
+    evolution = true_case(run.revision_folder.resolve())
     if same_file(path, evolution):
         return True
     name = path.name.casefold()
@@ -574,10 +579,10 @@ def target_paths(payload: dict[str, Any]) -> list[Path]:
     return []
 
 
-# --- no-recut ----------------------------------------------------------------
+# --- no-retry-copy ----------------------------------------------------------------
 
 
-def bash_recut_candidates(command: str, cwd: str | None) -> list[Path]:
+def bash_retry_copy_candidates(command: str, cwd: str | None) -> list[Path]:
     """Bare `<stem>-rN.<ext>` tokens of a shell command, resolved against the segment's
     working directory (`cd` tracked per segment as in bash_write_tokens). A generator
     script names its output as a plain argument, so a token needs no "/" to count."""
@@ -604,7 +609,7 @@ def bash_recut_candidates(command: str, cwd: str | None) -> list[Path]:
             if not tok or tok.startswith("-") or "://" in tok:
                 continue
             tok = tok.rstrip("/") or tok                 # a trailing slash still names the file
-            if not LAP_SUFFIX.match(os.path.basename(tok)):
+            if not RETRY_SUFFIX.match(os.path.basename(tok)):
                 continue
             tok = os.path.expanduser(tok)
             candidate = Path(tok) if os.path.isabs(tok) else Path(base) / tok
@@ -614,9 +619,9 @@ def bash_recut_candidates(command: str, cwd: str | None) -> list[Path]:
     return out
 
 
-def recut_candidates(payload: dict[str, Any]) -> list[Path]:
+def retry_copy_candidates(payload: dict[str, Any]) -> list[Path]:
     """Paths a payload could file as a new cut. Write/Edit/MultiEdit: file_path. Bash:
-    every path token plus every bare lap-suffix token, deduplicated."""
+    every path token plus every bare round-suffix token, deduplicated."""
     tool_input = payload.get("tool_input")
     if not isinstance(tool_input, dict):
         return []
@@ -629,18 +634,18 @@ def recut_candidates(payload: dict[str, Any]) -> list[Path]:
     cwd = payload.get("cwd")
     cwd = cwd if isinstance(cwd, str) and cwd else os.getcwd()
     out: list[Path] = []
-    for path in target_paths(payload) + bash_recut_candidates(command, cwd):
+    for path in target_paths(payload) + bash_retry_copy_candidates(command, cwd):
         if path not in out:
             out.append(path)
     return out
 
 
-def recut_conflict(path: Path) -> Path | None:
-    """The existing same-stem file that makes `<stem>-rN.<ext>` a re-cut, else None.
+def retry_copy_conflict(path: Path) -> Path | None:
+    """The existing same-stem file that makes `<stem>-rN.<ext>` a retry copy, else None.
     A same-stem file parked under one extra marker (.superseded, .bak) still counts."""
     if "increments" not in path.parts or path.exists():
         return None
-    match = LAP_SUFFIX.match(path.name)
+    match = RETRY_SUFFIX.match(path.name)
     if not match:
         return None
     stem, ext = match.group("stem"), match.group("ext")
@@ -675,7 +680,7 @@ def is_hook_owned(path: Path, run: RunContext) -> bool:
     name, state_name = path.name.casefold(), run.state_path.name.casefold()
     return name == state_name + ".audit-checkpoint.json" or (
         name.startswith(state_name + ".write-log") and name.endswith(".jsonl")
-    ) or (name.startswith(state_name + ".audit-census-") and name.endswith(".txt"))
+    ) or (name.startswith(state_name + ".audit-write-report-") and name.endswith(".txt"))
 
 
 def load_sidecar(run: RunContext) -> dict[str, Any] | None:
@@ -720,19 +725,19 @@ def review_line(path: Path) -> str | None:
     return found[-1] if found else None
 
 
-def stamp_proposal(sidecar: dict[str, Any], path: Path) -> bool:
-    """Record {path,size,mtime} for a proposal, replacing an older stamp of the same path."""
+def hook_record_proposal(sidecar: dict[str, Any], path: Path) -> bool:
+    """Record {path,size,mtime} for a proposal, replacing an older hook_record of the same path."""
     try:
         stat = path.stat()
     except OSError:
         return False
-    stamp = {"path": str(path), "size": stat.st_size, "mtime": stat.st_mtime}
-    stamps = sidecar.get("stamped_proposals")
-    if not isinstance(stamps, list):
-        stamps = []
-    stamps = [s for s in stamps if not (isinstance(s, dict) and s.get("path") == stamp["path"])]
-    stamps.append(stamp)
-    sidecar["stamped_proposals"] = stamps
+    hook_record = {"path": str(path), "size": stat.st_size, "mtime": stat.st_mtime}
+    hook_records = sidecar.get("hook_recorded_writes")
+    if not isinstance(hook_records, list):
+        hook_records = []
+    hook_records = [s for s in hook_records if not (isinstance(s, dict) and s.get("path") == hook_record["path"])]
+    hook_records.append(hook_record)
+    sidecar["hook_recorded_writes"] = hook_records
     return True
 
 

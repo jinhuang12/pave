@@ -40,7 +40,7 @@ MINIMAL = {
     "completed_outcomes": [],
     "evidence_references": {},
     "open_questions": [],
-    "terminal_classification": None,
+    "final_status": None,
     "scan_entry_id": None,
     "design_entry_id": None,
 }

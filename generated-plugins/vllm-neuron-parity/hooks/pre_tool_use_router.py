@@ -3,28 +3,28 @@
 
 Three guard modes (protected-branch, compile-cache, venv-opt) gate the Codex
 blocking guard scripts on an active run marker. Four modes read the run
-directly (helpers in hooks/runtime_bindings.py):
+directly (helpers in hooks/write_limits.py):
 
-  runtime-bindings  PreToolUse Bash|Edit|Write|MultiEdit. Deny globs from the
-                    graph's runtime_bindings block bind the lead: a lead target
+  write-limits  PreToolUse Bash|Edit|Write|MultiEdit. Blocked path patterns from the
+                    graph's write_limits block bind the lead: a lead target
                     matching one is refused (exit 2) with reason and remedy; a
                     seat's match is advisory (additionalContext). Fails OPEN on
-                    a parse error or while <evolution-root>/.landing exists.
-  no-recut          PreToolUse Bash|Edit|Write|MultiEdit, every actor. Refuses
+                    a parse error or while <revision-folder>/.applying exists.
+  no-retry-copy          PreToolUse Bash|Edit|Write|MultiEdit, every actor. Refuses
                     creating <stem>-rN.<ext> under an increments/ component when
                     a same-stem same-extension file already sits there (a parked
                     marker such as .superseded still counts); for Bash any
                     argument, redirect target, or copy/move destination naming
                     the form counts. A path built inside a script body stays
-                    invisible here: the write log and the census catch it after.
+                    invisible here: the write log and the write_report catch it after.
   audit-sidecar     PreToolUse Bash|Edit|Write|MultiEdit. The lead never writes
                     the hook-owned <state>.audit-checkpoint.json,
-                    <state>.write-log*.jsonl or <state>.audit-census-*.txt, or the
-                    updater's findings record in the evolution root.
-  audit-stamp       PostToolUse Write|Edit|MultiEdit. The workflow updater's findings
+                    <state>.write-log*.jsonl or <state>.audit-write-report-*.txt, or the
+                    updater's findings record in the revision folder.
+  audit-hook-record       PostToolUse Write|Edit|MultiEdit. The workflow updater's findings
                     record naming the open checkpoint sets the sidecar OPEN;
-                    its files under <evolution-root>/proposals/ are stamped
-                    (path, size, mtime) for record_revision.py land --stamps.
+                    its files under <revision-folder>/proposals/ are hook_recorded
+                    (path, size, mtime) for record_revision.py apply --hook-records.
 
 Every unexpected exception fails open: nothing printed, exit 0.
 """
@@ -40,7 +40,7 @@ import sys
 from typing import Any, Callable
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import runtime_bindings as rb  # noqa: E402
+import write_limits as rb  # noqa: E402
 
 SCRIPTS = {
     "protected-branch": "protected-branch-guard.sh",
@@ -48,9 +48,9 @@ SCRIPTS = {
     "venv-opt": "venv-opt-guard.sh",
 }
 TAG = "[vllm-neuron-parity router]"
-NO_RECUT_TEXT = (
-    "edit the existing file {existing} in place; world-produced output gets an "
-    "event-keyed name, never -rN"
+NO_RETRY_COPY_TEXT = (
+    "edit the existing file {existing} in place; external output gets a "
+    "name keyed to its event, never -rN"
 )
 
 _load_payload = rb.load_payload
@@ -132,8 +132,8 @@ def _block(text: str) -> int:
     return 2
 
 
-def mode_runtime_bindings(payload: dict[str, Any], run: rb.RunContext) -> int:
-    deny = rb.load_bindings(run)["deny"]
+def mode_write_limits(payload: dict[str, Any], run: rb.RunContext) -> int:
+    deny = rb.load_limits(run)["deny"]
     if not deny:
         return 0
     who = rb.actor(payload, run)
@@ -144,8 +144,8 @@ def mode_runtime_bindings(payload: dict[str, Any], run: rb.RunContext) -> int:
         reason = str(entry.get("reason") or "").strip()
         remedy = str(entry.get("remedy") or "").strip()
         text = (
-            f"{path} matches the deny glob {entry.get('glob')!r} bound to the lead "
-            f"(landed by checkpoint {entry.get('created_by')}). Reason: {reason} "
+            f"{path} matches the blocked path pattern {entry.get('glob')!r} bound to the lead "
+            f"(applied by checkpoint {entry.get('created_by')}). Reason: {reason} "
             f"Remedy: {remedy}"
         )
         if who == "lead":
@@ -161,36 +161,36 @@ def mode_runtime_bindings(payload: dict[str, Any], run: rb.RunContext) -> int:
     return 0
 
 
-def mode_no_recut(payload: dict[str, Any], run: rb.RunContext) -> int:
-    for path in rb.recut_candidates(payload):
-        existing = rb.recut_conflict(path)
+def mode_no_retry_copy(payload: dict[str, Any], run: rb.RunContext) -> int:
+    for path in rb.retry_copy_candidates(payload):
+        existing = rb.retry_copy_conflict(path)
         if existing is not None:
             token = ""                               # a shell actor sees which argument tripped it
             if str(payload.get("tool_name") or "") == "Bash":
                 token = f"the argument {path.name} of this command names a new file: "
             return _block(
-                f"{token}{path} is a re-cut of {existing.name}: "
-                + NO_RECUT_TEXT.format(existing=existing)
+                f"{token}{path} is a retry copy of {existing.name}: "
+                + NO_RETRY_COPY_TEXT.format(existing=existing)
             )
     return 0
 
 
 def mode_audit_sidecar(payload: dict[str, Any], run: rb.RunContext) -> int:
     who = rb.actor(payload, run)
-    findings = rb.true_case(run.evolution_root.resolve()) / rb.FINDINGS_NAME
-    for path in rb.write_target_paths(payload):      # mentions (land --stamps <sidecar>) pass
+    findings = rb.true_case(run.revision_folder.resolve()) / rb.FINDINGS_NAME
+    for path in rb.write_target_paths(payload):      # mentions (apply --hook-records <sidecar>) pass
         if rb.is_hook_owned(path, run):              # every actor: no seat writes these either
             return _block(
-                f"{path} is hook-owned audit state (checkpoint sidecar, write log, census, or "
+                f"{path} is hook-owned audit state (checkpoint sidecar, write log, write_report, or "
                 "stop cooldown marker); the stop guard and the router write it, no actor does. "
-                "Leave it, and let the audit branch close the checkpoint through the updater."
+                "Leave it, and let the audit check close the checkpoint through the updater."
             )
-        if rb.is_ledger_surface(path, run) and not (findings.parent / ".landing").exists():
+        if rb.is_revision_log_surface(path, run) and not (findings.parent / ".applying").exists():
             return _block(
-                f"{path} is the live graph or its ledger; it changes only through "
-                "record_revision.py land <root> <N> --proposal <patch> --stamps <sidecar> (which "
-                "sets the .landing marker while it writes), never through a direct write by any "
-                "actor: a graph written by hand re-keys the audit counters and every deny glob."
+                f"{path} is the live graph or its revision log; it changes only through "
+                "record_revision.py apply <root> <N> --proposal <patch> --hook-records <sidecar> (which "
+                "sets the .applying marker while it writes), never through a direct write by any "
+                "actor: a graph written by hand re-keys the audit counters and every blocked path pattern."
             )
         if rb.is_lead_session_file(path, run) and not rb.lead_session_content_ok(payload):
             return _block(
@@ -204,20 +204,20 @@ def mode_audit_sidecar(payload: dict[str, Any], run: rb.RunContext) -> int:
             return _block(
                 f"{path} is the audit findings record: the workflow-updater writes it and the "
                 "update-reviewer appends its one review: line; no other actor edits it, the "
-                "lead included. A checkpoint closes through a landed stamped proposal or the "
+                "lead included. A checkpoint closes through an applied hook_recorded proposal or the "
                 "updater's own no-change record, never through text anyone else types."
             )
     return 0
 
 
-def mode_audit_stamp(payload: dict[str, Any], run: rb.RunContext) -> int:
+def mode_audit_hook_record(payload: dict[str, Any], run: rb.RunContext) -> int:
     who = rb.actor(payload, run)
     if who not in ("updater", "reviewer"):
         return 0
     sidecar = rb.load_sidecar(run)
     if sidecar is None:
         return 0
-    evolution = rb.true_case(run.evolution_root.resolve())
+    evolution = rb.true_case(run.revision_folder.resolve())
     changed = False
     for path in rb.target_paths(payload):
         if rb.same_name(path, evolution / rb.FINDINGS_NAME):
@@ -228,7 +228,7 @@ def mode_audit_stamp(payload: dict[str, Any], run: rb.RunContext) -> int:
                 sidecar["state"] = "OPEN"
                 sidecar["findings_record"] = str(path)
                 changed = True
-            else:                                   # the reviewer's one line, stamped
+            else:                                   # the reviewer's one line, hook_recorded
                 verdict = rb.review_line(path)
                 if verdict and sidecar.get("review") != verdict:
                     sidecar["review"] = verdict
@@ -240,17 +240,17 @@ def mode_audit_stamp(payload: dict[str, Any], run: rb.RunContext) -> int:
             except OSError:
                 pass
         elif who == "updater" and path.parent == evolution / rb.PROPOSALS_DIR and path.is_file():
-            changed = rb.stamp_proposal(sidecar, path) or changed
+            changed = rb.hook_record_proposal(sidecar, path) or changed
     if changed:
         rb.save_sidecar(run, sidecar)
     return 0
 
 
 MODES: dict[str, Callable[[dict[str, Any], rb.RunContext], int]] = {
-    "runtime-bindings": mode_runtime_bindings,
-    "no-recut": mode_no_recut,
+    "write-limits": mode_write_limits,
+    "no-retry-copy": mode_no_retry_copy,
     "audit-sidecar": mode_audit_sidecar,
-    "audit-stamp": mode_audit_stamp,
+    "audit-hook-record": mode_audit_hook_record,
 }
 
 

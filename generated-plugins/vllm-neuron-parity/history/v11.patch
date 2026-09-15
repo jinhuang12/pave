@@ -1,0 +1,2701 @@
+kind: graph
+semantic_diff: >-
+  Node merges, user-directed, fable adversarial review 2026-09-11 (2 KEEP, 6 MODIFY
+  with the named fixes applied, 1 REJECT honored). 32 nodes become 22; 96 edges
+  become 68; 89 outcomes become 68; checks stay 17 (closure_evidence_settled removed,
+  changeset_complete added). Merges - (1) screen_pin_and_progress, draft_increment_plan,
+  assemble_regression_matrix, preregister_acceptance, assemble_design_record become
+  design_campaign with outcomes design_ready, infeasibility_recorded, design_blocked;
+  the comparator commitment moves to the design_ready exit edge and the infeasibility
+  guard to the infeasibility exit edge; the node may run sequential seats under one
+  id. (2) assemble_delta_report folds into cost_routes_and_rank_backlog; evidence_gap
+  folds into reports_insufficient. (3) record_changeset is removed; scope_next_increment
+  assembles the changeset on plan_satisfied and the lead check changeset_complete
+  routes a gap back to scoping with its class. (4) acquire_hardware_lease and
+  replicate_campaign_venv become prepare_host with full and probe-only entry modes.
+  (5) run_candidate_measurements and stabilize_and_package_evidence become
+  measure_candidate; revision_stamped moves to its exit edge. (6) realize_measurement_procedures
+  and capture_baseline_reference become prepare_measurements with both SSH permissions
+  kept verbatim. (7) review_measurement_verdict is removed; adjudicate_results names
+  the consequence (gates_passed, correctness_shortfall, no_benefit, regression_failed);
+  its no_progress outcome is removed; review_pr_evidence now consumes the verdict;
+  the review principle no longer lists measurement verdicts. (8) verify_run_closure
+  becomes a lead-only node recording world-issued identifiers (PR number on the fork,
+  commit hash of the artifact update); the duplicate check closure_evidence_settled
+  is removed. review_implementation is kept unchanged (merge 9 rejected). All routes,
+  recovery paths, role boundaries, and P1-P13 mechanisms survive.
+
+  PART TWO - LEASES AS RESERVATIONS, QUEUE AS A TOOL (folded into this same
+  revision at the user's word, 2026-09-11: "just put it in revision 11"; the
+  merge part above was reviewed in rounds 1-3, the lease part in rounds 5-6, by
+  the same fable reviewer). Combined diff against revision 10: 48 hunks,
+  703 added lines against 1216 removed.
+
+  A hardware lease becomes a reservation of named non-shareable pools on a
+  host, never the whole host, and the hardware queue becomes a tool the
+  requesting seat invokes, not the lead. This revision also ports the live run's proposal v10
+  (drafted by pave-init:workflow-updater against revision 9, passed by
+  pave-init:update-reviewer round 1, requested by the user 2026-09-11 ~15:00Z:
+  grants only for jobs that consume non-shareable resources - N Neuron devices,
+  compile RAM - so jobs run in parallel when capacity is free) onto the 22-node
+  graph of this same revision, and adds the one change the field evidence asks for beyond it -
+  the lead leaves the grant loop. The lease part is prose inside the merged structure - 9
+  hunks, 107 added lines against 44 removed, 2272 to 2335 lines. Node ids, outcomes,
+  required_evidence, edges, checks, evidence, control nodes, write limits, and
+  the state.required list are equal field by field (proved by parsing both
+  graphs); two role lists change (the lead leaves prepare_host and
+  recover_leased_host) and two state fields gain a meaning (instance_roster,
+  hardware_lease_record).
+
+  LAYER TEST (pave-spec 2.1). What a lease means, who may write a lease record,
+  what host_ready and no_host_available settle on, and what a node may do on a
+  shared host are graph meaning - kind graph. Pool sizes, the lease request
+  form, the lock file, and the queue tool's command line are Runtime Binding
+  (run inputs in instance_roster; a plugin script shipped with this release) -
+  the graph names their classes only.
+
+  (1) LEASE = RESERVATION, TWO GRAINS, ONE NOUN (prepare_host purpose, host_ready,
+  no_host_available). The campaign lease reserves nothing and binds the
+  campaign to the host's verified identity; every job that takes non-shareable
+  capacity holds its own job lease naming the pools and amounts - Neuron
+  devices, compile memory, CPU cores for a long compile or a many-worker
+  start-up (the r14 serving start-up lost its rendezvous window to a concurrent
+  CPU-only test, so cores are a pool the roster may size), the compile-cache
+  write slot as a pool of one - and starts when they fit the remaining capacity,
+  derived from open job leases, never a stored counter. Jobs of different
+  campaigns share a host when their reservations fit; "exclusive", "leased
+  elsewhere", and "claimed" leave the text. A job that reserves nothing holds no
+  job lease and runs under the campaign lease on its own identity probe and
+  attempt record; P8 still counts it through the attempt records the loop writes.
+
+  (2) THE QUEUE IS A TOOL, NOT THE LEAD (prepare_host purpose, activities,
+  effects; execute_attempt_loop and recover_leased_host effects; lead role
+  purpose; roles at two nodes). Field evidence (v10 usage read, 2026-09-11): 291 lease
+  records against 0 acquire-seat traversals - the lead ran the queue by hand, one
+  chat round trip per grant and per release (~10 KB each), every job CPU-only.
+  Now the hardware queue tool is the single writer of every lease record -
+  grant, release, amendment, one file per event - taking the grant under a
+  per-host lock so two jobs never both get the last unit; the requesting seat
+  invokes it and never writes a record by hand; the lead freezes the roster at
+  intake, reads the records for scheduling, and arbitrates nothing per grant.
+  P10 narrows to run state and the four cross-run artifacts; one writer per
+  record (pave-spec 8.2) holds, the writer is a tool. The lead leaves the roles
+  of prepare_host and recover_leased_host because no lead action remains in
+  either node.
+
+  (3) SHARED-HOST RECOVERY AND CHARGING (recover_leased_host purpose, first
+  activity, effects; execute_attempt_loop host_faulted). One recovery per host
+  at a time - the first recorded fault owns it; co-tenants wait for the owner's
+  record, re-verify identity, and exit with the owner's outcome through the
+  edges they already have; every campaign that faulted in the episode consumes
+  its allowance. A whole-host action while another campaign's job lease is open
+  is a forbidden effect. Every attempt in flight at the fault is host-faulted and
+  uncharged except one whose fault evidence names its own use beyond its job
+  lease - a failed attempt, fingerprinted and charged.
+
+  (4) STATE MEANINGS (instance_roster, hardware_lease_record). The roster is a
+  run input frozen at intake with pool sizes; an unsized pool is indivisible, so a
+  roster that sizes no pools behaves as one job per host and the revision
+  degrades gracefully. The lease record field points at the one-file-per-event
+  records the tool writes; remaining capacity is derived, never stored.
+
+  ROUND-5 REVIEW FIXES (fable reviewer, 2026-09-11): a co-tenant entering
+  recovery releases its open job leases first, so the owner's reboot is never
+  barred by a dead attempt's lease; the no-lease rule is one test everywhere -
+  a job holds no job lease only when it takes nothing the roster sizes; lease
+  and recovery records are keyed by host and readable by every campaign leasing
+  it, a boot-identifier amendment applies to every campaign lease naming the
+  host, and the boot-identifier delta reads any campaign's recovery records for
+  that host; a leaked grant (attempt record closed, no release) is released by
+  the tool on its next invocation; an oversize reservation is a request defect,
+  corrected and re-requested, never a wait; runtime restart is a whole-host
+  action; the charging exception reads the transcript or fault telemetry. ROUND-6 FIX (same reviewer): the no-lease test is
+  "takes no pool" - a job that needs a pool the roster leaves unsized reserves
+  the host whole instead of skipping its lease, so a roster that sizes no pools
+  really does behave as one job per host; the recovery allowed effect covers
+  the co-tenant's faulted-attempt releases; lease and recovery records are
+  both readable across campaigns.
+
+  NOT DONE. No refusal for capacity that exists but is busy - a job that does
+  not fit now waits (scheduling is Runtime Binding; a refusal would need an
+  outcome and edge no field case asked for). No hook - over-use of a reservation is detectable only after the
+  fact from host telemetry; the rung is prose plus record (lease record, use in
+  the transcript, fault evidence naming the over-user), recorded with its reason
+  (pave-spec 9.14.1). Dependent text lands with the release, not here: SKILL.md
+  P10 row and stage row 7 ("lease records are lead-written"), roles table,
+  agents/implementer.md prepare_host and recovery bullets, artifact-layout 4.2
+  pair 7 (job, pools, amounts, release added), run-state schema
+  hardware_lease_record description, and the new scripts/hardware_queue.py
+  (grant, release, amend, status; per-host lock; one file per event).
+user_only_changes: approved
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 11 (graph): 32 nodes merged to 22 - new nodes design_campaign,
+  prepare_host, prepare_measurements, measure_candidate; adjudicate_results
+  names the consequence directly; verify_run_closure is lead-only with
+  world-issued identifiers; the lead assembles the changeset under the
+  changeset_complete check. In the same revision, a hardware lease reserves
+  named pools (Neuron devices, compile memory, CPU cores, the compile-cache
+  write slot) from the roster's declared capacity, never the whole host; a
+  zero-reservation job holds no job lease; jobs of different campaigns share a
+  host when their reservations fit; the hardware queue tool, not the lead,
+  writes every lease record under a per-host lock, and the lead leaves the
+  roles of prepare_host and recover_leased_host. Outcomes, edges, effects, and
+  role lists change, so this revision carries the user's approval.
+approval: >-
+  User, 2026-09-11, on the merge: "approve revision 11, but run-state.json would
+  need to be updated right? how does that happen". On the lease model, to the
+  run lead about 15:00Z: "use /pave-init:pave-evolve to explore updating grants
+  to only apply for jobs that consume non-sharable resources (i.e. multiple
+  agents want to use N neuron devices, if there is available, then they can
+  run in parallel.) This could also apply for RAM (i.e. compilations that take
+  X amount of memory but don't want to exceed host capacity). CPU tests are
+  rarely applicable since they're not long running". On folding both into one
+  revision: "just put it in revision 11".
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index ffb1ca5..ead0468 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -38,8 +38,10 @@ pave:
+     pre-registered before measurement; verdicts read stable artifacts, never first-sighting
+     signals.
+   - Adversarial review is material-findings-only and follows every high-stakes
+-    artifact - route verdicts, campaign designs, implementations (pre-hardware-spend
+-    and pre-PR), measurement verdicts.
++    artifact - route verdicts, campaign designs, increment batches, the whole
++    implementation before hardware spend, and PR packages. Measurement verdicts
++    are issued once, by an adjudicator independent of the measurer, and read by
++    the PR review before gate 3.
+   - CPU-first increments before any hardware attempt; no attempt caps - two-tier
+     stop limit instead (fingerprint no-identical-retry; halt and re-derive at every
+     10 budget-counted hardware attempts per target - host faults are recorded
+@@ -59,8 +61,8 @@ pave:
+     transcripts, stable measurement artifacts), never doer self-report.
+   roles:
+     lead:
+-      purpose: Route outcomes, own run state, present gates, arbitrate the hardware
+-        queue, own conflict-aware campaign scheduling (serialize campaigns with
++      purpose: Route outcomes, own run state, present gates, freeze the hardware
++        roster at intake (the queue tool grants against it), own conflict-aware campaign scheduling (serialize campaigns with
+         overlapping predicted file surfaces; hold all other campaigns while an
+         upgrade-route campaign runs exclusively), and serialize single-writer
+         updates to the cross-run artifacts.
+@@ -77,8 +79,8 @@ pave:
+       purpose: Execute pre-registered measurement procedures against the GPU baseline
+         and write stable evidence artifacts; never adjudicates.
+     adjudicator:
+-      purpose: Issue gate verdicts from stable, pre-registered evidence; never
+-        the agent that measured; also decides run closure.
++      purpose: Issue gate verdicts from stable, pre-registered evidence and name
++        the consequence; never the agent that measured.
+     adversarial_reviewer:
+       purpose: Material-findings-only adversarial review of high-stakes artifacts;
+         independent of the artifact's producer.
+@@ -96,7 +98,7 @@ pave:
+       kind: observation
+       produced_by:
+       - trace_target_delta
+-      - assemble_delta_report
++      - cost_routes_and_rank_backlog
+       subject: per-target upstream delta against the pinned release, with source
+         traces
+       artifact: artifacts/run/delta/
+@@ -120,21 +122,20 @@ pave:
+       artifact: artifacts/campaigns/<campaign>/approvals/
+     campaign_design_record:
+       kind: derivation
+-      produced_by: assemble_design_record
++      produced_by: design_campaign
+       subject: increment plan, test layout, pre-registered comparator set, predicted
+         file surface, venv and lease plan, and for upgrade-route campaigns the
+         assembled regression matrix
+       artifact: artifacts/campaigns/<campaign>/design/
+     implementation_changeset:
+       kind: observation
+-      produced_by: record_changeset
++      produced_by: scope_next_increment
+       subject: campaign branch diffs plus CPU-mode increment evidence
+       artifact: artifacts/campaigns/<campaign>/increments/
+     hardware_attempt_log:
+       kind: observation
+       produced_by:
+-      - acquire_hardware_lease
+-      - replicate_campaign_venv
++      - prepare_host
+       - execute_attempt_loop
+       - recover_leased_host
+       subject: one-file-per-event attempt, fingerprint, lease, and recovery records
+@@ -146,7 +147,7 @@ pave:
+       artifact: artifacts/campaigns/<campaign>/rederivations/
+     measurement_artifacts:
+       kind: observation
+-      produced_by: stabilize_and_package_evidence
++      produced_by: measure_candidate
+       subject: correctness and performance measurements against the GPU baseline,
+         stable-read collected; each evidence bundle names the GPU-side vLLM version
+         and the known cross-version behavior differences (baseline-skew control)
+@@ -163,7 +164,6 @@ pave:
+       - review_campaign_design
+       - review_implementation
+       - review_increment_batch
+-      - review_measurement_verdict
+       - review_pr_evidence
+       subject: material findings - each with its defect class and the surfaces
+         it names - bookkeeping findings marked as such, or the recorded absence
+@@ -188,27 +188,27 @@ pave:
+       artifact: artifacts/run/closure/
+     pin_feasibility_note:
+       kind: derivation
+-      produced_by: screen_pin_and_progress
++      produced_by: design_campaign
+       subject: feasibility-at-pin verdict with re-checkable absence evidence or
+         the named viable design lever per round
+       artifact: artifacts/campaigns/<campaign>/design/
+     increment_plan_draft:
+       kind: derivation
+-      produced_by: draft_increment_plan
++      produced_by: design_campaign
+       subject: increment plan, test layout, venv and lease plan, and refined predicted
+         file surface - feeds scheduling_holds re-derivation; on a block-scoped
+         re-entry, the block diff (the touched blocks, nothing else)
+       artifact: artifacts/campaigns/<campaign>/design/
+     regression_matrix_draft:
+       kind: derivation
+-      produced_by: assemble_regression_matrix
++      produced_by: design_campaign
+       subject: adjudicable regression-matrix rows for upgrade-route campaigns
+         - procedure reference and verbatim threshold per at-risk support-table
+         cell
+       artifact: artifacts/campaigns/<campaign>/design/
+     acceptance_preregistration:
+       kind: derivation
+-      produced_by: preregister_acceptance
++      produced_by: design_campaign
+       subject: frozen comparator set and route-scoped acceptance criteria, adjudicable
+         as written, ahead of all measurement
+       artifact: artifacts/campaigns/<campaign>/design/
+@@ -229,19 +229,19 @@ pave:
+       artifact: artifacts/campaigns/<campaign>/increments/
+     measurement_procedure_record:
+       kind: observation
+-      produced_by: realize_measurement_procedures
++      produced_by: prepare_measurements
+       subject: runnable smoke-verified procedure per declared measurement with
+         fixed invocation and versioned revision entries
+       artifact: artifacts/campaigns/<campaign>/measurements/procedures/
+     baseline_reference_capture:
+       kind: observation
+-      produced_by: capture_baseline_reference
++      produced_by: prepare_measurements
+       subject: GPU-baseline reference outputs with the baseline-skew record, or
+         the justified skip for routes declaring no baseline comparator
+       artifact: artifacts/campaigns/<campaign>/measurements/baseline/
+     candidate_measurement_runs:
+       kind: observation
+-      produced_by: run_candidate_measurements
++      produced_by: measure_candidate
+       subject: raw measurement outputs one file per event, each stamped with the
+         measured git-issued revision, invocation, and environment; defect findings
+         as their own event files
+@@ -275,7 +275,7 @@ pave:
+         only when one of those moves - and does any change to kickoff-declared
+         criteria carry an explicit recorded user decision?
+       evaluated_by: user
+-      on_failure_route: screen_pin_and_progress
++      on_failure_route: design_campaign
+     narrow_delta_scoped:
+       style: mechanical
+       question: Does every standing material finding in this review round (bookkeeping
+@@ -287,12 +287,12 @@ pave:
+         and does no standing material finding repeat a prior narrow round's finding fingerprint
+         (same node, surface, and claim) without a gap-closing artifact produced
+         since that round? Recurrence fails this check - the full round owns it, where
+-        the screen's progress_exhausted door bounds repetition. Among the three
+-        narrow edges the lead selects exactly one by the surface the findings
+-        name - a registered-value touch beats record, record beats plan text.
++        the design node's design_blocked outcome bounds repetition. The narrow
++        repair brief names the surfaces the findings name - a registered-value
++        touch gets the value-level read, never hash-only verification.
+         Ambiguity fails this check (fail closed into the full design round).
+       evaluated_by: lead
+-      on_failure_route: screen_pin_and_progress
++      on_failure_route: design_campaign
+     design_loop_within_bound:
+       style: mechanical
+       question: Counting this campaign's gate-2 review rounds from the findings
+@@ -321,13 +321,13 @@ pave:
+       question: Is the comparator set for this campaign recorded and frozen in
+         run state with a timestamp preceding every measurement artifact?
+       evaluated_by: lead
+-      on_failure_route: preregister_acceptance
++      on_failure_route: design_campaign
+     evidence_stable_before_verdict:
+       style: mechanical
+       question: Are all measurement artifacts complete and stable on re-read (never
+         first-sighting signals) before adjudication begins?
+       evaluated_by: lead
+-      on_failure_route: stabilize_and_package_evidence
++      on_failure_route: measure_candidate
+     acceptance_threshold_evaluated:
+       style: mechanical
+       question: Does every evidence bundle under verdict record, for every criterion
+@@ -336,7 +336,7 @@ pave:
+         against, and the result of that comparison - together with the negative-control
+         result from the procedure's smoke record?
+       evaluated_by: lead
+-      on_failure_route: stabilize_and_package_evidence
++      on_failure_route: measure_candidate
+       rationale: A comparator's exit status is not an evaluation. A comparator can
+         exit zero with an empty evaluated-threshold list when the criterion it needed
+         was never recorded, so a gate that reads the exit code passes silently on
+@@ -351,9 +351,9 @@ pave:
+       style: mechanical
+       question: Is the adjudicating agent identity distinct from every agent that
+         produced the measurement artifacts under verdict - the producer set covering
+-        any agent that acted in any of the four measurement nodes?
++        any agent that acted in either measurement node?
+       evaluated_by: lead
+-      on_failure_route: run_candidate_measurements
++      on_failure_route: measure_candidate
+     impl_commit_is_reviewed:
+       style: mechanical
+       question: Does the campaign worktree's checked-out commit equal the commit
+@@ -369,7 +369,7 @@ pave:
+         the approved increment plan already carries with no passing evidence record
+         yet - an ordering fact - rather than a surface the plan never designed?
+       evaluated_by: lead
+-      on_failure_route: screen_pin_and_progress
++      on_failure_route: design_campaign
+     batch_review_current:
+       style: mechanical
+       question: >-
+@@ -383,14 +383,6 @@ pave:
+         unreviewed landed increment fails the check.
+       evaluated_by: lead
+       on_failure_route: review_increment_batch
+-    closure_evidence_settled:
+-      style: mechanical
+-      question: Does the closure record carry the verbatim gate-3 approval and
+-        external evidence (a PR URL resolvable on the fork, or the recorded
+-        no-benefit or blocked bundle), and do the scorecard, backlog, debt list,
+-        and fingerprint file reflect it?
+-      evaluated_by: lead
+-      on_failure_route: close_campaign
+     preflight_record_complete:
+       style: mechanical
+       question: Does the preflight record carry a passing, transcript-backed entry
+@@ -404,7 +396,7 @@ pave:
+         command at the pinned revision, does re-execution reproduce the absence,
+         and does the note tie the surface to a kickoff-declared capability?
+       evaluated_by: lead
+-      on_failure_route: screen_pin_and_progress
++      on_failure_route: design_campaign
+       rationale: Evaluator is never the note author. Bound, declared where the
+         graph sees it - a re-screen that still cannot produce re-executable absence
+         evidence falls through to the progress screen; the ambiguity rule is the
+@@ -418,14 +410,29 @@ pave:
+         known-bad input, the negative control that proves this check tool can fail
+         at all?
+       evaluated_by: lead
+-      on_failure_route: realize_measurement_procedures
++      on_failure_route: prepare_measurements
+     revision_stamped:
+       style: mechanical
+       question: Does every run record carry a git-issued revision identifier read
+         from the checked-out commit at measurement time - never a branch name
+         - and do all records for one measurement agree?
+       evaluated_by: lead
+-      on_failure_route: run_candidate_measurements
++      on_failure_route: measure_candidate
++    changeset_complete:
++      style: mechanical
++      question: Does the changeset artifact the plan_satisfied round assembled hold
++        the git-produced branch diff against the target base recorded in
++        campaign_target_pins, an evidence index in which every planned and repair
++        increment resolves to a passing CPU-mode record, an NxDI-import scan
++        transcript over the diff with zero hits, and a substrate-fidelity transcript
++        in which every design-declared-NKI increment shows NKI usage - each
++        recomputable by a reviewer from the branch and the records? A gap fails
++        the check as a coverage-gap item recorded in the round record with its
++        class - (a) an increment lacks a passing record, (b) the diff holds work no
++        increment record covers, (c) an import-scan hit, (d) a substrate-fidelity
++        hit - whose declared acceptance is the recomputed check that found it.
++      evaluated_by: lead
++      on_failure_route: scope_next_increment
+   nodes:
+     verify_run_preconditions:
+       intent: execute
+@@ -470,34 +477,73 @@ pave:
+             substitutes one - and resumable state is preserved.
+     cost_routes_and_rank_backlog:
+       intent: plan
+-      purpose: For each requested target, cost route A backport at the pin (choosing
+-        between sources A1 and A2) against route B pin upgrade (fallback, justified
+-        on cost, exclusive-execution, regression-matrix gated), predict the touched-file
+-        surface for conflict-aware scheduling, and rank the backlog. Out of scope
+-        - starting any campaign.
++      purpose: Two steps in one seat. First, decide the delta scan across the whole
++        target set - verify every requested target has a per-target report, check
++        each report against the fixed costing-sufficiency rubric (satisfied by honest
++        residual-gap recording, never by gap absence), drive at most one bounded
++        re-trace per deficient target, and write the run-level delta index. Then,
++        for each requested target, cost route A backport at the pin (choosing between
++        sources A1 and A2) against route B pin upgrade (fallback, justified on cost,
++        exclusive-execution, regression-matrix gated), predict the touched-file
++        surface for conflict-aware scheduling, and rank the backlog. The seat that
++        judges a report is never the seat of any trace_target_delta instance whose
++        report it judges - the lead enforces the seat split at dispatch. Out of
++        scope - producing any trace content itself, and starting any campaign.
+       roles:
+       - investigator
+       consumes:
+       - delta_report
++      - run_input_and_preflight_record
+       - adversarial_review_findings
+       produces:
++      - delta_report
+       - route_costing_and_backlog
++      activities:
++      - Mechanical coverage check - diff the frozen requested-target list against
++        the per-target report files on disk; persist the diff output.
++      - Rubric check per report against the fixed section list frozen in trace_target_delta's
++        success outcome; persist a per-target verdict. A report whose deficiency
++        is recorded as a residual gap after its re-trace bound is exhausted passes
++        the rubric.
++      - On a deficient report, route the named target back for one re-trace; after
++        that single bound, record the deficiency as a residual gap in the index and
++        treat the report as sufficient.
++      - Write the run-level delta index binding per-target reports, verdicts, and
++        residual gaps into one costing-consumable artifact.
++      - Cost each target's routes, predict its file surface, rank the backlog.
++      - Emit exactly one outcome under the declared precedence - costing_stalled
++        wins when a named gap already survived one re-trace or review findings repeat
++        with no new evidence; reports_insufficient wins while any deficient target's
++        re-trace bound is unexhausted; sources_unreachable wins once no re-trace
++        remains and any target is blocked on a source; backlog_ranked otherwise.
++      allowed_effects:
++      - Writes of the run-level index, the sufficiency record, and the costing
++        report under the run's delta and backlog artifact directories.
++      forbidden_effects:
++      - Editing any per-target report body.
+       outcomes:
+         backlog_ranked:
+-          meaning: Every requested target carries a costed route verdict, a predicted
+-            touched-file surface for conflict-aware scheduling, and a backlog
+-            rank with recorded rationale.
++          meaning: Every requested target's report is present and rubric-sufficient,
++            the run-level index is written, and every target carries a costed route
++            verdict, a predicted touched-file surface, and a backlog rank with recorded
++            rationale.
+           required_evidence:
++          - delta_report
+           - route_costing_and_backlog
+-        evidence_gap:
+-          meaning: Costing exposed a named gap the delta scan must close.
++        reports_insufficient:
++          meaning: Named targets' reports fail the rubric, or costing exposed a
++            named gap the scan must close, and their re-trace bound is not exhausted;
++            only those targets re-trace.
++        sources_unreachable:
++          meaning: One or more targets are blocked on an unavailable reference
++            source and no re-trace remains outstanding; traced targets keep their
++            reports and per-target resumable state is preserved.
+         costing_stalled:
+           meaning: Repeated identical review findings with no new evidence, or
+-            the same named residual gap persisting across two consecutive delta-scan
+-            re-entries; the run pauses for user direction before any gate-1 election.
+-            Takes precedence over evidence_gap when both hold - a gap that already
+-            survived a scan re-entry is the stall, and re-scanning it again without
+-            user direction is the loop this stop exists to break.
++            the same named residual gap persisting after its one re-trace; the run
++            pauses for user direction before any gate-1 election. Takes precedence
++            over reports_insufficient - re-tracing a gap that already survived a
++            re-trace without user direction is the loop this stop exists to break.
+     review_route_verdicts:
+       intent: review
+       purpose: Adversarial, material-findings-only review of the gap-scan and
+@@ -619,8 +665,8 @@ pave:
+           meaning: Material findings stand, and every one of them names only increment-plan
+             text, design-record, or registration surfaces - screen facts and kickoff-declared
+             criteria untouched. The lead (never the reviewer or the drafter) classifies
+-            via narrow_delta_scoped and takes exactly one narrow edge; the repair
+-            is block-scoped at the resolving node (a brief naming the blocks, a
++            via narrow_delta_scoped and takes the narrow edge; the repair
++            is block-scoped at the design node (a brief naming the blocks, a
+             block diff handed back), and the repaired design re-enters this same
+             gate under the standing approval.
+     review_implementation:
+@@ -750,71 +796,47 @@ pave:
+       purpose: Issue this campaign's acceptance verdicts by reading the stable
+         measurement artifacts against the kickoff-declared thresholds - the correctness
+         and performance gates for backport-route campaigns; for upgrade-route
+-        campaigns the kickoff-declared regression matrix instead. The adjudicating
+-        agent never produced any artifact under verdict.
++        campaigns the kickoff-declared regression matrix instead - and name exactly
++        one consequence. The adjudicating agent never produced any artifact under
++        verdict, and reads only the evaluated-threshold records the bundles carry,
++        never a first-sighting signal. No second review of the verdict follows -
++        the PR review reads the verdict before gate 3.
+       roles:
+       - adjudicator
+       consumes:
+       - measurement_artifacts
+       - campaign_design_record
+-      - adversarial_review_findings
+       - kickoff_contract_record
+       produces:
+       - adjudication_verdict
+       outcomes:
+-        verdict_recorded:
+-          meaning: Both gate verdicts recorded with their evidence trail.
+-          required_evidence:
+-          - adjudication_verdict
+-        evidence_unstable:
+-          meaning: An artifact under verdict is incomplete or changed on re-read;
+-            measurement must re-collect.
+-        no_progress:
+-          meaning: Repeated identical material findings from verdict review with
+-            no new measurement evidence; routed to first-principles re-derivation.
+-    review_measurement_verdict:
+-      intent: review
+-      instance_per: approved_campaigns
+-      purpose: Adversarial, material-findings-only review of the measurement verdicts,
+-        then confirm exactly one consequence - gates passed, correctness shortfall,
+-        correct-but-no-benefit, or a failed upgrade-route regression matrix.
+-      roles:
+-      - adversarial_reviewer
+-      consumes:
+-      - adjudication_verdict
+-      - measurement_artifacts
+-      - kickoff_contract_record
+-      produces:
+-      - adversarial_review_findings
+-      outcomes:
+-        pass_confirmed:
++        gates_passed:
+           meaning: The campaign's route-scoped acceptance passed - for backport-route
+-            campaigns the kickoff-declared correctness and performance gates;
+-            for upgrade-route campaigns the kickoff-declared regression matrix
+-            instead - and the verdict withstood review.
++            campaigns the kickoff-declared correctness and performance gates; for
++            upgrade-route campaigns the kickoff-declared regression matrix - with
++            the evidence trail recorded.
+           required_evidence:
+-          - adversarial_review_findings
+-        correctness_shortfall_confirmed:
+-          meaning: Backport-route campaigns only - the correctness gate failed
+-            and the verdict withstood review; implementation resumes. Upgrade-route
+-            failures route through regression_confirmed instead.
++          - adjudication_verdict
++        correctness_shortfall:
++          meaning: Backport-route campaigns only - the correctness gate failed;
++            implementation resumes. Upgrade-route failures route through
++            regression_failed instead.
+           required_evidence:
+-          - adversarial_review_findings
+-        no_benefit_confirmed:
++          - adjudication_verdict
++        no_benefit:
+           meaning: Backport-route campaigns only - correct port, performance gate
+-            failed, verdict withstood review; routed to no-benefit close-out.
+-            Unreachable for upgrade-route campaigns, whose failure outcome is
+-            regression_confirmed.
++            failed; routed to no-benefit close-out. Unreachable for upgrade-route
++            campaigns, whose failure outcome is regression_failed.
+           required_evidence:
+-          - adversarial_review_findings
+-        regression_confirmed:
+-          meaning: An upgrade-route campaign's regression matrix failed and the
+-            verdict withstood review; implementation resumes on the regressed
+-            surfaces.
++          - adjudication_verdict
++        regression_failed:
++          meaning: An upgrade-route campaign's regression matrix failed; implementation
++            resumes on the regressed surfaces.
+           required_evidence:
+-          - adversarial_review_findings
+-        material_findings:
+-          meaning: Named material defects in the verdict require re-adjudication.
++          - adjudication_verdict
++        evidence_unstable:
++          meaning: An artifact under verdict is incomplete or changed on re-read;
++            measurement must re-collect.
+     prepare_pr:
+       intent: execute
+       instance_per: approved_campaigns
+@@ -852,6 +874,7 @@ pave:
+       - adversarial_reviewer
+       consumes:
+       - pr_evidence_package
++      - adjudication_verdict
+       produces:
+       - adversarial_review_findings
+       outcomes:
+@@ -903,16 +926,20 @@ pave:
+             work; routed to re-derivation.
+     verify_run_closure:
+       intent: review
+-      purpose: Decide the run outcome from external evidence only - for each gate-1-approved
+-        campaign, read its close-out approval record and its closure evidence
+-        (PR URL resolvable on the fork, or the recorded no-benefit or blocked
+-        bundle) and confirm the cross-run artifacts on disk reflect every closure.
+-        Never decided by the lead's own assertion. Runs at each campaign closure;
+-        holds until every campaign is decided. When a failed verification and open
+-        campaigns co-hold, closure_unverified decides first - the discrepant campaign
+-        re-enters close-out while the join keeps holding for the rest.
++      purpose: Decide the run outcome from world-issued evidence only. The lead
++        runs this node with no seat. For each gate-1-approved campaign, read its
++        close-out approval record and its closure evidence, and record two identifiers
++        the lead cannot mint - the gh pr view transcript resolving the PR number
++        on the fork (or the recorded no-benefit or blocked bundle), and the git
++        commit hash of the cross-run artifact update, whose diff touches all four -
++        scorecard, backlog, debt list, fingerprint file - with this campaign's
++        closure row. A closure without both is unverified, whatever the lead believes. Runs
++        at each campaign closure; holds until every campaign is decided. When a
++        failed verification and open campaigns co-hold, closure_unverified decides
++        first - the discrepant campaign re-enters close-out while the join keeps
++        holding for the rest.
+       roles:
+-      - adjudicator
++      - lead
+       consumes:
+       - closure_record
+       - gate_approval_record
+@@ -1003,101 +1030,73 @@ pave:
+         source_unreachable:
+           meaning: A reference source this target's trace requires is unavailable;
+             the partial per-target record is preserved for resume.
+-    assemble_delta_report:
+-      intent: review
+-      purpose: 'Decide scan_upstream_delta''s definition of done across the whole
+-        target set - verify every requested target has a per-target report, check
+-        each report against the fixed costing-sufficiency rubric (satisfied by
+-        honest residual-gap recording, never by gap absence), drive at most one
+-        bounded re-trace per deficient target, and write the run-level delta index
+-        - contributing the run-level universal quantifier of the parent''s definition
+-        of done. Out of scope - producing any trace content itself, and any costing
+-        judgment.
+-
+-        '
+-      roles:
+-      - investigator
+-      consumes:
+-      - delta_report
+-      - run_input_and_preflight_record
+-      produces:
+-      - delta_report
+-      activities:
+-      - Mechanical coverage check - diff the frozen requested-target list against
+-        the per-target report files on disk; persist the diff output.
+-      - Rubric check per report against the fixed section list frozen in trace_target_delta's
+-        success outcome (the rubric predates every instance run by construction);
+-        persist a per-target verdict. The seat running this check is binding-guaranteed
+-        separate - it is never the seat of any trace_target_delta instance whose
+-        report it judges (item 19; the lead enforces the seat split at dispatch).
+-        A report whose deficiency is recorded as a residual gap after its re-trace
+-        bound is exhausted passes the rubric - honest gap recording is sufficiency,
+-        not a rubric failure.
+-      - On a deficient report, route the named target back for one re-trace; after
+-        that single bound, record the deficiency as a residual gap in the index
+-        and treat the report as sufficient. Downstream, costing's evidence-gap
+-        edge may automatically re-demand the gap; the operator-visible designed
+-        stop on that loop is costing's stalled outcome routing to the run pause
+-        (cross-boundary widening registered as a resync item, frontier notes item
+-        18 - not authored here).
+-      - Write the run-level delta index binding per-target reports, verdicts,
+-        and residual gaps into one costing-consumable artifact.
+-      - Emit exactly one outcome under the declared precedence - reports_insufficient
+-        wins while any deficient target's re-trace bound is unexhausted; sources_unreachable
+-        wins once no re-trace remains and any target is blocked on a source; delta_mapped
+-        otherwise. Mirrors the run-closure node's repair-before-hold-before-close
+-        precedence.
+-      allowed_effects:
+-      - Writes only the run-level index and sufficiency record under the run's
+-        delta artifact directory.
+-      forbidden_effects:
+-      - Editing any per-target report body.
+-      - Any write outside the run's delta artifact directory.
+-      outcomes:
+-        delta_mapped:
+-          meaning: Every requested target's report is present and rubric-sufficient,
+-            where sufficiency is satisfied by honest residual-gap recording, not
+-            gap absence - a post-bound recorded deficiency selects this outcome
+-            rather than blocking it; the run-level index is written. Emitted only
+-            when neither higher-precedence outcome holds. Carries the parent outcome's
+-            meaning.
+-          required_evidence:
+-          - delta_report
+-        reports_insufficient:
+-          meaning: Named targets' reports fail the rubric and their re-trace bound
+-            is not exhausted; only those targets re-trace. Highest precedence
+-            - wins over sources_unreachable while any re-trace remains.
+-        sources_unreachable:
+-          meaning: One or more targets are blocked on an unavailable reference
+-            source and no re-trace remains outstanding; traced targets keep their
+-            reports and per-target resumable state is preserved. Wins over delta_mapped.
+-            Carries the parent outcome's meaning.
+-    screen_pin_and_progress:
+-      intent: explore
++    design_campaign:
++      intent: plan
+       instance_per: approved_campaigns
+-      purpose: Entry triage for this campaign's design round. Decide two questions
+-        against read-only evidence - (1) feasibility at the pin - does every capability
+-        the kickoff-declared target needs still exist in the pinned repo (the
+-        expected real failure - a target whose required subsystem left the repo
+-        at the pin, needing re-scope or an upstream-issue path); (2) progress
+-        - does the adversarial findings history from prior design rounds leave a
+-        viable untried design lever (an empty history on the first round passes
+-        by definition). Re-entry check tool - the investigator seat runs on the
+-        FIRST entry into
+-        this campaign's design phase and on any re-entry whose trigger carries
+-        feasibility-questioning evidence (a finding or defect naming the pin,
+-        a missing surface, or a capability doubt) or new findings-history entries
+-        since the last screen. Every other re-entry the lead decides mechanically
+-        with no seat - the campaign's campaign_target_pins entry compared equal to
+-        its source (pinned_release, or the kickoff-declared upgrade base),
+-        the standing pin_feasibility_note cited, and the named viable lever confirmed
+-        current - recorded in run state without re-authoring the note. An unchanged,
+-        already-verified fact decides mechanically; a changed input to a judgment
+-        gets fresh eyes. Ambiguity about the mode runs the seat, and a record_incomplete
+-        re-entry naming the screen as owning sibling always runs the seat. Out
+-        of scope - any design authoring, code change, or hardware contact.
++      purpose: Design this campaign end to end and hand gate 2 one complete design
++        record. Four steps, in order, under one node id. (1) Screen - decide against
++        read-only evidence that every capability the kickoff-declared target needs
++        still exists in the pinned repo, and that the findings history from prior
++        design rounds leaves a viable untried design lever (an empty history passes
++        by definition); the note records re-checkable absence evidence or the named
++        lever. (2) Draft - the CPU-first increment plan, test layout, venv plan,
++        lease plan, and refined predicted file surface, all under the kickoff
++        contract. Per increment the plan declares a stable id; the file surface it
++        touches; the CPU-mode acceptance command WITH its expected result (a tier-1
++        measurement against a declared threshold, never a bare exit check); test-layout
++        additions; the single-agent-context size check; and a substrate decision -
++        kernel-class (NKI required for kernel-class functionality the existing Neuron
++        NKI library does not already provide, with the NKI simulator path named as
++        its CPU-mode acceptance route) or an explicit non-kernel-class declaration,
++        each with rationale. Any touch of the patch-application entry point or the
++        ad hoc monkeypatches is a design decision recorded here, never implementer
++        initiative. For upgrade-route campaigns only, assemble the regression matrix
++        the acceptance gate reads - a stable row id, a model-by-feature cell, a
++        procedure reference into the in-repo accuracy framework, and a verbatim-quotable
++        threshold per at-risk support-table cell, rows on the unread orchestration
++        layer flagged as a higher risk tier. (3) Register - freeze the comparator
++        set (baseline identity, configuration, versions, the GPU-side reference
++        version and known cross-version behavior differences) and record every
++        kickoff-declared criterion adjudicable as written - verbatim thresholds or
++        matrix rows with procedure references, per-procedure measurement-pitfall
++        pre-emptions, per-criterion check-tool liveness pairs (the value that must
++        appear evaluated, and a known-bad input the procedure must fail on), and
++        the consecutive-read stability count and minimum re-read spacing. A criterion
++        that cannot be registered adjudicably is surfaced, never reworded - kickoff-declared
++        criteria change only by explicit user decision (P9). (4) Assemble - the
++        campaign_design_record from the three outputs, then the completeness self-check
++        before the record reaches gate 2 - every increment carries its full contract;
++        every criterion is adjudicable as written; the patch-decision and substrate
++        registers are present with explicit none-declarations; the coverage trace
++        maps every kickoff-declared deliverable and criterion to the increments
++        that implement it and the registered acceptance that judges it. When the
++        screen finds a required capability absent at the pin, assemble the
++        infeasibility variant instead - the evidence, re-scope options, and
++        upstream-issue draft path close-out needs. Every artifact is authored against
++        the target artifacts on disk, never from memory of them, and carries the
++        current lead-minted design_entry_id. Hands - whether the first round runs
++        as one seat or as sequential seats (screen, draft, register, assemble) under
++        this one node is run setup declared per node (spec section 2.1); a large
++        campaign runs sequential seats so no seat exceeds its bounded context, and
++        the investigator seat owns the screen. Re-entry - the brief names the parts
++        to touch and the finding or contradiction each answers; an unchanged part
++        is not re-authored, the round hands back a block diff, and a round that must
++        touch a part the brief did not name stops and reports the cascade for a
++        re-brief. Re-entry check tool - when the campaign_target_pins entry equals
++        its source and the standing note is cited, the registration is byte-unchanged
++        with no standing finding naming a registered value, and the only changed
++        input is a block diff the lead has read touching no unnamed part, the lead
++        performs the delta and re-runs the completeness self-check with no seat,
++        recorded in run state; a registered-value touch, a finding naming a screen
++        fact, a self-check gap, or ambiguity runs the seat. A registered-value
++        touch always gets a fresh value-level read,
++        never hash-only verification. Superseded round material is deleted from the
++        read path at each re-entry, the supersession recorded as one revision-log
++        line; the current record carries the current design content only. Out of
++        scope - code changes, hardware contact, any measurement.
+       roles:
+       - investigator
++      - implementer
+       consumes:
+       - kickoff_contract_record
+       - delta_report
+@@ -1105,332 +1104,46 @@ pave:
+       - rederivation_record
+       produces:
+       - pin_feasibility_note
+-      activities:
+-      - The note records the detector basis - the compared findings entry references
+-        and the design-evidence-movement comparison - even though the frozen outcome
+-        declares no required_evidence.
+-      - On a lead-decided re-entry the run-state entry records the target-pin
+-        compare, the prior note cited, and the progress-facts basis; no fresh
+-        note artifact is authored.
+-      forbidden_effects:
+-      - Code changes to the target repo.
+-      - Hardware contact of any kind.
+-      outcomes:
+-        screen_passed:
+-          meaning: Target realizable at the pin, and the findings history (empty
+-            on first round) leaves a viable design lever, named in the note on re-entry
+-            rounds.
+-          required_evidence:
+-          - pin_feasibility_note
+-        pin_infeasible:
+-          meaning: A capability the target requires is absent at the pinned release;
+-            the note names the missing surface with repo evidence and lists candidate
+-            re-scope and upstream-issue paths for the design record. Reported
+-            ahead of progress_exhausted when both hold, because re-derivation
+-            cannot restore a surface absent at the pinned revision. A surface
+-            that cannot be shown absent with re-checkable command output is not
+-            infeasible; the question falls through to the progress screen.
+-          required_evidence:
+-          - pin_feasibility_note
+-        progress_exhausted:
+-          meaning: The findings history shows the same material finding recurring
+-            across design rounds with no untried lever; feeds the parent's no_progress
+-            route to first-principles re-derivation. Yields to pin_infeasible
+-            when both hold.
+-    draft_increment_plan:
+-      intent: plan
+-      instance_per: approved_campaigns
+-      purpose: Draft this campaign's CPU-first increment plan, test layout, venv
+-        plan, lease plan, and refined predicted file surface, all under the kickoff
+-        contract. Per increment the plan declares - a stable increment id; the
+-        file surface it touches; the CPU-mode acceptance command WITH its expected
+-        result (a tier-1 measurement against a declared threshold, never a bare
+-        exit check - downstream refuses a plan without per-increment acceptance
+-        rather than inventing criteria); test-layout additions (upstream ships
+-        no test suite; the fork uses an overlay re-applied per rebase); and single-agent-context
+-        size check. Any touch of the patch-application entry point or the ad hoc monkeypatches,
+-        and any patch centralization, is a design decision recorded here - never
+-        implementer initiative. Every increment records a substrate decision -
+-        kernel-class (NKI required for kernel-class functionality the existing
+-        Neuron NKI library does not already provide) or an explicit non-kernel-class
+-        declaration - recorded here with rationale like the patch decisions, so
+-        a silent classification never exists; torch-level fallback for kernel-class
+-        work is a design defect at both review gates, never an implementer option
+-        (the run's kernel-substrate rule). Kernel-class NKI increments name their
+-        CPU-mode acceptance route explicitly - the NKI simulator path (NKI_SIMULATOR=1;
+-        the pin's plugin tree deleted its nki_cpu_sim helper, so the design names
+-        the harness it will use) - never left to implementer invention. The refined
+-        predicted file surface is the union of per-increment surfaces ranked by
+-        known collision order; it feeds the lead's scheduling-holds re-derivation.
+-        The venv plan uses the freeze-replicate recipe and records the private-index
+-        precondition for dependencies that do not resolve from public PyPI. The
+-        draft is authored against the target artifacts on disk - checkpoint configuration,
+-        weight index, source at the pin - never from memory of them; a plan that
+-        cites an artifact the round did not read is a defect of this node. The plan
+-        is a living document under the layout reference's cap, every block
+-        addressable by a stable id. On re-entry the brief names the blocks to touch
+-        and the finding or contradiction each answers; the round hands back a block
+-        diff - the touched blocks, nothing else - never a whole-plan rewrite, and a round that finds
+-        it must touch a block the brief did not name stops and reports the cascade
+-        for a re-brief instead of editing it. A whole-plan round (a deletion or
+-        reconciliation under the cap) is its own briefed round and gets a whole-plan
+-        review. Out of scope - acceptance-criteria authoring, code changes, hardware
+-        contact.
+-      roles:
+-      - implementer
+-      consumes:
+-      - kickoff_contract_record
+-      - delta_report
+-      - pin_feasibility_note
+-      - adversarial_review_findings
+-      produces:
+       - increment_plan_draft
+-      activities:
+-      - Per-increment contract - stable id, file surface, CPU-mode acceptance
+-        command with expected result, test-layout additions, single-agent-context
+-        size check.
+-      - Monkeypatch and patch-centralization decisions recorded as design decisions
+-        with rationale.
+-      - Per increment - substrate decision (kernel-class with NKI substrate, or
+-        explicit non-kernel-class declaration), recorded with rationale; NKI increments
+-        name their simulator-path CPU-mode acceptance route.
+-      - Refined predicted file surface with collision ranking for scheduling holds.
+-      - Venv plan (freeze-replicate, private-index precondition).
+-      - Hardware lease plan.
+-      forbidden_effects:
+-      - Code changes to the target repo.
+-      - Hardware contact of any kind.
+-      outcomes:
+-        plan_drafted:
+-          meaning: Increment plan, test layout, venv plan, lease plan, and refined
+-            predicted file surface drafted; every increment carries its full per-increment
+-            contract. On a block-scoped re-entry the block diff is the round's
+-            evidence.
+-          required_evidence:
+-          - increment_plan_draft
+-        scope_exceeded:
+-          meaning: The campaign as kicked off cannot be planned within this node's
+-            bounded context; names what breaches the bound for re-planning.
+-    assemble_regression_matrix:
+-      intent: plan
+-      instance_per: approved_campaigns
+-      purpose: For upgrade-route campaigns only (routing gates on the kickoff-declared
+-        route) - assemble the regression matrix the campaign's acceptance gate
+-        reads. New construction - generated from the support table plus the in-repo
+-        accuracy framework. Each row is adjudicable as written - a stable row
+-        id, a model-by-feature cell, a procedure reference into the framework,
+-        and a verbatim-quotable threshold. Rows that depend on the framework's
+-        newer orchestration layer (unread at exploration time) are flagged as
+-        a higher risk tier than rows on the stable primitives. Out of scope -
+-        running any procedure, code changes, hardware contact.
+-      roles:
+-      - implementer
+-      - investigator
+-      consumes:
+-      - kickoff_contract_record
+-      - delta_report
+-      - pin_feasibility_note
+-      produces:
+-      - regression_matrix_draft
+-      activities:
+-      - Sweep the support table for cells the pin change puts at risk.
+-      - Select a framework level and procedure reference per row; quote its threshold
+-        verbatim.
+-      - Flag rows on the unread orchestration layer as higher risk tier.
+-      forbidden_effects:
+-      - Code changes to the target repo.
+-      - Hardware contact of any kind.
+-      - Executing any matrix procedure; assembly is design-time only.
+-      outcomes:
+-        matrix_assembled:
+-          meaning: Every at-risk support-table cell has an adjudicable row with
+-            procedure reference and verbatim threshold; risk tiers flagged.
+-          required_evidence:
+-          - regression_matrix_draft
+-        matrix_blocked:
+-          meaning: The support table plus framework evidence cannot yield adjudicable
+-            rows for a kickoff-declared cell; names the gap. Criteria changes
+-            need an explicit user decision, so this feeds the parent's no_progress
+-            route to re-derivation. When this and scope_exceeded co-hold, matrix_blocked
+-            is emitted - a confirmed criteria gap survives any re-scoping - and
+-            the blocked record carries the scope-breach evidence as an annex so
+-            nothing is lost. Claimable only for a cell whose non-adjudicability
+-            was decided on evidence read in full; a suspicion formed on a partial
+-            read is not a blocker.
+-        scope_exceeded:
+-          meaning: Matrix assembly breaches this node's bounded context; names
+-            what breaches the bound for re-planning. The honest outcome when the
+-            context bound falls before a cell's evidence is read out - a partial-read
+-            suspicion never claims matrix_blocked.
+-    preregister_acceptance:
+-      intent: plan
+-      instance_per: approved_campaigns
+-      purpose: Pre-register the kickoff-declared acceptance procedures for this
+-        campaign's route, separated from all measurement - the codified remedy
+-        for the observed wrong-baseline failure where the measuring agent picked
+-        its own comparators. Freeze the comparator set - baseline identity, configuration,
+-        and versions, including the GPU-side reference version and known cross-version
+-        behavior differences (baseline-skew statement). Record every criterion
+-        adjudicable as written - verbatim-quotable thresholds or matrix rows with
+-        procedure references; a criterion that cannot be registered adjudicably
+-        is surfaced, never reworded, because kickoff-declared criteria change
+-        only by explicit user decision. Record known measurement-tool pitfalls
+-        per procedure as pre-emptions the measurement design must honor. Register
+-        each criterion's check-tool liveness pair beside the criterion - the value
+-        that must appear as evaluated in the evidence, and a known-bad input the
+-        procedure must fail on - because a check tool nobody has seen fail grades
+-        nothing, and a criterion whose check tool has no such known-bad input is surfaced
+-        as unadjudicable rather than registered. Inputs
+-        are route- and round-conditional - backport-route instances arrive without
+-        regression_matrix_draft (the matrix node is never instantiated on that
+-        route), and first-round instances arrive without adversarial_review_findings
+-        (the findings history is empty before the first gate-2 review); neither
+-        absence is a gap. The registration artifact goes to the lead for commitment
+-        into run state before any measurement starts. Re-entry check tool - the
+-        implementer seat runs on
+-        the FIRST preregistration and on any re-entry whose repair touched a registered-value
+-        surface - comparator identity, configuration, or version, a criterion,
+-        threshold, tolerance, stability count, or re-read spacing - and a registered-value
+-        touch always gets the value-level comparison, never hash-only verification
+-        (P9 stands unwaived - the frozen acceptance registration is never opened,
+-        and a repair that would move a registered value STOPs for the user). Every other re-entry - registration
+-        byte-unchanged by digest and mtime, no standing finding naming a registered
+-        value - the lead decides mechanically with the four-slice verification
+-        against the frozen registration, recorded in run state, no seat and no
+-        fresh verification artifact. Ambiguity runs the seat. Out of scope - any
+-        measurement, code change, or hardware contact.
+-      roles:
+-      - implementer
+-      consumes:
+-      - kickoff_contract_record
+       - regression_matrix_draft
+-      - adversarial_review_findings
+-      produces:
+       - acceptance_preregistration
+-      activities:
+-      - Comparator set frozen - identity, config, versions, baseline-skew statement.
+-      - Criteria registered verbatim with procedure references, scoped to this
+-        campaign's route.
+-      - Per-procedure measurement-pitfall pre-emptions recorded.
+-      - Per-criterion check-tool liveness pair registered as adjudicable values
+-        - the value that must appear evaluated, and the known-bad input the procedure
+-        must fail on (shape in references/artifact-layout.md section 4.5).
+-      - Consecutive-read stability count and minimum re-read spacing for stable-read
+-        collection declared as adjudicable values; they enter the campaign design
+-        record with the registration.
+-      forbidden_effects:
+-      - Running any measurement; pre-registration completes before measurement
+-        begins.
+-      - Code changes to the target repo.
+-      - Hardware contact of any kind.
+-      outcomes:
+-        acceptance_preregistered:
+-          meaning: Comparator set and route-scoped criteria frozen and adjudicable
+-            as written, ready for lead commitment into run state ahead of all
+-            measurement.
+-          required_evidence:
+-          - acceptance_preregistration
+-        criteria_unadjudicable:
+-          meaning: A kickoff-declared criterion cannot be registered as adjudicable
+-            without changing it; names the criterion and the ambiguity for an
+-            explicit user decision. A criterion whose check tool cannot be shown
+-            to fail on any known-bad input lands here too - it cannot be graded,
+-            and rewording it is forbidden.
+-    assemble_design_record:
+-      intent: plan
+-      instance_per: approved_campaigns
+-      purpose: Join point - assemble the campaign_design_record in this campaign's
+-        design artifact directory from the sibling outputs, then run the completeness
+-        self-check before the record reaches gate 2 - every increment carries
+-        its full per-increment contract including acceptance command with expected
+-        result; every criterion is adjudicable as written; wording is scoped to
+-        the kickoff-declared acceptance procedures for this campaign's route;
+-        comparator registration is present and committed (the lead commits on
+-        consuming acceptance_preregistered - the run-state commitment entry exists);
+-        the patch-decision register is present, with an explicit none-declaration
+-        when no patch surface is touched; the substrate register is present, with
+-        an explicit non-kernel-class declaration for every increment that declares
+-        no substrate; the coverage trace is present - every kickoff-declared deliverable
+-        and criterion traces to the increments that implement it and the registered
+-        acceptance that judges it; the consecutive-read stability count and minimum
+-        re-read spacing are declared; the refined file surface, test layout, venv
+-        plan, lease plan, and (for upgrade-route campaigns) the regression matrix
+-        are present. When routed from a pin-infeasibility screen, assemble the
+-        infeasibility variant instead - the evidence, re-scope options, and upstream-issue
+-        draft path close-out needs. The assembler refuses to run without the current
+-        lead-minted design-entry id - a missing or ambiguous id is a blocked precondition,
+-        never an outcome emission - and every artifact it emits carries that id.
+-        Re-entry check tool - on re-entry the assembler updates in place only
+-        the sections whose
+-        inputs changed since the current design_entry_id was minted, then re-runs
+-        the completeness self-check on the updated record - never a full re-copy
+-        of unchanged text. Per-round banners, finding histories, and repair narratives
+-        never belong to the current record - the current record carries the
+-        current revision's design content only, and superseded round material is
+-        deleted at each re-entry, the supersession recorded as one revision-log
+-        line in the record plus the run-state entry (layout reference deletion
+-        rule).
+-        An artifact no round re-produced is not superseded - it stays in the read
+-        path stamped forward. A record that grows monotonically with round count
+-        is a defect of this node. When the only input changed since the current
+-        design_entry_id is a block diff the lead has read, touching no unnamed
+-        block, whose touched blocks keep their per-increment contracts complete, the lead performs
+-        the delta - pointer lines updated, the completeness self-check
+-        re-run from the declared checklist - and records it in run state with no
+-        seat; any other changed input (registration, matrix, note, kickoff contract),
+-        a self-check gap, or ambiguity runs the assembler seat.
+-        Out of scope - authoring or altering any design content owned by a sibling;
+-        code changes; hardware contact.
+-      roles:
+-      - implementer
+-      consumes:
+-      - kickoff_contract_record
+-      - pin_feasibility_note
+-      - increment_plan_draft
+-      - acceptance_preregistration
+-      - regression_matrix_draft
+-      - adversarial_review_findings
+-      produces:
+       - campaign_design_record
+-      activities:
+-      - Assemble the record from sibling outputs; point at artifacts, never inline
+-        bulk content.
+-      - Completeness self-check against the declared checklist; name the owning
+-        sibling for any gap.
+-      - Infeasibility variant when routed from pin_infeasible.
+       forbidden_effects:
+-      - Authoring design content owned by a sibling node.
+       - Code changes to the target repo.
+       - Hardware contact of any kind.
++      - Running any measurement or any matrix procedure.
+       outcomes:
+-        record_ready:
+-          meaning: Complete, self-checked design record assembled; feeds the parent's
+-            design_ready outcome into gate-2 review. Never co-holds with infeasibility_recorded
+-            - the variant selector (pin_feasibility_note's recorded verdict) admits
+-            exactly one variant.
++        design_ready:
++          meaning: Complete, self-checked design record assembled with its frozen
++            acceptance registration, ready for gate 2. Never co-holds with
++            infeasibility_recorded.
+           required_evidence:
+           - campaign_design_record
+-        record_incomplete:
+-          meaning: The self-check found a missing or non-adjudicable component;
+-            names the owning sibling for a bounded repair loop. Outranks both
+-            evidence-bearing outcomes - a record with a named gap loops to its
+-            owning sibling before it reaches gate 2 or close-out. The stall detector
+-            behind this loop reads only round entries carrying the current design-entry
+-            id; superseded design entries' artifacts are deleted from the read
+-            path.
++          - acceptance_preregistration
+         infeasibility_recorded:
+-          meaning: The record documents pin infeasibility with evidence, re-scope
+-            options, and an upstream-issue draft path; feeds the parent's infeasible_at_pin
+-            outcome toward close-out. Selected by the variant selector; never
+-            co-holds with record_ready.
++          meaning: A capability the target requires is absent at the pinned release,
++            shown with re-checkable command output; the record documents the
++            evidence, re-scope options, and an upstream-issue draft path toward
++            close-out. Reported ahead of design_blocked when both hold, because
++            re-derivation cannot restore a surface absent at the pin.
+           required_evidence:
+           - campaign_design_record
++          - pin_feasibility_note
++        design_blocked:
++          meaning: The design cannot be completed as kicked off and the record names
++            which stop fired - the findings history shows the same material finding
++            recurring with no untried lever; the plan or matrix breaches this node's
++            bounded context even across sequential seats; a kickoff-declared cell
++            or criterion cannot be made adjudicable without changing it; or the
++            completeness self-check finds the same named gap recurring with no
++            gap-closing artifact since the prior round. Routed to first-principles
++            re-derivation with the evidence.
+     scope_next_increment:
+       intent: plan
+       instance_per: approved_campaigns
+       purpose: 'On every entry to implementation - fresh from the design gate,
+-        or re-entry from implementation review, a confirmed correctness shortfall,
+-        or a confirmed regression - reconcile three persisted inputs: the approved
++        or re-entry from implementation review, a correctness shortfall verdict,
++        or a regression verdict - reconcile three persisted inputs: the approved
+         design''s increment plan, the adversarial findings history for this campaign,
+         and the per-increment evidence records already on disk. Verify the campaign
+         worktree and branch preconditions (worktree present, branch based on this
+@@ -1444,7 +1157,16 @@ pave:
+         order (a set whose items declare pairwise-disjoint file-and-method surfaces
+         under the collision ranking''s declared-scope rule is marked eligible for
+         concurrent implementation; any other set is implemented in the recorded order);
+-        or the completion, defect, exhaustion, or no-progress verdict. Work-item classes and their declared acceptance: build or repair
++        or the completion, defect, exhaustion, or no-progress verdict. On plan_satisfied
++        the lead also assembles the implementation_changeset in the same round - the
++        campaign branch diff against the target base recorded in campaign_target_pins,
++        the evidence index proving every planned and repair increment carries a passing
++        CPU-mode record, the transcript of a mechanical NxDI-import scan over the diff
++        (zero hits), and the transcript of the mechanical substrate-fidelity check
++        (every design-declared-NKI increment''s diff shows NKI usage); both transcripts
++        meet the scan-completeness discipline pinned at references/artifact-layout.md
++        section 4.6. A gap in any of the four is a coverage-gap work item minted in
++        the same round record with its class (a)-(d), and the round re-enters. Work-item classes and their declared acceptance: build or repair
+         increments (the design''s CPU-mode command); coverage-gap items (the recomputed
+         gap check that found the gap - the missing increment''s own CPU-mode command
+         for a record gap, the evidence-index coverage recomputation for a diff-work-uncovered
+@@ -1508,15 +1230,19 @@ pave:
+       - increment_lap_record
+       produces:
+       - increment_lap_record
++      - implementation_changeset
+       activities:
+       - When a seat is dispatched, it is the one retained doer thread per campaign
+-        that answers this node and its stage-6 loop siblings (realize_increment,
+-        record_changeset) for every item; replaced only when its context degrades
+-        the work.
++        that answers this node and its stage-6 loop sibling (realize_increment)
++        for every item; replaced only when its context degrades the work.
++      - On plan_satisfied, assemble the four changeset components with the commands
++        recorded in the round record; each is recomputable by a reviewer from the
++        branch and the records.
+       allowed_effects:
+       - Reads of the campaign worktree, design record, findings history, and increment
+         evidence records.
+-      - Writes of round records inside this campaign's evidence directory only.
++      - Writes of round records and the changeset artifact inside this campaign's
++        evidence directory only.
+       forbidden_effects:
+       - Any write to the campaign worktree source tree or any branch.
+       outcomes:
+@@ -1542,9 +1268,11 @@ pave:
+         plan_satisfied:
+           meaning: Every increment in the approved plan, plus every repair item
+             derived from confirmed findings, carries a passing CPU-mode evidence
+-            record on disk; nothing is pending. Routes to changeset recording.
++            record on disk; nothing is pending, and the changeset artifact is assembled
++            in this round. Routes to implementation review.
+           required_evidence:
+           - increment_evidence_records
++          - implementation_changeset
+         plan_unrealizable_as_designed:
+           meaning: The design's increment plan contradicts the repo state this
+             node can observe - a named surface or precondition does not exist
+@@ -1633,8 +1361,8 @@ pave:
+       - Commit to the campaign branch and write the one-file increment evidence
+         record.
+       - One retained doer thread per campaign answers this node and its stage-6
+-        loop siblings (scope_next_increment when a seat is dispatched, record_changeset)
+-        for every item; replaced only when its context degrades the work.
++        loop sibling (scope_next_increment when a seat is dispatched) for every
++        item; replaced only when its context degrades the work.
+       allowed_effects:
+       - Writes inside this campaign's worktree - or, for a concurrent-eligible set,
+         one checkout per item on the campaign branch - and branch on the fork.
+@@ -1678,202 +1406,135 @@ pave:
+             acceptance passed on work done as designed - the last door in the
+             precedence. For a set, names each stuck item; the passed items' records
+             stand and land.
+-    record_changeset:
++    prepare_host:
+       intent: execute
+       instance_per: approved_campaigns
+-      purpose: 'Assemble this campaign''s implementation_changeset as the parent''s
+-        deciding artifact: the campaign branch diff against this campaign''s target
+-        base recorded in campaign_target_pins, the index proving every planned
+-        and repair increment carries a passing CPU-mode evidence record, the transcript
+-        of a mechanical NxDI-import scan over the diff (zero hits required - the
+-        run-wide forbidden effect checked at the changeset boundary, where the
+-        whole ported surface is visible at once), and the transcript of the mechanical
+-        substrate-fidelity check - every design-declared-NKI increment''s diff
+-        surface shows NKI usage, a presence predicate on a doer-made declaration
+-        (zero NKI usage in a declared-NKI increment is a recorded contradiction;
+-        the predicate never asks what any torch code is doing, so boundary plumbing
+-        cannot false-fire it). Both transcripts meet the scan-completeness discipline
+-        pinned at references/artifact-layout.md section 4.6.
+-        Out of scope - any new code change; a gap found here routes back to scoping.
+-
+-        '
++      purpose: Put one leased, identity-verified Neuron host with this campaign's
++        own venv under the campaign. Two entry modes. Full mode (from implementation
++        review, or after a host was given up) - lease, then venv. Probe-only mode
++        (after a host recovery) - the lease stands, so run only the venv verification
++        probes and never re-request a lease the campaign already holds. Lease -
++        a lease reserves named non-shareable pools from the roster's declared
++        capacity, never the whole host. One noun at two grains. The campaign lease,
++        taken here through the hardware queue tool on a target-capable host, reserves
++        nothing and binds the campaign to the host's verified identity. A job lease
++        is held by every job on that host that takes non-shareable capacity (a venv
++        build, an attempt, a recovery action) and names the pools and amounts it
++        takes - Neuron devices, host memory for compilation, CPU cores for a long
++        compile or a many-worker start-up, the compile-cache write slot (a pool of
++        one until the cache read is per job, because with two writers a clearing can
++        hide behind the other's additions), any other pool the roster sizes. A job
++        starts when its reservation fits the remaining capacity - the roster's pools
++        minus every open job lease, derived from the lease records (grants without a
++        release), never a stored counter - so jobs of different campaigns share a
++        host when their reservations fit. A reservation larger than a pool's roster
++        size is a defect in the request, corrected and re-requested, never a wait. A
++        job that takes no pool (for example a CPU-mode run that opens no device,
++        writes no cache, and needs no core or memory pool) holds no job lease,
++        because it takes nothing another job could lack; it runs under the
++        campaign lease on its own identity probe and attempt record. Before the
++        campaign lease counts as held, re-verify the host's identity live over
++        one-shot SSH against the roster's recorded identity markers (instance
++        identifier, hostname, and a boot identifier when the host exposes one -
++        record which markers were checkable). A boot-identifier-ONLY delta is
++        expected when a logged reboot for that host precedes it in any campaign's
++        recovery records for that host; an instance-identifier or hostname mismatch
++        is always a hard stop. The hardware queue tool is the single writer of every
++        lease record - grant, release, and amendment, one file per event, the grant
++        taken under a per-host lock so two jobs never both get the last unit; a grant
++        whose job's attempt record closed without a release is released by the tool
++        on its next invocation, never by hand; an amendment (a new boot identifier)
++        applies to every campaign lease naming the host; the requesting seat invokes
++        the tool and never writes a record by hand; the lead freezes the roster at
++        intake, reads the records for scheduling, and arbitrates nothing per grant. A campaign lease
++        record carries host, markers verified, markers unavailable, deltas explained,
++        grant reference; a job lease record carries the job, the pools and amounts
++        reserved, grant time, and release. Venv - build the
++        campaign's isolated venv on the leased host by the freeze-replicate recipe
++        and prove it live - discover the DLAMI baseline venv path per host (never
++        hardcode a suffix), check the ~10 GB disk budget, freeze, SCREEN the freeze
++        (drop the plugin package's own entry and every editable or direct-file
++        reference, logging the screened lines), replay into a fresh per-campaign venv
++        with the vendor private index, editable-install the campaign worktree with
++        --no-deps, then verify - (a) the private-index core dependency resolved as
++        a real distribution, checked via installed-package metadata; (b) an
++        edit-visibility probe with a campaign-derived sentinel round-trips through
++        the venv's import path; (c) the disk check ran before the build. Failure-class
++        precedence when both hold - a build failure whose cause is host-level (disk
++        exhaustion, device errors, unreachability) is host_faulted, never
++        replication_failed. A recipe failure on a healthy host is fingerprinted and
++        counted against the per-target hardware-attempt budget before any retry;
++        never retry an identical fingerprinted build; at the tier-2 threshold exit
++        replication_failed with all fingerprints attached. Out of scope - any host
++        mutation beyond the identity probe and the venv build; any write to the
++        shared DLAMI venv or /opt.
+       roles:
+       - implementer
+       consumes:
+-      - increment_evidence_records
+-      - increment_lap_record
+-      - campaign_design_record
+-      produces:
+       - implementation_changeset
+-      activities:
+-      - One retained doer thread per campaign answers this node and its stage-6
+-        loop siblings (scope_next_increment when a seat is dispatched, realize_increment)
+-        for every item; replaced only when its context degrades the work.
+-      allowed_effects:
+-      - Read-only git diff of the campaign branch against its recorded target
+-        base.
+-      - Writes of the changeset artifact inside this campaign's evidence directory.
+-      forbidden_effects:
+-      - Any write to the campaign worktree source tree or any branch.
+-      outcomes:
+-        changeset_recorded:
+-          meaning: The changeset artifact holds the git-produced branch diff,
+-            an evidence index in which every planned increment resolves to a passing
+-            record, the import-scan transcript with zero NxDI hits, and the substrate-fidelity
+-            transcript (every declared-NKI increment shows NKI usage) - decided
+-            by re-reading those four external components, each recomputable
+-            by a reviewer from the branch and the records. Implements the parent
+-            outcome increments_ready.
+-          required_evidence:
+-          - implementation_changeset
+-        coverage_gap_found:
+-          meaning: A named gap routes back to scoping as a coverage-gap work item
+-            whose declared acceptance is the recomputed gap check that found it
+-            - (a) an increment lacks a passing record (acceptance = that increment's
+-            own CPU-mode command), (b) the diff contains work no increment record
+-            covers (acceptance = the evidence-index coverage recomputation), (c)
+-            the import scan hit (acceptance = the import scan re-run over the
+-            repaired diff), or (d) a substrate-fidelity hit (acceptance = the
+-            substrate-fidelity check re-run over the repaired diff). The gap identity
+-            persists in the round record so recurrence feeds the no-progress detector.
+-    acquire_hardware_lease:
+-      intent: execute
+-      purpose: Obtain an exclusive lease on a target-capable Neuron host from
+-        the shared hardware queue for this campaign. Before the lease counts as
+-        held, re-verify the host's identity live over one-shot SSH against the
+-        roster's recorded identity markers (instance identifier, hostname, and
+-        a boot identifier when the host exposes one - obtainability is a runtime
+-        unknown, so record which markers were checkable). One legitimate-change
+-        marker - a boot-identifier-ONLY delta is expected when a logged reboot
+-        for that host precedes it in the recovery records; an instance-identifier
+-        or hostname mismatch is always a hard stop. The lead (queue service) is
+-        the single writer of the lease record; this node requests, verifies, and
+-        confirms - it never writes the record itself. Out of scope - any mutation
+-        of the host beyond the identity probe.
+-      roles:
+-      - implementer
+-      - lead
+-      consumes:
+       - campaign_design_record
+       produces:
+       - hardware_attempt_log
+       activities:
+-      - Read the hardware queue and roster; request a lease from the lead for
+-        a host matching the campaign's declared target hardware, excluding hosts
+-        whose recovery allowance for this campaign is exhausted (derived from
+-        the recovery records, never a stored counter).
+-      - Re-verify identity markers live over one-shot SSH before confirming the
+-        grant. A boot-identifier-only delta with a logged prior reboot for that
+-        host in the recovery records is legitimate - record the delta and proceed;
+-        any other mismatch refuses the host, reports the mismatch evidence verbatim,
+-        and requests the next roster candidate.
+-      - Append a one-file-per-event lease record (host, markers verified, markers
+-        unavailable, deltas explained, grant reference) to the attempt log.
++      - Full mode only - read the roster and the open lease records; take the campaign
++        lease through the queue tool on a host matching the campaign's declared target
++        hardware, excluding hosts
++        whose recovery allowance for this campaign is exhausted (derived from the
++        recovery records, never a stored counter); re-verify identity markers live
++        before confirming the grant; any mismatch other than an explained
++        boot-identifier delta refuses the host, reports the evidence verbatim, and
++        requests the next roster candidate.
++      - Full mode only - build the venv per the recipe above, under a job lease when
++        the build takes a pool; none when it takes no pool.
++      - Both modes - run the three verification probes and append their machine
++        outputs (metadata dump, sentinel round-trip value) to the attempt log.
++      - On a build failure, classify host-level causes first; fingerprint and count
++        a recipe failure before any retry.
+       allowed_effects:
+       - Read-only one-shot SSH identity probes to roster hosts.
+-      - Lease request/confirm exchange with the lead's queue service.
+-      forbidden_effects:
+-      - Writing the hardware queue or lease record directly (lead-only).
+-      - Any state-changing command on a host not yet leased.
+-      outcomes:
+-        lease_held:
+-          meaning: A lease record written by the lead names this campaign as the
+-            exclusive holder of one named host whose live identity markers matched
+-            the roster (or whose sole delta is a boot-identifier change explained
+-            by a logged reboot) - decided by reading the lease record plus the
+-            identity-probe transcript in the attempt log, never by this node's
+-            assertion.
+-          required_evidence:
+-          - hardware_attempt_log
+-        no_host_available:
+-          meaning: Every roster host matching the target is leased elsewhere,
+-            failed identity verification, exhausted its recovery allowance for
+-            this campaign, or is unreachable, and no replacement exists; maps
+-            to the parent's hardware_unavailable with the per-host refusal evidence.
+-            Each refusal names the measured state it rests on - the probe or read
+-            output showing that host claimed, unreachable, or mismatched - because
+-            this outcome closes an approved campaign, so a refusal resting on a
+-            precheck verdict instead of a measurement can close a campaign whose
+-            hardware was free. A precheck clause that no host of this class can
+-            satisfy is a defect in the precheck, recorded and re-run, never a
+-            refusal.
+-          required_evidence:
+-          - hardware_attempt_log
+-      instance_per: approved_campaigns
+-    replicate_campaign_venv:
+-      intent: execute
+-      purpose: Build this campaign's isolated venv on the leased host by the freeze-replicate
+-        recipe and prove it live. The recipe has never been executed end-to-end
+-        anywhere, so the first run is self-verifying by design - discover the
+-        DLAMI baseline venv path per host (docs disagree on the suffix; never
+-        hardcode), freeze it, replay the freeze into a fresh venv with the vendor's
+-        private package index configured, then editable-install the campaign worktree
+-        with --no-deps. Verify before declaring done - (a) the private-index core
+-        dependency resolved as a real distribution, not the public placeholder,
+-        checked via installed-package metadata; (b) an edit-visibility probe using
+-        a campaign-derived sentinel round-trips through the venv's import path;
+-        (c) the ~10 GB disk budget was checked before the build. On host reentry
+-        after recovery, re-run only the verification probes before reuse. Failure-class
+-        precedence when both hold - a build failure whose cause is host-level
+-        (disk exhaustion, device errors, unreachability) is host_faulted, never
+-        replication_failed; recipe verdicts on a faulted host are unreliable,
+-        and routing a host-caused build failure to the stop limit path would force
+-        approach re-derivation for a hardware problem. Out of scope - any write
+-        to the shared DLAMI venv or /opt.
+-      roles:
+-      - implementer
+-      consumes:
+-      - implementation_changeset
+-      - campaign_design_record
+-      produces:
+-      - hardware_attempt_log
+-      activities:
+-      - Discover the baseline venv path on the leased host; never assume a suffix.
+-      - Check disk headroom against the ~10 GB replica budget before building.
+-      - 'Freeze, then SCREEN the freeze before replay: drop the plugin package''s
+-        own entry and every editable or direct-file reference. The screened lines
+-        are logged with the screening rule so the screen itself is reviewable.
+-        Replay into a fresh per-campaign venv with the vendor private index, editable-install
+-        the worktree with --no-deps.'
+-      - Run the self-verification probes and append their machine outputs (metadata
+-        dump, sentinel round-trip value) to the attempt log.
+-      - On failure, classify host-level causes first (precedence above); only
+-        a build failure on a healthy host is a recipe failure. Fingerprint the
+-        failure event and count it against the per-target hardware-attempt budget
+-        before any retry; never retry an identical fingerprinted build. Before
+-        any retry, read the persisted per-target attempt counts; at the tier-2
+-        threshold, exit replication_failed with all fingerprints attached instead
+-        of retrying.
+-      allowed_effects:
++      - Campaign and job lease grant and release through the hardware queue tool.
+       - In-band SSH to the leased host; venv AND campaign-worktree creation under
+         the campaign's own directory only.
+       forbidden_effects:
++      - Writing a lease record by hand (the queue tool is the only writer).
++      - Any state-changing command on a host before the campaign lease names it and
++        the job's identity probe matched, or beyond what the job lease reserves.
+       - cp -a venv cloning; any pip write into /opt or the shared DLAMI venv (editable
+         installs included).
+       - Retrying a build whose failure fingerprint matches a recorded one.
+       outcomes:
+-        venv_ready:
+-          meaning: The per-campaign venv exists at its discovered path with the
+-            worktree editable-installed, and all three self-verification probes
+-            passed - decided by the probe artifacts (package metadata showing
+-            a real private-index distribution, the sentinel round-trip output)
+-            recorded in the attempt log, never by the builder's claim.
++        host_ready:
++          meaning: A lease record written by the queue tool names this campaign as a
++            holder of one named host whose live identity markers matched
++            the roster (or whose sole delta is a boot-identifier change explained
++            by a logged reboot), and the per-campaign venv exists at its discovered
++            path with all three verification probes passed - decided by the lease
++            record, the identity-probe transcript, and the probe artifacts in the
++            attempt log, never by this node's assertion. Other campaigns may hold the
++            same host; capacity is settled per job by its job lease, never here.
++          required_evidence:
++          - hardware_attempt_log
++        no_host_available:
++          meaning: Every roster host matching the target failed identity
++            verification, exhausted its recovery allowance for
++            this campaign, or is unreachable, and no replacement exists. Each
++            refusal names the measured state it rests on - the probe or read output
++            showing that host unreachable or mismatched - because this
++            outcome closes an approved campaign. A precheck clause that no host of
++            this class can satisfy is a defect in the precheck, recorded and re-run,
++            never a refusal.
+           required_evidence:
+           - hardware_attempt_log
+         replication_failed:
+           meaning: The recipe cannot produce a verified venv on this healthy host
+-            after non-identical, budget-counted retries (for example, a pin unresolvable
+-            from the private index, or native-extension breakage) with the failure
+-            fingerprints recorded - or the pre-retry read of the persisted per-target
+-            counts shows the tier-2 threshold reached, exiting with all fingerprints
+-            attached instead of retrying; recipe dead ends are approach-level
+-            and route to the stop limit path. Host-level causes never land here (precedence
+-            - host_faulted wins the mixed case).
++            after non-identical, budget-counted retries, or the tier-2 threshold
++            is reached, with the failure fingerprints recorded; recipe dead ends
++            are approach-level and route to the stop limit path. Host-level causes
++            never land here.
+         host_faulted:
+           meaning: The host itself failed under the build (unreachable, disk or
+             device errors) and needs recovery under lease; takes precedence over
+             replication_failed when a build failure has a host-level cause.
+-      instance_per: approved_campaigns
+     execute_attempt_loop:
+       intent: execute
+       purpose: Run compile-and-serve hardware attempts in-band over one-shot SSH
+@@ -1911,9 +1572,10 @@ pave:
+       - Pre-attempt tier-1 check against both fingerprint sources; design each
+         attempt to differ materially from every fingerprinted failure. Pre-attempt
+         tier-2 check against the per-target count.
+-      - Launch compile/serve in-band over one-shot SSH; narrate transcripts into
+-        the attempt log; read results from stable artifacts, never first-sighting
+-        signals.
++      - Launch each attempt under its own job lease for the capacity it takes -
++        none when it takes none (host preparation states the rule) - in-band over
++        one-shot SSH; narrate transcripts into the attempt log; read results from
++        stable artifacts, never first-sighting signals.
+       - On failure, record a one-file-per-event fingerprint (failure class, signature,
+         attempt configuration) and increment the per-target attempt count with
+         this route named, unless the failure's cause is host-level - the fingerprint
+@@ -1931,6 +1593,7 @@ pave:
+       allowed_effects:
+       - In-band SSH compile and serve runs on the leased host using the campaign
+         venv and the shared multi-writer-safe compile cache.
++      - Job lease grant and release through the hardware queue tool.
+       - Writes to the attempt's own tests, controls, launchers, checkers, and bundles
+         in the campaign worktree, committed on the campaign branch.
+       - Guardrailed delegate dispatch.
+@@ -1938,6 +1601,7 @@ pave:
+       - Clearing or bypassing the shared compile cache, including via a delegate's
+         documented remedy.
+       - Identical retry of a fingerprinted failure.
++      - Use of the host beyond what the attempt's job lease reserves.
+       - Out-of-band handoff files for hardware gates.
+       - Provisioning any instance, or letting a delegate do so.
+       outcomes:
+@@ -1964,36 +1628,44 @@ pave:
+             or memory exhaustion, stuck runtime) and needs recovery before the
+             loop can continue; the triggering attempt's fingerprint is recorded
+             first. Takes precedence over breaker_tripped on the threshold-reaching
+-            attempt. The faulted attempt itself is never charged to the per-target
+-            budget; the count already standing from earlier budget-counted attempts
+-            is never rolled back - that standing count is what re-trips the stop limit
+-            on resume.
++            attempt. Every attempt in flight on the host at the fault, this
++            campaign's or another's, is host-faulted and never charged to the
++            per-target budget - except an attempt whose transcript or fault telemetry
++            names its own use beyond its job lease, which is a failed attempt, fingerprinted
++            and charged; the count already standing from earlier budget-counted
++            attempts is never rolled back - that standing count is what re-trips
++            the stop limit on resume.
+       instance_per: approved_campaigns
+     recover_leased_host:
+       intent: execute
+-      purpose: Restore a faulted host that this campaign holds under exclusive
+-        lease, or determine it unrecoverable and hand back to lease acquisition
++      purpose: Restore a faulted host this campaign leases, alone or beside other
++        campaigns' leases, or determine it unrecoverable and hand back to host preparation
+         for a roster replacement. Hard sequence - re-verify the host's identity
+         markers live against the lease record BEFORE any state-changing action;
+         a boot-identifier-ONLY delta is legitimate when a logged reboot for that
+-        host precedes it in the recovery records, and any other mismatch refuses
++        host precedes it in any campaign's recovery records for that host, and any
++        other mismatch refuses
+         to act, records the mismatch verbatim, and exits host_unrecoverable with
+         no actions taken; drain and checkpoint in-flight work; take the recovery
+         action (service restart, then reboot as escalation) on the leased host
+         only; after the host returns, re-verify identity again and record the
+-        new boot identifier to the lead for the lease record BEFORE reporting
++        new boot identifier through the queue tool as a lease amendment BEFORE reporting
+         host_restored, so the next episode's pre-check compares against the current
+         value. Recovery allowance - one successful recovery per host per campaign;
+         a host that faults again AFTER a successful recovery has exhausted its
+         allowance and routes to host_unrecoverable directly, releasing the lease
+         for a roster replacement. Every action is logged as a one-file-per-event
+-        recovery record. Recovery never touches the shared compile cache as a
+-        remedy. Out of scope - the GPU baseline instance always (user confirmation
++        recovery record. One recovery per host at a time, because two ladders on
++        one host reboot it twice - the first recorded fault owns it; every other
++        campaign leasing the host waits for the owner's recovery record, re-verifies
++        identity itself and exits with the owner's outcome; and every campaign that
++        faulted in the episode consumes its allowance for the host, since the flap
++        bound counts the faults this campaign saw, whoever recovered them. Recovery
++        never touches the shared compile cache as a remedy. Out of scope - the GPU baseline instance always (user confirmation
+         only, and it is never leased here); any host not named in this campaign's
+         lease; approach-level fixes (the stop limit path owns those).
+       roles:
+       - implementer
+-      - lead
+       - delegate_dispatcher
+       consumes:
+       - campaign_design_record
+@@ -2002,28 +1674,36 @@ pave:
+       activities:
+       - Check the recovery allowance first - a prior successful recovery of this
+         host in this campaign's records means this fault routes to host_unrecoverable
+-        without further action.
++        without further action. Then check whether another campaign's recovery of
++        this host is open; if so, release this campaign's open job leases through the
++        queue tool, wait for its record, re-verify identity, and exit with its
++        outcome - on the owner's host_unrecoverable also release this campaign's
++        campaign lease - no other action taken.
+       - Pre-action identity re-verification against the lease record; boot-identifier-only
+         delta with a logged prior reboot is legitimate; any other mismatch stops
+         with no actions taken and exits host_unrecoverable with the mismatch recorded
+         verbatim.
+       - Drain/checkpoint, then the least-destructive recovery action first; escalate
+         to reboot only on the leased Neuron host.
+-      - Post-action identity re-verification; record the new boot identifier to
+-        the lead for the lease record before reporting host_restored.
+-      - On unrecoverable, request lease release from the lead, then hand to lease
+-        acquisition for a replacement; the finite roster bounds this loop.
++      - Post-action identity re-verification; record the new boot identifier through
++        the queue tool as a lease amendment before reporting host_restored.
++      - On unrecoverable, release the campaign lease through the queue tool, then
++        hand to host preparation for a replacement; the finite roster bounds this loop.
+       - Delegate dispatch (runtime troubleshooting) only through the guardrail
+         wrapper; no delegate-prescribed cache clearing.
+       allowed_effects:
+       - Autonomous recovery actions on this campaign's leased host only, identity-verified
+         and logged.
+-      - Lease release/reacquire requests to the lead's queue service.
++      - Campaign lease release and amendment, and job lease grant and release (the
++        recovery action's own, and this campaign's faulted attempts'), through the
++        hardware queue tool.
+       forbidden_effects:
+       - Any action on the GPU baseline instance.
+       - Any action on a host whose live identity fails to match the lease record
+         (boot-identifier-only delta with logged prior reboot excepted).
+       - Clearing the shared compile cache as a recovery remedy.
++      - A whole-host action (reboot or runtime restart) while another campaign's
++        job lease on the host is open.
+       - Provisioning a replacement instance.
+       outcomes:
+         host_restored:
+@@ -2033,7 +1713,8 @@ pave:
+             in the recovery record, never by the recoverer's claim. The decision
+             tier is conditional - tier-1 source binding where a boot identifier
+             exists; where none exists, the downstream re-execution is the catch
+-            (the venv node re-runs its verification probes before the loop resumes).
++            (host preparation re-runs its verification probes in probe-only mode
++            before the loop resumes).
+             This consumes the host's one recovery allowance for this campaign
+             - a later fault on this host is host_unrecoverable.
+           required_evidence:
+@@ -2044,119 +1725,95 @@ pave:
+             a successful recovery (allowance exhausted - the flap bound); or the
+             node refuses to act on an identity mismatch (the mismatch recorded
+             verbatim, no actions taken). In every case the lease is released and
+-            lease acquisition takes over for a roster replacement - if none exists,
++            host preparation takes over for a roster replacement - if none exists,
+             the parent's hardware_unavailable carries this evidence.
+       instance_per: approved_campaigns
+-    realize_measurement_procedures:
++    prepare_measurements:
+       intent: execute
+       instance_per: approved_campaigns
+       roles:
+       - measurer
+       - delegate_dispatcher
+-      purpose: Turn the pre-registered comparator set in this campaign's design
+-        record into runnable measurement procedures - the kickoff-declared acceptance
+-        procedures for this campaign's route (upgrade routes execute the regression
+-        matrix instead of correctness+perf) - each with a fixed invocation, declared
+-        inputs, and a declared output shape, smoke-verified end-to-end on scratch
+-        inputs before any measured run that cites that procedure revision. The
+-        measurer implements what the design record froze; it never chooses or alters
+-        a comparator. On re-entry with a procedure-defect record, revise the defective
+-        implementation to match the frozen comparator - never the comparator itself
+-        - and re-verify by smoke. Out of scope - any measured run against the
+-        candidate or the baseline.
++      purpose: Two steps in one seat, both before any measured run against the
++        candidate. Procedures - turn the pre-registered comparator set in this
++        campaign's design record into runnable measurement procedures (the
++        kickoff-declared acceptance procedures for this campaign's route; upgrade
++        routes execute the regression matrix instead of correctness+perf), each with
++        a fixed invocation, declared inputs, and a declared output shape, smoke-verified
++        end-to-end on scratch inputs, the same smoke run recording the procedure
++        FAILING on its registered known-bad input. The measurer implements what the
++        design record froze; it never chooses or alters a comparator. Baseline -
++        produce the GPU-baseline side of every declared comparison, strictly read-only
++        on the named GPU baseline over in-band SSH - reference outputs captured
++        against the inputs the registration record names, using the fixed procedures,
++        with the baseline-skew record (the GPU-side vLLM version read live plus the
++        kickoff-recorded known cross-version behavior differences) written into the
++        capture. When the route declares no GPU-baseline comparator, record the
++        justified skip. Re-entry with a procedure-defect record - revise only the
++        defective implementation against the frozen comparator, re-smoke it, record
++        the revision (revision entries VERSION each implementation and NAME the
++        comparisons a revision touches), and re-capture only the comparisons whose
++        procedure changed. Re-entry with a reference-defect record - re-capture the
++        named comparison; unchanged captures stand. The two permissions below stay
++        separate - smoke runs write scratch on leased Neuron hosts; the GPU baseline
++        is read-only, always. Out of scope - any measured run against the candidate;
++        any durable host-state mutation on the baseline, ever (the operational
++        definition and its capture-launch boundary ruling live once at
++        references/artifact-layout.md section 4.10).
+       consumes:
+       - campaign_design_record
+       produces:
+       - measurement_procedure_record
++      - baseline_reference_capture
+       activities:
+-      - Read the frozen comparator set and route-scoped acceptance procedures
+-        from the design record; enumerate every declared measurement this campaign
+-        must produce.
++      - Read the frozen comparator set and route-scoped acceptance procedures from
++        the design record; enumerate every declared measurement this campaign must
++        produce.
+       - Implement each declared measurement as a runnable procedure with a fixed
+         invocation, reusing verified in-repo primitives where they match the declared
+         method and building thin harnesses where no repeatable procedure exists.
+-      - Implement no procedure that reproduces a trap recorded in
++        Implement no procedure that reproduces a trap recorded in
+         references/measurement-pitfalls.md; where a trap is in what the procedure
+         counts, swapping the check tool that exposed it is not the remedy.
+-      - Smoke-verify every procedure end-to-end on scratch inputs and record the
+-        smoke evidence and the fixed invocation per procedure. The same smoke run
+-        feeds the registered known-bad input and records the procedure failing on
+-        it; a procedure that passes its own known-bad input is not verified.
+-      - On re-entry with a procedure-defect record, revise only the defective
+-        implementation against the frozen comparator, re-smoke it, and record the
+-        revision in the procedure record - revision entries VERSION each implementation
+-        and NAME the comparisons a revision touches.
++      - Smoke-verify every procedure end-to-end on scratch inputs; record the smoke
++        evidence, the fixed invocation, and the known-bad-input failure per procedure.
++      - Verify the baseline instance identity and read its live vLLM version; refuse
++        to capture if it contradicts the kickoff record.
++      - Run the fixed reference-capture procedures against the inputs the registration
++        record names, each confirmed against the identity it declares; record outputs
++        one file per event with the baseline-skew record.
+       allowed_effects:
+       - In-band SSH to leased Neuron hosts for smoke verification only.
++      - Read-only use of the named GPU baseline over in-band SSH.
+       forbidden_effects:
++      - Autonomous GPU-baseline reboot or reset.
+       - Choosing or altering comparators after measurement begins.
+-      - Any measured run recorded as campaign evidence.
++      - Any measured run against the candidate recorded as campaign evidence.
+       outcomes:
+-        procedures_ready:
++        measurements_ready:
+           meaning: Every declared measurement for this campaign's route has a
+-            runnable, smoke-verified procedure with a fixed invocation recorded
+-            before any measured run that cites that procedure revision, each
+-            smoke record carrying the negative-control result for its registered
+-            known-bad input.
++            runnable, smoke-verified procedure with a fixed invocation and a
++            negative-control result for its registered known-bad input, and every
++            declared GPU-baseline comparison has its reference side captured with
++            the skew record (or a justified skip recorded for a route that declares
++            none).
+           required_evidence:
+           - measurement_procedure_record
++          - baseline_reference_capture
+         procedure_unrealizable:
+           meaning: A declared measurement has no realizable procedure (capability
+             gap, including an unusable declared method), or its smoke verification
+             cannot proceed because the leased serving state cannot be re-established
+             within the declared retry bound (suggested two bring-up retries per
+             lost serving state); routed to re-derivation with the evidence.
+-    capture_baseline_reference:
+-      intent: execute
+-      instance_per: approved_campaigns
+-      roles:
+-      - measurer
+-      purpose: Produce the GPU-baseline side of every declared comparison for
+-        this campaign's route, strictly read-only on the named GPU baseline over
+-        in-band SSH - reference outputs captured against the inputs the registration
+-        record names, using the fixed procedures, with the baseline-skew record (the GPU-side vLLM
+-        version read live from the baseline environment plus the kickoff-recorded
+-        known cross-version behavior differences) written into the capture. When
+-        this campaign's route declares no GPU-baseline comparator, record the
+-        justified skip and pass through. On re-entry after a procedure revision,
+-        re-capture only the comparisons whose procedure changed; unchanged captures
+-        stand. Out of scope - any durable host-state mutation on the baseline,
+-        ever; the operational definition of durable host state and its
+-        capture-launch boundary ruling live once at references/artifact-layout.md
+-        section 4.10 and are cited here.
+-      consumes:
+-      - campaign_design_record
+-      - measurement_procedure_record
+-      produces:
+-      - baseline_reference_capture
+-      activities:
+-      - Verify the baseline instance identity and read its live vLLM version;
+-        refuse to capture if it contradicts the kickoff record.
+-      - Run the fixed reference-capture procedures against the inputs the
+-        registration record names, each confirmed against the identity it declares;
+-        record outputs one file per event.
+-      - Write the baseline-skew record into the capture.
+-      allowed_effects:
+-      - Read-only use of the named GPU baseline over in-band SSH.
+-      forbidden_effects:
+-      - Autonomous GPU-baseline reboot or reset.
+-      - Choosing or altering comparators after measurement begins.
+-      outcomes:
+-        reference_captured:
+-          meaning: Every declared GPU-baseline comparison has its reference side
+-            captured with the skew record, or a justified skip is recorded for
+-            a route that declares none.
+-          required_evidence:
+-          - baseline_reference_capture
+         baseline_unusable:
+           meaning: The named baseline is unreachable, contradicts the kickoff
+-            record, would require a reset to proceed, a named capture input whose
+-            live identity contradicts the registration record, or the serving stack
+-            the capture must launch would write a cache to a persistent location
+-            that cannot be redirected to run-scoped scratch (the layout entry's
+-            durable-host-state refusal ground); routed to re-derivation with the
+-            evidence.
+-    run_candidate_measurements:
++            record, would require a reset to proceed, a named capture input's live
++            identity contradicts the registration record, or the serving stack the
++            capture must launch would write a cache to a persistent location that
++            cannot be redirected to run-scoped scratch; routed to re-derivation
++            with the evidence.
++    measure_candidate:
+       intent: execute
+       instance_per: approved_campaigns
+       roles:
+@@ -2165,12 +1822,32 @@ pave:
+       purpose: Execute the smoke-verified procedures against the serving candidate
+         on this campaign's leased Neuron host(s) over in-band SSH, exactly as
+         pre-registered - the measurer executes, never chooses; a defective procedure
+-        or reference is routed back to the node that produced it, never patched
+-        in place. Every run record stamps the measured git revision read at measurement
+-        time from the checked-out commit on the leased host (a git-issued identifier,
+-        never a branch name), plus the invocation, configuration, and environment
+-        used. When outcomes co-hold they decide in the precedence order fixed
+-        in the activities. Out of scope - any verdict on the numbers produced.
++        or reference is routed back to measurement preparation, never patched in
++        place - then assemble the evidence bundles and decide their completeness and
++        stability before any verdict. Every run record stamps the measured git
++        revision read at measurement time from the checked-out commit on the leased
++        host (a git-issued identifier, never a branch name), plus the invocation,
++        configuration, and environment used. Each bundle - one file per event under
++        the campaign measurements directory - names the GPU-side vLLM version and the
++        known cross-version behavior differences from the skew record, carries the
++        measured revision copied verbatim from the run records (never minted or
++        rewritten here), links the pre-registered comparator and procedure it
++        implements, and records per criterion the threshold that was evaluated with
++        the value read and the result of the comparison, plus the negative-control
++        result from that procedure's smoke record - an exit status is not an
++        evaluation. Completeness is checked against the kickoff-declared acceptance
++        procedures for this campaign's route; stability is decided by consecutive
++        matching re-reads over time at the design record's declared count and spacing,
++        never a first sighting. A bundle that is missing, incomplete, or changed on
++        re-read is re-collected inside this node within the shared per-measurement
++        repair budget - derived by counting defect-record files by path, magnitudes
++        pinned once at references/artifact-layout.md section 4.4, never a stored
++        counter. Outcome precedence when several hold - serving_exhausted first
++        (nothing here executes without the leased serving state); procedure_defect_found
++        second (a defective implementation invalidates the reference captured with it
++        and every number it produced); reference_defect_found third; declared_measurement_unproducible
++        fourth (only when NO declared measurement retains repair budget); bundles_stable
++        last. Out of scope - any verdict on the numbers produced.
+       consumes:
+       - measurement_procedure_record
+       - baseline_reference_capture
+@@ -2178,131 +1855,62 @@ pave:
+       - campaign_design_record
+       produces:
+       - candidate_measurement_runs
++      - measurement_artifacts
+       activities:
+       - Confirm the candidate serves per the attempt log; read and record the
+         checked-out commit's git-issued revision identifier before the first measured
+         run.
+-      - Execute each declared measurement's fixed invocation; write raw outputs
+-        one file per event, each stamped with the measured revision, invocation,
+-        and environment.
+-      - Write every defect finding (procedure or reference) as its own event file
+-        under the runs directory, so the shared per-measurement repair budget
+-        stays derivable by counting defect-record files by path - one check tool,
+-        two predicates, both magnitudes and the novelty derivation pinned once
+-        at references/artifact-layout.md section 4.4.
++      - Execute each declared measurement's fixed invocation; write raw outputs one
++        file per event, each stamped with the measured revision, invocation, and
++        environment.
++      - Write every defect finding (procedure, reference, or collection) as its own
++        event file under the runs directory, so the shared per-measurement repair
++        budget stays derivable by counting defect-record files by path.
+       - On a lost serving state, re-establish serving from the recorded attempt
+         recipe within the declared retry bound, re-verify the checked-out revision,
+         then resume.
+-      - When a measurement's shared repair budget is already spent at either tier's
+-        threshold, record the defect and complete forward - packaging decides
+-        declared_measurement_unproducible; do not route backward at either threshold.
+-      - 'Decide co-held outcomes in this order, with these reasons: serving_exhausted
+-        first (nothing in this boundary executes without the leased serving state
+-        - even smoke verification needs it - and re-derivation receives the full
+-        defect trail as evidence); procedure_defect_found second (a defective
+-        implementation invalidates both the reference captured with it and every
+-        number it produced, and its repair re-traverses reference capture, so
+-        it subsumes a co-held reference defect on the same measurement); reference_defect_found
+-        third (reference repair with no co-held procedure defect); runs_complete
+-        last (only when no defect or serving outcome holds within budget).'
++      - Assemble one evidence bundle per declared measurement; re-read every bundle
++        until the declared count of consecutive matching reads passes; record the
++        stability trace; re-collect a defective bundle while its budget lasts.
++      - When a measurement's shared repair budget is spent at either tier's threshold,
++        record the defect and complete forward; never route backward at a threshold.
+       allowed_effects:
+       - In-band SSH to this campaign's leased Neuron hosts.
++      - Writes under this campaign's measurements artifact directory only.
+       forbidden_effects:
+       - Choosing or altering comparators after measurement begins.
+       - Any action on the GPU baseline.
+       - Editing the candidate checkout or switching its revision.
++      - Minting or altering a measured revision value.
++      - Any verdict on the numbers packaged.
+       outcomes:
+-        runs_complete:
+-          meaning: Every declared measurement has raw run records, revision-stamped
+-            from the checked-out commit at measurement time; a measurement whose
+-            shared repair budget is spent at either tier - threshold reached or
+-            already at the ceiling when a further defect appears - completes forward
+-            with its defect trail recorded for packaging to decide. Taken last
+-            in the fixed precedence order - only when no defect or serving outcome
+-            holds within budget.
++        bundles_stable:
++          meaning: Every kickoff-declared measurement exists as a complete,
++            stable-read-verified evidence bundle carrying its evaluated-threshold
++            record and the measured revision from its run records. Taken last in
++            the precedence order.
+           required_evidence:
+           - candidate_measurement_runs
++          - measurement_artifacts
+         procedure_defect_found:
+-          meaning: A run exposes a procedure that measured the wrong property
+-            - a defective implementation of a frozen comparator; routed back to procedure
+-            implementation within the shared per-measurement repair budget. Subsumes
+-            a co-held reference defect on the same measurement, since the repaired
+-            procedure re-traverses reference capture.
++          meaning: A run exposes a procedure that measured the wrong property -
++            a defective implementation of a frozen comparator; routed back to
++            measurement preparation within the shared per-measurement repair budget.
++            Subsumes a co-held reference defect on the same measurement.
+         reference_defect_found:
+-          meaning: A run exposes a missing or defective baseline reference for
+-            a declared comparison, with no co-held procedure defect; routed back
+-            to reference capture within the shared per-measurement repair budget.
++          meaning: A run exposes a missing or defective baseline reference for a
++            declared comparison, with no co-held procedure defect; routed back to
++            measurement preparation within the shared per-measurement repair budget.
+         serving_exhausted:
+           meaning: The serving state cannot be re-established within the declared
+             retry bound (suggested two bring-up retries per lost serving state);
+-            takes precedence over every co-held defect outcome - nothing in this
+-            boundary executes without the leased serving state - and routes to
++            takes precedence over every co-held defect outcome and routes to
+             re-derivation with the full defect trail as evidence.
+-    stabilize_and_package_evidence:
+-      intent: execute
+-      instance_per: approved_campaigns
+-      roles:
+-      - measurer
+-      purpose: Assemble the campaign's measurement evidence bundles - one file
+-        per event under the campaign measurements directory - and decide their
+-        completeness and stability before any verdict. Each bundle names the GPU-side
+-        vLLM version and the known cross-version behavior differences from the
+-        skew record, carries the measured git revision copied verbatim from the
+-        run records (this node never mints or rewrites it), and links the pre-registered
+-        comparator and procedure it implements. Each bundle also records, per criterion
+-        it implements, the threshold that was evaluated with the value read and the
+-        result of the comparison, plus the negative-control result from that procedure's
+-        smoke record - an exit status is not an evaluation. Completeness is checked against
+-        the kickoff-declared acceptance procedures for this campaign's route (upgrade
+-        routes execute the regression matrix instead of correctness+perf); stability
+-        is decided by consecutive matching re-reads over time, never a first sighting.
+-      consumes:
+-      - campaign_design_record
+-      - baseline_reference_capture
+-      - candidate_measurement_runs
+-      - measurement_procedure_record
+-      produces:
+-      - measurement_artifacts
+-      activities:
+-      - Assemble one evidence bundle per declared measurement with skew record,
+-        measured revision (verbatim from run records), comparator identity, procedure
+-        reference, and the evaluated-threshold record (value read, threshold, result)
+-        with the procedure's negative-control result.
+-      - Check bundle completeness against the route-scoped declared measurement
+-        list; record any gap or instability as its own defect-record event file,
+-        so the shared per-measurement repair count stays derivable by counting
+-        defect-record files by path - one check tool, two predicates, pinned once
+-        at references/artifact-layout.md section 4.4.
+-      - Re-read every bundle until the declared count of consecutive matching
+-        reads passes; record the stability trace.
+-      - Decide exhaustion - a measurement whose shared repair budget (derived
+-        from its on-disk defect-record files) is spent at either tier and still
+-        defective is declared unproducible; never route it backward.
+-      allowed_effects:
+-      - Writes under this campaign's measurements artifact directory only.
+-      forbidden_effects:
+-      - Minting or altering a measured revision value.
+-      - Choosing or altering comparators after measurement begins.
+-      - Any verdict on the numbers packaged.
+-      outcomes:
+-        bundles_stable:
+-          meaning: Every kickoff-declared measurement exists as a complete, stable-read-verified
+-            evidence bundle, each carrying its evaluated-threshold record.
+-          required_evidence:
+-          - measurement_artifacts
+-        collection_defect_found:
+-          meaning: A bundle is missing, incomplete - an empty evaluated-threshold
+-            record included - or changed on re-read; routed
+-            back to candidate measurement within the shared per-measurement repair
+-            budget. Takes precedence over declared_measurement_unproducible while
+-            any declared measurement retains repair budget.
+         declared_measurement_unproducible:
+-          meaning: A declared measurement cannot be produced after its shared
+-            repair budget - derived by counting its defect-record files, magnitudes
+-            pinned once at references/artifact-layout.md section 4.4 - is spent
+-            at either tier; routed to re-derivation with the evidence. Decides
+-            only when NO declared measurement retains repair budget; while any
+-            does, collection_defect_found decides.
++          meaning: A declared measurement cannot be produced after its shared repair
++            budget is spent at either tier; routed to re-derivation with the
++            evidence. Decides only when NO declared measurement retains repair
++            budget.
+   edges:
+   - id: preconditions_to_delta_scan
+     from: verify_run_preconditions.preconditions_met
+@@ -2311,31 +1919,36 @@ pave:
+       for_each: requested_targets
+     checks:
+     - preflight_record_complete
+-    rationale: Entry into the decomposed scan phase - one tracer per requested
+-      target (item 24); the lead mints a scan_entry_id at each boundary entry
+-      before dispatch. preflight_record_complete adopted from the preflight boundary
+-      review (round-1 recommendation, judged correctly sized).
++    rationale: One tracer per requested target; the lead mints a scan_entry_id at
++      each entry into the scan phase before dispatch.
+   - id: missing_inputs_to_pause
+     from: verify_run_preconditions.inputs_missing
+     to: run_paused
+-  - id: delta_to_costing
+-    from: assemble_delta_report.delta_mapped
++  - id: trace_traced_to_costing
++    from: trace_target_delta.target_traced
++    to: cost_routes_and_rank_backlog
++  - id: trace_unreachable_to_costing
++    from: trace_target_delta.source_unreachable
+     to: cost_routes_and_rank_backlog
++    rationale: The partial per-target record is preserved; the run-level reachability
++      verdict is decided at costing under its declared outcome precedence.
++  - id: insufficient_reports_to_retrace
++    from: cost_routes_and_rank_backlog.reports_insufficient
++    to:
++      fan_out: trace_target_delta
++      for_each: deficient_targets
++    rationale: Only the named deficient targets re-trace, each under the grant its
++      scan-entry-id-stamped grant file records; one re-trace per target, then the
++      gap is recorded as residual.
+   - id: unreachable_sources_to_pause
+-    from: assemble_delta_report.sources_unreachable
++    from: cost_routes_and_rank_backlog.sources_unreachable
+     to: run_paused
+-  - id: backlog_to_route_review
+-    from: cost_routes_and_rank_backlog.backlog_ranked
+-    to: review_route_verdicts
+-  - id: costing_gap_to_delta_scan
+-    from: cost_routes_and_rank_backlog.evidence_gap
+-    to: assemble_delta_report
+-    rationale: Re-entry lands at the decide node - assemble drives at most one
+-      bounded re-trace per deficient target under a fresh scan_entry_id; the operator-visible
+-      stop on the outer loop is costing_stalled to run_paused (item 18).
+   - id: stalled_costing_to_pause
+     from: cost_routes_and_rank_backlog.costing_stalled
+     to: run_paused
++  - id: backlog_to_route_review
++    from: cost_routes_and_rank_backlog.backlog_ranked
++    to: review_route_verdicts
+   - id: sound_verdicts_to_kickoff
+     from: review_route_verdicts.verdicts_sound
+     to: assemble_kickoff_contracts
+@@ -2345,7 +1958,7 @@ pave:
+   - id: approved_campaigns_fan_out
+     from: assemble_kickoff_contracts.contracts_ready
+     to:
+-      fan_out: screen_pin_and_progress
++      fan_out: design_campaign
+       for_each: approved_campaigns
+     checks:
+     - kickoff_contract_approved
+@@ -2354,11 +1967,26 @@ pave:
+     from: assemble_kickoff_contracts.no_campaign_approved
+     to: run_aborted
+   - id: design_to_design_review
+-    from: assemble_design_record.record_ready
++    from: design_campaign.design_ready
+     to: review_campaign_design
++    state_effects:
++    - The lead commits the pre-registered comparator set into comparator_registrations
++      on consuming this edge, with the registration timestamp the comparators_preregistered
++      check compares. The commitment lands before gate 2 because design_approved_by_user
++      reads the registration as byte-unchanged across re-entries.
+   - id: infeasible_design_to_closeout
+-    from: assemble_design_record.infeasibility_recorded
++    from: design_campaign.infeasibility_recorded
+     to: close_campaign
++    checks:
++    - pin_infeasibility_socratic_guard
++    rationale: The guard holds the expensive false-infeasibility direction; the lead
++      evaluates it, never the note's author.
++  - id: design_blocked_to_rederivation
++    from: design_campaign.design_blocked
++    to: rederive_approach
++    rationale: Every design stop - recurring finding with no lever, bounded-context
++      breach, unadjudicable criterion or cell, recurring record gap - is a kickoff
++      or approach question, and re-derivation is the only in-graph move.
+   - id: sound_design_to_implementation
+     from: review_campaign_design.design_sound
+     to: scope_next_increment
+@@ -2366,120 +1994,175 @@ pave:
+     - design_approved_by_user
+   - id: design_findings_to_redesign
+     from: review_campaign_design.material_findings
+-    to: screen_pin_and_progress
+-    checks:
+-    - design_loop_within_bound
+-    rationale: Full-round re-entry edges into the design phase land at the screen
+-      (item 25); narrow re-entries land at their resolving node. The lead mints
+-      a design_entry_id at each entry into the design phase by any edge (item
+-      31(a)).
+-  - id: narrow_registration_repair
+-    from: review_campaign_design.narrow_findings
+-    to: preregister_acceptance
++    to: design_campaign
+     checks:
+     - design_loop_within_bound
+-    - narrow_delta_scoped
+-    rationale: Severity triage for the design round. Narrow findings that touch registered values re-enter
+-      at the registration node so the fresh value-level adversarial read is preserved;
+-      hash-only verification does not satisfy it. Mutually exclusive with narrow_record_repair
+-      by registered-value touch.
+-  - id: narrow_record_repair
++    rationale: Full-round re-entry - the design node re-runs the screen when the
++      findings name a screen fact. The lead mints a design_entry_id at each entry
++      into the design phase by any edge.
++  - id: narrow_design_repair
+     from: review_campaign_design.narrow_findings
+-    to: assemble_design_record
++    to: design_campaign
+     checks:
+     - design_loop_within_bound
+     - narrow_delta_scoped
+-    rationale: Record-only
+-      narrow findings repair at the resolving node and ride design_to_design_review
+-      back to the same gate. Findings naming any registered-value surface take
+-      narrow_registration_repair instead; design-breaking findings keep design_findings_to_redesign
+-      unchanged.
+-  - id: narrow_plan_repair
+-    from: review_campaign_design.narrow_findings
+-    to: draft_increment_plan
++    rationale: Block-scoped repair - the brief names the surfaces the findings name;
++      a registered-value touch gets the value-level read; the block diff rides
++      design_to_design_review back to the same gate under the standing approval.
++  - id: selected_to_realization
++    from: scope_next_increment.increment_selected
++    to: realize_increment
++  - id: prerequisite_to_rescoping
++    from: scope_next_increment.prerequisite_unlanded
++    to: scope_next_increment
+     checks:
+-    - design_loop_within_bound
+-    - narrow_delta_scoped
+-    rationale: Plan-text-only material findings repair at the drafter under a block-named
+-      brief with a block diff handed back, and ride the
+-      existing forward edges (preregistration and record assembly, both delta-cheap
+-      on unchanged inputs) back to the same gate. Findings naming any registered-value
+-      surface take narrow_registration_repair; record-only findings take narrow_record_repair;
+-      design-breaking findings keep design_findings_to_redesign unchanged.
+-  - id: increments_to_impl_review
+-    from: record_changeset.changeset_recorded
++    - prerequisite_is_in_plan
++    rationale: An in-plan, unlanded prerequisite is an ordering hold, not a plan
++      defect - the round re-enters with the prerequisite selected and the held item
++      named.
++  - id: plan_satisfied_to_impl_review
++    from: scope_next_increment.plan_satisfied
+     to: review_implementation
++    checks:
++    - batch_review_current
++    - changeset_complete
++    rationale: The lead assembles the changeset in the plan_satisfied round; a gap
++      fails changeset_complete back into scoping as a coverage-gap item with its
++      class, so the no-progress detector sees a recurring gap.
+   - id: design_defect_to_redesign
+     from: scope_next_increment.plan_unrealizable_as_designed
+-    to: screen_pin_and_progress
++    to: design_campaign
+   - id: implementation_scope_to_redesign
+     from: scope_next_increment.plan_exceeds_node
+-    to: screen_pin_and_progress
++    to: design_campaign
+   - id: impl_no_progress_to_rederivation
+     from: scope_next_increment.no_new_route
+     to: rederive_approach
++  - id: passed_to_next_scoping
++    from: realize_increment.increment_passed
++    to: scope_next_increment
++    checks:
++    - batch_review_current
++  - id: stuck_to_rescoping
++    from: realize_increment.increment_stuck
++    to: scope_next_increment
++    rationale: Scoping re-selects with the persisted investigation record or detects
++      no-progress from the round history.
++  - id: contradiction_to_redesign
++    from: realize_increment.evidence_contradicts_design
++    to: design_campaign
++  - id: batch_sound_to_scoping
++    from: review_increment_batch.batch_sound
++    to: scope_next_increment
++  - id: batch_findings_to_repair
++    from: review_increment_batch.material_findings
++    to: scope_next_increment
++    rationale: Scoping mints repair items keyed on the finding triples, so the
++      no-progress detector sees them.
++  - id: batch_review_to_redesign
++    from: review_increment_batch.design_contradicted
++    to: design_campaign
+   - id: reviewed_impl_to_hardware
+     from: review_implementation.ready_for_hardware
+-    to: acquire_hardware_lease
++    to: prepare_host
+     checks:
+     - impl_commit_is_reviewed
+   - id: impl_findings_to_repair
+     from: review_implementation.material_findings
+     to: scope_next_increment
++  - id: host_ready_to_attempts
++    from: prepare_host.host_ready
++    to: execute_attempt_loop
++  - id: lost_hardware_to_closeout
++    from: prepare_host.no_host_available
++    to: close_campaign
++  - id: replication_dead_end_to_rederivation
++    from: prepare_host.replication_failed
++    to: rederive_approach
++    rationale: Recipe dead ends are approach-level and route to the stop limit path.
++  - id: venv_host_fault_to_recovery
++    from: prepare_host.host_faulted
++    to: recover_leased_host
+   - id: serving_candidate_to_measurement
+     from: execute_attempt_loop.candidate_serving
+-    to: realize_measurement_procedures
++    to: prepare_measurements
+     checks:
+     - comparators_preregistered
+   - id: breaker_to_rederivation
+     from: execute_attempt_loop.breaker_tripped
+     to: rederive_approach
+-  - id: lost_hardware_to_closeout
+-    from: acquire_hardware_lease.no_host_available
+-    to: close_campaign
+-  - id: revised_approach_to_redesign
+-    from: rederive_approach.revised_approach
+-    to: screen_pin_and_progress
+-  - id: rederived_closeout_to_gate
+-    from: rederive_approach.close_out_recommended
+-    to: close_campaign
++  - id: attempt_host_fault_to_recovery
++    from: execute_attempt_loop.host_faulted
++    to: recover_leased_host
++  - id: restored_host_to_probe_only
++    from: recover_leased_host.host_restored
++    to: prepare_host
++    rationale: Probe-only mode - the lease stands; host preparation re-runs the venv
++      verification probes before the loop resumes, the downstream catch for the
++      conditional decision tier.
++  - id: unrecoverable_host_to_reacquisition
++    from: recover_leased_host.host_unrecoverable
++    to: prepare_host
++    rationale: Full mode - the lease is released and host preparation takes over
++      for a roster replacement, excluding hosts whose recovery allowance for this
++      campaign is exhausted; if none exists, no_host_available carries the evidence
++      to close-out.
++  - id: measurements_ready_to_candidate_runs
++    from: prepare_measurements.measurements_ready
++    to: measure_candidate
++    checks:
++    - procedures_smoke_verified
++  - id: unrealizable_procedure_to_rederivation
++    from: prepare_measurements.procedure_unrealizable
++    to: rederive_approach
++  - id: unusable_baseline_to_rederivation
++    from: prepare_measurements.baseline_unusable
++    to: rederive_approach
+   - id: measurements_to_adjudication
+-    from: stabilize_and_package_evidence.bundles_stable
++    from: measure_candidate.bundles_stable
+     to: adjudicate_results
+     checks:
++    - revision_stamped
+     - evidence_stable_before_verdict
+     - acceptance_threshold_evaluated
+     - measurer_not_adjudicator
+-  - id: verdict_to_verdict_review
+-    from: adjudicate_results.verdict_recorded
+-    to: review_measurement_verdict
+-  - id: unstable_evidence_to_remeasure
+-    from: adjudicate_results.evidence_unstable
+-    to: run_candidate_measurements
+-  - id: adjudication_no_progress_to_rederivation
+-    from: adjudicate_results.no_progress
++  - id: procedure_defect_to_preparation
++    from: measure_candidate.procedure_defect_found
++    to: prepare_measurements
++    rationale: Shared per-measurement two-tier repair budget - derived from defect-record
++      files by path, never a stored counter.
++  - id: reference_defect_to_preparation
++    from: measure_candidate.reference_defect_found
++    to: prepare_measurements
++    rationale: Same shared budget - the brief names the reference-defect record so
++      only the named comparison is re-captured.
++  - id: serving_exhaustion_to_rederivation
++    from: measure_candidate.serving_exhausted
+     to: rederive_approach
+-  - id: confirmed_pass_to_pr_prep
+-    from: review_measurement_verdict.pass_confirmed
++  - id: unproducible_measurement_to_rederivation
++    from: measure_candidate.declared_measurement_unproducible
++    to: rederive_approach
++  - id: passed_gates_to_pr_prep
++    from: adjudicate_results.gates_passed
+     to: prepare_pr
+-  - id: confirmed_shortfall_to_repair
+-    from: review_measurement_verdict.correctness_shortfall_confirmed
++  - id: shortfall_to_repair
++    from: adjudicate_results.correctness_shortfall
+     to: scope_next_increment
+-  - id: confirmed_no_benefit_to_closeout
+-    from: review_measurement_verdict.no_benefit_confirmed
++  - id: no_benefit_to_closeout
++    from: adjudicate_results.no_benefit
+     to: close_campaign
+-  - id: confirmed_regression_to_repair
+-    from: review_measurement_verdict.regression_confirmed
++  - id: regression_to_repair
++    from: adjudicate_results.regression_failed
+     to: scope_next_increment
+-  - id: verdict_findings_to_readjudication
+-    from: review_measurement_verdict.material_findings
+-    to: adjudicate_results
++  - id: unstable_evidence_to_remeasure
++    from: adjudicate_results.evidence_unstable
++    to: measure_candidate
+   - id: pr_package_to_pr_review
+     from: prepare_pr.pr_package_ready
+     to: review_pr_evidence
+   - id: evidence_gap_to_remeasure
+     from: prepare_pr.evidence_gap_found
+-    to: run_candidate_measurements
++    to: measure_candidate
+   - id: pr_no_progress_to_rederivation
+     from: prepare_pr.no_progress
+     to: rederive_approach
+@@ -2489,11 +2172,15 @@ pave:
+   - id: pr_findings_to_package_repair
+     from: review_pr_evidence.material_findings
+     to: prepare_pr
++  - id: revised_approach_to_redesign
++    from: rederive_approach.revised_approach
++    to: design_campaign
++  - id: rederived_closeout_to_gate
++    from: rederive_approach.close_out_recommended
++    to: close_campaign
+   - id: closure_to_run_verification
+     from: close_campaign.closure_recorded
+     to: verify_run_closure
+-    checks:
+-    - closure_evidence_settled
+   - id: declined_closure_to_rederivation
+     from: close_campaign.closure_declined
+     to: rederive_approach
+@@ -2502,6 +2189,7 @@ pave:
+     to:
+       fan_out: close_campaign
+       for_each: discrepant_campaigns
++    rationale: Re-entry re-executes the SAME closure type and re-presents gate 3.
+   - id: verified_run_to_complete
+     from: verify_run_closure.run_closed_complete
+     to: run_complete
+@@ -2514,223 +2202,6 @@ pave:
+   - id: no_route_to_blocked
+     from: verify_run_closure.no_route_remains
+     to: run_blocked
+-  - id: trace_traced_to_assembly
+-    from: trace_target_delta.target_traced
+-    to: assemble_delta_report
+-  - id: trace_unreachable_to_assembly
+-    from: trace_target_delta.source_unreachable
+-    to: assemble_delta_report
+-    rationale: The partial per-target record is preserved; the run-level reachability
+-      verdict is decided at assembly under its declared outcome precedence.
+-  - id: insufficient_reports_to_retrace
+-    from: assemble_delta_report.reports_insufficient
+-    to:
+-      fan_out: trace_target_delta
+-      for_each: deficient_targets
+-    rationale: Fan-out form per item 24 (c5 edge-form precedent) - only the named
+-      deficient targets re-trace, each under the grant its scan-entry-id-stamped
+-      grant file records.
+-  - id: screen_to_plan_draft
+-    from: screen_pin_and_progress.screen_passed
+-    to: draft_increment_plan
+-  - id: screen_infeasibility_to_record
+-    from: screen_pin_and_progress.pin_infeasible
+-    to: assemble_design_record
+-    checks:
+-    - pin_infeasibility_socratic_guard
+-    rationale: The record's infeasibility variant decides the campaign toward
+-      close-out; the guard holds the expensive false-infeasibility direction (screen
+-      boundary review, item 31 family).
+-  - id: screen_exhaustion_to_rederivation
+-    from: screen_pin_and_progress.progress_exhausted
+-    to: rederive_approach
+-    rationale: Feeds the parent no_progress door (item 25).
+-  - id: plan_to_matrix_upgrade_route
+-    from: draft_increment_plan.plan_drafted
+-    to: assemble_regression_matrix
+-    rationale: Route-conditional - read from the kickoff-declared route; only
+-      upgrade-route campaigns instantiate the matrix (item 25). Backport-route
+-      campaigns take plan_to_preregistration instead.
+-  - id: plan_to_preregistration
+-    from: draft_increment_plan.plan_drafted
+-    to: preregister_acceptance
+-    rationale: Non-upgrade routes - the complement of plan_to_matrix_upgrade_route's
+-      route condition.
+-  - id: plan_scope_valve_to_rederivation
+-    from: draft_increment_plan.scope_exceeded
+-    to: rederive_approach
+-    rationale: Size-valve firing maps to the parent no_progress door under the
+-      c9 widening.
+-  - id: matrix_to_preregistration
+-    from: assemble_regression_matrix.matrix_assembled
+-    to: preregister_acceptance
+-  - id: matrix_blocked_to_rederivation
+-    from: assemble_regression_matrix.matrix_blocked
+-    to: rederive_approach
+-    rationale: Kickoff-declared criteria change only by explicit user decision,
+-      so re-derivation is the only in-graph move (item 25).
+-  - id: matrix_scope_valve_to_rederivation
+-    from: assemble_regression_matrix.scope_exceeded
+-    to: rederive_approach
+-    rationale: Size-valve firing under the c9 widening, matrix side.
+-  - id: preregistration_to_record
+-    from: preregister_acceptance.acceptance_preregistered
+-    to: assemble_design_record
+-    state_effects:
+-    - The lead commits the pre-registered comparator set into comparator_registrations
+-      on consuming this edge, with the registration timestamp the comparators_preregistered
+-      check compares (item 31(b)).
+-  - id: unadjudicable_criteria_to_rederivation
+-    from: preregister_acceptance.criteria_unadjudicable
+-    to: rederive_approach
+-    rationale: A criterion change needs an explicit user decision - same door
+-      as matrix_blocked (item 25).
+-  - id: record_gap_to_screen
+-    from: assemble_design_record.record_incomplete
+-    to: screen_pin_and_progress
+-    rationale: Bounded repair loop - taken only when the named owning sibling
+-      is the screen (the feasibility note is the incomplete component). Exhaustion
+-      door is record_gap_exhaustion_to_rederivation.
+-  - id: record_gap_to_plan_draft
+-    from: assemble_design_record.record_incomplete
+-    to: draft_increment_plan
+-    rationale: Taken only when the named owning sibling is the plan drafter.
+-  - id: record_gap_to_matrix
+-    from: assemble_design_record.record_incomplete
+-    to: assemble_regression_matrix
+-    rationale: Taken only when the named owning sibling is the matrix assembler
+-      (upgrade routes).
+-  - id: record_gap_to_preregistration
+-    from: assemble_design_record.record_incomplete
+-    to: preregister_acceptance
+-    rationale: Taken only when the named owning sibling is the preregistrar. The
+-      d7 commitment-absent gap re-emits here and is EXEMPT from the stall detector's
+-      key space (item 31 addendum).
+-  - id: record_gap_exhaustion_to_rederivation
+-    from: assemble_design_record.record_incomplete
+-    to: rederive_approach
+-    rationale: Exhaustion door - fires only on the exhaustion predicate pinned
+-      once in the artifact-layout reference (the same named gap recurs AND no
+-      gap-closing artifact for that gap has been produced since that round); otherwise
+-      the sibling repair edges carry the traffic (item 25).
+-  - id: selected_to_realization
+-    from: scope_next_increment.increment_selected
+-    to: realize_increment
+-  - id: prerequisite_to_rescoping
+-    from: scope_next_increment.prerequisite_unlanded
+-    to: scope_next_increment
+-    checks:
+-    - prerequisite_is_in_plan
+-    rationale: An in-plan, unlanded prerequisite is an ordering hold, not a plan
+-      defect - the round re-enters with the prerequisite selected and the held item
+-      named, so no selection row stands unexplained and the design phase is
+-      not re-entered for an ordering fact (field record 2026-09-10 - a held selection
+-      the lead resolved by ruling on a route the graph did not declare).
+-  - id: passed_to_next_scoping
+-    from: realize_increment.increment_passed
+-    to: scope_next_increment
+-    checks:
+-    - batch_review_current
+-  - id: batch_sound_to_scoping
+-    from: review_increment_batch.batch_sound
+-    to: scope_next_increment
+-  - id: batch_findings_to_repair
+-    from: review_increment_batch.material_findings
+-    to: scope_next_increment
+-    rationale: Same door as impl_findings_to_repair - scoping mints repair items keyed
+-      on the finding triples, so the no-progress detector sees them.
+-  - id: batch_review_to_redesign
+-    from: review_increment_batch.design_contradicted
+-    to: screen_pin_and_progress
+-    rationale: Implements the parent design_defect_found door at the design phase
+-      entry, like contradiction_to_redesign.
+-  - id: stuck_to_rescoping
+-    from: realize_increment.increment_stuck
+-    to: scope_next_increment
+-    rationale: Scoping re-selects with the persisted investigation record or detects
+-      no-progress from the round history.
+-  - id: contradiction_to_redesign
+-    from: realize_increment.evidence_contradicts_design
+-    to: screen_pin_and_progress
+-    rationale: Implements the parent design_defect_found door - lands at the design
+-      boundary entry like every re-entry (item 25).
+-  - id: plan_satisfied_to_recording
+-    from: scope_next_increment.plan_satisfied
+-    to: record_changeset
+-    checks:
+-    - batch_review_current
+-  - id: coverage_gap_to_rescoping
+-    from: record_changeset.coverage_gap_found
+-    to: scope_next_increment
+-  - id: lease_to_venv
+-    from: acquire_hardware_lease.lease_held
+-    to: replicate_campaign_venv
+-  - id: venv_to_attempts
+-    from: replicate_campaign_venv.venv_ready
+-    to: execute_attempt_loop
+-  - id: replication_dead_end_to_rederivation
+-    from: replicate_campaign_venv.replication_failed
+-    to: rederive_approach
+-    rationale: Recipe dead ends are approach-level and route to the stop limit path.
+-  - id: venv_host_fault_to_recovery
+-    from: replicate_campaign_venv.host_faulted
+-    to: recover_leased_host
+-  - id: attempt_host_fault_to_recovery
+-    from: execute_attempt_loop.host_faulted
+-    to: recover_leased_host
+-  - id: restored_host_to_venv_reverify
+-    from: recover_leased_host.host_restored
+-    to: replicate_campaign_venv
+-    rationale: The venv node re-runs its verification probes before the loop resumes
+-      - the downstream catch for the conditional decision tier (27(i)).
+-  - id: unrecoverable_host_to_reacquisition
+-    from: recover_leased_host.host_unrecoverable
+-    to: acquire_hardware_lease
+-    rationale: The lease is released and acquisition takes over for a roster replacement,
+-      excluding hosts whose recovery allowance for this campaign is exhausted
+-      (c10); if none exists, no_host_available carries the evidence to close-out.
+-  - id: procedures_to_baseline_capture
+-    from: realize_measurement_procedures.procedures_ready
+-    to: capture_baseline_reference
+-    checks:
+-    - procedures_smoke_verified
+-  - id: unrealizable_procedure_to_rederivation
+-    from: realize_measurement_procedures.procedure_unrealizable
+-    to: rederive_approach
+-    rationale: One of the four blocked terminals implementing the parent measurement_blocked
+-      door (item 26).
+-  - id: reference_to_candidate_runs
+-    from: capture_baseline_reference.reference_captured
+-    to: run_candidate_measurements
+-  - id: unusable_baseline_to_rederivation
+-    from: capture_baseline_reference.baseline_unusable
+-    to: rederive_approach
+-  - id: runs_to_stabilization
+-    from: run_candidate_measurements.runs_complete
+-    to: stabilize_and_package_evidence
+-    checks:
+-    - revision_stamped
+-  - id: procedure_defect_to_realization
+-    from: run_candidate_measurements.procedure_defect_found
+-    to: realize_measurement_procedures
+-    rationale: Shared per-measurement two-tier repair budget - derived from defect-record
+-      files by path, never a stored counter (item 26 appends; c13).
+-  - id: reference_defect_to_recapture
+-    from: run_candidate_measurements.reference_defect_found
+-    to: capture_baseline_reference
+-    rationale: Same shared budget as procedure_defect_to_realization - per-route
+-      accounting under one per-measurement bound.
+-  - id: serving_exhaustion_to_rederivation
+-    from: run_candidate_measurements.serving_exhausted
+-    to: rederive_approach
+-  - id: collection_defect_to_reruns
+-    from: stabilize_and_package_evidence.collection_defect_found
+-    to: run_candidate_measurements
+-    rationale: Within the shared per-measurement repair budget; at either tier's
+-      threshold the flow completes forward and packaging decides declared_measurement_unproducible.
+-  - id: unproducible_measurement_to_rederivation
+-    from: stabilize_and_package_evidence.declared_measurement_unproducible
+-    to: rederive_approach
+   control_nodes:
+     run_complete:
+       kind: terminal
+@@ -2815,6 +2286,22 @@ pave:
+           and an upgrade-route campaign holds all others while it runs exclusively.
+           Holds are re-derived under the lead's standing scheduling authority
+           whenever a campaign design refines its predicted surface.
++      instance_roster:
++        meaning: Run input frozen at intake - each host's identity markers, target
++          class, and non-shareable pools with sizes (Neuron devices, host memory
++          for compilation, CPU cores, the compile-cache write slot, any other the
++          run names).
++          Values are run inputs, never graph text. A pool the roster leaves unsized
++          is indivisible - a job that declares a need for it reserves the host whole - so a roster
++          that sizes no pools behaves as one job per host.
++      hardware_lease_record:
++        meaning: Pointer to the lease records - one file per event in the attempt
++          logs, keyed by host and, like the recovery records beside them, readable
++          by every campaign leasing that host, written only by the hardware queue
++          tool - campaign leases,
++          job leases with the pools and amounts reserved, releases, and boot-identifier
++          amendments. Remaining capacity per host is derived from open job leases
++          (grants without a release), never stored here.
+       hardware_attempt_counts:
+         meaning: Per-target shared budget across all routes that spend hardware
+           attempts; the tier-2 stop limit reads it at every 10. A CPU-mode run that
+@@ -2831,11 +2318,11 @@ pave:
+       design_entry_id:
+         meaning: Minted by the lead at each entry into the design phase and
+           stamped into every design-round artifact; superseded round artifacts are
+-          deleted from the read path per the layout reference; serves the screen progress
+-          detector and the record_incomplete detector (item 31(a)). The record
+-          assembler refuses to run without it.
++          deleted from the read path per the layout reference; serves the design
++          node's progress and record-gap detectors. The design node refuses to run
++          without it.
+       deficient_targets:
+-        meaning: Derived per assembly round from the run-level delta index - the
++        meaning: Derived per costing round from the run-level delta index - the
+           named targets whose reports fail the costing-sufficiency rubric with
+           re-trace bound unexhausted; the reports_insufficient fan-out reads it.
+           Never stored independently of the index (mirrors discrepant_campaigns).

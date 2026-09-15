@@ -1,4 +1,4 @@
-version: 2.6.1
+version: 2.6.2
 
 ## How changelog entries are written
 
@@ -17,6 +17,13 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.6.2 (2026-09-11)
+
+- Changed — Plain-English vocabulary across the skill, the references, the role contracts, the schemas, and the scripts. The invented words are gone: "envelope" is now "user-only changes", "landing" is "apply", "ledger" is "revision log", "evolution root" is "revision folder", "binding" as a revision kind is "run setup", "census" is "write report", "lap" is "round", "re-cut" is "retry copy", "frontier" is "planning queue", "boundary" as a planning unit is "node plan", "skeleton" is "root plan", "fragment" is "node draft", "rung" is "enforcement level", "reinjection" is "reminder", "instrument" is "implementation", "world-produced" is "external", and the rest of the approved glossary. Kept on the user's word: seat, traversal, socratic, semantic diff, successor.
+  - Identifiers renamed with the words. Revision log entries: `envelope_check` -> `user_only_changes` with values `none | approved | pending` (was `unchanged | changed_with_approval | changed_pending_approval`); `drafted_by` -> `written_by` with value `unverified` (was `unstamped`); `landed_at` -> `applied_at`; `kind: binding` -> `kind: run_setup`. Tool: `record_revision.py land` -> `apply`; `--stamps` -> `--hook-records`; `--evolution-root` -> `--revision-folder`; the `.landing` marker -> `.applying`. `run_delta_census.py` -> `run_write_report.py`; its `family` fields -> `name_group`. Graph schema: `runtime_bindings` -> `write_limits`, `control_endpoints` -> `control_nodes`, `extension_policy` -> `custom_fields`, `terminal_map` -> `child_outcome_map`, composition `profile` and `child_profile` -> `graph_file` and `child_graph_file`. Run-state schema: `terminal_classification` -> `final_status`; planning `frontier` -> `planning_queue`, `fragment` -> `node_draft`, `boundary` -> `node_plan`. pave-init graph ids: `envelope_exceeded` -> `needs_user_approval`, `no_change_warranted` -> `no_change_needed`, `land_revision` -> `apply_revision`, `landed` -> `applied`, `landing_failed` -> `apply_failed`, `plan_root_skeleton` -> `plan_root`, `elaborate_boundary` -> `plan_node`, `review_boundary` -> `review_node_plan`, `resynchronize_skeleton` -> `fix_root_conflict`, plus the planning-queue and root-plan ids that carried the old words. Plan fields: `landing: envelope | user` -> `approval: when_needed | always`; `usage_ledger` -> `usage_log`. Reference file `lead-alignment-hooks.md` -> `lead-hooks.md`.
+  - No migration shipped, by the user's decision. An existing revision folder needs the same key renames in `revisions.yaml`; a run-state file needs `terminal_classification` -> `final_status`.
+- Changed — pave-evolve and the two revision role contracts lost their ceremony: the Authority precedence list, the "Authority envelope" heading (now "What you write"), the Independence and Evidence-mandate sections (folded into Method), and the history "Why:" sentences.
 
 ### 2.6.1 (2026-09-11)
 
@@ -956,7 +963,7 @@ draft; the material reviewer starts claim identification from that ledger
 and prioritizes thinnest-evidence claims (`agents/node-planner.md`,
 `agents/pave-material-reviewer.md`).
 
-### 2.0.0 (2026-08-17)
+### 1.5.7 (2026-08-17)
 
 Changed — pave-init is now a Claude Code plugin. Stage flow and authority are
 unchanged; what changed is how worker roles are enforced. The `agents/*.md`

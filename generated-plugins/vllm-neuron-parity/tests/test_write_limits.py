@@ -4,9 +4,9 @@
 Drives hooks/pre_tool_use_router.py and hooks/write_log.py via subprocess with
 JSON payloads on stdin against a temporary project root: a run marker, a
 schema-valid run state at artifacts/run/run-state.json, a `.lead-session`
-sidecar, an evolution root carrying a workflow.pave.yaml with one deny glob,
+sidecar, a revision folder carrying a workflow.pave.yaml with one blocked path pattern,
 and an increments/ directory. Mirrors tests/test_hooks.sh for the existing
-guards (one case each). Run: <python> tests/test_runtime_bindings.py
+guards (one case each). Run: <python> tests/test_write_limits.py
 """
 
 from __future__ import annotations
@@ -23,10 +23,10 @@ PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 ROUTER = PLUGIN_ROOT / "hooks" / "pre_tool_use_router.py"
 WRITE_LOG = PLUGIN_ROOT / "hooks" / "write_log.py"
 sys.path.insert(0, str(PLUGIN_ROOT / "hooks"))
-import runtime_bindings as rb  # noqa: E402
+import write_limits as rb  # noqa: E402
 
 ACTIVE_STATE: dict[str, object] = {
-    "workflow_identity": {"run_id": "runtime-bindings-test"},
+    "workflow_identity": {"run_id": "write-limits-test"},
     "pinned_release": None,
     "requested_targets": [],
     "instance_roster": [],
@@ -44,7 +44,7 @@ ACTIVE_STATE: dict[str, object] = {
     "completed_outcomes": [],
     "evidence_references": {},
     "open_questions": [],
-    "terminal_classification": None,
+    "final_status": None,
     "scan_entry_id": None,
     "design_entry_id": None,
 }
@@ -52,7 +52,7 @@ ACTIVE_STATE: dict[str, object] = {
 GRAPH = """pave:
   version: 0.3.0
   name: t
-  runtime_bindings:
+  write_limits:
     deny:
       - glob: "increments/build-*.py"
         bound_to: [lead]
@@ -60,7 +60,7 @@ GRAPH = """pave:
         remedy: "Brief a seat with the script's purpose and let the seat write it."
         created_by: "cp-1"
     caps:
-      - family_glob: "leases/*-grant-*.md"
+      - name_group_glob: "leases/*-grant-*.md"
         max_per_checkpoint: 20
         created_by: "cp-1"
   nodes: []
@@ -121,7 +121,7 @@ class RunTree:
     def write_sidecar(self, **overrides: object) -> dict:
         sidecar = {
             "checkpoint_id": "cp-1", "at": "2026-09-10T19:34:05Z", "outcomes_at": 0, "bytes_at": 0,
-            "state": "DUE", "findings_record": None, "stamped_proposals": [], "closed_by": None,
+            "state": "DUE", "findings_record": None, "hook_recorded_writes": [], "closed_by": None,
         }
         sidecar.update(overrides)
         self.sidecar.write_text(json.dumps(sidecar), encoding="utf-8")
@@ -144,10 +144,10 @@ class RouterModeTests(unittest.TestCase):
     def tearDown(self) -> None:
         self._temp.cleanup()
 
-    # --- runtime-bindings ---------------------------------------------------
+    # --- write-limits ---------------------------------------------------
 
     def test_lead_write_to_denied_path_is_blocked_with_remedy(self) -> None:
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, self.denied))
+        result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.denied))
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertIn("Remedy: Brief a seat", result.stderr)
         self.assertIn("Reason: Build scripts", result.stderr)
@@ -157,72 +157,72 @@ class RouterModeTests(unittest.TestCase):
     def test_seat_write_to_denied_path_passes_with_advisory(self) -> None:
         for actor in (SEAT, TEAMMATE):
             with self.subTest(actor=actor):
-                result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(actor, self.denied))
+                result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(actor, self.denied))
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn("Build scripts are seat work", advisory(result))
 
     def test_lead_bash_naming_denied_path_is_blocked(self) -> None:
         payload = self.tree.bash_payload(LEAD, "python3 increments/build-x.py", cwd=self.tree.increments.parent)
-        result = self.tree.run(ROUTER, "runtime-bindings", payload)
+        result = self.tree.run(ROUTER, "write-limits", payload)
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertIn("Remedy:", result.stderr)
         # An absolute token blocks too; an unrelated command passes.
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.bash_payload(LEAD, f"cat > '{self.denied}'"))
+        result = self.tree.run(ROUTER, "write-limits", self.tree.bash_payload(LEAD, f"cat > '{self.denied}'"))
         self.assertEqual(result.returncode, 2, result.stderr)
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.bash_payload(LEAD, "git status"))
+        result = self.tree.run(ROUTER, "write-limits", self.tree.bash_payload(LEAD, "git status"))
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_lead_write_to_undenied_path_passes(self) -> None:
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, self.tree.increments / "evidence-1.md"))
+        result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.tree.increments / "evidence-1.md"))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "")
 
     def test_landing_marker_fails_open_for_lead(self) -> None:
-        (self.tree.evolution / ".landing").write_text("", encoding="utf-8")
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, self.denied))
+        (self.tree.evolution / ".applying").write_text("", encoding="utf-8")
+        result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.denied))
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_graph_parse_error_fails_open(self) -> None:
-        (self.tree.evolution / "workflow.pave.yaml").write_text("pave:\n  runtime_bindings:\n    deny: [\n", encoding="utf-8")
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, self.denied))
+        (self.tree.evolution / "workflow.pave.yaml").write_text("pave:\n  write_limits:\n    deny: [\n", encoding="utf-8")
+        result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.denied))
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_minimal_parser_reads_the_block_without_pyyaml(self) -> None:
-        parsed = rb.parse_runtime_bindings(GRAPH, use_yaml=False)
+        parsed = rb.parse_write_limits(GRAPH, use_yaml=False)
         self.assertEqual(parsed["deny"][0]["glob"], "increments/build-*.py")
         self.assertEqual(parsed["deny"][0]["bound_to"], ["lead"])
         self.assertEqual(parsed["deny"][0]["created_by"], "cp-1")
         self.assertEqual(parsed["caps"][0]["max_per_checkpoint"], 20)
-        self.assertEqual(rb.parse_runtime_bindings(GRAPH, use_yaml=True), parsed)
-        self.assertEqual(rb.parse_runtime_bindings("pave:\n  name: t\n", use_yaml=False), {"deny": [], "caps": []})
+        self.assertEqual(rb.parse_write_limits(GRAPH, use_yaml=True), parsed)
+        self.assertEqual(rb.parse_write_limits("pave:\n  name: t\n", use_yaml=False), {"deny": [], "caps": []})
         with self.assertRaises(ValueError):
-            rb.parse_runtime_bindings("runtime_bindings:\n  deny: scalar\n", use_yaml=False)
+            rb.parse_write_limits("write_limits:\n  deny: scalar\n", use_yaml=False)
 
-    # --- no-recut -------------------------------------------------------------
+    # --- no-retry-copy -------------------------------------------------------------
 
     def test_no_recut_blocks_lap_suffix_beside_same_stem_under_increments(self) -> None:
         (self.tree.increments / "foo.md").write_text("x\n", encoding="utf-8")
         for actor in (LEAD, SEAT):
             with self.subTest(actor=actor):
-                result = self.tree.run(ROUTER, "no-recut", self.tree.write_payload(actor, self.tree.increments / "foo-r2.md"))
+                result = self.tree.run(ROUTER, "no-retry-copy", self.tree.write_payload(actor, self.tree.increments / "foo-r2.md"))
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertIn("edit the existing file", result.stderr)
                 self.assertIn("never -rN", result.stderr)
         # A -rM sibling counts as the same stem too; a different extension does not.
         (self.tree.increments / "bar-r1.sh").write_text("x\n", encoding="utf-8")
-        result = self.tree.run(ROUTER, "no-recut", self.tree.write_payload(LEAD, self.tree.increments / "bar-r2.sh"))
+        result = self.tree.run(ROUTER, "no-retry-copy", self.tree.write_payload(LEAD, self.tree.increments / "bar-r2.sh"))
         self.assertEqual(result.returncode, 2, result.stderr)
-        result = self.tree.run(ROUTER, "no-recut", self.tree.write_payload(LEAD, self.tree.increments / "bar-r2.py"))
+        result = self.tree.run(ROUTER, "no-retry-copy", self.tree.write_payload(LEAD, self.tree.increments / "bar-r2.py"))
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_no_recut_passes_outside_increments_and_in_place(self) -> None:
         design = self.tree.workspace / "campaigns" / "c1" / "design"
         (design / "foo.md").write_text("x\n", encoding="utf-8")
-        result = self.tree.run(ROUTER, "no-recut", self.tree.write_payload(LEAD, design / "foo-r2.md"))
+        result = self.tree.run(ROUTER, "no-retry-copy", self.tree.write_payload(LEAD, design / "foo-r2.md"))
         self.assertEqual(result.returncode, 0, result.stderr)
         (self.tree.increments / "foo.md").write_text("x\n", encoding="utf-8")
         (self.tree.increments / "foo-r2.md").write_text("x\n", encoding="utf-8")
-        result = self.tree.run(ROUTER, "no-recut", self.tree.write_payload(LEAD, self.tree.increments / "foo-r2.md", "Edit"))
+        result = self.tree.run(ROUTER, "no-retry-copy", self.tree.write_payload(LEAD, self.tree.increments / "foo-r2.md", "Edit"))
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_no_recut_blocks_a_shell_command_naming_the_form(self) -> None:
@@ -230,27 +230,27 @@ class RouterModeTests(unittest.TestCase):
         cut = self.tree.increments / "foo-r3.md"
         for actor in (LEAD, SEAT):                   # a generator script's output argument
             with self.subTest(actor=actor):
-                result = self.tree.run(ROUTER, "no-recut", self.tree.bash_payload(actor, f"python3 gen.py '{cut}'"))
+                result = self.tree.run(ROUTER, "no-retry-copy", self.tree.bash_payload(actor, f"python3 gen.py '{cut}'"))
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertIn("foo-r3.md", result.stderr)
                 self.assertIn("edit the existing file", result.stderr)
         # A bare token counts, resolved against the segment's own working directory.
         payload = self.tree.bash_payload(LEAD, f"cd '{self.tree.increments}' && python3 gen.py foo-r3.md")
-        self.assertEqual(self.tree.run(ROUTER, "no-recut", payload).returncode, 2)
+        self.assertEqual(self.tree.run(ROUTER, "no-retry-copy", payload).returncode, 2)
         # An attached-flag form `--out=<name>` names the same output as `-o <name>`.
         payload = self.tree.bash_payload(LEAD, f"cd '{self.tree.increments}' && python3 gen.py --out=foo-r3.md")
-        self.assertEqual(self.tree.run(ROUTER, "no-recut", payload).returncode, 2)
+        self.assertEqual(self.tree.run(ROUTER, "no-retry-copy", payload).returncode, 2)
         # A subshell `(cd X && ...)` tracks X like `cd X && ...`; a trailing slash still names the file.
         payload = self.tree.bash_payload(LEAD, f"(cd '{self.tree.increments}' && python3 gen.py foo-r3.md)")
-        self.assertEqual(self.tree.run(ROUTER, "no-recut", payload).returncode, 2)
+        self.assertEqual(self.tree.run(ROUTER, "no-retry-copy", payload).returncode, 2)
         payload = self.tree.bash_payload(LEAD, f"cd '{self.tree.increments}' && python3 gen.py foo-r3.md/")
-        self.assertEqual(self.tree.run(ROUTER, "no-recut", payload).returncode, 2)
+        self.assertEqual(self.tree.run(ROUTER, "no-retry-copy", payload).returncode, 2)
         # A copy destination, and a heredoc redirect target.
         (self.tree.increments / "bar-r1.sh").write_text("x\n", encoding="utf-8")
         copy = f"cp '{self.tree.increments / 'bar-r1.sh'}' '{self.tree.increments / 'bar-r2.sh'}'"
-        self.assertEqual(self.tree.run(ROUTER, "no-recut", self.tree.bash_payload(LEAD, copy)).returncode, 2)
+        self.assertEqual(self.tree.run(ROUTER, "no-retry-copy", self.tree.bash_payload(LEAD, copy)).returncode, 2)
         heredoc = f"cat > '{cut}' <<'EOF'\nbody\nEOF\n"
-        self.assertEqual(self.tree.run(ROUTER, "no-recut", self.tree.bash_payload(LEAD, heredoc)).returncode, 2)
+        self.assertEqual(self.tree.run(ROUTER, "no-retry-copy", self.tree.bash_payload(LEAD, heredoc)).returncode, 2)
 
     def test_no_recut_passes_a_shell_command_that_files_no_new_cut(self) -> None:
         (self.tree.increments / "foo.md").write_text("x\n", encoding="utf-8")
@@ -259,21 +259,21 @@ class RouterModeTests(unittest.TestCase):
         (design / "foo.md").write_text("x\n", encoding="utf-8")
         # A subshell that leaves increments/ writes elsewhere, even when the payload cwd is increments/.
         away = self.tree.bash_payload(LEAD, f"(cd '{design}' && python3 gen.py foo-r3.md)", cwd=self.tree.increments)
-        self.assertEqual(self.tree.run(ROUTER, "no-recut", away).returncode, 0)
+        self.assertEqual(self.tree.run(ROUTER, "no-retry-copy", away).returncode, 0)
         for command in (                             # in-place edit of the existing cut is the remedy
             f"sed -i s/a/b/ '{self.tree.increments / 'foo-r2.md'}'",
             f"python3 gen.py '{design / 'foo-r3.md'}'",          # outside increments/
-            f"cat '{self.tree.increments / 'foo.md'}'",           # no lap suffix anywhere
+            f"cat '{self.tree.increments / 'foo.md'}'",           # no round suffix anywhere
             f"curl https://example.com/foo-r3.md -o '{self.tree.increments / 'notes.md'}'",
             "git status",
         ):
             with self.subTest(command=command.split()[0]):
-                result = self.tree.run(ROUTER, "no-recut", self.tree.bash_payload(LEAD, command))
+                result = self.tree.run(ROUTER, "no-retry-copy", self.tree.bash_payload(LEAD, command))
                 self.assertEqual((result.returncode, result.stdout), (0, ""), result.stderr)
 
     def test_no_recut_counts_a_same_stem_file_parked_under_a_marker(self) -> None:
         (self.tree.increments / "baz.sh.superseded").write_text("x\n", encoding="utf-8")
-        result = self.tree.run(ROUTER, "no-recut", self.tree.write_payload(LEAD, self.tree.increments / "baz-r2.sh"))
+        result = self.tree.run(ROUTER, "no-retry-copy", self.tree.write_payload(LEAD, self.tree.increments / "baz-r2.sh"))
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertIn("baz.sh.superseded", result.stderr)
 
@@ -324,37 +324,37 @@ class RouterModeTests(unittest.TestCase):
         codex = {"session_id": "lead-1", "agent_id": "u-1", "agent_type": "pave_init_workflow_updater"}
         self.assertEqual(self.tree.run(ROUTER, "audit-sidecar", self.tree.write_payload(codex, findings)).returncode, 2)  # flat name on Claude: a seat
         self.assertEqual(self.tree.run(ROUTER, "audit-sidecar", self.tree.write_payload(codex, findings), codex=True).returncode, 0)
-        self.tree.sidecar.write_text(json.dumps({"checkpoint_id": "cp-1", "state": "DUE", "stamped_proposals": []}), encoding="utf-8")
-        self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(codex, findings), codex=True)
+        self.tree.sidecar.write_text(json.dumps({"checkpoint_id": "cp-1", "state": "DUE", "hook_recorded_writes": []}), encoding="utf-8")
+        self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(codex, findings), codex=True)
         self.assertEqual(json.loads(self.tree.sidecar.read_text())["state"], "OPEN")
 
-    def test_live_graph_and_ledger_change_only_through_a_landing(self) -> None:
+    def test_live_graph_and_revision_log_change_only_through_an_apply_step(self) -> None:
         graph = self.tree.evolution / "workflow.pave.yaml"
-        ledger = self.tree.evolution / "revisions.yaml"
+        revision_log = self.tree.evolution / "revisions.yaml"
         for actor in (LEAD, SEAT, UPDATER):
-            for command in (f"cp /tmp/x.yaml '{graph}'", f"tee '{ledger}' < /tmp/x", f"echo x >> '{graph}'",
-                            f"sed -i 's/a/b/' '{ledger}'", f"mv /tmp/x.yaml '{graph}'"):
+            for command in (f"cp /tmp/x.yaml '{graph}'", f"tee '{revision_log}' < /tmp/x", f"echo x >> '{graph}'",
+                            f"sed -i 's/a/b/' '{revision_log}'", f"mv /tmp/x.yaml '{graph}'"):
                 with self.subTest(actor=actor.get("agent_type", "lead"), command=command[:20]):
                     result = self.tree.run(ROUTER, "audit-sidecar", self.tree.bash_payload(actor, command))
                     self.assertEqual(result.returncode, 2, result.stderr)
-                    self.assertIn("record_revision.py land", result.stderr)
+                    self.assertIn("record_revision.py apply", result.stderr)
         result = self.tree.run(ROUTER, "audit-sidecar", self.tree.bash_payload(LEAD, f"cat '{graph}' && cp '{graph}' /tmp/copy.yaml"))
         self.assertEqual(result.returncode, 0, result.stderr)               # reading and copying OUT pass
         result = self.tree.run(ROUTER, "audit-sidecar", self.tree.bash_payload(
-            LEAD, f"python3 scripts/record_revision.py land '{self.tree.evolution}' 9 --proposal p.patch --stamps '{self.tree.sidecar}'"))
-        self.assertEqual(result.returncode, 0, result.stderr)               # the landing command is a mention
-        (self.tree.evolution / ".landing").write_text("", encoding="utf-8")
+            LEAD, f"python3 scripts/record_revision.py apply '{self.tree.evolution}' 9 --proposal p.patch --hook-records '{self.tree.sidecar}'"))
+        self.assertEqual(result.returncode, 0, result.stderr)               # the apply step command is a mention
+        (self.tree.evolution / ".applying").write_text("", encoding="utf-8")
         result = self.tree.run(ROUTER, "audit-sidecar", self.tree.bash_payload(LEAD, f"cp /tmp/x.yaml '{graph}'"))
-        self.assertEqual(result.returncode, 0, result.stderr)               # inside a landing window
-        (self.tree.evolution / ".landing").unlink()
+        self.assertEqual(result.returncode, 0, result.stderr)               # inside an apply step window
+        (self.tree.evolution / ".applying").unlink()
         proposal = self.tree.evolution / "proposals" / "cp-1-graph.patch"
         result = self.tree.run(ROUTER, "audit-sidecar", self.tree.bash_payload(LEAD, f"cp /tmp/x.patch '{proposal}'"))
-        self.assertEqual(result.returncode, 0, result.stderr)               # proposals/ is not the ledger surface
+        self.assertEqual(result.returncode, 0, result.stderr)               # proposals/ is not the revision_log surface
         evo = self.tree.evolution
         for command in (f"cp /tmp/fake/workflow.pave.yaml '{evo}/'", f"cp /tmp/fake/workflow.pave.yaml '{evo}'",
                         f"mv /tmp/fake/workflow.pave.yaml '{evo}/'", f"rsync -a /tmp/fake/ '{evo}/'",
                         f"cp -R /tmp/fake/. '{evo}/'", f"mv '{evo}' '{evo}.bak'", f"rm -rf '{evo}'",
-                        f"mv '{graph}' /tmp/g.yaml", f"mv '{ledger}' '{ledger}.bak'"):
+                        f"mv '{graph}' /tmp/g.yaml", f"mv '{revision_log}' '{revision_log}.bak'"):
             with self.subTest(command=command[:28]):
                 result = self.tree.run(ROUTER, "audit-sidecar", self.tree.bash_payload(LEAD, command))
                 self.assertEqual(result.returncode, 2, command)             # directory destinations and moves away
@@ -410,13 +410,13 @@ class RouterModeTests(unittest.TestCase):
         marker = Path(tempfile.gettempdir()) / (rb.COOLDOWN_PREFIX.upper() + "lead-1")
         self.assertEqual(self.tree.run(ROUTER, "audit-sidecar", self.tree.write_payload(LEAD, marker)).returncode, 2)
         aliased_glob_target = Path(str(self.tree.increments).upper()) / "BUILD-X.PY"
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, aliased_glob_target))
+        result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, aliased_glob_target))
         self.assertEqual(result.returncode, 2, result.stderr)
 
     def test_lead_mentioning_hook_owned_files_in_bash_passes_writing_them_blocks(self) -> None:
-        land = (f"python3 scripts/record_revision.py land '{self.tree.evolution}' 9 "
-                f"--proposal '{self.tree.evolution}/proposals/cp-1-binding.patch' --stamps '{self.tree.sidecar}'")
-        for command in (land, f"cat '{self.tree.sidecar}'", f"grep foo < '{self.tree.write_log}'"):
+        apply = (f"python3 scripts/record_revision.py apply '{self.tree.evolution}' 9 "
+                f"--proposal '{self.tree.evolution}/proposals/cp-1-run-setup.patch' --hook-records '{self.tree.sidecar}'")
+        for command in (apply, f"cat '{self.tree.sidecar}'", f"grep foo < '{self.tree.write_log}'"):
             with self.subTest(command=command[:40]):
                 result = self.tree.run(ROUTER, "audit-sidecar", self.tree.bash_payload(LEAD, command))
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -434,7 +434,7 @@ class RouterModeTests(unittest.TestCase):
                 result = self.tree.run(ROUTER, "audit-sidecar", self.tree.write_payload(LEAD, findings, tool))
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertIn("workflow-updater writes it", result.stderr)
-        for command in (f"echo 'no_change_warranted' >> '{findings}'", f"cp draft.md '{findings}'",
+        for command in (f"echo 'no_change_needed' >> '{findings}'", f"cp draft.md '{findings}'",
                         f"FOO=1 BAR=2 dd if=x of='{findings}'"):
             with self.subTest(command=command[:40]):
                 result = self.tree.run(ROUTER, "audit-sidecar", self.tree.bash_payload(LEAD, command))
@@ -462,9 +462,9 @@ class RouterModeTests(unittest.TestCase):
 
     def test_agent_type_alone_is_still_the_lead(self) -> None:
         target = self.tree.increments / "build-x.py"
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD_WITH_AGENT, target))
+        result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD_WITH_AGENT, target))
         self.assertEqual(result.returncode, 2, result.stderr)
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(TEAMMATE, target))
+        result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(TEAMMATE, target))
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_absolute_glob_matches_outside_the_workspace(self) -> None:
@@ -472,17 +472,17 @@ class RouterModeTests(unittest.TestCase):
         try:
             graph = GRAPH.replace('glob: "increments/build-*.py"', f'glob: "{scratch}/*.py"')
             (self.tree.evolution / "workflow.pave.yaml").write_text(graph, encoding="utf-8")
-            result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, scratch / "ledger_write_017.py"))
+            result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, scratch / "log_write_017.py"))
             self.assertEqual(result.returncode, 2, result.stderr)
-            result = self.tree.run(ROUTER, "runtime-bindings",
-                                   self.tree.bash_payload(LEAD, f"python3 {scratch}/ledger_write_017.py"))
+            result = self.tree.run(ROUTER, "write-limits",
+                                   self.tree.bash_payload(LEAD, f"python3 {scratch}/log_write_017.py"))
             self.assertEqual(result.returncode, 2, result.stderr)
-            result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, self.tree.increments / "build-x.py"))
+            result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.tree.increments / "build-x.py"))
             self.assertEqual(result.returncode, 0, result.stderr)
         finally:
             (self.tree.evolution / "workflow.pave.yaml").write_text(GRAPH, encoding="utf-8")
 
-    def test_run_state_sidecars_and_ledger_are_never_denied(self) -> None:
+    def test_run_state_sidecars_and_revision_log_are_never_denied(self) -> None:
         graph = GRAPH.replace('glob: "increments/build-*.py"', 'glob: "*"')
         (self.tree.evolution / "workflow.pave.yaml").write_text(graph, encoding="utf-8")
         try:
@@ -490,9 +490,9 @@ class RouterModeTests(unittest.TestCase):
                            self.tree.evolution / "revisions.yaml", self.tree.evolution / "workflow.pave.yaml",
                            self.tree.evolution / "history" / "v9.patch"):
                 with self.subTest(target=target.name):
-                    result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, target))
+                    result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, target))
                     self.assertEqual(result.returncode, 0, result.stderr)
-            result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, self.tree.increments / "any.md"))
+            result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.tree.increments / "any.md"))
             self.assertEqual(result.returncode, 2, result.stderr)
         finally:
             (self.tree.evolution / "workflow.pave.yaml").write_text(GRAPH, encoding="utf-8")
@@ -500,27 +500,27 @@ class RouterModeTests(unittest.TestCase):
     def test_reviewer_review_line_is_stamped_lead_typing_is_not(self) -> None:
         self.tree.write_sidecar(state="OPEN")
         findings = self.tree.evolution / rb.FINDINGS_NAME
-        findings.write_text("checkpoint: cp-1\n\noutcome: no_change_warranted\n\nreview: PASS\n", encoding="utf-8")
-        self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(LEAD, findings))
+        findings.write_text("checkpoint: cp-1\n\noutcome: no_change_needed\n\nreview: PASS\n", encoding="utf-8")
+        self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(LEAD, findings))
         self.assertIsNone(json.loads(self.tree.sidecar.read_text()).get("review"))
-        self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(REVIEWER, findings, "Edit"))
+        self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(REVIEWER, findings, "Edit"))
         self.assertEqual(json.loads(self.tree.sidecar.read_text())["review"], "PASS")
         findings.write_text("checkpoint: cp-1\n\nreview: REVISE\n", encoding="utf-8")
-        self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(REVIEWER, findings, "Edit"))
+        self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(REVIEWER, findings, "Edit"))
         self.assertEqual(json.loads(self.tree.sidecar.read_text())["review"], "REVISE")
 
-    # --- audit-stamp ----------------------------------------------------------
+    # --- audit-hook-record ----------------------------------------------------------
 
     def test_updater_findings_write_flips_sidecar_open(self) -> None:
         self.tree.write_sidecar()
         findings = self.tree.evolution / rb.FINDINGS_NAME
         findings.write_text("checkpoint: cp-1\n\n## Trend\n", encoding="utf-8")
-        result = self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(LEAD, findings))
+        result = self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(LEAD, findings))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(self.tree.sidecar.read_text())["state"], "DUE")
-        result = self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(UPDATER, findings))
-        stamped = json.loads(self.tree.sidecar.read_text())
-        self.assertEqual(stamped.get("findings_stat", {}).get("size"), findings.stat().st_size)
+        result = self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(UPDATER, findings))
+        hook_recorded = json.loads(self.tree.sidecar.read_text())
+        self.assertEqual(hook_recorded.get("findings_stat", {}).get("size"), findings.stat().st_size)
         self.assertEqual(result.returncode, 0, result.stderr)
         sidecar = json.loads(self.tree.sidecar.read_text())
         self.assertEqual(sidecar["state"], "OPEN")
@@ -528,43 +528,43 @@ class RouterModeTests(unittest.TestCase):
         # Another checkpoint id on the first line does not open this one.
         self.tree.write_sidecar()
         findings.write_text("checkpoint: cp-0\n", encoding="utf-8")
-        self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(UPDATER, findings))
+        self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(UPDATER, findings))
         self.assertEqual(json.loads(self.tree.sidecar.read_text())["state"], "DUE")
 
     def test_updater_proposal_write_is_stamped(self) -> None:
         self.tree.write_sidecar()
         proposals = self.tree.evolution / "proposals"
         proposals.mkdir()
-        patch = proposals / "cp-1-binding.patch"
-        patch.write_text("kind: binding\n---\n--- a\n+++ b\n", encoding="utf-8")
-        result = self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(UPDATER, patch))
+        patch = proposals / "cp-1-run-setup.patch"
+        patch.write_text("kind: run_setup\n---\n--- a\n+++ b\n", encoding="utf-8")
+        result = self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(UPDATER, patch))
         self.assertEqual(result.returncode, 0, result.stderr)
-        stamps = json.loads(self.tree.sidecar.read_text())["stamped_proposals"]
-        self.assertEqual(len(stamps), 1)
-        self.assertEqual(stamps[0]["path"], str(patch))
-        self.assertEqual(stamps[0]["size"], patch.stat().st_size)
-        self.assertAlmostEqual(stamps[0]["mtime"], patch.stat().st_mtime)
-        # A second write of the same file replaces the stamp; a lead write adds none.
-        patch.write_text("kind: binding\n---\n--- a\n+++ b\n+x\n", encoding="utf-8")
-        self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(UPDATER, patch))
-        stamps = json.loads(self.tree.sidecar.read_text())["stamped_proposals"]
-        self.assertEqual([s["size"] for s in stamps], [patch.stat().st_size])
-        self.tree.run(ROUTER, "audit-stamp", self.tree.write_payload(LEAD, proposals / "cp-1-graph.patch"))
-        self.assertEqual(len(json.loads(self.tree.sidecar.read_text())["stamped_proposals"]), 1)
+        hook_records = json.loads(self.tree.sidecar.read_text())["hook_recorded_writes"]
+        self.assertEqual(len(hook_records), 1)
+        self.assertEqual(hook_records[0]["path"], str(patch))
+        self.assertEqual(hook_records[0]["size"], patch.stat().st_size)
+        self.assertAlmostEqual(hook_records[0]["mtime"], patch.stat().st_mtime)
+        # A second write of the same file replaces the hook record; a lead write adds none.
+        patch.write_text("kind: run_setup\n---\n--- a\n+++ b\n+x\n", encoding="utf-8")
+        self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(UPDATER, patch))
+        hook_records = json.loads(self.tree.sidecar.read_text())["hook_recorded_writes"]
+        self.assertEqual([s["size"] for s in hook_records], [patch.stat().st_size])
+        self.tree.run(ROUTER, "audit-hook-record", self.tree.write_payload(LEAD, proposals / "cp-1-graph.patch"))
+        self.assertEqual(len(json.loads(self.tree.sidecar.read_text())["hook_recorded_writes"]), 1)
 
     # --- fail open --------------------------------------------------------------
 
     def test_new_modes_fail_open_on_garbage_and_without_marker(self) -> None:
-        for mode in ("runtime-bindings", "no-recut", "audit-sidecar", "audit-stamp"):
+        for mode in ("write-limits", "no-retry-copy", "audit-sidecar", "audit-hook-record"):
             with self.subTest(mode=mode, case="garbage"):
                 result = self.tree.run(ROUTER, mode, "not json")
                 self.assertEqual((result.returncode, result.stdout), (0, ""))
         (self.tree.project / ".vllm-neuron-parity-run").unlink()
         (self.tree.increments / "foo.md").write_text("x\n", encoding="utf-8")
         for mode, payload in (
-            ("runtime-bindings", self.tree.write_payload(LEAD, self.denied)),
-            ("no-recut", self.tree.write_payload(LEAD, self.tree.increments / "foo-r2.md")),
-            ("no-recut", self.tree.bash_payload(LEAD, f"cp a.md '{self.tree.increments / 'foo-r2.md'}'")),
+            ("write-limits", self.tree.write_payload(LEAD, self.denied)),
+            ("no-retry-copy", self.tree.write_payload(LEAD, self.tree.increments / "foo-r2.md")),
+            ("no-retry-copy", self.tree.bash_payload(LEAD, f"cp a.md '{self.tree.increments / 'foo-r2.md'}'")),
             ("audit-sidecar", self.tree.write_payload(LEAD, self.tree.sidecar)),
         ):
             with self.subTest(mode=mode, case="no marker"):
@@ -573,9 +573,9 @@ class RouterModeTests(unittest.TestCase):
 
     def test_terminal_run_passes(self) -> None:
         state = dict(ACTIVE_STATE)
-        state["terminal_classification"] = {"status": "accepted", "endpoint": "done"}
+        state["final_status"] = {"status": "accepted", "endpoint": "done"}
         self.tree.state.write_text(json.dumps(state), encoding="utf-8")
-        result = self.tree.run(ROUTER, "runtime-bindings", self.tree.write_payload(LEAD, self.denied))
+        result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.denied))
         self.assertEqual(result.returncode, 0, result.stderr)
 
     # --- existing guard modes (one case each, as in tests/test_hooks.sh) -------
@@ -684,14 +684,14 @@ class RegistrationTests(unittest.TestCase):
             return [h["command"] for g in hooks[event] if g.get("matcher") == matcher for h in g["hooks"]]
 
         pre_bash = commands("PreToolUse", "Bash")
-        for mode in ("protected-branch", "compile-cache", "venv-opt", "runtime-bindings",
-                     "no-recut", "audit-sidecar"):   # a shell command files a re-cut too
+        for mode in ("protected-branch", "compile-cache", "venv-opt", "write-limits",
+                     "no-retry-copy", "audit-sidecar"):   # a shell command files a retry copy too
             self.assertTrue(any(c.endswith(f"pre_tool_use_router.py\" {mode}") for c in pre_bash), mode)
         pre_edit = commands("PreToolUse", "Edit|Write|MultiEdit")
         self.assertTrue(any("graph_edit_guard.sh" in c for c in pre_edit))
-        for mode in ("runtime-bindings", "no-recut", "audit-sidecar"):
+        for mode in ("write-limits", "no-retry-copy", "audit-sidecar"):
             self.assertTrue(any(c.endswith(f"pre_tool_use_router.py\" {mode}") for c in pre_edit), mode)
-        self.assertTrue(any(c.endswith("pre_tool_use_router.py\" audit-stamp") for c in commands("PostToolUse", "Write|Edit|MultiEdit")))
+        self.assertTrue(any(c.endswith("pre_tool_use_router.py\" audit-hook-record") for c in commands("PostToolUse", "Write|Edit|MultiEdit")))
         self.assertTrue(any("hooks/write_log.py" in c for c in commands("PostToolUse", "Bash|Write|Edit|MultiEdit")))
         for group in hooks["PreToolUse"] + hooks["PostToolUse"]:
             for handler in group["hooks"]:

@@ -1,1 +1,1 @@
-"""Codex CLI runtime binding for PAVE Init."""
+"""Codex CLI run setup for PAVE Init."""

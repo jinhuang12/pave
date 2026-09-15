@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Validate PAVE graph-to-skill traceability rows and referenced files.
 
-When the workflow declares the composition extension, referenced child profiles
+When the workflow declares the composition extension, referenced child graph files
 are discovered and their graph objects require rows under qualified identifiers
-(realization node id + "/" + child identifier), plus one "realization" row per
+(implementation node id + "/" + child identifier), plus one "implementation" row per
 composed node.
 """
 
@@ -26,9 +26,9 @@ MAPPING_TYPE_TO_SECTION = {
     "evidence": "evidence",
     "check": "checks",
     "node": "nodes",
-    "endpoint": "control_endpoints",
+    "endpoint": "control_nodes",
 }
-VALID_TYPES = set(MAPPING_TYPE_TO_SECTION) | {"edge", "contract", "realization"}
+VALID_TYPES = set(MAPPING_TYPE_TO_SECTION) | {"edge", "contract", "implementation"}
 
 
 def load_pave(path: Path) -> dict:
@@ -41,14 +41,14 @@ def load_pave(path: Path) -> dict:
     return value["pave"]
 
 
-def realizations(pave: dict) -> dict:
+def implementations(pave: dict) -> dict:
     extensions = pave.get("extensions")
     if not isinstance(extensions, dict):
         return {}
     composition = extensions.get("composition")
     if not isinstance(composition, dict):
         return {}
-    value = composition.get("realizations")
+    value = composition.get("implementations")
     return value if isinstance(value, dict) else {}
 
 
@@ -127,21 +127,21 @@ def expected_rows(
             raise ValueError(f"pave.{contract_name} is required for traceability")
         expected.add(("contract", qualified(contract_name)))
 
-    for node_id, realization in realizations(pave).items():
-        if not isinstance(realization, dict):
-            raise ValueError(f"composition realization {node_id} must be a mapping")
-        expected.add(("realization", qualified(str(node_id))))
-        profile_ref = realization.get("profile")
+    for node_id, implementation in implementations(pave).items():
+        if not isinstance(implementation, dict):
+            raise ValueError(f"composition implementation {node_id} must be a mapping")
+        expected.add(("implementation", qualified(str(node_id))))
+        profile_ref = implementation.get("graph_file")
         if not isinstance(profile_ref, str) or not profile_ref:
-            raise ValueError(f"composition realization {node_id} needs a profile path")
+            raise ValueError(f"composition implementation {node_id} needs a graph_file path")
         child_path = (workflow_path.parent / profile_ref).resolve()
         if child_path in ancestors or child_path == workflow_path.resolve():
             raise ValueError(
-                f"composition realization {node_id} creates a profile reference cycle: {profile_ref}"
+                f"composition implementation {node_id} creates a graph_file reference cycle: {profile_ref}"
             )
         if not child_path.is_file():
             raise ValueError(
-                f"composition realization {node_id} references missing profile {profile_ref}"
+                f"composition implementation {node_id} references missing graph_file {profile_ref}"
             )
         child_pave = load_pave(child_path)
         expected.update(

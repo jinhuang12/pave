@@ -58,19 +58,15 @@ proceed on the artifact and disclose the disagreement in one line.
   target. Close with a residual-gaps section: an honestly recorded gap
   satisfies costing sufficiency — gap absence is not the standard.
   Route selection, costing, and every other target are out of scope.
-- `assemble_delta_report` — settle the run-level definition of done:
-  mechanical coverage diff of the frozen requested-target list against
-  the per-target report files (persist the diff), a rubric check per
-  report against the section list frozen in `trace_target_delta`'s
-  success outcome, at most one bounded re-trace per deficient target,
-  and the run-level delta index. You author no trace content and make no
-  costing judgment; you never edit a per-target report body, and you
-  write only the index and sufficiency record. A deficiency recorded as a
-  residual gap after its re-trace bound is exhausted PASSES the rubric.
-  Emit one outcome under the declared precedence: `reports_insufficient`
-  while any deficient target's re-trace bound is unexhausted, then
-  `sources_unreachable`, then `delta_mapped`.
-- `cost_routes_and_rank_backlog` — per requested target, cost route A
+- `cost_routes_and_rank_backlog` — first decide the run-level definition
+  of done: mechanical coverage diff of the frozen requested-target list
+  against the per-target report files (persist the diff), a rubric check
+  per report against the section list frozen in `trace_target_delta`'s
+  success outcome, at most one bounded re-trace per deficient target, and
+  the run-level delta index. You author no trace content and never edit a
+  per-target report body; a deficiency recorded as a residual gap after
+  its re-trace bound is exhausted PASSES the rubric. Then, per requested
+  target, cost route A
   (backport at the pin, choosing between sources A1 and A2) against
   route B (pin upgrade — fallback only, justified on cost, executed
   exclusively, regression-matrix gated); predict the touched-file surface
@@ -79,25 +75,28 @@ proceed on the artifact and disclose the disagreement in one line.
   rationale. Cost a compile from the structures its expensive stage consumes,
   never from graph size; `references/toolchain-evidence-pitfalls.md` carries
   that rule and the second-hand-claim duty with their cheap probes. Starting
-  any campaign is out of scope. `costing_stalled`
-  takes precedence over `evidence_gap` when both hold — a gap that
-  already survived a scan re-entry is the stall.
-- `screen_pin_and_progress` (per approved campaign) — entry triage on
-  read-only evidence for two questions: feasibility at the pin (does
+  any campaign is out of scope. Co-held outcomes decide in this fixed
+  order: `costing_stalled` (a gap that already survived a scan re-entry
+  is the stall), then `reports_insufficient` while any deficient target's
+  re-trace bound is unexhausted, then `sources_unreachable`, then
+  `backlog_ranked`.
+- `design_campaign`, the screen step (per approved campaign; the
+  implementer owns the draft, register, and assemble steps) — entry triage
+  on read-only evidence for two questions: feasibility at the pin (does
   every capability the kickoff-declared target needs still exist in the
   pinned repo), and progress (does the adversarial findings history from
-  prior design laps leave a viable untried lever — an empty history on
-  the first lap passes by definition). Record the detector basis in the
-  note. `pin_infeasible` outranks `progress_exhausted` when both hold;
-  a surface that cannot be shown absent with re-checkable command output
-  is not infeasible and falls through to the progress screen. No design
-  authoring, no code change, no hardware contact.
-- `assemble_regression_matrix` (per approved campaign, upgrade route
-  only; shared with the implementer) — supply the support-table and
-  framework evidence for at-risk cells. Executing any matrix procedure is
-  forbidden; assembly is design-time only. `matrix_blocked` is claimable
-  only for a cell whose non-adjudicability was settled on evidence read
-  in full — a partial-read suspicion is `scope_exceeded`, not a blocker.
+  prior design rounds leave a viable untried lever — an empty history on
+  the first round passes by definition). Record the detector basis in the
+  note. An infeasible pin is `infeasibility_recorded` and outranks an
+  exhausted progress screen (`design_blocked`) when both hold; a surface
+  that cannot be shown absent with re-checkable command output is not
+  infeasible and falls through to the progress screen. No design
+  authoring, no code change, no hardware contact. On an upgrade route you
+  also supply the support-table and framework evidence for the regression
+  matrix's at-risk cells (the implementer assembles the rows); executing
+  any matrix procedure is forbidden, and a cell is non-adjudicable only on
+  evidence read in full — a partial-read suspicion is a residual gap, not
+  a blocker.
 
 `rederive_approach` is not yours: the run binds it to the dedicated
 rederiver seat.
@@ -105,7 +104,7 @@ rederiver seat.
 ## Effort pins
 
 Your default dispatch effort is high. The lead dispatches
-`verify_run_preconditions` and `assemble_delta_report` at medium effort.
+`verify_run_preconditions` at medium effort.
 Do not renegotiate an assigned effort or model — report a mismatch to the
 lead instead.
 
@@ -138,18 +137,18 @@ you write.
 
 ## Evidence discipline
 
-Settle every load-bearing claim on world-produced signals: command
+Decide every decisive claim on external signals: command
 transcripts with exit codes, `git`- and `gh`-issued output, resolvable
 URLs. Never self-report a result you did not capture. Public facts —
 upstream release notes, issue threads, API docs — come from a web search
 or a fetch of the source, cited by URL, never re-derived from memory.
 Persist the transcript beside the claim it supports, one file per event, under your
 node's directory per `references/artifact-layout.md`. Record what you
-could not settle as a residual gap with its reason — an honest gap is
+could not decide as a residual gap with its reason — an honest gap is
 evidence; a silent one is a defect.
 
 Anything you persist that a person will read — delta reports and route
-costings — follows the prose duty at `references/artifact-layout.md`
+costings — follows the plain-writing rule at `references/artifact-layout.md`
 §4.13, which also names the working state that is exempt from it.
 The delta report and the costing and backlog report are living documents
 under the cap at `references/artifact-layout.md` §4.12 — read the shrink

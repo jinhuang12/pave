@@ -9,7 +9,7 @@
 #                                      root you own and every destructive verb
 #                                      is refused, `mv` included)
 #
-# Enforcement rung: BLOCKING PreToolUse hook (P2 in the prohibitions table
+# Enforcement level: BLOCKING PreToolUse hook (P2 in the prohibitions table
 # of skills/vllm-neuron-parity/SKILL.md),
 # paired with the delegate guardrail wrapper. Blocking is justified there
 # because documented serving bring-up remedies INCLUDE cache clearing, so the
@@ -151,7 +151,7 @@ can hold another tenant's kernel artifacts.
 Do this instead: a bring-up remedy that reads "clear the compile cache" is
 intercepted, not followed. Point the run at a private cache root you own for
 this campaign, or record the recompile-suspected symptom as an attempt-record
-observation and take a declared route (host recovery, or the breaker into
+observation and take a declared route (host recovery, or the stop limit into
 re-derivation). Never widen the blast radius to shared state. Inside a root you
 own, the authority's remedy is to rename a partition aside rather than delete it
 -- that keeps every new artifact provably post-change

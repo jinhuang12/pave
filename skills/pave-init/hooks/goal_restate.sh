@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # goal_restate -- SessionStart (resume|compact) and SubagentStart, observing
-# (rung: socratic reinjection; always exit 0).
+# (level: socratic reminder; always exit 0).
 #
 # The moments an agent's context is rebuilt -- a session resumed, a context
 # compacted, a seat started from a brief -- are the moments the goal is most
@@ -75,7 +75,7 @@ except Exception:
 
 # A run that recorded a terminal status is over, marker or not (SKILL.md, Run
 # workspace). Same gate as the stop check and the reader reminder.
-terminal = state.get("terminal_classification")
+terminal = state.get("final_status")
 if isinstance(terminal, dict) and terminal.get("status"):
     sys.exit(0)
 
@@ -95,7 +95,7 @@ if event == "SessionStart":
         "file wins over memory; (2) the declared next step and the fewest after "
         "it; for each, what breaks if you skip it -- cut any with no answer (a "
         "seat for a fact knowable from disk, a re-gate of a recorded approval, a "
-        "lap with no new evidence). A needed cut the graph forbids is a graph "
+        "round with no new evidence). A needed cut the graph forbids is a graph "
         "defect: record it and route it to pave-evolve."
     )
 elif event == "SubagentStart":
