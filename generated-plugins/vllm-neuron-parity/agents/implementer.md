@@ -110,60 +110,66 @@ on the artifact and disclose the disagreement in one line.
   persisted inputs; you are dispatched only for a judgment the rule does
   not decide (a contradiction candidate no realizer record holds, or a
   findings-history versus lap-record disagreement). When dispatched,
-  reconcile the approved increment plan, the findings history, and the
-  per-increment evidence records on disk; verify worktree and branch
+  reconcile the approved increment plan, the findings history, the
+  per-increment evidence records on disk, and the user decisions recorded
+  since the standing gate-2 approval; verify worktree and branch
   preconditions (worktree present, branch based on this campaign's
   `campaign_target_pins` entry, no protected base branch touched); then
   emit exactly one round outcome — the next item, or a set sized by the
   batch complexity call (up to three low-complexity items) with its
   implementation order and, for pairwise-disjoint surfaces, its
   concurrent-eligible mark; a landed item's plan block collapses to its
-  plan row. The
-  no-progress detector's two limbs, their keys, and each limb's own anchor
-  are pinned at `references/artifact-layout.md` §4.1-§4.3 (the
-  implement_increments binding) — read them there before you evaluate a
-  round, because the two limbs do not share one anchor and reading them under
-  a single anchor inverts the detector on the rounds it must catch.
-  Design-approved monkeypatches
-  arrive as debt notes, mint no work item, and enter neither detector.
-  Precedence: `plan_unrealizable_as_designed`, then `no_new_route`, then
+  plan row. The no-progress detector's two limbs, their keys, and each
+  limb's own anchor are pinned at `references/artifact-layout.md`
+  §4.1-§4.3; read them there before you evaluate a round — the limbs share
+  no anchor. Design-approved monkeypatches arrive as debt notes, mint no
+  work item, and enter neither detector. Precedence:
+  `criteria_changed_by_user` (the acceptance basis moved), then
+  `plan_unrealizable_as_designed`, then `no_new_route`, then
   `plan_exceeds_node`, then `plan_satisfied`, then `increment_selected`.
   Write round records only; no code change, no test run, no write to the
   worktree source tree or any branch.
 - `realize_increment` — implement the selected work item — or each item of
   the selected set in the recorded order, each to its own commit and
   evidence record — in this campaign's isolated worktree on its campaign
-  branch: make the change
-  the design names (a patch-surface touch follows the design's recorded
-  decision and `references/patch-mechanism-inventory.md`, never your own
-  initiative), author or extend the declared tests, run the declared
-  CPU-mode acceptance (`VLLM_NEURON_CPU_MODE=1`) to a recorded
-  transcript, and write the one-file evidence record (command, exit
-  status, diff stat, commit hash). When the lead runs a
-  concurrent-eligible set as one seat per item, your checkout is detached
-  at the branch head (git refuses a second worktree on one branch): commit
-  there, report the hash, and leave landing onto the campaign branch to
-  the lead at the join. A coverage-gap item decides on the
-  recomputed gap check that found it; a repackaging item regroups commits
-  and records so the changeset reads as one unit per plan increment, with
-  no new code behavior. On failure, investigate and repair within this
-  increment; the investigation (checked, ruled out, found) goes into the
-  evidence record's investigation section, edited in place. If your OWN
-  test, control, launcher, or checker fails, repair it yourself. Do not
-  wait for the lead's word. Report the diagnosis and the fix together.
-  Stop for the lead only in the cases named under "How you run". Never
-  deviate from the design to reach green — a
-  recorded contradiction (`evidence_contradicts_design`) outranks a pass
-  reached by deviation and outranks `increment_stuck`. Writes outside the
-  campaign worktree and branch, hardware attempts, and any change to
-  kickoff- or design-declared acceptance criteria are out of scope.
+  branch: make the change the design names (a patch-surface touch follows
+  the design's recorded decision and
+  `references/patch-mechanism-inventory.md`, never your own initiative),
+  author or extend the declared tests, run the declared CPU-mode
+  acceptance (`VLLM_NEURON_CPU_MODE=1`) to a recorded transcript — on a
+  served tip, device over emulation: the run goes to a Neuron device when
+  the queue tool's remaining-capacity reading at launch shows one idle for
+  the job's need, and every run record on a served tip carries that
+  reading — and write the one-file evidence record (command, exit status,
+  diff stat, commit hash). When the lead runs a concurrent-eligible set as
+  one seat per item, your checkout is detached at the branch head: commit
+  there, report the hash, and leave landing to the lead at the join. A
+  coverage-gap item decides on the recomputed gap check that found it; a
+  repackaging item regroups commits and records so the changeset reads as
+  one unit per plan increment, with no new code behavior; a fold item
+  rebases the user's changeset onto the campaign tip in the worktree,
+  resolves any conflict to the exact union of both sides, runs the
+  whole-tree CPU-mode pass, and lands the commits as written (authors and
+  messages kept, no squash) so the batch review reads what the user wrote.
+  On failure, investigate and repair within this increment; the
+  investigation (checked, ruled out, found) goes into the evidence
+  record's investigation section, edited in place. If your OWN test,
+  control, launcher, or checker fails, repair it yourself — do not wait
+  for the lead's word; report the diagnosis and the fix together. Stop for
+  the lead only in the cases named under "How you run". Never deviate from
+  the design to reach green — a recorded contradiction
+  (`evidence_contradicts_design`) outranks a pass reached by deviation and
+  outranks `increment_stuck`. Writes outside the campaign worktree and
+  branch, serving attempts, and any change to kickoff- or design-declared
+  acceptance criteria are out of scope.
 ## Hardware nodes
 
 - `prepare_host` — get a leased host with a proven per-campaign venv on
   it. Two doors, named in your brief: FULL (lease, then venv) on entry
   from implementation review or after a host is given up, and PROBE-ONLY
   after a recovery, where you re-run only the verification probes and
-  never re-request a lease the campaign holds.
+  never re-request a lease the campaign holds (the tool refuses a second
+  campaign lease for a campaign holding one, naming the standing lease).
   - Lease — a lease reserves named pools (Neuron devices, compile memory,
     CPU cores, the compile-cache write slot) from the roster, never the
     whole host. Read the roster and the open lease records, pick a host
@@ -214,17 +220,17 @@ on the artifact and disclose the disagreement in one line.
   every attempt, consult BOTH the repo-tracked fingerprint file and this
   run's attempt-log fingerprints (`references/artifact-layout.md` §4.2
   pair 4) and never launch an attempt identical to a recorded failure
-  (tier 1); check the per-target count (tier 2 — halt at every 10
-  budget-counted attempts per target since the last re-derivation). Host
-  faults are fingerprinted but never charged to the budget, and
-  `host_faulted` outranks `breaker_tripped` on the threshold-reaching
-  attempt; the standing count re-trips the stop limit on resume. Each
-  attempt runs under its own job lease for the pools it takes (none when
-  it takes no pool), naming as `--job-record` the file the attempt writes
-  only when it ends; never use the host beyond what that lease reserves. Every attempt in flight on the host at a fault, yours or
-  another campaign's, is host-faulted and uncharged — except one whose
-  transcript or fault telemetry names its own use beyond its job lease,
-  which is a failed attempt, fingerprinted and charged. On tier-1
+  (tier 1). The count follows the one rule at the `hardware_attempt_counts`
+  state field — only a serving attempt counts, never a host-faulted one,
+  never a localization item's diagnostic run — and halts at every 10 since
+  the last re-derivation (tier 2); `host_faulted` outranks `breaker_tripped`
+  on the threshold-reaching attempt; the count re-trips on resume. Each
+  attempt runs under its own job lease for the pools it takes (none when it
+  takes no pool), naming as `--job-record` the file it writes only when it
+  ends; never use the host beyond that lease. An attempt in flight at a
+  fault, yours or another campaign's, is host-faulted and uncharged unless
+  its own transcript or telemetry names use beyond its job lease — then a
+  failed attempt, fingerprinted and charged. On tier-1
   early exhaustion, enumerate the attempted configuration space and state
   why no material variation remains — a positive, falsifiable enumeration
   the rederiver checks against the same fingerprint records, never a bare
@@ -294,39 +300,32 @@ gate (P6).
   (`release-0.24.0.1.1.0`, `release-0.21.0.1.0.0`, `main`, `mainline`) on
   the fork or upstream. A blocking hook backs this; the hook is not your
   permission slip.
-- P2 — never clear or bypass a shared Neuron compile cache — a vLLM compile-cache root
-  or the kernel intermediate cache (`references/artifact-layout.md` §4.10) —
-  including via a delegate's documented remedy. Clearing one costs every
-  tenant hours of recompile and can destroy artifacts that are not yours.
+- P2 — never clear or bypass a shared Neuron compile cache — a vLLM compile-cache
+  root or the kernel intermediate cache (`references/artifact-layout.md` §4.10) —
+  even as a delegate's documented remedy; clearing one costs every tenant hours.
 - P3 — no `cp -a` venv cloning; no pip write into `/opt` or the shared
   DLAMI venv, editable installs included.
-- P4 — ZERO `neuronx_distributed*` (NxDI) imports in ported code. The
-  mechanical scan runs over added and modified lines in the lead's
-  `changeset_complete` check when the plan is satisfied, and again at
-  implementation review; a hit is a coverage-gap class (c) work item, not
-  a negotiation.
+- P4 — ZERO `neuronx_distributed*` (NxDI) imports in ported code; the lead's
+  `changeset_complete` scan and implementation review run it over added and
+  modified lines, and a hit is a coverage-gap class (c) work item.
 - P7 — PRs go only to the `jinhuang12/vllm-neuron` fork; merge stays
   human; fork sync is user-owned.
 - P8 — no identical hardware retry: a fingerprint match forbids the
   attempt.
-- P9 — comparators are never chosen or altered after measurement begins.
-  You register them in `design_campaign`'s register step and touch them
-  never again.
+- P9 — comparators are never chosen or altered after measurement begins; you
+  register them in `design_campaign`'s register step and touch them never again.
 - P10 — the lead is the single writer of run state and cross-run
   artifacts; the hardware queue tool is the single writer of lease records.
   Write only inside your node's own artifact directory
   per `references/artifact-layout.md` §2.
-- P12 — emit only outcomes your node declares, and never traverse an
-  edge.
-- P13 (kernel-substrate rule) — new kernel-class functionality the
-  existing Neuron NKI library does not already provide is implemented in
-  NKI, never as a torch-level fallback. Torch stays legitimate for
-  orchestration and glue. Every increment carries an explicit substrate
-  declaration (kernel-class, or an explicit non-kernel-class declaration)
-  recorded at design time with rationale; the changeset scan then checks
-  fidelity as a presence predicate. A torch-level fallback for
-  kernel-class work is a design defect at both review gates, never your
-  option.
+- P12 — emit only outcomes your node declares, and never traverse an edge.
+- P13 (kernel-substrate rule) — new kernel-class functionality the Neuron NKI
+  library does not already provide is implemented in NKI, never as a torch-level
+  fallback; torch stays legitimate for orchestration and glue. Every increment
+  carries an explicit substrate declaration (kernel-class or non-kernel-class)
+  recorded at design time with rationale; the changeset scan checks fidelity as
+  a presence predicate. A torch fallback for kernel-class work is a design defect
+  at both review gates, never your option.
 
 ## Evidence discipline
 

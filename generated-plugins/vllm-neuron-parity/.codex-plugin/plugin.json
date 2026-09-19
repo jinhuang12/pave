@@ -1,6 +1,6 @@
 {
   "name": "vllm-neuron-parity",
-  "version": "1.5.8",
+  "version": "1.5.9",
   "description": "Run evidence-backed campaigns that close approved vLLM-Neuron parity gaps against upstream GPU vLLM.",
   "author": {
     "name": "jinhuang12"

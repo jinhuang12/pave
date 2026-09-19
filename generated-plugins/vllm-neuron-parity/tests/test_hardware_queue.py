@@ -51,6 +51,14 @@ class HardwareQueueTests(unittest.TestCase):
         rc, c = self.grant("C", "j3", "neuron_devices=1", "compile_memory_gib=60"); self.assertEqual(rc, 0, c)
         rc, d = self.grant("D", "j4", "compile_memory_gib=50"); self.assertEqual(rc, 3, d)
 
+    def test_second_campaign_lease_is_refused_with_the_standing_reference(self):
+        rc, first = self.grant("A"); self.assertEqual(rc, 0); self.assertEqual(first["kind"], "campaign")
+        rc, again = self.grant("A"); self.assertEqual(rc, 2, again)
+        self.assertEqual(again["lease_id"], first["lease_id"]); self.assertIn("one campaign never holds two", again["reason"])
+        rc, other = self.grant("B"); self.assertEqual(rc, 0, other)
+        rc, _ = run("release", "--root", str(self.root), "--host", "h1", "--campaign", "A"); self.assertEqual(rc, 0)
+        rc, renewed = self.grant("A"); self.assertEqual(rc, 0, renewed); self.assertNotEqual(renewed["lease_id"], first["lease_id"])
+
     def test_request_defects(self):
         rc, out = self.grant("A", "j1", "neuron_devices=3"); self.assertEqual(rc, 2); self.assertIn("oversize", out["reason"])
         rc, out = self.grant("A", "j1", "gpus=1"); self.assertEqual(rc, 2)

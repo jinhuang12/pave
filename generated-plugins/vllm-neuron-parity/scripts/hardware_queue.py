@@ -7,7 +7,9 @@ nothing and binds a campaign to a host's verified identity; a JOB lease names th
 pools and amounts one job takes and is granted only when they fit the remaining
 capacity (roster pools minus every open job lease, derived from the records,
 never stored). A job that takes no pool holds no job lease, and
-this tool refuses to record one. Records are one JSON file per event under
+this tool refuses to record one. A campaign that already holds an open campaign
+lease on a host is refused a second one, with the standing lease's reference,
+so one campaign never holds two. Records are one JSON file per event under
 <root>/campaigns/<campaign>/attempts/leases/, keyed by host in name and body so
 every campaign leasing a host can read them. The grant runs under a per-host OS
 lock (<root>/run/hardware-queue/<host>.lock, fcntl.flock - released with the
@@ -24,7 +26,8 @@ declares a need for it reserves the host whole, so a roster that sizes no pools
 behaves as one job per host. An unknown pool name is a request defect.
 
 Exit codes: 0 done; 2 request defect (unknown host or pool, oversize, empty job
-reservation, nothing to release); 3 wait (capacity exists but is busy).
+reservation, a second campaign lease, nothing to release); 3 wait (capacity
+exists but is busy).
 
   grant   --root R --roster ROSTER --host H --campaign C
           [--job J --pool NAME=AMOUNT ... [--job-record PATH] [--wait SECONDS]]
@@ -209,6 +212,12 @@ def cmd_grant(args) -> int:
         with Lock(root, args.host):
             events = read_events(root, args.host)
             reap(root, args.host, events)
+            standing = [l for l in open_leases(events)
+                        if l.get("kind") == "campaign" and l.get("campaign") == args.campaign]
+            if standing:
+                return emit({"status": "defect", "kind": "campaign", "lease_id": standing[0]["lease_id"],
+                             "reason": "this campaign already holds a campaign lease on this host; "
+                                       "one campaign never holds two - release it or reuse it"}, 2)
             lease_id = uuid.uuid4().hex
             ev = {"event": "grant", "kind": "campaign", "lease_id": lease_id, "host": args.host,
                   "campaign": args.campaign, "grant_reference": lease_id, "at": now(),

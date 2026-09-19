@@ -145,7 +145,13 @@ their detector keys on, or the pair's fingerprint triple (§4.2 pair 1).
 4. **repo fingerprint file + this-run attempt-log**, split by horizon:
    `cross-run/failure-fingerprints.yaml` = prior runs, lead-merged at
    closure; `attempts/` = this run. Guards the identical-retry forbidden
-   effect. Failure case: a format mismatch between the two readers silently
+   effect. An attempt record carries `class` — `serving`, `diagnostic`, or
+   `cpu_mode`, the job's declared purpose at launch, never a note added
+   after the run — and, on a served tip, `launch_reading`, the queue tool's
+   remaining-capacity reading at launch; only `serving` enters
+   `hardware_attempt_counts`. A localization record names the compare tool
+   it ran (path and revision) and the reference it compared against.
+   Failure case: a format mismatch between the two readers silently
    disables the tier-1 gate.
 5. **recovery-record shape**: writer recover_leased_host; readers
    recover_leased_host (allowance derivation — never a stored counter)

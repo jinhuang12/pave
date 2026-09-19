@@ -1,0 +1,511 @@
+kind: graph
+semantic_diff: >-
+  Base: revision 12, digest sha256:7f4f812122433fdf34e17f5f302ad48889d777369255b91e6eb4dbe2cb6f38c3,
+  verified intact with pave-init 2.6.2 record_revision.py (16 entries). Counts: 22
+  nodes unchanged; 68 -> 69 edges; 68 -> 69 outcomes; 17 checks (two with changed
+  text: design_approved_by_user, comparators_preregistered), 24 evidence
+  definitions, 5 control nodes unchanged; roles, state.required and write_limits
+  equal, proved by parsing both graphs and comparing the skeletons field by field.
+  18 hunks, 105 added lines against 32 removed; 2336 lines become 2409. Two defects,
+  one refactor, one recorded fact, and one rule in the user's own words (round 3).
+  Round-1 review (proposals/v13-graph-review-20260917T133101Z.md, REVISE, 1 HIGH and
+  8 LOW) was repaired in this same revision, every finding taken; round 2 PASS;
+  round 3 adds section (8) on the user's word (DECISIONS 1070).
+
+  (1) A DECLARED DOOR FOR A USER-CHANGED CRITERION (D2). New outcome
+  scope_next_increment.criteria_changed_by_user, new edge
+  user_criteria_change_to_redesign to design_campaign, precedence (0) at the
+  scoping round, the user decisions since the standing gate-2 approval named as
+  the round's fourth persisted input, one clause at design_campaign's re-entry
+  brief, and one clause at the check design_approved_by_user: a criterion or
+  registered value the user changed in their own recorded words is approved by
+  that decision and the gate is not re-presented for it. Before: the entries into
+  design_campaign were plan_unrealizable_as_designed, plan_exceeds_node,
+  evidence_contradicts_design, design_contradicted, the two gate-2 repair edges
+  and revised_approach; a user decision fit none, so the lead re-opened the design
+  boundary by hand and reconciled it in prose (LEAD-LOG 1801, DECISIONS 1066).
+  Why general: a correctness criterion is often shown wrong only by the first
+  measurement of a served candidate (bit-exactness across accelerators is the
+  field case), and P9 says the user's word is the only thing that moves a frozen
+  value, so the graph needs that word's door in every run. Why an outcome and
+  edge, not prose: revision rule 2 (prose that handles an undeclared route is an
+  invented edge) and pave-spec 13, Invisible edge. Why not overload
+  plan_unrealizable_as_designed: its meaning is a repo contradiction, and one
+  outcome carrying two causes gives the design brief two readings (pave-spec 13,
+  Ambiguous routing). Why no new check on the edge: the exit gate's check
+  design_approved_by_user already requires the user's verbatim word, and a second
+  check on the same claim before the same harm is the gate pave-spec 4.11
+  excludes. Cost per run: zero unless it fires; the lead reads a record it wrote,
+  and the review node's own re-entry rule decides the reviewer's read scope (a
+  whole read on a new design entry) - this revision adds no scope clause. P9
+  kept: the frozen text is untouched and the new criterion is a new registration.
+  The door needed one more clause to work: comparators_preregistered asked for a
+  registration timestamp "preceding every measurement artifact", which is false
+  for any campaign that re-registers after its first measurement - the live run's
+  committed_at is 2026-09-17T13:20:39Z against measurement artifacts from
+  2026-09-16 - so the declared route would have sent its own success back to
+  design or to a hand ruling at the next candidate_serving (the round-1 HIGH). The
+  check now asks for a timestamp preceding every measurement artifact adjudicated
+  against it: the property it protects (no registration written after the
+  artifacts it judges) is unchanged, and the predicate is true for exactly the
+  registrations that satisfy it.
+
+  (2) ONE COUNT RULE, WHERE THE COUNTER IS DECLARED (D1, the count). Before, the
+  rule for what counts toward the tier-2 stop limit lived in three restatements -
+  execute_attempt_loop's purpose (6 lines), realize_increment's CPU-mode allowed
+  effect (1 clause), the principles (1 clause) - and the state field
+  hardware_attempt_counts said "shared budget across all routes that spend
+  hardware attempts", which the run read as every device run: the field holds 25
+  while the stop limit stands at 9 of 10 by hand (LEAD-LOG 1798), and six records
+  (attempts 19 to 23 and the attempt-25 measurement job) carry a lead-typed
+  attempt_count_note citing the class "charged to spend, not budget-counted"
+  (LEAD-LOG 1649, 1695, 1712, 1780). After: the state field carries the one rule
+  and the one definition of each run class - three classes, each the job's
+  declared purpose at launch and a field of its record: serving (opens a device
+  to make a candidate serve, or a venv build toward one), diagnostic (reuses the
+  compiled graphs of a tip the campaign already served, no new graph, decides
+  nothing about the candidate's acceptance, reads state out), cpu_mode (opens no
+  device); only a serving attempt counts, and not when a host fault ended it; a
+  measurement run is measure_candidate's own record and never enters the count.
+  execute_attempt_loop, realize_increment and the principles point at the field
+  and define nothing twice. Not a weakening: the stop limit counts exactly what
+  it counted in practice (serving attempts) and what its own outcome text already
+  says ("completed without a serving candidate"); a run that compiles a new graph
+  or decides the candidate's acceptance is a serving attempt and counts whatever
+  it is called, and the discriminator - the compile cache's new-graph reading -
+  is produced by the host, not typed by the doer (pave-spec 5.3.1). At re-pin the
+  lead recomputes the stored value from the attempt records (revision rule 7's
+  reconciliation, as at revision 11): a one-time read - two records (attempts 22
+  and 23) carry budget_counted, the others classify by their kind text - and
+  every record after the apply step carries the class field.
+
+  (3) A SERVED CANDIDATE IS LOCALIZED ON ITS DEVICE (D1, the instrument). New
+  work-item class at scope_next_increment, the localization item: minted at a
+  re-entry from a correctness-shortfall or regression verdict before any repair
+  item unless a localization record already names that verdict's entry point; its
+  acceptance - defined there once - is the recorded entry point on the served
+  device (a value the compare tool produces against the registered tolerance) or
+  the recorded finding that no device-exposed state departs, on emulation only
+  under the fallback of (8), and increment_passed lists it beside the other
+  classes. realize_increment realizes it - one new allowed effect (a diagnostic
+  run, the class the state field defines, on the served device under a job lease
+  through the queue tool, recorded in the attempt log with class, fingerprint and
+  transcript), one new forbidden effect (opening a device for anything but that
+  run - a run that compiles a new graph or decides the candidate's acceptance is a
+  serving attempt and belongs to execute_attempt_loop), its out-of-scope line
+  reads "serving attempts" where it said "hardware attempts", and
+  hardware_attempt_log gains realize_increment as a producer. The scoping seat's
+  out-of-scope list gains "any probe", and its dispatch triggers gain the one this
+  run used twice without a name (a repair item to derive from a localization
+  record). The principle carries the why in one sentence: the device's numerics
+  are the question a CPU run cannot answer. Before: the shortfall re-entered a
+  plan node whose purpose forbids any test run; the seat ran CPU simulator probes
+  on the host anyway (job records scope-m4-depth and scope-m4-depth-sweep:
+  22-minute fp32 loads, two simulator crashes), the lead approved them as
+  uncharged (LEAD-LOG 1800), and the device path with existing machinery was named
+  only after the user asked why (DECISIONS 1068, LEAD-LOG 1803). Why here and not
+  a new node or outcome: one agent does the localization and decides its
+  definition of done from the compare tool's rows (pave-spec 9.12); the
+  work-item-class pattern already exists in this node; routing the diagnostic
+  through execute_attempt_loop would cost two outcomes, two edges and the full
+  stage-7 path per diagnostic. Safeguards kept: review before hardware - the
+  device-side code is the served, reviewed tip by construction (no new graph); P8
+  - the run is fingerprinted; leases - through the queue tool as before; the P2
+  and P3 hooks bind every seat; a host fault under a diagnostic run is recorded on
+  the item (increment_stuck) and recovered at the next hardware node entry, where
+  every host fault of the campaign is already handled, with the queue tool
+  releasing a closed job's grant. Cost per run: zero unless a served candidate
+  fails its gate; then one device run (load, warm-up, one request) in place of
+  CPU probes at a fraction of the wall-clock.
+
+  (4) CUTS. execute_attempt_loop purpose, 6 lines to 3; realize_increment's
+  CPU-mode effect, the budget clause to a pointer; the principles, the host-fault
+  clause to a pointer (the host_faulted outcome and the state field carry it).
+  Each of the diagnostic run, the localization acceptance and the
+  device-over-emulation rule is defined once and pointed at from every other
+  site. Net growth is the two declared structures, the localization class and the
+  rule of (8).
+
+  (5) EVERY COPY (release layer, corrected in the release as at revisions 7 and
+  12; none is a graph file). skills/vllm-neuron-parity/SKILL.md:150 "No hardware
+  before this stage closes" becomes "No serving attempt before this stage
+  closes; a localization item's diagnostic run on the served device is
+  realize_increment's", and the stage label "Implementation (CPU-first)" gains
+  "device over emulation once served". SKILL.md:151 "Attempts are counted from
+  attempt-record files" gains "by their class field". schemas/run-state.schema.json:152,
+  the hardware_attempt_counts description, mirrors the new meaning.
+  agents/implementer.md:129, the precedence list, gains criteria_changed_by_user
+  first; :140, the CPU-mode acceptance sentence, gains the device-over-emulation
+  pointer; :158 "hardware attempts" becomes "serving attempts"; :214-227, the
+  count text, becomes a pointer to the state field plus the localization
+  allowance; codex/agents/vllm_neuron_parity_implementer.toml is regenerated from
+  it. README.md:166 and :653 "68 edges" become 69; :275, the mermaid, gains sni to
+  design on criteria_changed_by_user. tests/test_workflow_pave.py:9 (the comment)
+  and :26 (EXPECTED) become "22 nodes, 69 edges, 5 control nodes".
+  references/artifact-layout.md 4.2 pair 4 pins the attempt record's class field
+  spelling (serving, diagnostic, cpu_mode), the launch reading field, and names
+  the compare tool and the reference the localization record cites. Searched with
+  fixed strings over the package, the pave-init skills and the Codex port: the
+  removed sentences survive nowhere outside history/ and revisions.yaml.
+
+  (6) USAGE EVIDENCE READ. No usage log exists (artifacts/run/usage-log.md is
+  absent; the run has had no terminal close). Run state since cp-20260916T200139Z:
+  21 rows (indices 1577 to 1597) - prepare_measurements measurements_ready 4;
+  measure_candidate bundles_stable 2, procedure_defect_found 1;
+  adjudicate_results correctness_shortfall 2; scope_next_increment
+  increment_selected 2, both with a seat dispatched for the judgment "where the
+  error enters", a trigger the node did not name - this revision names it and
+  moves the instrument; realize_increment increment_passed 3;
+  review_implementation ready_for_hardware 3 of 3 and review_increment_batch
+  batch_sound 3 of 3 in this window against 91 of 226 and 33 of 114 material over
+  the run, so neither is a lead-run-implementation candidate;
+  execute_attempt_loop candidate_serving 1. hardware_attempt_counts 21 to 25 on
+  four device runs, one of them a serving attempt. The stall at LEAD-LOG 1791 (a
+  seat announced work and idled five hours) is lead-side usage with no graph
+  line. Write report (the read-only tool, window from the IDLE stamp
+  2026-09-16T20:28:33Z): 22 declared outcomes, 105,934,205 bytes, 4,815,191
+  bytes per outcome at drafting, down from 8,740,092; the reviewer's re-run at
+  13:31Z read 24 outcomes and 106,475,871 bytes.
+
+  (7) D3, RECORDED, NO CHANGE. record_revision.py verify in pave-init 2.5.1 to
+  2.6.1 refuses this root's revision 2 kind run_setup; 2.6.2 passes. The schema is
+  the tool's, not the graph's.
+
+  (8) DEVICE OVER EMULATION (D4, the user's word - DECISIONS 1070, round 3).
+  Before: the round-2 draft named cpu_mode as a class and put localization "on
+  the served device first", but stated no preference between an idle device and
+  CPU emulation, and no record of the choice; the user's rule was "use neuron
+  devices if not in use over cpu to avoid lengthy cpu emulation". After, one rule
+  at realize_increment's purpose: on a tip the campaign has served, a run that
+  reproduces or localizes a device result goes to a Neuron device whenever the
+  queue tool's remaining-capacity reading at launch (the status command's
+  remaining field for the roster host) shows one idle for the job's need;
+  CPU-mode emulation of that tip is the fallback when the reading shows none, or
+  the instrument for a question the device cannot expose, the reason recorded;
+  every run record on a served tip carries the reading (hardware_attempt_log's
+  subject); CPU mode stays the home of item-level acceptance (the principle,
+  which points at the rule). A CPU-mode run that reproduces or localizes a
+  device result while its reading shows an idle device is work not done as
+  designed - its result is not a pass and its record is the finding the next
+  scoping round reads: the existing increment_stuck door, no new outcome or edge.
+  The localization acceptance at scope_next_increment admits an emulation result
+  only when the run record's reading shows no idle device. Where the choice is
+  made, and why there: at launch, by the doer, from a tool-produced value
+  (pave-spec 5.3.1) - not at item selection, because a reading taken at the
+  scoping round is stale by the time the seat launches, and not as a lap-record
+  field, which would be a second copy of the run record's field. Why general:
+  emulating a device is slow by construction, so every campaign with a served tip
+  and an idle device faces the same choice; the rule names no host, model or
+  count. Not a weakening: the device run is the diagnostic class of (2) and (3)
+  with every safeguard those sections keep; the fallback opens no device. Cost
+  per run: one status read before each run on a served tip. Field evidence:
+  22-minute simulator loads per probe, MoE-route crashes at r5, r8 and r11, a
+  segfault at layer 10 in the r12 sweep, about three hours of CPU probing
+  replaced by one device run (LEAD-LOG 1797 to 1807; 1803 the device-first
+  ruling; DECISIONS 1068).
+
+  Layer test (pave-spec 2.1): a new outcome and edge, an allowed and a forbidden
+  effect, two checks' meaning, an evidence producer and subject, and a state
+  field's meaning - kind graph; no seat, model, effort or write limit moves.
+  User-only changes touched (revision rule 6): allowed and forbidden effects at
+  realize_increment, a new outcome and edge, the declared meaning of
+  design_approved_by_user, comparators_preregistered and hardware_attempt_counts
+  - pending the user's word. No digest of a mutable file anywhere (pave-spec
+  9.14.3). No hook checkpoint was open at drafting (sidecar IDLE, checkpoint_id
+  null); the request is the user's, DECISIONS 1068 and 1070. Drafted from the
+  live graph at revision 12 by pave-init:workflow-updater (teammate
+  updater-audit-r13), clock read 2026-09-17T13:08Z; repaired after round 1
+  (propose clock read 13:40:17Z); extended at round 3 for DECISIONS 1070.
+user_only_changes: approved
+approval: "approve 13"
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 13 (graph): a user decision that changes a kickoff-declared criterion
+  or registered value now has its own door - scope_next_increment reports
+  criteria_changed_by_user and re-enters design for the register step under that
+  decision as the approval, gate 2 not re-presented, and comparators_preregistered
+  asks for a registration older than the artifacts adjudicated against it; the
+  tier-2 stop limit's count rule lives once at hardware_attempt_counts (three run
+  classes set at launch - serving, diagnostic, cpu_mode; only serving attempts
+  count); a served candidate's correctness shortfall is localized on the served
+  device through a localization item that realize_increment may run as a
+  diagnostic under lease; on a served tip, a run that reproduces or localizes a
+  device result goes to an idle Neuron device over CPU emulation, the queue tool's
+  reading at launch in the run record, emulation only when no device is free or
+  for what the device cannot expose (the user's rule, DECISIONS 1070). Field
+  evidence: run run-20260827-glm-5.3-flash-port, 2026-09-16 and 17 - the design
+  boundary re-opened by hand for DECISIONS 1066; six hand-typed attempt_count_note
+  fields; CPU simulator probes r5 to r12 after served candidates failed their
+  gate, about six hours of wall-clock, stopped by the user (DECISIONS 1068).
+  Release-layer copies are listed in the semantic diff.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -42,10 +42,14 @@
+     implementation before hardware spend, and PR packages. Measurement verdicts
+     are issued once, by an adjudicator independent of the measurer, and read by
+     the PR review before gate 3.
+-  - CPU-first increments before any hardware attempt; no attempt caps - two-tier
+-    stop limit instead (fingerprint no-identical-retry; halt and re-derive at every
+-    10 budget-counted hardware attempts per target - host faults are recorded
+-    but never charged).
++  - CPU-first increments before any hardware attempt - item-level acceptance runs
++    in CPU mode; once a candidate has served, work on that tip goes to an idle Neuron
++    device over CPU emulation (the rule and its record at realize_increment), because
++    emulating a device is slow by construction and the device's numerics are the
++    question a CPU run cannot answer. No attempt
++    caps - two-tier stop limit instead (fingerprint no-identical-retry; halt and
++    re-derive at every 10 budget-counted hardware attempts per target; what counts
++    is the one rule at the hardware_attempt_counts state field).
+   - Kernel-substrate rule - new kernel-class functionality not already provided
+     by the Neuron NKI library is implemented in NKI, never as torch-level fallback
+     (torch stays legitimate for orchestration and glue); substrate is a per-increment
+@@ -138,7 +142,10 @@
+       - prepare_host
+       - execute_attempt_loop
+       - recover_leased_host
+-      subject: one-file-per-event attempt, fingerprint, lease, and recovery records
++      - realize_increment
++      subject: one-file-per-event attempt, fingerprint, lease, and recovery records;
++        a run record names its class (serving, diagnostic, cpu_mode) and, on a
++        served tip, the queue tool's remaining-capacity reading at launch
+       artifact: artifacts/campaigns/<campaign>/attempts/
+     rederivation_record:
+       kind: derivation
+@@ -273,7 +280,10 @@
+         byte-unchanged, the kickoff-declared criteria and the user decisions recorded
+         at this gate are intact, and no material finding stands, and the gate is re-presented
+         only when one of those moves - and does any change to kickoff-declared
+-        criteria carry an explicit recorded user decision?
++        criteria carry an explicit recorded user decision? A criterion or registered
++        value the user changed in their own recorded words is approved by that
++        decision - the gate is not re-presented for it, only for a material finding
++        on the new registration.
+       evaluated_by: user
+       on_failure_route: design_campaign
+     narrow_delta_scoped:
+@@ -320,7 +330,8 @@
+     comparators_preregistered:
+       style: mechanical
+       question: Is the comparator set for this campaign recorded and frozen in
+-        run state with a timestamp preceding every measurement artifact?
++        run state with a timestamp preceding every measurement artifact adjudicated
++        against it?
+       evaluated_by: lead
+       on_failure_route: design_campaign
+     evidence_stable_before_verdict:
+@@ -1080,7 +1091,7 @@
+         this one node is run setup declared per node (spec section 2.1); a large
+         campaign runs sequential seats so no seat exceeds its bounded context, and
+         the investigator seat owns the screen. Re-entry - the brief names the parts
+-        to touch and the finding or contradiction each answers; an unchanged part
++        to touch and the finding, contradiction, or user decision each answers; an unchanged part
+         is not re-authored, the round hands back a block diff, and a round that must
+         touch a part the brief did not name stops and reports the cascade for a
+         re-brief. Re-entry check tool - when the campaign_target_pins entry equals
+@@ -1144,9 +1155,10 @@
+       instance_per: approved_campaigns
+       purpose: 'On every entry to implementation - fresh from the design gate,
+         or re-entry from implementation review, a correctness shortfall verdict,
+-        or a regression verdict - reconcile three persisted inputs: the approved
++        or a regression verdict - reconcile four persisted inputs: the approved
+         design''s increment plan, the adversarial findings history for this campaign,
+-        and the per-increment evidence records already on disk. Verify the campaign
++        the per-increment evidence records already on disk, and the user decisions
++        recorded since the standing gate-2 approval. Verify the campaign
+         worktree and branch preconditions (worktree present, branch based on this
+         campaign''s entry in campaign_target_pins, no protected base branch touched).
+         Then emit exactly one of: the next pending work item - or a set of pending
+@@ -1174,7 +1186,14 @@
+         gap, the import scan re-run for an import-scan hit, the substrate-fidelity
+         check re-run for a substrate-fidelity hit); repackaging items when review
+         found the changeset not reviewable as one unit against the increment plan
+-        (the recomputed one-unit coverage check). The no-progress detector reads
++        (the recomputed one-unit coverage check); localization items, minted at a
++        re-entry from a correctness-shortfall or regression verdict before any repair
++        item, unless a localization record already names that verdict''s entry point
++        - the acceptance is the recorded entry point on the served device (the
++        compare tool''s first layer or state that departs from the reference beyond
++        the registered tolerance) or the recorded finding that no device-exposed
++        state departs - on CPU emulation of the served tip only when the run record''s
++        launch reading shows no idle device; repair items then derive from that record. The no-progress detector reads
+         two input families and fires on either. (1) The findings history under
+         artifacts/reviews/ - repeated identical material findings, keyed on exactly
+         the finding fingerprint the reviewed sibling fixed (the artifact-layout
+@@ -1198,8 +1217,10 @@
+         notes, never findings: they mint no work item and enter neither detector
+         input. Empty histories on a first round can never fire either input. When
+         more than one verdict holds at once, report exactly one outcome by this
+-        precedence: (1) plan_unrealizable_as_designed - a concrete recorded contradiction
+-        outranks every repetition signal; (2) no_new_route - repetition proves
++        precedence: (0) criteria_changed_by_user - the acceptance basis moved, so no
++        other verdict is decidable until it is re-registered; (1) plan_unrealizable_as_designed
++        - a concrete recorded contradiction outranks every repetition signal; (2)
++        no_new_route - repetition proves
+         iteration is not working, so it outranks resizing; (3) plan_exceeds_node;
+         (4) prerequisite_unlanded when the item the rule would select declares a
+         prerequisite that is an unlanded block the plan already carries; (5) plan_satisfied
+@@ -1217,9 +1238,12 @@
+         candidate the worktree precondition check surfaces that no realizer record
+         has yet recorded (plan_unrealizable_as_designed needs a recorded contradiction,
+         and the realizer''s evidence_contradicts_design stays the usual door),
+-        or a disagreement between the findings history and the round records about
+-        whether a triple was answered. Ambiguity runs the seat. Out of scope
+-        - any code change, any test run.
++        a disagreement between the findings history and the round records about
++        whether a triple was answered, or a repair item to derive from a localization
++        record that names the defect but not the fix. Ambiguity runs the seat. Out of scope
++        - any code change, any test run, any probe: a seat here reads records and
++        recommends; the instrument that localizes a served candidate is the
++        localization item, realized on the device.
+
+         '
+       roles:
+@@ -1250,7 +1274,7 @@
+         increment_selected:
+           meaning: The next pending work item, or a set sized as one implementation,
+             is recorded in the round record - each item with its design increment
+-            id, its declared CPU-mode acceptance command, and the review findings
++            id, its declared acceptance (as its work-item class declares it), and the review findings
+             it answers, plus the set's implementation order or concurrent-eligibility
+             mark - decided by the round record resolving
+             item-by-item against the approved design record and findings history
+@@ -1302,6 +1326,17 @@
+           meaning: The reconciled remaining work cannot fit this node as sized
+             - the exhaustion evidence (round records, attempt fingerprints, remaining-item
+             list) is recorded. Implements the parent outcome scope_exceeded.
++        criteria_changed_by_user:
++          meaning: A user decision recorded in the user's own words after the standing
++            gate-2 approval changes a kickoff-declared criterion or a registered value
++            (P9) - decided by the decision record, never by a lead reading of intent.
++            The round records the decision's reference and selects nothing; the design
++            node re-enters for the register step alone (a new registration beside the
++            frozen text, which stays untouched), and gate 2 re-enters under that
++            decision as its approval. A measurement in flight completes on the
++            registration it started under; the change takes effect from this round.
++          required_evidence:
++          - increment_lap_record
+     realize_increment:
+       intent: execute
+       instance_per: approved_campaigns
+@@ -1338,8 +1373,24 @@
+         run one seat per item at once when the lead gives each item its own checkout
+         and lands the items onto the campaign branch at the join in the recorded
+         order, a conflict at the join being a scheduling defect recorded in the
+-        round record that returns the set to the serial default. Dispatch delegate skills only
+-        through the run''s guardrails. Out of scope - hardware attempts, any write
++        round record that returns the set to the serial default. When the selected
++        item is a localization item, the work is to find where the served candidate''s
++        computation departs from the reference - a diagnostic run (the class
++        hardware_attempt_counts defines) reading state out through instrumentation
++        that touches no traced code, existing dump machinery before new, compared per
++        layer or state to the reference; the item''s acceptance is the one its class
++        declares at scope_next_increment. Device over emulation - the run goes to a
++        Neuron device whenever the queue tool''s remaining-capacity reading at launch
++        shows one idle for the job''s need, because emulating a device is slow by
++        construction and the device''s numerics are the question; CPU-mode emulation
++        of the served tip is the fallback when the reading shows none, or the
++        instrument for a question the device cannot expose, the reason in the record.
++        Every run record on a served tip carries that reading. Reproducing or
++        localizing a device result is localization work in every item - a CPU-mode
++        run that does it while its reading shows an idle device is work not done as
++        designed, so its result is not a pass and its record is the finding the next
++        scoping round reads. Dispatch delegate skills only
++        through the run''s guardrails. Out of scope - serving attempts, any write
+         outside the campaign worktree and branch, and any change to kickoff- or
+         design-declared acceptance criteria.
+
+@@ -1352,6 +1403,7 @@
+       - campaign_design_record
+       produces:
+       - increment_evidence_records
++      - hardware_attempt_log
+       activities:
+       - Locate the increment's file surface from the design record and read only
+         the slices of the collision-heavy files it names.
+@@ -1367,10 +1419,18 @@
+       allowed_effects:
+       - Writes inside this campaign's worktree - or, for a concurrent-eligible set,
+         one checkout per item on the campaign branch - and branch on the fork.
+-      - CPU-mode execution on local or assigned hosts; a CPU-mode run is not a
+-        hardware attempt and is charged to no attempt budget.
++      - CPU-mode execution on local or assigned hosts (never counted -
++        hardware_attempt_counts); on a served tip only as the purpose's fallback, the
++        launch reading in the record.
++      - For a localization item only - a diagnostic run, the class
++        hardware_attempt_counts defines, on the served device under a job lease taken
++        through the hardware queue tool; recorded in the attempt log with its class,
++        fingerprint, and transcript.
+       - Guardrailed delegate dispatch.
+       forbidden_effects:
++      - Opening a Neuron device for anything but that diagnostic run - a run that
++        compiles a new graph or decides the candidate's acceptance is a serving attempt
++        and belongs to execute_attempt_loop.
+       - Mutating protected base branches on fork or upstream.
+       - NxDI-stack imports in ported code.
+       - Clearing the shared Neuron compile cache.
+@@ -1381,7 +1441,9 @@
+             acceptance - the CPU-mode
+             command transcript and exit status for build and repair increments,
+             the recomputed gap check that found the gap for coverage-gap items,
+-            or the recomputed one-unit coverage check for repackaging items -
++            the recomputed one-unit coverage check for repackaging items, or the
++            compare tool's recorded entry point or no-departure finding for
++            localization items -
+             and its evidence record is written; decided by values produced by
+             the check tool, not the doer's judgment. Routes back to scoping for
+             the next item.
+@@ -1545,12 +1607,10 @@
+         file) is the design to reuse in-band. Before every attempt, consult the
+         repo-tracked fingerprint file AND this run's attempt-log fingerprints;
+         never launch an attempt identical to a recorded failure (tier 1). Count
+-        every attempt whose failure cause is not host-level against the per-target
+-        shared budget and halt at the tier-2 threshold (every 10 budget-counted
+-        hardware attempts per target since the last re-derivation). A CPU-mode run
+-        (VLLM_NEURON_CPU_MODE=1, no Neuron device opened) on any host this campaign
+-        holds - assigned or leased - is not a hardware attempt and is never charged
+-        to that budget; only a run that opens a Neuron device counts. Outcome precedence
++        every serving attempt against the per-target budget by the one count rule
++        at the hardware_attempt_counts state field, and halt at the tier-2 threshold
++        (every 10 budget-counted attempts per target since the last re-derivation).
++        Outcome precedence
+         when both hold - a host fault on the threshold-reaching attempt routes
+         to host_faulted first; a host-caused failure recorded as the stop limit's
+         final datum would feed re-derivation contaminated evidence. The attempt
+@@ -2035,7 +2095,12 @@
+     to: design_campaign
+   - id: implementation_scope_to_redesign
+     from: scope_next_increment.plan_exceeds_node
++    to: design_campaign
++  - id: user_criteria_change_to_redesign
++    from: scope_next_increment.criteria_changed_by_user
+     to: design_campaign
++    rationale: A frozen value moves only by the user's word (P9); this edge is that
++      word's door back to the register step, so the lead never re-opens design by hand.
+   - id: impl_no_progress_to_rederivation
+     from: scope_next_increment.no_new_route
+     to: rederive_approach
+@@ -2303,10 +2368,18 @@
+           amendments. Remaining capacity per host is derived from open job leases
+           (grants without a release), never stored here.
+       hardware_attempt_counts:
+-        meaning: Per-target shared budget across all routes that spend hardware
+-          attempts; the tier-2 stop limit reads it at every 10. A CPU-mode run that
+-          opens no Neuron device is not a hardware attempt on any host and never
+-          increments it.
++        meaning: Per-target count of budget-counted hardware attempts across every
++          route that spends them (the attempt loop, the venv recipe); the tier-2 stop
++          limit reads it at every 10 since the last re-derivation. The one count rule,
++          recomputable from the attempt records alone. Three run classes, each the
++          job's declared purpose at launch and a field of its record, never a note
++          added after the run - serving (a run that opens a Neuron device to make a
++          candidate serve, or a venv build toward one), diagnostic (a device run that
++          reuses the compiled graphs of a tip this campaign already served, compiling
++          no new graph and deciding nothing about the candidate's acceptance, to read
++          state out), cpu_mode (opens no device). Only a serving attempt counts, and
++          not when a host fault ended it. A measurement run is measure_candidate's
++          own record and never enters this count.
+       campaign_states:
+         meaning: Pointer per campaign to its own state and evidence directory
+           (one-file-per-event); never inlined into run state.

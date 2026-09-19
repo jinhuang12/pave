@@ -82,7 +82,8 @@ proceed on the artifact and disclose the disagreement in one line.
   material finding stands AND that the user's gate-2 approval is recorded
   or stands per `design_approved_by_user`.
 - `review_increment_batch` (per batch of 1-3 landed increments, before the
-  next scope round) — the lead's `batch_review_current` check fails the next
+  next scope round; a fold item's commits are one batch whatever their
+  count) — the lead's `batch_review_current` check fails the next
   scoping into this node whenever a landed increment outside the open batch
   has no batch-review findings record. Fresh seat per batch, read-only on
   the worktree and branch, no host execution. Read the batch diff, its

@@ -1,0 +1,323 @@
+kind: graph
+semantic_diff: >-
+  Base: revision 13, digest sha256:0d9de42c61ad4bdffa6d6f73c2bf184f6fda059946b1a34513062f392d3c145d,
+  verified intact with pave-init 2.6.2 record_revision.py (17 entries). Counts: 22
+  nodes, 69 edges, 69 outcomes, 17 checks (one with changed text: batch_review_current),
+  24 evidence definitions, 5 control nodes - all unchanged; roles, node roles,
+  consumes and produces, required_evidence, allowed and forbidden effect lists,
+  state.required and write_limits equal, proved by parsing both graphs and comparing
+  the skeletons field by field. 7 hunks, 33 added lines against 12 removed; 2409
+  lines become 2430 (ceiling 3100). No new node, outcome, edge, check, seat, model,
+  effort or write limit. Three defects fixed by text at the nodes that own them, one
+  refactor, four defects recorded with no change and the reason. Round-1 review
+  (proposals/v14-graph-review-20260919T021821Z.md, PASS with 4 LOW) repaired in
+  this same revision, every finding taken.
+
+  (1) A DECLARED DOOR FOR THE USER'S OWN CHANGESET (D3). New work-item class at
+  scope_next_increment, the fold item: minted at the round that first reads a user
+  decision, in the user's own words, that a changeset the campaign did not design
+  (the user's own branch or pull request against the campaign branch) lands on the
+  campaign branch; selected ahead of plan items because every later item builds on
+  the tip; its acceptance, defined there once, is the folded tip's diff against the
+  pre-fold tip equal as a set of added and removed lines to the changeset's diff
+  against its own base (values git produces, pave-spec 5.3.1) plus the whole-tree
+  CPU-mode test pass on the folded tip; its review is the batch review of its landed
+  commits, as for every increment. realize_increment realizes it (rebase onto the
+  tip, conflicts resolved to the exact union, whole-tree pass, commits landed as
+  written so the reviewer reads what the user wrote) and increment_passed lists its
+  acceptance beside the other classes. batch_review_current counts a fold item's
+  commits as one landed unit whatever their count, because they arrive together and
+  nothing builds between them - the size call exists to catch a defect before
+  dependents build on it, and a fold has none inside it; review_increment_batch's
+  purpose points at that rule and states nothing twice. Before: the graph had no
+  route for code the campaign did not design. PR 6 got a fresh adversarial reviewer
+  before any landing, a rebase seat dispatched at prepare_pr (a node that assembles
+  the fork PR package and never touches the branch), and a fold by the lead
+  (LEAD-LOG 1964 to 1970, DECISIONS 1075); PR 7 is on the same hand-made path now
+  (LEAD-LOG 2032: a reviewer seat at realize_increment, a node whose roles carry no
+  reviewer). The landing path has no declared name for anything but a plan item -
+  the lead still plans landing rows under record_changeset, a node revision 11
+  removed (LEAD-LOG 1852, 1861). Why general: a user who develops on the fork beside
+  the campaign will hand it changesets, and every such changeset moves the tip every
+  later item and every measurement stands on, so the graph needs one door for it in
+  every run. Why a work-item class and not a node or outcome: one implementer does
+  the rebase and decides done from two git line sets (pave-spec 9.12); the class
+  pattern exists at this node (revision 13 added the localization item the same
+  way); a node would cost an outcome, an edge and a seat per fold. Why no pre-fold
+  reviewer: the batch review is the declared review of every landed commit before
+  the next scope round, and a second review of the same commits before the same
+  harm is the gate pave-spec 4.11 excludes; the material findings of the PR 6
+  review (F4, F5) are exactly what material_findings routes to scoping as repair
+  items, which is where they went by hand as debts. Authority kept: the scope line
+  "Merging PRs (human)" stands - the class text says the merge decision stays the
+  user's and the campaign only lands commits on its own branch, a write
+  realize_increment's allowed effects already grant; the user's recorded word is
+  the trigger, so the campaign never pulls foreign code on its own. Cost per run:
+  zero unless the user folds; then the two traversals every increment already pays
+  (realize, batch review) in place of three hand-made seats.
+
+  (2) A LOST RUN IS A DEFECT OF THE PROCEDURE'S FORM (D1). measure_candidate's
+  procedure_defect_found now reads: a run exposes a defective implementation of a
+  frozen comparator - it measured the wrong property, or its runner could not carry
+  a run to its record while the host and the candidate stood (a transport bound to
+  the workstation's session, a staging step); routed back to measurement
+  preparation, where the smoke run covers the repaired form. Before: "a procedure
+  that measured the wrong property", so attempt 29 - the M4 measure leg killed by
+  the workstation's network loss through a foreground ssh pipe, host healthy,
+  candidate serving, no number produced (LEAD-LOG 2008, defect class BU) - fit no
+  declared outcome and the lead booked the nearest one with the mismatch recorded
+  (run-state row 1623). After: the same route, now declared. Why this widening and
+  not a new outcome: a procedure is its runner too (prepare_measurements
+  smoke-verifies the set the runner belongs to), the repair the defect needs is a
+  procedure revision through the same door, and a lost run with no procedure defect
+  does not exist - a host fault is the node's lost-serving path and
+  serving_exhausted, and a workstation fault that reaches the host only through a
+  runner that depends on the workstation is, by that fact, the runner's defect. One
+  clause, no edge. Cost per run: zero. Recorded outcomes: row 1623 took this edge
+  under the old text; the new text admits it exactly, so no applied item's
+  acceptance or route changes and the run continues on the successor with no
+  catch-up duty (revision rule 7).
+
+  (3) ONE CAMPAIGN, ONE CAMPAIGN LEASE (D4). prepare_host's lease rule gains one
+  clause: a campaign lease asked for by a campaign that already holds one on that
+  host is refused with the standing lease's reference, so one campaign never holds
+  two. Before: the rule already said never re-request a lease the campaign holds
+  (probe-only mode) and the queue tool did not check - a lane seat wrote a second
+  campaign-kind grant for the one campaign (LEAD-LOG 1958, "Stray lease"), status
+  then showed two, and a release by campaign would have released both. Enforcement
+  level (pave-spec 9.14.1): mechanical, at the one writer of lease records, because
+  the violation is a tool call a seat makes by omitting --job, is precisely
+  detectable from the open leases the tool already reads under its lock, and the
+  reminder rung (the existing prose) failed once; not stronger than needed - a
+  refusal that names the standing lease costs the caller nothing and strands
+  nothing. Release layer: hardware_queue.py cmd_grant refuses when --job is absent
+  and an open campaign lease for that campaign names that host (status refused, the
+  lease_id, exit 2) plus one test in tests/test_hardware_queue.py. Cost per run:
+  zero.
+
+  (4) CUT. review_increment_batch's purpose restated the batch size rule in full (3
+  lines: 1 for a complex commit, up to 3 when low complexity); it now points at
+  batch_review_current, which was already the mechanical authority and gains the
+  low-complexity examples the node alone carried (config, tests, wiring, citation
+  repairs) and the fold-unit count, so the rule lives once. Net growth: 21 lines -
+  the fold class, defined once at scope_next_increment and pointed at from
+  realize_increment, increment_passed and the batch size rule, and two clauses.
+
+  (5) NO CHANGE, WITH THE EVIDENCE (D2, D5, the second half of D1, D6). D2, queue
+  priority: the incident (LEAD-LOG 2003 to 2006) was one running 64-core CPU job
+  under an open lease; the measurement asked for the whole host and waited 8
+  minutes until that job's own release. No admission rule pre-empts a running
+  lease, so a priority or reservation rule would have changed nothing here; the one
+  thing the tool does not do - admit waiting requests in order, so a later short
+  grant cannot slip ahead of a waiting whole-host request - was needed zero times
+  in the incident, because the lane asked for no new lease. An admit-in-request-order
+  rule earns its place when the lease records show a grant slipping ahead
+  of a waiting one; none does, so this revision adds nothing and names the reading
+  the next audit takes. D5, the measurement instance closed without an outcome
+  (LEAD-LOG 1989): the instance for attempt 28 was opened before its entry edge
+  fired (LEAD-LOG 1985 re-noded the measurer seat to measure_candidate at 14:23Z;
+  measurements_ready_to_candidate_runs follows candidate_serving, and the attempt
+  failed on its first request at 14:34Z), so it had no outcome to close by;
+  measure_candidate is one instance per campaign (instance_per), and a second one
+  per attempt is a lead routing act against the graph as written, not a gap in it.
+  The M4 instance that stayed open through the breaker and the redesign is the
+  declared shape: it closed by procedure_defect_found (row 1623) and re-entered
+  through measurements_ready (row 1624). D1, second half (LEAD-LOG 2028): a
+  diagnostic bundle complete while the gating bundle does not exist is working
+  state inside the open instance; the bundle file is its record
+  (measurement_artifacts, one file per event) and bundles_stable reads every
+  declared bundle at once; an outcome for "some bundles done" would route nowhere
+  and is the re-check pave-spec 4.11 excludes. D6, the write-report tool gaps
+  (audit-findings.md, the instrument-gaps section): items 1, 2, 4, 5, 7 and 9 to 14
+  are the tool's and the hook's (pave-init's run_write_report.py; the plugin's
+  hooks.json --memory-dir flag and stop-guard.sh), not graph lines; they go on the
+  release list in (8) as tool work, and the graph is unchanged by them.
+
+  (6) USAGE EVIDENCE READ. No usage log exists (the run has had no terminal
+  close). Run state since revision 13 applied at 2026-09-17T14:31:26Z (rows 1603 to
+  1625, 0-based, 23 rows): realize_increment increment_passed 4;
+  scope_next_increment increment_selected 4; review_increment_batch batch_sound 4
+  of 4 and review_implementation ready_for_hardware 1 of 1 (33 of 114 and 91 of 226
+  material over the run, per the revision 13 read - neither is a
+  lead-run-implementation candidate); prepare_host host_ready 1;
+  execute_attempt_loop candidate_serving 1 and breaker_tripped 1;
+  rederive_approach revised_approach 1; design_campaign design_ready 1;
+  review_campaign_design design_sound 1; prepare_measurements measurements_ready 3;
+  measure_candidate procedure_defect_found 1. Of these, rows 1613 to 1625 (13) fall
+  after the last audit checkpoint's read (cp-20260918T065305Z read rows 1599 to
+  1612). hardware_attempt_counts 20 to 21 (attempt 28, serving, charged; attempt
+  29, measurement, uncounted). Off-graph seats in the window: the PR 6 reviewer
+  and rebase seats (section 1 routes them), and 18 reviewer seats per launcher or
+  procedure revision that the audit record (cp-20260918T065305Z, act 1) names as
+  lead-invented and the lead answers as the user's own serving-pair gate (DECISIONS
+  1059) - no graph line asks for them and this revision adds none. Last write
+  report: 36 declared outcomes, 212,271,796 bytes, 5,896,439 bytes per outcome,
+  down 1.5-fold.
+
+  (7) EVERY COPY. The three wordings this revision changes (the batch size
+  restatement, "measured the wrong property", the lock clause) survive only in the
+  package's shipped graph copy at revision 12 (replaced by the live graph at the
+  release), VERSION's 1.5.8 changelog line and hardware_queue.py's docstring (both
+  about job grants and true as written; the docstring gains one line for the
+  campaign refusal), and pave-init's planning-record draft (history). The Codex
+  port carries no copy of these lines; its implementer and reviewer agents
+  regenerate from agents/*.md.
+
+  (8) RELEASE 1.5.9 MUST CARRY (D7). For revision 13 (LEAD-LOG 1952; revision 13
+  section 5): skills/vllm-neuron-parity/SKILL.md:150 ("No hardware before this
+  stage closes" becomes the serving-attempt sentence with the localization
+  allowance; the stage label gains "device over emulation once served") and :151
+  ("counted from attempt-record files by their class field");
+  schemas/run-state.schema.json:152 (hardware_attempt_counts description mirrors the
+  state field's one rule and three classes); agents/implementer.md:129
+  (criteria_changed_by_user first in the precedence), :140 (device-over-emulation
+  pointer), :158 ("serving attempts"), :214-227 (the count text becomes a pointer
+  plus the localization allowance); codex/agents/vllm_neuron_parity_implementer.toml
+  regenerated; README.md:166 and :653 ("68 edges" becomes 69), :275 (the mermaid
+  gains sni to design on criteria_changed_by_user); tests/test_workflow_pave.py:9
+  and :26 (EXPECTED "22 nodes, 69 edges, 5 control nodes");
+  references/artifact-layout.md 4.2 pair 4 (class spelling serving, diagnostic,
+  cpu_mode; the launch reading field; the compare tool and reference the
+  localization record cites); agents/measurer.md (the scratch root pointer the
+  audit record asks for); the recurring-form rule the audit record names for the
+  lead skill. For revision 14: SKILL.md:150 (two clauses - a changeset the campaign
+  did not design lands only as a fold item on the user's recorded word: realize,
+  then batch review; no reviewer before the fold, no seat at prepare_pr; and the
+  batch size sentence "Every 1-3 landed commits form a batch" gains the fold-unit
+  count - a fold item's commits are one unit whatever their count) and :151 (the
+  tool refuses a second campaign lease); agents/implementer.md:147 (a fold item
+  rebases the user's changeset onto the tip to the exact union and lands it as
+  written) and :166 (the refusal); agents/adversarial-reviewer.md:84 (a fold
+  item's commits are one batch whatever their count); the two Codex agents
+  regenerated; scripts/hardware_queue.py cmd_grant and its docstring plus one
+  test; the package's workflow.pave.yaml, revisions.yaml, history/v13.patch and
+  history/v14.patch copied from the evolution root after the apply step; the
+  VERSION 1.5.9 entry. Counts stay 22 nodes, 69 edges, 5 control nodes, so tests
+  and README need no count change for 14. Tool work carried, not graph: the
+  write-report gaps in (5).
+
+  Layer test (pave-spec 2.1): one work-item class with its acceptance, one
+  outcome's meaning, one check's question, one lease rule clause - kind graph; no
+  seat, model, effort or write limit moves. User-only changes touched (revision
+  rule 6): check strength - batch_review_current's question changes and the lease
+  rule gains a mechanical refusal (stronger, never weaker) - and the declared
+  meaning of procedure_defect_found (an outcome's interface); pending the user's
+  word. The user approved release 1.5.9 in advance (DECISIONS 1079, "yes 1.5.9
+  too"); the lead records that as the approval at apply. Allowed and forbidden
+  effects: equal, proved by parse. No digest of a mutable file anywhere (pave-spec
+  9.14.3). No hook checkpoint was open at drafting; the request is the user's.
+  Drafted from the live graph at revision 13 by pave-init:workflow-updater
+  (teammate updater-r14), clock read 2026-09-19T01:56Z; repaired after round 1
+  (clock read 2026-09-19T02:28Z).
+user_only_changes: approved
+approval: "yes 1.5.9 too"
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Revision 14 (graph): a changeset the campaign did not design (the user's own PR)
+  lands on the campaign branch only as a fold item on the user's recorded word -
+  rebased to the exact union, whole-tree CPU pass, then the batch review of its
+  commits as one unit, no reviewer before the fold; a measurement run the runner
+  could not carry to its record while host and candidate stood is
+  procedure_defect_found, repaired where procedures are smoke-verified; the queue
+  tool refuses a second campaign lease for a campaign that holds one; the batch
+  size rule lives once, at batch_review_current. No new node, outcome, edge or
+  seat.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index 12ddf03..2e391ec 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -390,7 +390,9 @@ pave:
+         section per round - layout reference 4.1) under artifacts/reviews/<campaign>/, and is the
+         open batch still below the size the lead declared for it in the round record
+         (1 for a complex commit - a new kernel, runner, scheduler, or weight-loading
+-        change - up to 3 when the batch is low complexity in aggregate)? On the
++        change - up to 3 when the batch is low complexity in aggregate - config, tests,
++        wiring, citation repairs; a fold item's commits are one landed unit whatever
++        their count, because they arrive together and nothing builds between them)? On the
+         plan_satisfied edge the open batch closes regardless of size, so any
+         unreviewed landed increment fails the check.
+       evaluated_by: lead
+@@ -720,9 +722,7 @@ pave:
+         Adversarial, material-findings-only review of one batch of 1-3 landed increment
+         commits before the next scope round, so a defect is caught while its dependents
+         are still unbuilt. The lead composes the batch and records its size call in the
+-        round record - 1 for a complex commit (a new kernel, runner, scheduler, or
+-        weight-loading change), up to 3 when the commits are low complexity in
+-        aggregate (config, tests, wiring, citation repairs). A fresh reviewer per batch,
++        round record by the rule batch_review_current carries. A fresh reviewer per batch,
+         independent of the realizer, reads the batch diff, its evidence records, and the
+         plan blocks or plan rows it claims to implement. Material means - the code does
+         not do what its block declares; the acceptance is hollow (it would pass on wrong
+@@ -1193,7 +1193,17 @@ pave:
+         compare tool''s first layer or state that departs from the reference beyond
+         the registered tolerance) or the recorded finding that no device-exposed
+         state departs - on CPU emulation of the served tip only when the run record''s
+-        launch reading shows no idle device; repair items then derive from that record. The no-progress detector reads
++        launch reading shows no idle device; repair items then derive from that record;
++        fold items, minted at the round that first reads a user decision, in the user''s
++        own words, that a changeset the campaign did not design (the user''s own branch
++        or pull request against the campaign branch) lands on the campaign branch - the
++        merge decision stays the user''s; the campaign only lands commits on its own
++        branch - selected ahead of plan items because every later item builds on the
++        tip; the acceptance is the folded tip''s diff against the pre-fold tip equal, as
++        a set of added and removed lines, to the changeset''s diff against its own base
++        (values git produces), plus the whole-tree CPU-mode test pass on the folded tip;
++        the changeset''s review is the batch review of its landed commits, as for every
++        increment, so no reviewer runs before the fold. The no-progress detector reads
+         two input families and fires on either. (1) The findings history under
+         artifacts/reviews/ - repeated identical material findings, keyed on exactly
+         the finding fingerprint the reviewed sibling fixed (the artifact-layout
+@@ -1379,7 +1389,12 @@ pave:
+         hardware_attempt_counts defines) reading state out through instrumentation
+         that touches no traced code, existing dump machinery before new, compared per
+         layer or state to the reference; the item''s acceptance is the one its class
+-        declares at scope_next_increment. Device over emulation - the run goes to a
++        declares at scope_next_increment. When the selected item is a fold item, the
++        work is to rebase the changeset onto the campaign tip in the worktree, resolve
++        any conflict to the exact union of both sides, run the whole-tree CPU-mode pass,
++        and land the commits as written (authors and messages kept, no squash) so the
++        batch review reads the commits the user wrote; the item''s acceptance is the one
++        its class declares at scope_next_increment. Device over emulation - the run goes to a
+         Neuron device whenever the queue tool''s remaining-capacity reading at launch
+         shows one idle for the job''s need, because emulating a device is slow by
+         construction and the device''s numerics are the question; CPU-mode emulation
+@@ -1443,7 +1458,8 @@ pave:
+             the recomputed gap check that found the gap for coverage-gap items,
+             the recomputed one-unit coverage check for repackaging items, or the
+             compare tool's recorded entry point or no-departure finding for
+-            localization items -
++            localization items, or the exact-union readings and the whole-tree pass
++            for fold items -
+             and its evidence record is written; decided by values produced by
+             the check tool, not the doer's judgment. Routes back to scoping for
+             the next item.
+@@ -1504,7 +1520,9 @@ pave:
+         recovery records for that host; an instance-identifier or hostname mismatch
+         is always a hard stop. The hardware queue tool is the single writer of every
+         lease record - grant, release, and amendment, one file per event, the grant
+-        taken under a per-host lock so two jobs never both get the last unit; a grant
++        taken under a per-host lock so two jobs never both get the last unit; a campaign
++        lease asked for by a campaign that already holds one on that host is refused
++        with the standing lease's reference, so one campaign never holds two; a grant
+         whose job's attempt record closed without a release is released by the tool
+         on its next invocation, never by hand; an amendment (a new boot identifier)
+         applies to every campaign lease naming the host; the requesting seat invokes
+@@ -1954,10 +1972,13 @@ pave:
+           - candidate_measurement_runs
+           - measurement_artifacts
+         procedure_defect_found:
+-          meaning: A run exposes a procedure that measured the wrong property -
+-            a defective implementation of a frozen comparator; routed back to
+-            measurement preparation within the shared per-measurement repair budget.
+-            Subsumes a co-held reference defect on the same measurement.
++          meaning: A run exposes a defective implementation of a frozen comparator -
++            it measured the wrong property, or its runner could not carry a run to its
++            record while the host and the candidate stood (a transport bound to the
++            workstation's session, a staging step); routed back to measurement
++            preparation within the shared per-measurement repair budget, where the
++            smoke run covers the repaired form. Subsumes a co-held reference defect on
++            the same measurement.
+         reference_defect_found:
+           meaning: A run exposes a missing or defective baseline reference for a
+             declared comparison, with no co-held procedure defect; routed back to

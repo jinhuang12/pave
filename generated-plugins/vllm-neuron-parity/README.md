@@ -163,7 +163,7 @@ flowchart LR
 Stage boxes are tinted by the agent that dominates the stage (color
 key below).
 
-The full graph has 22 nodes and 68 edges, so it is rendered as six
+The full graph has 22 nodes and 69 edges, so it is rendered as six
 stage sub-diagrams. Rectangles are graph nodes labeled with node ids;
 hexagons are user gates presented by a node (gates 1 and 3 — gate 2 is
 a check on the `design_sound` edge, so it appears as edge text in
@@ -273,6 +273,7 @@ flowchart TD
   sni -->|plan_satisfied + batch_review_current + changeset_complete| rimp[review_implementation]
   sni -->|prerequisite_unlanded + prerequisite_is_in_plan| sni
   sni -->|plan_unrealizable_as_designed| design
+  sni -->|criteria_changed_by_user| design
   sni -->|plan_exceeds_node| design
   sni -->|no_new_route| rede(2.6 rederive_approach)
   rimp -->|ready_for_hardware + impl_commit_is_reviewed| hw(2.4 hardware)
@@ -650,7 +651,7 @@ Nothing registers silently.
 ## 6. Appendix — the shipped authorities
 
 - `workflow.pave.yaml` and `revisions.yaml` — the immutable packaged seed, at
-  its newest revision (22 nodes, 68 edges, 24 evidence definitions, 5 endpoints;
+  its newest revision (22 nodes, 69 edges, 24 evidence definitions, 5 endpoints;
   validates clean with `scripts/validate_pave.py`). The head's revision number
   and check count are the revision log's, not this README's — read them from
   `revisions.yaml` and the validator, which is why no number here can go

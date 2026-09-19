@@ -1,4 +1,51 @@
-version: 1.5.8
+version: 1.5.9
+
+## 1.5.9 — 2026-09-19
+
+Graph revisions 13 and 14, both in this release; the package graph, revision
+log, `history/v13.patch` and `history/v14.patch` are copied from the evolution
+root after each apply step. Counts stay 22 nodes, 69 edges, 5 control nodes.
+
+Revision 13 (`history/v13.patch`, kind graph, approval "approve 13"): device
+over emulation once a candidate has served - work on a served tip goes to an
+idle Neuron device when the queue tool's remaining-capacity reading at launch
+shows one, and every run record on a served tip carries that reading; a
+localization item (minted at a re-entry from a correctness-shortfall or
+regression verdict) finds where the served candidate departs from the
+reference with a diagnostic run that reuses the served tip's compiled graphs
+and decides nothing about acceptance; `hardware_attempt_counts` carries the
+one count rule - every run record names its class at launch (serving,
+diagnostic, cpu_mode), only a serving attempt counts, never one a host fault
+ended; a user decision in the user's own words that moves a criterion or a
+registered value is `criteria_changed_by_user`, the door back to the register
+step, and gate 2 re-enters under that decision as its approval.
+
+Revision 14 (`history/v14.patch`, kind graph, approval "yes 1.5.9 too"): a
+changeset the campaign did not design (the user's own branch or pull request
+against the campaign branch) lands on the campaign branch only as a fold item
+on the user's recorded word - rebased onto the tip to the exact union,
+whole-tree CPU-mode pass, commits landed as written, then the batch review of
+those commits as one unit whatever their count; no reviewer runs before the
+fold and no seat stands at `prepare_pr`; a measurement run the runner could
+not carry to its record while the host and the candidate stood is
+`procedure_defect_found`, repaired where procedures are smoke-verified; the
+queue tool refuses a second campaign lease for a campaign that already holds
+one on the host, naming the standing lease; the batch size rule lives once, at
+`batch_review_current`.
+
+Release layer for both: `skills/vllm-neuron-parity/SKILL.md` rows 6-8 (the
+serving-attempt sentence, the fold clauses, the fold-unit count, the class
+field, the second-lease refusal, and no reviewer seat ahead of a declared
+mechanical gate); `schemas/run-state.schema.json` (the count rule);
+`agents/implementer.md` (precedence, device over emulation, the fold item,
+serving attempts, the refusal, the count pointer); `agents/adversarial-reviewer.md`
+(a fold's commits are one batch); `agents/measurer.md` (scratch under the
+node's `scratch/`, never bare `/tmp`); the three Codex agents regenerated;
+`references/artifact-layout.md` 4.2 pair 4 (the class and launch-reading
+fields, the compare tool a localization record names); `README.md` and
+`tests/test_workflow_pave.py` (69 edges, the `criteria_changed_by_user` edge);
+`scripts/hardware_queue.py` (`cmd_grant` refuses the second campaign lease)
+with one test.
 
 ## 1.5.8 — 2026-09-11
 

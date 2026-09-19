@@ -42,10 +42,14 @@ pave:
     implementation before hardware spend, and PR packages. Measurement verdicts
     are issued once, by an adjudicator independent of the measurer, and read by
     the PR review before gate 3.
-  - CPU-first increments before any hardware attempt; no attempt caps - two-tier
-    stop limit instead (fingerprint no-identical-retry; halt and re-derive at every
-    10 budget-counted hardware attempts per target - host faults are recorded
-    but never charged).
+  - CPU-first increments before any hardware attempt - item-level acceptance runs
+    in CPU mode; once a candidate has served, work on that tip goes to an idle Neuron
+    device over CPU emulation (the rule and its record at realize_increment), because
+    emulating a device is slow by construction and the device's numerics are the
+    question a CPU run cannot answer. No attempt
+    caps - two-tier stop limit instead (fingerprint no-identical-retry; halt and
+    re-derive at every 10 budget-counted hardware attempts per target; what counts
+    is the one rule at the hardware_attempt_counts state field).
   - Kernel-substrate rule - new kernel-class functionality not already provided
     by the Neuron NKI library is implemented in NKI, never as torch-level fallback
     (torch stays legitimate for orchestration and glue); substrate is a per-increment
@@ -138,7 +142,10 @@ pave:
       - prepare_host
       - execute_attempt_loop
       - recover_leased_host
-      subject: one-file-per-event attempt, fingerprint, lease, and recovery records
+      - realize_increment
+      subject: one-file-per-event attempt, fingerprint, lease, and recovery records;
+        a run record names its class (serving, diagnostic, cpu_mode) and, on a
+        served tip, the queue tool's remaining-capacity reading at launch
       artifact: artifacts/campaigns/<campaign>/attempts/
     rederivation_record:
       kind: derivation
@@ -273,7 +280,10 @@ pave:
         byte-unchanged, the kickoff-declared criteria and the user decisions recorded
         at this gate are intact, and no material finding stands, and the gate is re-presented
         only when one of those moves - and does any change to kickoff-declared
-        criteria carry an explicit recorded user decision?
+        criteria carry an explicit recorded user decision? A criterion or registered
+        value the user changed in their own recorded words is approved by that
+        decision - the gate is not re-presented for it, only for a material finding
+        on the new registration.
       evaluated_by: user
       on_failure_route: design_campaign
     narrow_delta_scoped:
@@ -320,7 +330,8 @@ pave:
     comparators_preregistered:
       style: mechanical
       question: Is the comparator set for this campaign recorded and frozen in
-        run state with a timestamp preceding every measurement artifact?
+        run state with a timestamp preceding every measurement artifact adjudicated
+        against it?
       evaluated_by: lead
       on_failure_route: design_campaign
     evidence_stable_before_verdict:
@@ -379,7 +390,9 @@ pave:
         section per round - layout reference 4.1) under artifacts/reviews/<campaign>/, and is the
         open batch still below the size the lead declared for it in the round record
         (1 for a complex commit - a new kernel, runner, scheduler, or weight-loading
-        change - up to 3 when the batch is low complexity in aggregate)? On the
+        change - up to 3 when the batch is low complexity in aggregate - config, tests,
+        wiring, citation repairs; a fold item's commits are one landed unit whatever
+        their count, because they arrive together and nothing builds between them)? On the
         plan_satisfied edge the open batch closes regardless of size, so any
         unreviewed landed increment fails the check.
       evaluated_by: lead
@@ -709,9 +722,7 @@ pave:
         Adversarial, material-findings-only review of one batch of 1-3 landed increment
         commits before the next scope round, so a defect is caught while its dependents
         are still unbuilt. The lead composes the batch and records its size call in the
-        round record - 1 for a complex commit (a new kernel, runner, scheduler, or
-        weight-loading change), up to 3 when the commits are low complexity in
-        aggregate (config, tests, wiring, citation repairs). A fresh reviewer per batch,
+        round record by the rule batch_review_current carries. A fresh reviewer per batch,
         independent of the realizer, reads the batch diff, its evidence records, and the
         plan blocks or plan rows it claims to implement. Material means - the code does
         not do what its block declares; the acceptance is hollow (it would pass on wrong
@@ -1080,7 +1091,7 @@ pave:
         this one node is run setup declared per node (spec section 2.1); a large
         campaign runs sequential seats so no seat exceeds its bounded context, and
         the investigator seat owns the screen. Re-entry - the brief names the parts
-        to touch and the finding or contradiction each answers; an unchanged part
+        to touch and the finding, contradiction, or user decision each answers; an unchanged part
         is not re-authored, the round hands back a block diff, and a round that must
         touch a part the brief did not name stops and reports the cascade for a
         re-brief. Re-entry check tool - when the campaign_target_pins entry equals
@@ -1144,9 +1155,10 @@ pave:
       instance_per: approved_campaigns
       purpose: 'On every entry to implementation - fresh from the design gate,
         or re-entry from implementation review, a correctness shortfall verdict,
-        or a regression verdict - reconcile three persisted inputs: the approved
+        or a regression verdict - reconcile four persisted inputs: the approved
         design''s increment plan, the adversarial findings history for this campaign,
-        and the per-increment evidence records already on disk. Verify the campaign
+        the per-increment evidence records already on disk, and the user decisions
+        recorded since the standing gate-2 approval. Verify the campaign
         worktree and branch preconditions (worktree present, branch based on this
         campaign''s entry in campaign_target_pins, no protected base branch touched).
         Then emit exactly one of: the next pending work item - or a set of pending
@@ -1174,7 +1186,24 @@ pave:
         gap, the import scan re-run for an import-scan hit, the substrate-fidelity
         check re-run for a substrate-fidelity hit); repackaging items when review
         found the changeset not reviewable as one unit against the increment plan
-        (the recomputed one-unit coverage check). The no-progress detector reads
+        (the recomputed one-unit coverage check); localization items, minted at a
+        re-entry from a correctness-shortfall or regression verdict before any repair
+        item, unless a localization record already names that verdict''s entry point
+        - the acceptance is the recorded entry point on the served device (the
+        compare tool''s first layer or state that departs from the reference beyond
+        the registered tolerance) or the recorded finding that no device-exposed
+        state departs - on CPU emulation of the served tip only when the run record''s
+        launch reading shows no idle device; repair items then derive from that record;
+        fold items, minted at the round that first reads a user decision, in the user''s
+        own words, that a changeset the campaign did not design (the user''s own branch
+        or pull request against the campaign branch) lands on the campaign branch - the
+        merge decision stays the user''s; the campaign only lands commits on its own
+        branch - selected ahead of plan items because every later item builds on the
+        tip; the acceptance is the folded tip''s diff against the pre-fold tip equal, as
+        a set of added and removed lines, to the changeset''s diff against its own base
+        (values git produces), plus the whole-tree CPU-mode test pass on the folded tip;
+        the changeset''s review is the batch review of its landed commits, as for every
+        increment, so no reviewer runs before the fold. The no-progress detector reads
         two input families and fires on either. (1) The findings history under
         artifacts/reviews/ - repeated identical material findings, keyed on exactly
         the finding fingerprint the reviewed sibling fixed (the artifact-layout
@@ -1198,8 +1227,10 @@ pave:
         notes, never findings: they mint no work item and enter neither detector
         input. Empty histories on a first round can never fire either input. When
         more than one verdict holds at once, report exactly one outcome by this
-        precedence: (1) plan_unrealizable_as_designed - a concrete recorded contradiction
-        outranks every repetition signal; (2) no_new_route - repetition proves
+        precedence: (0) criteria_changed_by_user - the acceptance basis moved, so no
+        other verdict is decidable until it is re-registered; (1) plan_unrealizable_as_designed
+        - a concrete recorded contradiction outranks every repetition signal; (2)
+        no_new_route - repetition proves
         iteration is not working, so it outranks resizing; (3) plan_exceeds_node;
         (4) prerequisite_unlanded when the item the rule would select declares a
         prerequisite that is an unlanded block the plan already carries; (5) plan_satisfied
@@ -1217,9 +1248,12 @@ pave:
         candidate the worktree precondition check surfaces that no realizer record
         has yet recorded (plan_unrealizable_as_designed needs a recorded contradiction,
         and the realizer''s evidence_contradicts_design stays the usual door),
-        or a disagreement between the findings history and the round records about
-        whether a triple was answered. Ambiguity runs the seat. Out of scope
-        - any code change, any test run.
+        a disagreement between the findings history and the round records about
+        whether a triple was answered, or a repair item to derive from a localization
+        record that names the defect but not the fix. Ambiguity runs the seat. Out of scope
+        - any code change, any test run, any probe: a seat here reads records and
+        recommends; the instrument that localizes a served candidate is the
+        localization item, realized on the device.
 
         '
       roles:
@@ -1250,7 +1284,7 @@ pave:
         increment_selected:
           meaning: The next pending work item, or a set sized as one implementation,
             is recorded in the round record - each item with its design increment
-            id, its declared CPU-mode acceptance command, and the review findings
+            id, its declared acceptance (as its work-item class declares it), and the review findings
             it answers, plus the set's implementation order or concurrent-eligibility
             mark - decided by the round record resolving
             item-by-item against the approved design record and findings history
@@ -1302,6 +1336,17 @@ pave:
           meaning: The reconciled remaining work cannot fit this node as sized
             - the exhaustion evidence (round records, attempt fingerprints, remaining-item
             list) is recorded. Implements the parent outcome scope_exceeded.
+        criteria_changed_by_user:
+          meaning: A user decision recorded in the user's own words after the standing
+            gate-2 approval changes a kickoff-declared criterion or a registered value
+            (P9) - decided by the decision record, never by a lead reading of intent.
+            The round records the decision's reference and selects nothing; the design
+            node re-enters for the register step alone (a new registration beside the
+            frozen text, which stays untouched), and gate 2 re-enters under that
+            decision as its approval. A measurement in flight completes on the
+            registration it started under; the change takes effect from this round.
+          required_evidence:
+          - increment_lap_record
     realize_increment:
       intent: execute
       instance_per: approved_campaigns
@@ -1338,8 +1383,29 @@ pave:
         run one seat per item at once when the lead gives each item its own checkout
         and lands the items onto the campaign branch at the join in the recorded
         order, a conflict at the join being a scheduling defect recorded in the
-        round record that returns the set to the serial default. Dispatch delegate skills only
-        through the run''s guardrails. Out of scope - hardware attempts, any write
+        round record that returns the set to the serial default. When the selected
+        item is a localization item, the work is to find where the served candidate''s
+        computation departs from the reference - a diagnostic run (the class
+        hardware_attempt_counts defines) reading state out through instrumentation
+        that touches no traced code, existing dump machinery before new, compared per
+        layer or state to the reference; the item''s acceptance is the one its class
+        declares at scope_next_increment. When the selected item is a fold item, the
+        work is to rebase the changeset onto the campaign tip in the worktree, resolve
+        any conflict to the exact union of both sides, run the whole-tree CPU-mode pass,
+        and land the commits as written (authors and messages kept, no squash) so the
+        batch review reads the commits the user wrote; the item''s acceptance is the one
+        its class declares at scope_next_increment. Device over emulation - the run goes to a
+        Neuron device whenever the queue tool''s remaining-capacity reading at launch
+        shows one idle for the job''s need, because emulating a device is slow by
+        construction and the device''s numerics are the question; CPU-mode emulation
+        of the served tip is the fallback when the reading shows none, or the
+        instrument for a question the device cannot expose, the reason in the record.
+        Every run record on a served tip carries that reading. Reproducing or
+        localizing a device result is localization work in every item - a CPU-mode
+        run that does it while its reading shows an idle device is work not done as
+        designed, so its result is not a pass and its record is the finding the next
+        scoping round reads. Dispatch delegate skills only
+        through the run''s guardrails. Out of scope - serving attempts, any write
         outside the campaign worktree and branch, and any change to kickoff- or
         design-declared acceptance criteria.
 
@@ -1352,6 +1418,7 @@ pave:
       - campaign_design_record
       produces:
       - increment_evidence_records
+      - hardware_attempt_log
       activities:
       - Locate the increment's file surface from the design record and read only
         the slices of the collision-heavy files it names.
@@ -1367,10 +1434,18 @@ pave:
       allowed_effects:
       - Writes inside this campaign's worktree - or, for a concurrent-eligible set,
         one checkout per item on the campaign branch - and branch on the fork.
-      - CPU-mode execution on local or assigned hosts; a CPU-mode run is not a
-        hardware attempt and is charged to no attempt budget.
+      - CPU-mode execution on local or assigned hosts (never counted -
+        hardware_attempt_counts); on a served tip only as the purpose's fallback, the
+        launch reading in the record.
+      - For a localization item only - a diagnostic run, the class
+        hardware_attempt_counts defines, on the served device under a job lease taken
+        through the hardware queue tool; recorded in the attempt log with its class,
+        fingerprint, and transcript.
       - Guardrailed delegate dispatch.
       forbidden_effects:
+      - Opening a Neuron device for anything but that diagnostic run - a run that
+        compiles a new graph or decides the candidate's acceptance is a serving attempt
+        and belongs to execute_attempt_loop.
       - Mutating protected base branches on fork or upstream.
       - NxDI-stack imports in ported code.
       - Clearing the shared Neuron compile cache.
@@ -1381,7 +1456,10 @@ pave:
             acceptance - the CPU-mode
             command transcript and exit status for build and repair increments,
             the recomputed gap check that found the gap for coverage-gap items,
-            or the recomputed one-unit coverage check for repackaging items -
+            the recomputed one-unit coverage check for repackaging items, or the
+            compare tool's recorded entry point or no-departure finding for
+            localization items, or the exact-union readings and the whole-tree pass
+            for fold items -
             and its evidence record is written; decided by values produced by
             the check tool, not the doer's judgment. Routes back to scoping for
             the next item.
@@ -1442,7 +1520,9 @@ pave:
         recovery records for that host; an instance-identifier or hostname mismatch
         is always a hard stop. The hardware queue tool is the single writer of every
         lease record - grant, release, and amendment, one file per event, the grant
-        taken under a per-host lock so two jobs never both get the last unit; a grant
+        taken under a per-host lock so two jobs never both get the last unit; a campaign
+        lease asked for by a campaign that already holds one on that host is refused
+        with the standing lease's reference, so one campaign never holds two; a grant
         whose job's attempt record closed without a release is released by the tool
         on its next invocation, never by hand; an amendment (a new boot identifier)
         applies to every campaign lease naming the host; the requesting seat invokes
@@ -1545,12 +1625,10 @@ pave:
         file) is the design to reuse in-band. Before every attempt, consult the
         repo-tracked fingerprint file AND this run's attempt-log fingerprints;
         never launch an attempt identical to a recorded failure (tier 1). Count
-        every attempt whose failure cause is not host-level against the per-target
-        shared budget and halt at the tier-2 threshold (every 10 budget-counted
-        hardware attempts per target since the last re-derivation). A CPU-mode run
-        (VLLM_NEURON_CPU_MODE=1, no Neuron device opened) on any host this campaign
-        holds - assigned or leased - is not a hardware attempt and is never charged
-        to that budget; only a run that opens a Neuron device counts. Outcome precedence
+        every serving attempt against the per-target budget by the one count rule
+        at the hardware_attempt_counts state field, and halt at the tier-2 threshold
+        (every 10 budget-counted attempts per target since the last re-derivation).
+        Outcome precedence
         when both hold - a host fault on the threshold-reaching attempt routes
         to host_faulted first; a host-caused failure recorded as the stop limit's
         final datum would feed re-derivation contaminated evidence. The attempt
@@ -1894,10 +1972,13 @@ pave:
           - candidate_measurement_runs
           - measurement_artifacts
         procedure_defect_found:
-          meaning: A run exposes a procedure that measured the wrong property -
-            a defective implementation of a frozen comparator; routed back to
-            measurement preparation within the shared per-measurement repair budget.
-            Subsumes a co-held reference defect on the same measurement.
+          meaning: A run exposes a defective implementation of a frozen comparator -
+            it measured the wrong property, or its runner could not carry a run to its
+            record while the host and the candidate stood (a transport bound to the
+            workstation's session, a staging step); routed back to measurement
+            preparation within the shared per-measurement repair budget, where the
+            smoke run covers the repaired form. Subsumes a co-held reference defect on
+            the same measurement.
         reference_defect_found:
           meaning: A run exposes a missing or defective baseline reference for a
             declared comparison, with no co-held procedure defect; routed back to
@@ -2036,6 +2117,11 @@ pave:
   - id: implementation_scope_to_redesign
     from: scope_next_increment.plan_exceeds_node
     to: design_campaign
+  - id: user_criteria_change_to_redesign
+    from: scope_next_increment.criteria_changed_by_user
+    to: design_campaign
+    rationale: A frozen value moves only by the user's word (P9); this edge is that
+      word's door back to the register step, so the lead never re-opens design by hand.
   - id: impl_no_progress_to_rederivation
     from: scope_next_increment.no_new_route
     to: rederive_approach
@@ -2303,10 +2389,18 @@ pave:
           amendments. Remaining capacity per host is derived from open job leases
           (grants without a release), never stored here.
       hardware_attempt_counts:
-        meaning: Per-target shared budget across all routes that spend hardware
-          attempts; the tier-2 stop limit reads it at every 10. A CPU-mode run that
-          opens no Neuron device is not a hardware attempt on any host and never
-          increments it.
+        meaning: Per-target count of budget-counted hardware attempts across every
+          route that spends them (the attempt loop, the venv recipe); the tier-2 stop
+          limit reads it at every 10 since the last re-derivation. The one count rule,
+          recomputable from the attempt records alone. Three run classes, each the
+          job's declared purpose at launch and a field of its record, never a note
+          added after the run - serving (a run that opens a Neuron device to make a
+          candidate serve, or a venv build toward one), diagnostic (a device run that
+          reuses the compiled graphs of a tip this campaign already served, compiling
+          no new graph and deciding nothing about the candidate's acceptance, to read
+          state out), cpu_mode (opens no device). Only a serving attempt counts, and
+          not when a host fault ended it. A measurement run is measure_candidate's
+          own record and never enters this count.
       campaign_states:
         meaning: Pointer per campaign to its own state and evidence directory
           (one-file-per-event); never inlined into run state.

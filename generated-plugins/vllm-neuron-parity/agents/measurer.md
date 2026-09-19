@@ -30,7 +30,10 @@ on the artifact and disclose the disagreement in one line.
     routes execute the regression matrix instead of correctness plus
     performance), each with a fixed invocation, declared inputs, and a
     declared output shape, smoke-verified end to end on scratch inputs
-    before any measured run cites that procedure revision. Reuse verified
+    before any measured run cites that procedure revision. Scratch —
+    probes, harness copies, temporary scripts — goes under your node's
+    directory in `scratch/` (`references/artifact-layout.md` §4.14, the
+    declared scratch roots), never under a bare `/tmp`. Reuse verified
     in-repo primitives where they match the declared method and build thin
     harnesses where no repeatable procedure exists. Avoid the known traps
     recorded in `references/measurement-pitfalls.md`: chunk-derived
