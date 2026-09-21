@@ -1,0 +1,175 @@
+kind: run_setup
+semantic_diff: >-
+  Base: revision 14, digest sha256:de9eb66d16967fa6a6adbf625d9c78117464cd236cfac9b95b1afc4e498a8c41,
+  verified intact with pave-init 2.6.2 record_revision.py (18 entries). Apply head:
+  revision 15 at its proposal's digest_after
+  sha256:1331f29abc50497648035a21e717118b190c045cc64bc2bdb7fa40f5d40a8d24 - the chain
+  order is v15 then v16. Drafted to
+  apply after revision 15 (DECISIONS 1088 approved its two items): git apply of
+  v15-graph.patch then this patch on a scratch copy validates at 21 nodes, 67 edges, 5
+  control nodes after v15, and no hunk here touches a line revision 15 touches
+  (two-line context for that reason; revision 15's context covers the roles hunk, so
+  the order is v15 then v16). Counts unchanged by this patch (21 nodes, 67 edges, 67
+  outcomes, 24 evidence definitions, 5 control nodes after v15); every check, node
+  body, outcome, edge and state field equal except the two
+  prose sites named below. Layer test (pave-spec 2.1, revision rule 9): a runtime
+  control on what the lead may write, and the seat lifecycle at dispatch - run setup,
+  no graph meaning moves. Line balance: 3 hunks, 20 lines added against 8 removed;
+  2430 lines become 2442 and 138,272 bytes become 139,140 on revision 14 (2387 become
+  2399 after v15). Of the 20 added, 11 are
+  write_limits structure (two deny entries, five required fields each); prose is 9
+  added against 7 removed. Source: the user's second answer at DECISIONS 1086 - "Yes,
+  draft v16 now (Recommended)" - to the companion the revision 15 proposal named
+  (lesson L5's mechanical half and lesson L8 in the lessons file
+  artifacts/run/closure/lessons-run-20260827-20260920T171728Z.md; usage record item 7).
+
+  (1) WRITE LIMITS - two deny globs bound to the lead: the workflow's own package
+  repository and the user's memory directory, each with its reason and remedy.
+  Evidence: DECISIONS 12 (2026-09-05, "approve stop asking for my approval") to
+  DECISIONS 728 (2026-09-08, revoked) - two plugin releases into the package
+  repository without approval, reverted; memory files that widened the lead's own
+  authority; 3.5 days. The write_limits block stood empty through it, so the boundary
+  lived only in prose and memory - the forms that failed. Enforcement level
+  (lead-hooks.md, pave-spec 9.14.1): blocking, because the harm recurred inside one
+  run, cost a reverted release, is irreversible before the next gate (a pushed release
+  is public, an edited memory line steers every later session), and is detected by an
+  exact absolute glob against the written path; the remedy is always available and is
+  printed at the refusal. Bound to the lead alone - a seat's match is advice - so no
+  glob strands a seat. Why these two surfaces and not "everything outside artifacts":
+  a glob cannot say except, and the router's deny mode matches every Bash path token,
+  reads included (hooks/pre_tool_use_router.py line 140 iterates target_paths; the
+  write-only helper write_target_paths exists and serves the hook-records path at line
+  181). A glob over the plugin cache or the harness directory would refuse the lead's
+  own "python3 .../scripts/record_revision.py" and its skill reads and strand the run.
+  The two chosen surfaces are ones the lead reads through the Read tool (not hooked)
+  and never executes from. Release-layer finding for the reviewer: mode_write_limits
+  should iterate write_target_paths for Bash; once it does, the plugin cache and the
+  harness settings become deniable - their evidence is thinner (the installs were
+  approved), so they wait for that fix and their own incident. Why absolute paths: the
+  guard expands "~" in Bash tokens (bash_path_tokens) but not in globs
+  (_absolute_glob_forms), so a home-relative glob is a second release-layer
+  follow-up; until then the absolute path is run setup for this installation, as a
+  seat's model id is. Match semantics checked against the guard's own functions: the
+  package repository's VERSION file and memory/MEMORY.md match; the installed skill
+  under the plugin cache, the harness settings file, run-state.json and the fork do
+  not. "/Users/jinhun/GitHub/pave/*" matches file paths under the repository (the
+  release writes); a bare directory token (git -C, cd) is not matched - pushes are the
+  push guard's already, but git apply, checkout, merge, cherry-pick and stash pop write
+  files under a directory-only token and escape this deny, a third release-layer
+  follow-up (the router should resolve the files such a command writes). Shape: the
+  guard's fallback parser (used when PyYAML is absent) accepts only deeper-indented
+  items with single-line scalars and otherwise fails open with no limits, so the block
+  is written in that shape; both parsers read it identically (checked). Cost per run:
+  none - a refusal prints at the write. Caps: none. The layer allows them, but the
+  evidence names no undeclared file-name group that regrew by file count; the run's
+  growth was one appended log and run-state rows, which a per-checkpoint creation cap
+  does not measure, and revision 15's lead-record principle cuts them. User-only: yes
+  - a runtime control on what an actor may write (rule 9).
+
+  (2) SEAT LIFECYCLE - stated once at roles.lead, the actor who dispatches, in place of
+  the scheduling restatement there (scheduling_holds_recorded states that rule, and the
+  lead skill row 3 repeats it). Three clauses, each with its reason: a doer seat
+  retires only on the review outcome that passes its work (LEAD-LOG 2106 - the
+  prepare_pr seat stopped before its review, and the repair round had no context);
+  a reviewer gets one frozen stamp after every constraint has reached the producer,
+  any later change being the next revision, never a re-stamp (LEAD-LOG 1707 to 1710 -
+  constraints sent after the relay, a re-stamp under the same revision, the review
+  round void); a record another seat is writing is read after its mtime settles
+  (LEAD-LOG 2176 to 2177 - a declared file read mid-write). Each cost an hour or more
+  and the run learned them as memory, not as text a fresh lead loads. Why the lead role
+  and not per node: revision 4 declared seat continuity per node because it differed
+  per node; these three hold for every dispatch, so one sentence at the dispatcher and
+  no copy. Cut with it: realize_increment's second copy of the retained-thread rule -
+  scope_next_increment's activity already names realize_increment as its sibling, so
+  two copies of one rule become one. Cost per run: none; it removes a re-review round
+  and a re-dispatch per incident. User-only: seat lifecycle is a seat change (run
+  setup), which the lead's brief lists among user-only items - declared pending with
+  the write limits.
+
+  NO CHANGE: model or effort per seat - the graph declares none (dispatch tiering lives
+  in the lead skill), so nothing to cut or add here.
+
+  EVERY COPY (release layer, none edited here): skills/vllm-neuron-parity/SKILL.md
+  "Roles and dispatch" (line 86; gains the three lifecycle clauses once) and row 6 (the
+  retained thread, unchanged); README.md line 597 (dispatch mechanics);
+  agents/implementer.md lines 368 to 370 ("retired when that instance closes; a repair
+  round continues the seat" becomes "retired on the passing review outcome"); the
+  "retired when that node instance closes" line in adversarial-reviewer.md 207,
+  measurer.md 166, adjudicator.md 109, investigator.md 160, rederiver.md 136 stays -
+  those seats are not doers under review; README.md line 628 and
+  references/artifact-layout.md line 435 (the deny row, unchanged in substance);
+  hooks/pre_tool_use_router.py line 140 (the read-matching finding above);
+  tests/test_write_limits.py (its fixture is the shape used here).
+user_only_changes: approved
+approval: >-
+  DECISIONS 1088 (2026-09-20T18:20:30Z), AskUserQuestion option label verbatim. The two
+  user-only changes - (1) two lead-bound write denies in write_limits.deny,
+  "/Users/jinhun/GitHub/pave/*" (the workflow's package repository) and
+  "/Users/jinhun/.claude/projects/*/memory/*" (memory), the hook refusing the write
+  outright while reads stay allowed; (2) the seat-lifecycle rules stated once at
+  roles.lead (a doer retires only on the passing review outcome; one frozen stamp per
+  relay after every constraint reached the producer; reads after the mtime settles) -
+  answer "Approve both (Recommended)".
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Run-setup revision 16 (`history/v16.patch`, kind run_setup): the lead's write
+  boundary becomes a guard, and the seat lifecycle is stated once. write_limits.deny
+  gains two lead-bound globs - the workflow's package repository and the user's memory
+  directory - each with its reason and remedy (user-owned surfaces; the
+  2026-09-05 to 09-08 incident). roles.lead states the seat lifecycle: a doer retires
+  only on the passing review outcome, a reviewer gets one frozen stamp after every
+  constraint reached the producer, a record is read after its mtime settles; the
+  scheduling restatement there and realize_increment's second copy of the
+  retained-thread rule are cut. Graph meaning unchanged (21 nodes, 67 edges, 5 control
+  nodes after revision 15). Three release-layer follow-ups named: the deny mode should
+  match Bash write targets, not every path token; globs need a home-relative form; git
+  commands that write files under a directory-only token (apply, checkout, merge,
+  cherry-pick, stash pop) escape the deny.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index 2e391ec..694ea0c 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -67,8 +67,13 @@ pave:
+     lead:
+       purpose: Route outcomes, own run state, present gates, freeze the hardware
+-        roster at intake (the queue tool grants against it), own conflict-aware campaign scheduling (serialize campaigns with
+-        overlapping predicted file surfaces; hold all other campaigns while an
+-        upgrade-route campaign runs exclusively), and serialize single-writer
+-        updates to the cross-run artifacts.
++        roster at intake (the queue tool grants against it), own campaign scheduling
++        (scheduling_holds_recorded states the rule), and serialize single-writer
++        updates to the cross-run artifacts. Seat lifecycle - a doer seat retires only
++        on the review outcome that passes its work (a stopped seat is unreachable, and
++        a repair round needs the context that did the work); a reviewer gets one
++        frozen stamp after every constraint has reached the producer, and any later
++        change is the next revision, never a re-stamp; a record another seat is
++        writing is read after its mtime settles, because a mid-write read judges half
++        a record.
+     user:
+       purpose: Approval authority at the three campaign gates, criterion changes,
+@@ -1429,7 +1434,4 @@ pave:
+       - Commit to the campaign branch and write the one-file increment evidence
+         record.
+-      - One retained doer thread per campaign answers this node and its stage-6
+-        loop sibling (scope_next_increment when a seat is dispatched) for every
+-        item; replaced only when its context degrades the work.
+       allowed_effects:
+       - Writes inside this campaign's worktree - or, for a concurrent-eligible set,
+@@ -2318,5 +2320,15 @@ pave:
+         closure; run-closure verification re-runs at each closure.
+   write_limits:
+-    deny: []
++    deny:
++      - glob: "/Users/jinhun/GitHub/pave/*"
++        bound_to: [lead]
++        reason: "The workflow's own package repository is the user's; a lead that releases into it ships an unreviewed graph change."
++        remedy: "Read it with the file-read tool; write the change as a proposal under the revision folder's proposals/ and hand the release command to the user."
++        created_by: "v16"
++      - glob: "/Users/jinhun/.claude/projects/*/memory/*"
++        bound_to: [lead]
++        reason: "Memory is the user's record of standing directives; a lead that edits it widens its own authority."
++        remedy: "Read it with the file-read tool; put the proposed line in one message to the user, who writes it."
++        created_by: "v16"
+     caps: []
+   state:
