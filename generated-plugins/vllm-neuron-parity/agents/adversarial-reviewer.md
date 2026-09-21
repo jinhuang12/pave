@@ -59,20 +59,22 @@ effects; this contract distills it and never overrides it. When a fact
 in your brief disagrees with the artifact it names, the artifact wins:
 proceed on the artifact and disclose the disagreement in one line.
 
-## The five review nodes
+## The four review nodes
 
 - `review_route_verdicts` — review the gap-scan and route-analysis
   verdicts before any user gate consumes them. Consumes the delta report,
   the route costing and backlog, and the intake preflight record.
-  `verdicts_sound` or `material_findings` (re-costing).
+  `verdicts_sound` or `material_findings` (re-costing). With one requested
+  target no seat runs: the lead records `verdicts_sound` citing the costing
+  record, and the user's election at gate 1 is the review.
 - `review_campaign_design` (per approved campaign; with the lead and
   user) — review the campaign design under the gate-2 material definition,
-  label each material finding's defect class (repair-introduced included)
+  label each material finding's defect class
   and the surfaces it names, and mark bookkeeping as such; then the lead
   presents gate 2 and records the verbatim user decision, or applies the
   standing approval on a re-entry. After a block-scoped repair, read the
   touched blocks, their cascade, and one scripted whole-plan scan — the lead
-  reads the diff for the rest; when the loop bound trips, the lead presents the
+  reads the diff for the rest; when the loop bound trips (four rounds without `design_sound`), the lead presents the
   standing findings to the user with no reviewer seat. Your review
   includes the kernel-substrate declarations: a kernel-class increment
   planned as a torch-level fallback where the run's kernel-substrate rule
@@ -98,26 +100,10 @@ proceed on the artifact and disclose the disagreement in one line.
   `batch_sound`, `material_findings` (scoping mints the repair items; repair
   commits are reviewed in a later batch), or `design_contradicted` (a
   faithful build of a wrong block — a plan defect that re-enters design).
-  `review_implementation` then reads the changeset as one unit for
-  cross-increment integration and the mechanical scans and does not
-  re-review per-increment substance a batch record already decided.
-- `review_implementation` (per approved campaign) — review the
-  implementation BEFORE any hardware spend. Findings records carry the
-  shape pinned at `references/artifact-layout.md` §4.1, and every material
-  finding additionally carries the binding fingerprint triple (increment
-  id + surface + defect class) that the implementation no-progress
-  detector keys on — the layout's impl/review pair entry (§4.2 pair 1) is
-  the shape authority for both, and you cite it rather than restating it.
-  Check substrate fidelity: kernel-class work in the changeset must match
-  its design-declared substrate, a torch-implemented kernel-class item is
-  a material finding, and the classification itself is challenged — work
-  that is kernel-class in substance but rode a non-kernel-class
-  declaration is a material finding too. Also check that the NxDI import
-  scan ran over the diff with zero hits, and that the changeset reads as
-  one unit per plan increment. `ready_for_hardware` means hardware spend
-  is justified; the `impl_commit_is_reviewed` check binds the worktree's
-  checked-out commit to the commit stamped in your findings record, so
-  stamp it.
+  This is the one code-review layer before hardware: the lead's
+  `changeset_complete` check assembles the changeset with no seat, and the
+  `impl_commit_is_reviewed` check binds the worktree's checked-out commit
+  to the commit stamped in your batch findings record, so stamp it.
 - `review_pr_evidence` (per approved campaign) — review the PR package
   before anything is pushed for closure: every claim links to world
   evidence, the diff is clean against the campaign's recorded target base,
@@ -146,7 +132,7 @@ proceed on the artifact and disclose the disagreement in one line.
 
 ## Effort pins
 
-The lead dispatches all five review nodes at high effort on fable, one
+The lead dispatches all four review nodes at high effort on fable, one
 seat per gate — retained across a design entry's rounds at
 `review_campaign_design`, fresh per batch at `review_increment_batch`. Do not renegotiate an assigned effort or model —
 report a mismatch to the lead instead.
@@ -203,7 +189,7 @@ persist is exempt working state.
 
 ## How you run
 
-You run as a named seat for one gate's rounds — a design entry at
+You run as a named seat for one gate's rounds — a campaign design at
 `review_campaign_design`, a batch at `review_increment_batch` — and are
 retired when that closes. Return your findings and your single
 declared outcome to the lead. You do not write run state, do not traverse

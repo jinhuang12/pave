@@ -163,7 +163,7 @@ flowchart LR
 Stage boxes are tinted by the agent that dominates the stage (color
 key below).
 
-The full graph has 22 nodes and 69 edges, so it is rendered as six
+The full graph has 21 nodes and 67 edges, so it is rendered as six
 stage sub-diagrams. Rectangles are graph nodes labeled with node ids;
 hexagons are user gates presented by a node (gates 1 and 3 — gate 2 is
 a check on the `design_sound` edge, so it appears as edge text in
@@ -184,7 +184,7 @@ than the lead that merely records the pin:
 | orange | implementer (design drafting, increments, hardware, PR) |
 | green | measurer (procedures, baseline, runs, bundles) |
 | purple | adjudicator (verdicts and their consequence) |
-| pink | adversarial-reviewer (the five review nodes) |
+| pink | adversarial-reviewer (the four review nodes) |
 | red | rederiver (approach re-derivation — the recovery seat) |
 | gray | lead-run nodes (user gates, run-closure verification), stage-level pointers, and run endpoints |
 
@@ -257,10 +257,10 @@ flowchart TD
 
 Dashed: review findings re-entry (the full round, or the narrow block-scoped
 repair when `narrow_delta_scoped` passes) and the design stop into
-re-derivation. design_campaign runs four steps under one design-entry id
-(screen, draft, register, assemble); the screen step is investigator-run,
-the rest implementer-run, and a record gap that outlives its budget is
-`design_blocked`.
+re-derivation. design_campaign runs four steps
+(screen, draft, register, assemble); the screen step is investigator-run
+and runs once, the rest implementer-run, and a record gap that outlives
+its budget is `design_blocked`.
 
 ### 2.3 CPU implementation loop
 
@@ -270,14 +270,11 @@ flowchart TD
   ri -->|increment_passed + batch_review_current| sni
   ri -->|increment_stuck| sni
   ri -->|evidence_contradicts_design| design(2.2 design_campaign)
-  sni -->|plan_satisfied + batch_review_current + changeset_complete| rimp[review_implementation]
-  sni -->|prerequisite_unlanded + prerequisite_is_in_plan| sni
+  sni -->|plan_satisfied + batch_review_current + changeset_complete + impl_commit_is_reviewed| hw(2.4 hardware)
   sni -->|plan_unrealizable_as_designed| design
   sni -->|criteria_changed_by_user| design
   sni -->|plan_exceeds_node| design
   sni -->|no_new_route| rede(2.6 rederive_approach)
-  rimp -->|ready_for_hardware + impl_commit_is_reviewed| hw(2.4 hardware)
-  rimp -->|material_findings| sni
   ri -->|batch_review_current fails on increment_passed| rib[review_increment_batch]
   sni -->|batch_review_current fails on plan_satisfied| rib
   sni -->|changeset_complete fails on plan_satisfied, gap item| sni
@@ -285,7 +282,7 @@ flowchart TD
   rib -->|material_findings| sni
   rib -->|design_contradicted| design
   class sni,ri,design cImpl
-  class rimp,rib cRev
+  class rib cRev
   class rede cRec
   class hw cGate
   classDef cInv fill:#cfe2ff,stroke:#1971c2,color:#000
@@ -296,7 +293,7 @@ flowchart TD
   classDef cRec fill:#ffc9c9,stroke:#c92a2a,color:#000
   classDef cGate fill:#e9ecef,stroke:#495057,color:#000
   classDef cEnd fill:#dee2e6,stroke:#868e96,color:#000
-  linkStyle 2,3,5,6,7,8,10,11,12,13,15,16 stroke:#c92a2a,stroke-dasharray:4
+  linkStyle 2,3,5,6,7,8,9,10,11,13,14 stroke:#c92a2a,stroke-dasharray:4
 ```
 
 Dashed: stuck/repair loops, design re-entry, the two
@@ -319,11 +316,12 @@ flowchart TD
   eal -->|candidate_serving + comparators_preregistered| meas(2.5 measurement)
   eal -->|breaker_tripped| rede
   eal -->|host_faulted| rlh
+  eal -->|product_defect_found| sni(2.3 scope_next_increment)
   rlh -->|host_restored, probe-only door| ph
   rlh -->|host_unrecoverable, full door| ph
   class ph,eal,rlh cImpl
   class rede cRec
-  class close,meas cGate
+  class close,meas,sni cGate
   classDef cInv fill:#cfe2ff,stroke:#1971c2,color:#000
   classDef cImpl fill:#ffd8a8,stroke:#e8590c,color:#000
   classDef cMeas fill:#d3f9d8,stroke:#2f9e44,color:#000
@@ -332,10 +330,13 @@ flowchart TD
   classDef cRec fill:#ffc9c9,stroke:#c92a2a,color:#000
   classDef cGate fill:#e9ecef,stroke:#495057,color:#000
   classDef cEnd fill:#dee2e6,stroke:#868e96,color:#000
-  linkStyle 2,3,5,6,7,8 stroke:#c92a2a,stroke-dasharray:4
+  linkStyle 2,3,5,6,7,8,9 stroke:#c92a2a,stroke-dasharray:4
 ```
 
-Dashed: the host-fault/recovery loop and both stop limit routes.
+Dashed: the host-fault/recovery loop, both stop limit routes, and the
+product-defect route back to scoping (a product-source failure inside the
+attempt loop leaves as `product_defect_found`; test, launcher and checker
+defects are the loop's own to repair).
 prepare_host has two doors: full (lease, then venv) on entry and after a
 host is given up, probe-only after a recovery. recover_leased_host stays
 implementer-orange — it is a recovery procedure but an implementer-run
@@ -351,7 +352,7 @@ flowchart TD
   pm[prepare_measurements] -->|measurements_ready + procedures_smoke_verified| mc[measure_candidate]
   pm -->|procedure_unrealizable| rede(2.6 rederive_approach)
   pm -->|baseline_unusable| rede
-  mc -->|bundles_stable + revision_stamped, evidence_stable_before_verdict, acceptance_threshold_evaluated, measurer_not_adjudicator| adj(2.6 adjudicate_results)
+  mc -->|bundles_stable + revision_stamped, acceptance_threshold_evaluated, measurer_not_adjudicator| adj(2.6 adjudicate_results)
   mc -->|procedure_defect_found| pm
   mc -->|reference_defect_found| pm
   mc -->|serving_exhausted| rede
@@ -595,9 +596,10 @@ model bindings live in `agents/*.md`, outside the YAML the tool applies); the
 Codex binding already met the rule.
 
 Dispatch mechanics (retained threads — one doer thread per campaign across
-the stage-6 loop — a reviewer retained per design entry, single state writer,
-forbidden effects inherited into every spawn)
-are in the lead skill's "Roles and dispatch"; this README does not restate them.
+the stage-6 loop, retired only on the passing review outcome — a reviewer
+retained per campaign design, single state writer, forbidden effects
+inherited into every spawn) are in the lead skill's "Roles and dispatch";
+this README does not restate them.
 
 ## 5. Hooks and enforcement
 
@@ -625,7 +627,7 @@ weakest to strongest: prose < reminder < reviewed < mechanical
 | Two-tier repair budgets and stop limits (measure three/nine; hardware ten + one recovery) | BLOCKING routing preconditions | counts derived from event files; runaway loops are the costliest failure |
 | Lead hook pair (staleness reminder + stop guard) | reminder | long-horizon, session-crossing workflow — the pair's target case; the stop guard **blocks at most one stop in three** while a run is active, disclosed in the skill description. It asks for one line per active seat from run state: what that seat waits on, and the next act ("nothing" means act before stopping). Then it states its reminders as duties. There is no bare-acknowledgement exit. Both hooks gate on the lead session id in `<run-state>.lead-session` and stay silent in every other session; without the sidecar they fail open |
 | Audit checkpoint (the stop guard's audit check) | reminder, block-once | a design-time graph cannot forecast the forms a fourteen-day run invents. About forty recurring acts and ~95% of the observed cost were lead-invented, and the only self-correction moment was answered "lgtm" 288 times out of 308. Every `VLLM_NEURON_PARITY_AUDIT_EVERY` declared-node outcomes (default 40), or `_AUDIT_BYTES` of writes (default 200 MB), the branch blocks ONE stop on the existing one-in-three cooldown. The block text is the whole brief: write report, checkpoint id, one dispatch line. Only a workflow-updater-drafted landing or a reviewer-PASSed no-change closes the cycle. A later audit loses nothing, so the enforcement level stays below blocking; it never blocks a traversal. Enforcement table: `references/artifact-layout.md` §4.14 |
-| Lead-only write deny (`write_limits.deny` in the live graph) and the no-retry-copy rule | BLOCKING hooks | the cut list lives IN the graph file. It is applied as a `kind: run_setup` entry and is read at every call from the newest revision; there is no hook-owned rule list. The deny binds the lead alone, and landing the reversal reverses it. A seat whose target matches gets the reason as advice, so no glob can strand a seat. The no-retry-copy rule refuses, for every actor, a `<stem>-rN.<ext>` file beside a same-stem file. The new name may come from a file write or from a shell command (any argument, redirect target, or copy/move destination, cwd tracked per segment). The existing file may itself sit under a parked marker (`.superseded`, `.bak`). The rule blocks because the advisory form named 6,684 retry copies in one run without effect. The remedy is always available: edit working state in place; give external output a name keyed to its event. The PostToolUse write log makes script-mediated writes visible to the write report; the shipped Write\|Edit hooks never saw them. Enforcement table: `references/artifact-layout.md` §4.14 |
+| Lead-only write deny (`write_limits.deny` in the live graph) and the no-retry-copy rule | BLOCKING hooks | the cut list lives IN the graph file. It is applied as a `kind: run_setup` entry and is read at every call from the newest revision; there is no hook-owned rule list. The deny binds the lead alone, and landing the reversal reverses it. A seat whose target matches gets the reason as advice, so no glob can strand a seat. The no-retry-copy rule refuses, for every actor, a `<stem>-rN.<ext>` file beside a same-stem file. The new name may come from a file write or from a shell command (any argument, redirect target, or copy/move destination, cwd tracked per segment). The existing file may itself sit under a parked marker (`.superseded`, `.bak`). The rule blocks because the advisory form named 6,684 retry copies in one run without effect. The remedy is always available: edit working state in place; give external output a name keyed to its event. The PostToolUse write log makes script-mediated writes visible to the write report; the shipped Write\|Edit hooks never saw them. Enforcement table: `references/artifact-layout.md` §4.14 The deny matches the paths a call writes - Write and Edit targets, shell redirects, writer commands, and git commands that rewrite a tree under a matched repository - never a path the command only reads. |
 | Goal restatement at every context rebuild (`skills/vllm-neuron-parity/hooks/goal-restate.sh`) | reminder (advisory `additionalContext`, never blocks) | a compaction summary or a fresh seat brief loses the goal and, with it, the sunk cost of the process — the cheapest moment to reconcile the one and cut the other. SessionStart resume\|compact asks the lead for the goal from run state and the active campaign's `approvals/DECISIONS.md` and for the fewest steps toward it (what breaks if you skip it); SubagentStart asks each seat for its brief's goal and why it serves the run's. Lead-session-gated like the pair; silent without the marker or on a terminal run |
 | Re-entry dispatch advisory (`hooks/dispatch_advisory.py`) | reminder (advisory `additionalContext`, never blocks) | edge-triggered: fires only when a dispatch names an instrumented design node that already completed a traversal this run, and asks whether the graph's cheaper re-entry check tool decides it without a seat; lead-session-gated, throttled per node via its own counter file |
 | Documents are written for the reader (`skills/vllm-neuron-parity/hooks/write-for-reader.sh`) | prose + reminder (advisory `additionalContext`, never blocks) + REVIEWED | agents drift back to identifier chains and inlined checker output the moment the plain-writing rule leaves context; the hook fires on the first `.md` write under `artifacts/` and every third after it per session, for any actor, marker-gated and terminal-silent, and skips working state (attempts, measurements, index, intake-preflight); the adversarial reviewer treats an illegible reader-facing artifact as a material finding; the hook also names an over-cap document with its size (`references/artifact-layout.md` §4.12) once per session and file, past the throttle, and the reviewer records each living document's lines and bytes every round. Under `increments/` the same hook measures `.py`, `.sh`, `.md`, and `.txt` writes against the §4.12 increments row (200 lines, 20 header lines, one revision edited in place; the 100-line lap-record cap is the reviewer's) and names an over-cap file, an over-cap header, or a round-suffixed (`-rN`) retry copy once per file past the throttle; the batch review records `scripts/measure_artifact.py --classify` (code / comment / docstring split) and `--tree` (increments/ write report since the last batch). The first run under this plugin wrote 10,844 files there with no cap, two thirds of them retry copies (1.5.4) |
@@ -651,7 +653,7 @@ Nothing registers silently.
 ## 6. Appendix — the shipped authorities
 
 - `workflow.pave.yaml` and `revisions.yaml` — the immutable packaged seed, at
-  its newest revision (22 nodes, 69 edges, 24 evidence definitions, 5 endpoints;
+  its newest revision (21 nodes, 67 edges, 24 evidence definitions, 5 endpoints;
   validates clean with `scripts/validate_pave.py`). The head's revision number
   and check count are the revision log's, not this README's — read them from
   `revisions.yaml` and the validator, which is why no number here can go

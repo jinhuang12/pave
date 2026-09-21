@@ -1085,3 +1085,473 @@ entries:
   commit: null
   derived_from: null
   run_id: null
+- revision: 15
+  kind: graph
+  applied_at: '2026-09-21T12:48:29Z'
+  digest_before: sha256:de9eb66d16967fa6a6adbf625d9c78117464cd236cfac9b95b1afc4e498a8c41
+  digest_after: sha256:1331f29abc50497648035a21e717118b190c045cc64bc2bdb7fa40f5d40a8d24
+  semantic_diff: 'Base: revision 14, digest sha256:de9eb66d16967fa6a6adbf625d9c78117464cd236cfac9b95b1afc4e498a8c41,
+    verified intact with pave-init 2.6.2 record_revision.py (18 entries). Counts:
+    22 nodes become 21, 69 edges become 67, 69 outcomes become 67, 17 checks become
+    15; 24 evidence definitions, 5 control nodes and 8 roles unchanged; state.required
+    drops two fields (21 to 19). Removed: node review_implementation with its outcomes
+    ready_for_hardware and material_findings and its edges plan_satisfied_to_impl_review,
+    reviewed_impl_to_hardware and impl_findings_to_repair; outcome prerequisite_unlanded,
+    edge prerequisite_to_rescoping and check prerequisite_is_in_plan; check evidence_stable_before_verdict;
+    state fields scan_entry_id and design_entry_id. Added: outcome execute_attempt_loop.product_defect_found
+    with edge attempt_defect_to_repair, and edge plan_satisfied_to_hardware (scope_next_increment.plan_satisfied
+    to prepare_host under batch_review_current, changeset_complete and impl_commit_is_reviewed).
+    Line balance: 62 hunks, 287 lines added against 330 removed; 2430 lines become
+    2387 and 138,272 bytes become 136,054 (ceiling 3100 lines, not raised). Every
+    other node''s roles, consumes, produces and required_evidence are equal, proved
+    by parsing both graphs and comparing the skeletons field by field, except increment_selected
+    and verdicts_sound, which drop their required_evidence (below). Applies before
+    revision 16, in revision order: git apply of this patch then v16-run-setup.patch
+    on a scratch copy validates at 21 nodes, 67 edges, 5 control nodes (the reverse
+    order fails on shared context at the roles block). Source: the user''s questions
+    at run close (2026-09-20) - what would have saved the most time without compromising
+    correctness, what was ceremony against what was a technique worth keeping, and
+    "that''s all you can think of? everything else in the workflow graph was useful
+    & beneficial?" (DECISIONS 1089, "Fold into revision 15 now (Recommended)") - answered
+    from the run''s own records: the lead''s ranked lessons (artifacts/run/closure/lessons-run-20260827-20260920T171728Z.md),
+    the rule-8 usage record (artifacts/run/usage-log.md, friction items 3 to 8), the
+    1,669 run-state outcome rows counted per node (all rows, and the 116 rows since
+    the revision 12 pin at 2026-09-15T15:09Z, the 22-node graph), the DECISIONS and
+    LEAD-LOG sections cited below, and the fingerprint file. One test decided every
+    clause kept, cut or added: did it ever change an outcome - catch a defect, save
+    a charged attempt - or did it only produce a record? The first kind stays and
+    is stated once, at the node that owns it, with the defect it catches named; the
+    second kind is cut.
+
+    FIRST CUT LIST (each with its evidence). (a) The prerequisite hold of revision
+    8 - outcome prerequisite_unlanded, self-loop edge prerequisite_to_rescoping, check
+    prerequisite_is_in_plan: zero firings in 259 scoping rounds, 32 of them after
+    it landed (revision 8 applied 2026-09-11); an in-plan prerequisite is selected
+    by the plan''s own order and the held item is a row entry, so the precedence list
+    now says so in one clause and the route is gone. (b) design_loop_within_bound:
+    eight rounds plus the repair-introduced classification become fewer than four
+    rounds without design_sound; the label cost the reviewer a class per finding per
+    round and the lead a consecutive count, and neither ever tripped while 88 rounds
+    ran and the later ones found wording; review_campaign_design drops the labeling
+    sentence and the bound-trip sentence the check and design_sound already carry.
+    The question names its defect - a review loop that keeps finding wording after
+    the material findings are gone. (c) scope_next_increment: the no_new_route meaning
+    restated the detector its purpose defines and the purpose carried an eight-line
+    design-history essay (pave-spec 8.4 forbids argument history in a living document);
+    both become one clause each. (d) recover_leased_host: five of six activities restated
+    the purpose word for word. (e) execute_attempt_loop: the out-of-band-handoff history
+    (the ban stands as a forbidden effect), the precedence paragraph both outcome
+    meanings carry, and the delegate-guardrail sentence held three more times are
+    cut; the exhaustion activity points at breaker_tripped. (f) acceptance_threshold_evaluated''s
+    rationale shrinks to its two reasons. (g) scan_entry_id loses a planning-record
+    citation - and then the field itself goes (second list, item 9). Run-level ceremony
+    the new principle cuts: the lead''s own log (LEAD-LOG.md, 2,203 sections, a standing
+    document neither the graph nor the layout reference declares - pave-spec 8.4 counts
+    three plus run state), 63 run-state rows under a node named "lead", 139 rows carrying
+    per-attempt outcome names the loop never declared (attempt_failed, attempt_passed),
+    872 notes over the cap, 72,584 state writes; the lessons file prices this at 15
+    to 20 percent of every day, and every seat waited on it.
+
+    SECOND CUT LIST (DECISIONS 1089), each against the current 22-node graph, since
+    the run''s early rows name nodes revision 11 already merged. (1) SCREEN ONCE.
+    screen_pin_and_progress (64 rows, the last on 2026-09-09) was folded into design_campaign
+    at revision 11 as step (1), and the graph still re-screened on every full-round
+    re-entry and let a "screen fact" finding force the full round. Now the screen
+    runs on the first design entry only - the branch, SDK and weight preflights are
+    verify_run_preconditions'' and kickoff_contract_approved''s already - a re-entry
+    never re-screens (the pin is frozen at intake), and the untried-lever half is
+    design_blocked''s own evidence; four re-screen mentions go (narrow_delta_scoped,
+    the material_findings and narrow_findings meanings, pin_infeasibility_socratic_guard''s
+    rationale, the design_findings_to_redesign rationale). Evidence: the pin never
+    moved in 24 days. (2) REGISTER ONCE. preregister_acceptance (36 rows, the last
+    on 2026-09-09) was folded at revision 11 into design step (3), and the byte-unchanged
+    re-entry rule of revisions 2 and 4 already registers once and re-enters only on
+    a registered-value touch or a kickoff criterion change (criteria_changed_by_user,
+    a value-level read); what remained to cut was the stability count and spacing
+    the registration carried - gone with item 10. (3) ONE CODE-REVIEW LAYER. Node
+    review_implementation goes with its two outcomes and three edges; the new edge
+    plan_satisfied_to_hardware carries batch_review_current, changeset_complete and
+    impl_commit_is_reviewed from scope_next_increment.plan_satisfied to prepare_host;
+    impl_commit_is_reviewed is re-anchored on the newest batch_sound findings section
+    and names its defect (unreviewed product source reaching hardware), its failure
+    route is review_increment_batch; the batch_sound record names the batch''s tip
+    commit, so the check is decidable from declared content; review_increment_batch
+    states that its newest record is the changeset''s code review and the lead''s
+    changeset_complete scans and test record close the gate; six mentions of implementation
+    review are rewritten (principle, scope purpose, plan_satisfied meaning, product_defect_found
+    meaning, the attempt_defect_to_repair rationale, adversarial_review_findings''
+    producer list). Evidence: three review layers on one code - review_campaign_design
+    88 rows, review_implementation 232, review_increment_batch 130 (since the revision
+    12 pin: 3, 14, 21); per-batch review found 30 material findings after per-increment
+    passes and the whole-changeset pass re-read what the batches had decided (its
+    own purpose said so). Cost removed per plan_satisfied round: one reviewer seat
+    and one whole-changeset read; the P4 and P13 scans and the whole-tree test record
+    stay, mechanical and lead-run. (4) record_changeset (96 rows, the last before
+    the revision 12 pin) was merged at revision 11 - the lead assembles the changeset
+    in the plan_satisfied round with no seat; nothing more in the graph, and the lead-record
+    principle forbids the rows. (5) THE SCOPING ROW. Revision 4 made scope_next_increment
+    lead-run by default; 259 rounds still wrote 259 round-record files. Now a mechanical
+    round writes its outcome row - the selected block, the batch size call, the plan''s
+    revision-log line - and no record; increment_selected drops increment_lap_record
+    from its required_evidence; a record is written when a seat ran, a gap or stuck
+    item is named, or the changeset is assembled, because those are the detector inputs
+    and the assembly commands the next round re-derives from. batch_review_current
+    and review_increment_batch read the size call from the row. Cost removed: one
+    file per round. (6) acquire_hardware_lease (65 rows, the last before the revision
+    12 pin) was removed at revision 11; lease records are the queue tool''s files
+    (revisions 10 to 12); nothing to remove in the graph, and the lead-record principle
+    forbids the rows. (7) ONE TARGET. review_route_verdicts runs no seat when one
+    target is requested - there is no ranking to review, and the user''s gate-1 election
+    is the review; cost_routes_and_rank_backlog''s coverage, rubric and index steps
+    are the lead''s own and the seat costs the routes only. verdicts_sound drops its
+    required_evidence and its meaning names the evidence per case - the reviewer''s
+    findings record when a seat ran, the costing record cited in the outcome row for
+    one target - because a findings record for a review that did not run would be
+    the record-for-nothing this list cuts (inside DECISIONS 1090 item m). Why not
+    a short-circuit edge: it would add an outcome and an edge to skip two nodes whose
+    cost is the seat, not the traversal, and the count rule outranks. Evidence: 5
+    plus 5 rounds for one target. (8) SCHEDULING HOLDS. scheduling_holds_recorded
+    passes on an empty field with one approved campaign and derives surfaces only
+    for two or more; the question names its defect (two campaigns writing one file
+    surface at once); the state field says the same. (9) ENTRY IDS. scan_entry_id
+    and design_entry_id leave state.required and state.fields; the seven mentions
+    are rewritten (the re-trace edge rationale names the grant file''s own record)
+    - records cite the revision-log line of the file they edit, the re-trace bound
+    is counted from reports_insufficient rows, the reviewer is retained across one
+    design entry (an entry is the traversal in from outside, already defined at design_loop_within_bound).
+    Evidence: 70 minted ids leaked into product comments and cost a cleanup increment.
+    (10) STABILITY READS. Check evidence_stable_before_verdict goes from measurements_to_adjudication
+    and from the checks; measure_candidate''s consecutive re-reads, its stability
+    trace and the design''s count-and-spacing registration go, and measurement_artifacts''
+    subject drops "stable-read collected"; a bundle is complete when it carries its
+    evaluated-threshold record and the measured revision and is read after its producer
+    exited and its mtime settled (the revision 16 read rule); the outcome evidence_unstable
+    stays for an incomplete bundle. Evidence: three reads at 30 s per bundle across
+    4 verdicts caught nothing; the one mid-write read of the run (LEAD-LOG 2176) was
+    a record no stability count guarded. (11) rederive_approach: no change - revision
+    14''s class rule already fixes the miscounted trip. (12) ONE PR DOCUMENT. prepare_pr
+    writes the PR description with an evidence index that links every claim to its
+    bundle, verdict or review record; the separate evidence package is cut; review_pr_evidence
+    reads the description; the review-gates principle and the implementer role say
+    so. The ids pr_evidence_package, pr_package_ready, pr_package_to_pr_review and
+    pr_findings_to_package_repair stay - an id rename ripples through the release
+    layer for no meaning gain.
+
+    TECHNIQUES KEPT AND STATED ONCE. (1) THE BRING-UP LADDER (lessons L1, L6, L7).
+    execute_attempt_loop gains a tier-0 activity ahead of the tier-1 fingerprint check:
+    once per tip, five uncharged rungs recorded in the attempt log before the serving
+    grant - (a) the declared test paths collect and pass on the tip (the changeset''s
+    whole-tree record, or a re-run when a loop commit moved the tip), (b) every graph
+    the launch compiles extracts device-free, (c) one rank loads its compiled graph
+    on one device, (d) the per-process host footprint read from that load times the
+    world size fits the host memory pool the launch reserves, (e) one request passes
+    the runner''s request path in CPU mode - plus a forbidden effect and one pointer
+    each in the purpose and the CPU-first principle. prepare_host''s lease paragraph
+    states the enforcement point: the hardware queue tool grants a serving-class job
+    lease only when the request names the job''s class, its tip and the client leg
+    that will drive its requests, and the attempt log carries the tip''s rung records;
+    the job-lease record carries the three, so the tool reads what it refuses on -
+    the refusal pattern revision 14 used for the second campaign lease; cmd_grant
+    gains the three arguments in the release layer. Evidence that it changed outcomes:
+    74 attempt_failed rows against 18 candidate_serving; the first served candidate
+    that answered a request came on day 21 (2026-09-16), the first charged launch
+    on day 14; in artifacts/cross-run/failure-fingerprints.yaml, r8, r9 and r16 are
+    graph-extraction refusals a device-free compile reproduces, r7 and r13 one-rank
+    load refusals, r11 and r17 host-memory collapses the footprint arithmetic predicts
+    (release 553: 33 GB times 64 ranks on a 2 TB host), and attempts 17 and 18 died
+    at the first request (LEAD-LOG 1628 to 1633) - eight of ten charged pre-serve
+    failures catchable uncharged; the run adopted rungs (b) to (d) by hand at attempts
+    12 to 16 (LEAD-LOG 1611 to 1621) and served on the next charged launch; attempt
+    22 held a server 4 h 15 m charged with no client (usage record item 6). Why general:
+    every campaign on this workflow compiles graphs, loads ranks, holds host memory
+    and serves requests, and each failure class has a probe that costs minutes where
+    the launch costs hours; the graph names the rung classes, the flags stay in the
+    reference layer. Why not a check on an edge: the launch happens inside the node,
+    so the declared enforcement point is the grant, which the tool already refuses
+    on other grounds. Cost per run: five uncharged records per tip, no seat, in place
+    of one charged launch per catchable defect. User-only change touched: hardware_attempt_counts''
+    class rule (approved budgets) - diagnostic now reads "compiles no new graph on
+    the device, serves no request and decides nothing about acceptance - reading state
+    out of a served tip''s graphs, or loading one rank of a tip''s compiled graph
+    as a bring-up rung", so rung (c) is uncharged as the field practised (the rb-load
+    rows carry class diagnostic in the fingerprint file); the serving definition and
+    the count of ten are untouched.
+
+    (2) A DECLARED EXIT FROM THE LOOP FOR A PRODUCT DEFECT. New outcome execute_attempt_loop.product_defect_found
+    and edge attempt_defect_to_repair to scope_next_increment, which names the entry
+    in its purpose. Before: revision 8''s activity said "only a product-source change
+    leaves the loop for review" and the node had no outcome that leaves - an invisible
+    edge (pave-spec section 13). Evidence: an execute_attempt_loop row is followed
+    by a review_implementation row 55 times and by a scope_next_increment row 14 times,
+    and no edge at revision 14 joins them. Why this target: a product-source cause
+    is a repair increment - CPU-mode acceptance, then batch review on the repaired
+    tip - the path shortfall_to_repair already declares from adjudication; the lease
+    and host stand. Cost per run: none - the route was traversed 69 times unrecorded.
+    Not user-only: routing, no acceptance, effect or budget moves.
+
+    (3) THE CORRECTNESS GATE IS MEASURED ON SERVED OUTPUT (lesson L2). kickoff_contract_approved
+    asks that the kickoff contract state the correctness gate as a served-output comparison
+    against the reference - task accuracy for a model port, the feature''s observable
+    output for a feature port - with its pass rule, and register every intermediate-tensor
+    tolerance as a diagnostic that selects no outcome; the question names its defect
+    - a tensor gate measures the stack, not the port. Before: the check accepted "thresholds,
+    methods" at any level; assemble_kickoff_contracts now points at the check''s served-output
+    form, so a contract is not drafted flat and refused at gate 1. Evidence: the kickoff
+    contract section 4 named HF-reference logits as the first gate (M4); 36 preregister_acceptance
+    rows, a tolerance registry, attempts 20 and 21, two correctness_shortfall verdicts
+    and five scoping laps on M4 shortfalls followed; on day 21 the user chose GSM8K
+    task accuracy in their own words (DECISIONS 1066: "you''re not going to get bit
+    exact outputs from neuron vs gpu"; 1069 the pass rule) - M4 never resolved and
+    the port passed. Why general: two hardware stacks never agree bit for bit; a feature
+    port still gets a served-output gate of its own kind; tensor comparators stay
+    as diagnostics because localization needs them. P9 is untouched. Cost per run:
+    none. User-only change touched: root acceptance and check strength (stronger).
+
+    (4) THE WHOLE-TREE TWO-LEG TEST RECORD (lesson L6). changeset_complete asks for
+    a fifth component - the declared test paths collected and run whole-tree on the
+    tip, zero collection errors and zero new failures against the target base, a quarantined
+    item carrying its import proof - and names class (e), a collection error or a
+    new failure, as the defect; scope_next_increment''s assembly and class list and
+    realize_increment''s coverage-gap list name the component and its re-run in one
+    clause each. Evidence: LEAD-LOG 2190 - four of five vendored upstream test files
+    never imported at the pin since commit 13ec071, 13 stale tests failing at head
+    and base, 28 quarantined items, all found on day 24 by one two-leg pass. Why general:
+    no CI runs the fork''s tests, so the changeset is the only place a collection
+    error is measured before hardware spend. Cost per run: one whole-tree CPU-mode
+    collection and run per plan_satisfied round, the pass a fold item already pays.
+    User-only change touched: check strength (stronger).
+
+    (5) A NO-BEHAVIOR-CHANGE CLAIM IS DECIDED BY A DIFF TOOL. review_increment_batch''s
+    material list gains one clause: a claim of no behavior change is decided by an
+    AST or token diff of the touched functions, never by reading. Evidence: the technique
+    caught false "refactor only" claims in the batch reviews that produced 92 material
+    findings (lessons file, "What paid for itself"). Why general: a reviewer reading
+    a large diff for equivalence is the fakeable evidence pave-spec 9.14.1 ranks below
+    a tool the doer does not run. Cost: none - it replaces reading with a command.
+
+    (6) MEASUREMENT OUTCOME APART FROM HYGIENE (lesson L7, usage record item 4). hardware_attempt_log''s
+    subject: a run record''s measurement outcome stands apart from hygiene findings
+    on the host after it, which never set the outcome. Evidence: attempt 25''s driver
+    recorded outcome=failed on a device-handle census two seconds after SIGTERM while
+    200 of 200 rows were served and passed (ruling 71, debt D-HOST-FD-CENSUS-RACE).
+    Cost: none; not weaker.
+
+    (7) THE LEAD''S RECORD (lesson L4). One principle: the lead writes run state,
+    the user''s decision record, and the records the workflow names it the writer
+    of (the cross-run artifacts at closure, the plan bookkeeping edits, the changeset
+    assembly), and keeps no log of its own; a row names a declared outcome and points
+    at evidence; an event inside a node is the seat''s record at its evidence path;
+    a ruling a seat needs lives once, in the round record or outcome row of the node
+    it decides. The evidence is the run-level ceremony listed above. Cost: negative.
+    Not user-only.
+
+    (8) STANDING APPROVAL AND THE WRITE BOUNDARY (lesson L5, graph half). The user
+    role says a standing approval is the user''s verbatim line with the scope it names
+    and the lead never widens one by reading intent; scope.out names any write outside
+    the run''s artifact tree, the campaign worktrees and branches, and the fork -
+    the workflow''s own package, the harness configuration and memory included - as
+    user-owned. Evidence: DECISIONS 12 (2026-09-05, "approve stop asking for my approval,
+    make the most aligned decisions", read by the lead as delegation of frozen-value
+    changes and package releases) to DECISIONS 728 (2026-09-08, revoked): 3.5 days,
+    two plugin releases into the pave repository reverted, memory files that widened
+    the lead''s authority. The mechanical half - write_limits deny globs bound to
+    the lead - is the kind run_setup companion, revision 16. User-only change touched:
+    state authority and forbidden effects.
+
+    (9) AN ERRATUM PATH FOR A VERDICT''S PROSE (usage record item 5). adjudicate_results:
+    a verdict''s prose is corrected only by an erratum the adjudicator appends to
+    the verdict record, naming the line and the evidence; a value or the consequence
+    never moves by erratum. Evidence: ruling 73 and an erratum seat filled this by
+    hand. Why not an outcome: it routes nowhere. Actor: the adjudicator, who owns
+    the record.
+
+    EVERY RETAINED CHECK AND THE DEFECT IT CATCHES (fifteen; the five touched checks
+    name it in their question, the ten untouched already do, in the question or its
+    rationale): kickoff_contract_approved - a tensor gate measuring the stack; changeset_complete
+    - a collection error or new failure reaching hardware; design_loop_within_bound
+    - a review loop finding wording; impl_commit_is_reviewed - unreviewed product
+    source at hardware; scheduling_holds_recorded - two campaigns on one file surface;
+    design_approved_by_user - a gate re-presented on an unchanged registration; narrow_delta_scoped
+    - a full round for a narrow finding, or a recurring finding hidden as narrow;
+    comparators_preregistered - a comparator chosen after the numbers; acceptance_threshold_evaluated
+    - an exit code read as an evaluation; measurer_not_adjudicator - a producer grading
+    its own number; batch_review_current - a defect built on before its review; preflight_record_complete
+    - a run started on an unverified input; pin_infeasibility_socratic_guard - a false
+    infeasibility closing a campaign; procedures_smoke_verified - a check tool that
+    cannot fail; revision_stamped - a branch name as a revision.
+
+    NO CHANGE, WITH THE EVIDENCE. Gate 2 re-presentation (L3): 71 of the 88 review
+    rounds and six of the 14 gate-2 records precede revision 3 (2026-09-03), which
+    defined materiality and made the approval stand; after it, eight standing-approval
+    rows with no ask. Per-increment plan records and increment identifiers in product
+    code are the layout reference''s and the implementer contract''s, not graph. L8
+    (seat lifecycle) and L5''s deny globs are revision 16. Usage record item 8 (PR
+    write-ups outgrowing line caps, ruling 79) is answered by cut (12) - one PR description
+    whose index links records instead of restating them - and the trim-round rule
+    (pave-spec 8.4) covers the rest. Digests of mutable files stay cut (revision 7);
+    lease pools (revisions 10 to 12), the class field (revision 14), frozen comparators,
+    adjudicator apart from measurer, fingerprints and no identical retry, per-batch
+    adversarial review, and verbatim user decisions in one file all stand as written.
+
+    EVERY COPY (release layer, outside this root; none edited here): README.md lines
+    166 and 654 (22 nodes, 69 edges become 21 and 67), 260 (the design-entry id),
+    273 to 279 (the review_implementation edges become plan_satisfied_to_hardware),
+    274 (the prerequisite edge goes; attempt_defect_to_repair enters), 354 (evidence_stable_before_verdict
+    leaves the mermaid edge); tests/test_workflow_pave.py lines 9 and 26 (EXPECTED
+    becomes "21 nodes, 67 edges, 5 control nodes"); VERSION (a new entry); skills/vllm-neuron-parity/SKILL.md
+    rows 2 (one-target seat rule), 4 (screen once, no design-entry id), 6 (five changeset
+    components; plan_satisfied routes to prepare_host; no review_implementation),
+    7 (tier-0 pointer, client-leg refusal), 9 (evidence_stable_before_verdict gone),
+    line 94 (the review-node list), line 146 (row 2''s scan_entry_id mint sentence
+    goes) and line 347 (the P4 row''s re-check moves from review_implementation to
+    the batch review); agents/adversarial-reviewer.md lines 101 to 120 (review_implementation
+    section goes; the batch is the code review, and the stamp-it tip-commit clause
+    of lines 118 to 120 moves to the batch bullet) and line 70 (repair-introduced
+    label), with its Codex twin codex/agents/vllm_neuron_parity_adversarial_reviewer.toml
+    line 6 (the same label); agents/adjudicator.md line 63 (the check) and the erratum
+    clause, with codex/agents/vllm_neuron_parity_adjudicator.toml (the erratum clause,
+    absent there today); agents/implementer.md lines 25, 28 and 98 (design-entry id
+    refusal goes), 220 to 236 (tier-0 pointer), and the PR package wording, with codex/agents/vllm_neuron_parity_implementer.toml
+    line 6 (the out-of-band history and the exhaustion text); hooks/dispatch_advisory.py
+    line 90 (a design_entry_id advisory to remove); schemas/run-state.schema.json
+    lines 27 to 28 and 272 to 280 (the two fields leave required) with the fixtures
+    at tests/test_codex_port.py 42 to 43, tests/test_run_state_schema.py 44 to 45,
+    tests/test_validate_run_state_caps.py 54 to 55 and 146 to 149, tests/test_write_limits.py
+    48 to 49, and the count rule''s diagnostic text; references/artifact-layout.md
+    lines 116 (repair-introduced), 130, 252 and 260 (review_implementation), 282 to
+    284 (the scan entry id), and 4.2 pairs 4 and 6 (measurement outcome apart from
+    hygiene, rung records, the client leg); references/measurement-pitfalls.md lines
+    71 and 79 (the stable-reads rule stays a pitfall note, no longer a gate); scripts/hardware_queue.py
+    cmd_grant and tests/test_hardware_queue.py (the class, tip and client-leg arguments
+    and the two new refusals). The old diagnostic wording survives only in VERSION''s
+    historical 1.5.9 entry, which describes its own release.'
+  approval: "Approve revision 15 at digest 1331f29a (Recommended) \u2014 user, AskUserQuestion\
+    \ 2026-09-21T12:48:05Z, DECISIONS \xA71091; user-only changes \xA71086/\xA71087/\xA7\
+    1090"
+  user_only_changes: approved
+  plan_evidence: verified
+  usage_evidence: field
+  review: 'PASS (pave-init:update-reviewer seat update-reviewer-r15, round 3 of 3:
+    r1 revision_required 1 HIGH/5 LOW, r2 revision_required 1 HIGH/6 LOW, r3 PASS
+    1 LOW folded)'
+  written_by: unverified
+  patch: history/v15.patch
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 16
+  kind: run_setup
+  applied_at: '2026-09-21T12:48:30Z'
+  digest_before: sha256:1331f29abc50497648035a21e717118b190c045cc64bc2bdb7fa40f5d40a8d24
+  digest_after: sha256:dd5312fd8f8e4255beb65307e28f7105c6db1a8a70a766122a8ee4eebe088d6d
+  semantic_diff: 'Base: revision 14, digest sha256:de9eb66d16967fa6a6adbf625d9c78117464cd236cfac9b95b1afc4e498a8c41,
+    verified intact with pave-init 2.6.2 record_revision.py (18 entries). Apply head:
+    revision 15 at its proposal''s digest_after sha256:1331f29abc50497648035a21e717118b190c045cc64bc2bdb7fa40f5d40a8d24
+    - the chain order is v15 then v16. Drafted to apply after revision 15 (DECISIONS
+    1088 approved its two items): git apply of v15-graph.patch then this patch on
+    a scratch copy validates at 21 nodes, 67 edges, 5 control nodes after v15, and
+    no hunk here touches a line revision 15 touches (two-line context for that reason;
+    revision 15''s context covers the roles hunk, so the order is v15 then v16). Counts
+    unchanged by this patch (21 nodes, 67 edges, 67 outcomes, 24 evidence definitions,
+    5 control nodes after v15); every check, node body, outcome, edge and state field
+    equal except the two prose sites named below. Layer test (pave-spec 2.1, revision
+    rule 9): a runtime control on what the lead may write, and the seat lifecycle
+    at dispatch - run setup, no graph meaning moves. Line balance: 3 hunks, 20 lines
+    added against 8 removed; 2430 lines become 2442 and 138,272 bytes become 139,140
+    on revision 14 (2387 become 2399 after v15). Of the 20 added, 11 are write_limits
+    structure (two deny entries, five required fields each); prose is 9 added against
+    7 removed. Source: the user''s second answer at DECISIONS 1086 - "Yes, draft v16
+    now (Recommended)" - to the companion the revision 15 proposal named (lesson L5''s
+    mechanical half and lesson L8 in the lessons file artifacts/run/closure/lessons-run-20260827-20260920T171728Z.md;
+    usage record item 7).
+
+    (1) WRITE LIMITS - two deny globs bound to the lead: the workflow''s own package
+    repository and the user''s memory directory, each with its reason and remedy.
+    Evidence: DECISIONS 12 (2026-09-05, "approve stop asking for my approval") to
+    DECISIONS 728 (2026-09-08, revoked) - two plugin releases into the package repository
+    without approval, reverted; memory files that widened the lead''s own authority;
+    3.5 days. The write_limits block stood empty through it, so the boundary lived
+    only in prose and memory - the forms that failed. Enforcement level (lead-hooks.md,
+    pave-spec 9.14.1): blocking, because the harm recurred inside one run, cost a
+    reverted release, is irreversible before the next gate (a pushed release is public,
+    an edited memory line steers every later session), and is detected by an exact
+    absolute glob against the written path; the remedy is always available and is
+    printed at the refusal. Bound to the lead alone - a seat''s match is advice -
+    so no glob strands a seat. Why these two surfaces and not "everything outside
+    artifacts": a glob cannot say except, and the router''s deny mode matches every
+    Bash path token, reads included (hooks/pre_tool_use_router.py line 140 iterates
+    target_paths; the write-only helper write_target_paths exists and serves the hook-records
+    path at line 181). A glob over the plugin cache or the harness directory would
+    refuse the lead''s own "python3 .../scripts/record_revision.py" and its skill
+    reads and strand the run. The two chosen surfaces are ones the lead reads through
+    the Read tool (not hooked) and never executes from. Release-layer finding for
+    the reviewer: mode_write_limits should iterate write_target_paths for Bash; once
+    it does, the plugin cache and the harness settings become deniable - their evidence
+    is thinner (the installs were approved), so they wait for that fix and their own
+    incident. Why absolute paths: the guard expands "~" in Bash tokens (bash_path_tokens)
+    but not in globs (_absolute_glob_forms), so a home-relative glob is a second release-layer
+    follow-up; until then the absolute path is run setup for this installation, as
+    a seat''s model id is. Match semantics checked against the guard''s own functions:
+    the package repository''s VERSION file and memory/MEMORY.md match; the installed
+    skill under the plugin cache, the harness settings file, run-state.json and the
+    fork do not. "/Users/jinhun/GitHub/pave/*" matches file paths under the repository
+    (the release writes); a bare directory token (git -C, cd) is not matched - pushes
+    are the push guard''s already, but git apply, checkout, merge, cherry-pick and
+    stash pop write files under a directory-only token and escape this deny, a third
+    release-layer follow-up (the router should resolve the files such a command writes).
+    Shape: the guard''s fallback parser (used when PyYAML is absent) accepts only
+    deeper-indented items with single-line scalars and otherwise fails open with no
+    limits, so the block is written in that shape; both parsers read it identically
+    (checked). Cost per run: none - a refusal prints at the write. Caps: none. The
+    layer allows them, but the evidence names no undeclared file-name group that regrew
+    by file count; the run''s growth was one appended log and run-state rows, which
+    a per-checkpoint creation cap does not measure, and revision 15''s lead-record
+    principle cuts them. User-only: yes - a runtime control on what an actor may write
+    (rule 9).
+
+    (2) SEAT LIFECYCLE - stated once at roles.lead, the actor who dispatches, in place
+    of the scheduling restatement there (scheduling_holds_recorded states that rule,
+    and the lead skill row 3 repeats it). Three clauses, each with its reason: a doer
+    seat retires only on the review outcome that passes its work (LEAD-LOG 2106 -
+    the prepare_pr seat stopped before its review, and the repair round had no context);
+    a reviewer gets one frozen stamp after every constraint has reached the producer,
+    any later change being the next revision, never a re-stamp (LEAD-LOG 1707 to 1710
+    - constraints sent after the relay, a re-stamp under the same revision, the review
+    round void); a record another seat is writing is read after its mtime settles
+    (LEAD-LOG 2176 to 2177 - a declared file read mid-write). Each cost an hour or
+    more and the run learned them as memory, not as text a fresh lead loads. Why the
+    lead role and not per node: revision 4 declared seat continuity per node because
+    it differed per node; these three hold for every dispatch, so one sentence at
+    the dispatcher and no copy. Cut with it: realize_increment''s second copy of the
+    retained-thread rule - scope_next_increment''s activity already names realize_increment
+    as its sibling, so two copies of one rule become one. Cost per run: none; it removes
+    a re-review round and a re-dispatch per incident. User-only: seat lifecycle is
+    a seat change (run setup), which the lead''s brief lists among user-only items
+    - declared pending with the write limits.
+
+    NO CHANGE: model or effort per seat - the graph declares none (dispatch tiering
+    lives in the lead skill), so nothing to cut or add here.
+
+    EVERY COPY (release layer, none edited here): skills/vllm-neuron-parity/SKILL.md
+    "Roles and dispatch" (line 86; gains the three lifecycle clauses once) and row
+    6 (the retained thread, unchanged); README.md line 597 (dispatch mechanics); agents/implementer.md
+    lines 368 to 370 ("retired when that instance closes; a repair round continues
+    the seat" becomes "retired on the passing review outcome"); the "retired when
+    that node instance closes" line in adversarial-reviewer.md 207, measurer.md 166,
+    adjudicator.md 109, investigator.md 160, rederiver.md 136 stays - those seats
+    are not doers under review; README.md line 628 and references/artifact-layout.md
+    line 435 (the deny row, unchanged in substance); hooks/pre_tool_use_router.py
+    line 140 (the read-matching finding above); tests/test_write_limits.py (its fixture
+    is the shape used here).'
+  approval: "Approve revision 16 at digest dd5312fd (Recommended) \u2014 user, AskUserQuestion\
+    \ 2026-09-21T12:48:05Z, DECISIONS \xA71091; user-only changes \xA71088"
+  user_only_changes: approved
+  plan_evidence: verified
+  usage_evidence: field
+  review: PASS (pave-init:update-reviewer seat update-reviewer-r15, round 1 of 3 +
+    preamble addendum confirmed)
+  written_by: unverified
+  patch: history/v16.patch
+  commit: null
+  derived_from: null
+  run_id: null

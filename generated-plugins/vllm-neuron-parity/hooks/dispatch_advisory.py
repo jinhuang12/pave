@@ -39,8 +39,8 @@ def main() -> None:
             return
     completed = state.get("completed_outcomes") or []
 
-    # Nodes carrying a declared re-entry check_tool in the applied graph
-    # (run-setup revisions 2 and 4), plus the design-round gate. Edge trigger = the
+    # The three nodes whose re-entry the workflow decides more cheaply than with a
+    # seat, named here (the graph declares no field for them). Edge trigger = the
     # dispatch names a node that already completed at least one traversal this run.
     check_tools = {
         "design_campaign": "lead-mechanical re-entry when the campaign_target_pins "
@@ -85,12 +85,12 @@ def main() -> None:
         pass
 
     lines = [
-        "[dispatch-advisory] Re-entry dispatch detected - the amended v1 graph "
-        "declares a cheaper check_tool for this node when its inputs are "
-        "unchanged since the current design_entry_id was minted:"
+        "[dispatch-advisory] Re-entry dispatch detected - this node has a cheaper "
+        "re-entry check than a seat while its inputs are unchanged since the last "
+        "completed traversal:"
     ]
     for node, n, check_tool in fresh:
-        lines.append(f"- {node}: {n} completed traversal(s) this run. Check tool: {check_tool}.")
+        lines.append(f"- {node}: {n} completed traversal(s) this run. Re-entry check: {check_tool}.")
     lines.append(
         "If the inputs are unchanged, decide mechanically and record the basis "
         "in run state INSTEAD of dispatching this seat. Dispatch anyway when a "

@@ -20,17 +20,27 @@ released by the tool on its next invocation (reason "reaped"). --roster is the
 run state file (its instance_roster list, frozen by the lead at intake) or a
 JSON {"hosts": {<host>: {"pools": {...}}}}. The lead writes no lease record.
 
+Every job lease record names its class: serving, diagnostic, or cpu_mode. A job
+grant without --class is a request defect. A SERVING job grant must also name
+the tip it launches (--tip), the client leg that will drive its requests
+(--client), and the attempt-log file that records the tip's tier-0 bring-up
+rungs (--bring-up-record, which must already exist), because a server held with
+no client, or launched past a defect a cheaper probe finds, is charged time that
+measures nothing. A diagnostic or cpu_mode job needs only its class.
+
 A known pool class (neuron_devices, compile_memory_gib, cpu_cores,
 compile_cache_write_slot) the roster does not size is indivisible: a job that
 declares a need for it reserves the host whole, so a roster that sizes no pools
 behaves as one job per host. An unknown pool name is a request defect.
 
 Exit codes: 0 done; 2 request defect (unknown host or pool, oversize, empty job
-reservation, a second campaign lease, nothing to release); 3 wait (capacity
-exists but is busy).
+reservation, a missing class, an underspecified serving request, a second
+campaign lease, nothing to release); 3 wait (capacity exists but is busy).
 
   grant   --root R --roster ROSTER --host H --campaign C
-          [--job J --pool NAME=AMOUNT ... [--job-record PATH] [--wait SECONDS]]
+          [--job J --class {serving,diagnostic,cpu_mode} --pool NAME=AMOUNT ...
+           [--tip COMMIT --client TEXT --bring-up-record PATH]
+           [--job-record PATH] [--wait SECONDS]]
           [--markers-verified a,b] [--markers-unavailable c] [--deltas-explained TEXT]
   release --root R --host H --campaign C [--job J | --lease-id ID] [--all]
   amend   --root R --host H --boot-identifier B
@@ -166,6 +176,26 @@ def parse_pools(items: list[str]) -> dict:
 
 
 KNOWN_POOLS = ("neuron_devices", "compile_memory_gib", "cpu_cores", "compile_cache_write_slot")
+JOB_CLASSES = ("serving", "diagnostic", "cpu_mode")
+CHARGED_TIME = ("a server held with no client, or launched past a defect a cheaper probe "
+                "finds, is charged time that measures nothing")
+
+
+def serving_gaps(args) -> list[str]:
+    """What a serving job grant still lacks, each named in plain words."""
+    gaps = []
+    if not args.tip:
+        gaps.append("--tip (the commit id of the tip this job launches)")
+    if not args.client:
+        gaps.append("--client (the client leg that will drive this job's requests)")
+    record = args.bring_up_record
+    if not record:
+        gaps.append("--bring-up-record (the attempt-log file that records the tip's "
+                    "tier-0 bring-up rungs)")
+    elif not Path(record).exists():
+        gaps.append(f"a --bring-up-record file that exists (nothing at {record}, so the "
+                    "tip's tier-0 bring-up rungs are not recorded)")
+    return gaps
 
 
 def try_grant_job(root: Path, roster: dict, args, pools: dict) -> tuple[int, dict]:
@@ -195,7 +225,10 @@ def try_grant_job(root: Path, roster: dict, args, pools: dict) -> tuple[int, dic
             return 3, {"status": "wait", "reason": "capacity busy", "short": short, "remaining": rem}
         lease_id = uuid.uuid4().hex
         ev = {"event": "grant", "kind": "job", "lease_id": lease_id, "host": args.host,
-              "campaign": args.campaign, "job": args.job, "pools": pools, "whole_host": whole,
+              "campaign": args.campaign, "job": args.job, "class": args.job_class,
+              "tip": args.tip, "client": args.client,
+              "bring_up_record": args.bring_up_record,
+              "pools": pools, "whole_host": whole,
               "job_record": args.job_record, "pid": os.getpid(), "at": now()}
         p = write_event(root, args.campaign, ev)
         jobs.append(ev)
@@ -226,6 +259,17 @@ def cmd_grant(args) -> int:
                   "deltas_explained": args.deltas_explained or ""}
             p = write_event(root, args.campaign, ev)
         return emit({"status": "granted", "kind": "campaign", "lease_id": lease_id, "record": str(p)}, 0)
+    if args.job_class is None:
+        return emit({"status": "defect", "reason": "every job lease record names its class; "
+                     "pass --class serving, --class diagnostic or --class cpu_mode"}, 2)
+    if args.job_class == "serving":
+        gaps = serving_gaps(args)
+        if gaps:
+            return emit({"status": "defect", "job_class": "serving",
+                         "reason": "a serving job lease is granted only when the request names "
+                                   "the job's tip, its client leg, and the attempt log carrying "
+                                   "the tip's bring-up records; this one still lacks "
+                                   + "; ".join(gaps) + " - " + CHARGED_TIME}, 2)
     try:
         pools = parse_pools(args.pool)
     except ValueError as exc:
@@ -296,7 +340,10 @@ def cmd_status(args) -> int:
             for name in l.get("pools", {}):
                 pools.setdefault(name, None)
         out[h] = {"pools": pools, "remaining": remaining(pools, jobs),
-                  "open_job_leases": [{"campaign": l["campaign"], "job": l.get("job"), "pools": l.get("pools"), "lease_id": l["lease_id"]} for l in jobs],
+                  "open_job_leases": [{"campaign": l["campaign"], "job": l.get("job"), "class": l.get("class"),
+                                       "tip": l.get("tip"), "client": l.get("client"),
+                                       "bring_up_record": l.get("bring_up_record"),
+                                       "pools": l.get("pools"), "lease_id": l["lease_id"]} for l in jobs],
                   "open_campaign_leases": [{"campaign": l["campaign"], "lease_id": l["lease_id"]} for l in ol if l.get("kind") == "campaign"],
                   "reaped_now": len(reaped)}
     return emit({"status": "ok", "hosts": out}, 0)
@@ -309,6 +356,13 @@ def main(argv=None) -> int:
     g.add_argument("--root", required=True); g.add_argument("--roster", required=True)
     g.add_argument("--host", required=True); g.add_argument("--campaign", required=True)
     g.add_argument("--job"); g.add_argument("--pool", action="append", default=[])
+    g.add_argument("--class", dest="job_class", choices=JOB_CLASSES,
+                   help="the job's run class, a field of its lease record")
+    g.add_argument("--tip", help="the commit id a serving job launches")
+    g.add_argument("--client", help="the client leg that drives a serving job's requests: "
+                                    "a script path or a one-line description")
+    g.add_argument("--bring-up-record", help="the attempt-log file recording the tip's "
+                                             "tier-0 bring-up rungs")
     g.add_argument("--job-record"); g.add_argument("--wait", type=float, default=0.0)
     g.add_argument("--markers-verified"); g.add_argument("--markers-unavailable"); g.add_argument("--deltas-explained")
     r = sub.add_parser("release"); r.set_defaults(fn=cmd_release)

@@ -59,9 +59,13 @@ commit hash of the cross-run artifact update).
   change, and no repair of an artifact under verdict.
 - You never approve on the user's behalf. Gate approval is the user's;
   your verdict is an input the lead presents, not a substitute for it.
-- You never read a first-sighting signal as decided evidence. If
-  `evidence_stable_before_verdict` cannot be satisfied from the artifacts
-  on disk, report `evidence_unstable`.
+- You never read a first-sighting signal as decided evidence. Read the
+  evaluated-threshold records the bundles carry; when an artifact under
+  verdict is incomplete or changes between reads, report `evidence_unstable`
+  (`references/measurement-pitfalls.md`, the stable-read note).
+- A verdict's prose is corrected only by an erratum you append to the
+  verdict record, naming the line and the evidence; a value or the
+  consequence never moves by erratum.
 
 ## Delegate guardrail duty
 
@@ -92,8 +96,8 @@ provisioning STOP gate (P6).
 
 ## Evidence discipline
 
-Decide every verdict on external signals: stable measurement
-bundles re-read to their declared consecutive-match count, command
+Decide every verdict on external signals: measurement bundles whose
+evaluated-threshold records are complete on disk, command
 transcripts with exit codes, and git-issued revision identifiers agreeing
 across a measurement's records. Never
 accept a doer's self-report as the deciding signal, and record the

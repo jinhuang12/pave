@@ -8,8 +8,10 @@ directly (helpers in hooks/write_limits.py):
   write-limits  PreToolUse Bash|Edit|Write|MultiEdit. Blocked path patterns from the
                     graph's write_limits block bind the lead: a lead target
                     matching one is refused (exit 2) with reason and remedy; a
-                    seat's match is advisory (additionalContext). Fails OPEN on
-                    a parse error or while <revision-folder>/.applying exists.
+                    seat's match is advisory (additionalContext). Only WRITE
+                    targets count - a cat, a grep, or a script argument naming a
+                    denied path is a read and passes. Fails OPEN on a parse error
+                    or while <revision-folder>/.applying exists.
   no-retry-copy          PreToolUse Bash|Edit|Write|MultiEdit, every actor. Refuses
                     creating <stem>-rN.<ext> under an increments/ component when
                     a same-stem same-extension file already sits there (a parked
@@ -137,7 +139,7 @@ def mode_write_limits(payload: dict[str, Any], run: rb.RunContext) -> int:
     if not deny:
         return 0
     who = rb.actor(payload, run)
-    for path in rb.target_paths(payload):
+    for path in rb.write_target_paths(payload):      # a read of a denied path is not a write
         entry = rb.matching_deny(path, run, deny)
         if entry is None:
             continue

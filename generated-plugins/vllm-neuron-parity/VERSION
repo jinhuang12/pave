@@ -1,4 +1,89 @@
-version: 1.5.9
+version: 1.6.0
+
+## 1.6.0 — 2026-09-21
+
+Graph revisions 15 and 16, both in this release; the package graph,
+`history/v15.patch` and `history/v16.patch` are copied from the evolution
+root after each apply step, and the revision log gains the two entries.
+Counts: 21 nodes, 67 edges, 15 checks (from 22, 69 and 17); 5 control
+nodes and 24 evidence definitions unchanged.
+
+Revision 15 (`history/v15.patch`, kind graph, approval "Approve revision 15
+at digest 1331f29a"): what the GLM-5.3-Flash port taught - ceremony out, the
+techniques that caught defects stated once. Cut: the never-fired
+prerequisite hold (one outcome, edge and check); the eight-round design
+bound with its repair-introduced labeling (now fewer than four rounds); the
+whole-changeset review node `review_implementation` (the per-batch review is
+the one code-review layer, and `plan_satisfied` routes to `prepare_host`
+under `batch_review_current`, `changeset_complete` and
+`impl_commit_is_reviewed`); the stability-read check
+`evidence_stable_before_verdict` with the re-read ritual behind it; the scan
+and design entry ids; the per-round scoping record for mechanical rounds;
+the design re-screen on re-entry; the route-review seat and the scheduling
+holds when one target or one campaign is in play; the separate PR evidence
+package (one PR description with an evidence index); and every restated
+paragraph the diff names. The lead writes run state, the decision record
+and the records the workflow names it the writer of, and no log of its own.
+Kept and made mechanical: before any charged serving launch the tip passes
+an uncharged bring-up ladder - test paths collect and pass, graphs extract
+device-free, one rank loads, host footprint times world fits, one request
+passes in CPU mode - and the queue tool grants a serving lease only with
+those records and a named client leg; a product-source failure in the loop
+leaves through `product_defect_found` to scoping. The kickoff contract
+states the correctness gate on served output, tensor tolerances are
+diagnostics; the changeset carries the whole-tree two-leg test record; a
+no-behavior-change claim is decided by an AST or token diff; an attempt
+record keeps its measurement outcome apart from hygiene findings; a standing
+approval is the user's verbatim line with its scope, and scope.out names
+every write outside the run's artifact tree, worktrees, branches and fork
+as user-owned; a verdict's prose is corrected by an adjudicator erratum,
+never its values.
+
+Revision 16 (`history/v16.patch`, kind run_setup, approval "Approve revision
+16 at digest dd5312fd"): the lead's write boundary becomes a guard, and the
+seat lifecycle is stated once. `write_limits.deny` gains two lead-bound
+globs - the workflow's package repository and the user's memory directory -
+each with its reason and remedy. `roles.lead` states the seat lifecycle: a
+doer retires only on the passing review outcome, a reviewer gets one frozen
+stamp after every constraint reached the producer, a record is read after
+its mtime settles; the scheduling restatement there and
+`realize_increment`'s second copy of the retained-thread rule are cut.
+
+Release layer, prose: `README.md` (counts, the stage-6 and hardware
+diagrams, dispatch mechanics, four review nodes), `SKILL.md` (roles table,
+seat lifecycle once, stage rows 2 to 10, the P4 row), the reviewer,
+adjudicator and implementer contracts with their Codex copies (the
+`review_implementation` section and the design-entry id go; the one-target
+rule, the four-round bound, the erratum rule, the tier-0 pointer, the
+serving-grant arguments and the one-document PR description enter; the
+implementer contract is cut back under its line ceiling),
+`references/artifact-layout.md` (findings shape, pairs 1, 4 and 6, the
+evidence index, the scan conventions) and
+`references/measurement-pitfalls.md` (the stable-read rule stays as a
+pitfall note, no longer a gate).
+
+Release layer, code: `scripts/hardware_queue.py grant` takes `--class`
+(`serving`, `diagnostic`, `cpu_mode`; required on a job grant), `--tip`,
+`--client` and `--bring-up-record`, records the four on the job lease and
+in `status`, and refuses a job grant with no class and a serving grant
+missing its tip, its client leg or an existing bring-up record (the two new
+refusals). The write-deny mode of `hooks/pre_tool_use_router.py` matches
+the paths a command writes (Write and Edit targets, shell redirects, writer
+commands), never a path it only reads, so a lead's `cat` or `grep` under a
+denied glob passes. `hooks/write_limits.py` treats a git command that
+rewrites a tree (`apply`, `checkout`, `merge`, `cherry-pick`, `revert`,
+`stash pop`, `reset`, `rebase`, `pull`, `am`, `restore`, `switch`, `clean`)
+as a write under that repository, expands a leading `~` in deny globs, and
+its fallback parser (used without PyYAML) now reads same-indent list items,
+wrapped scalars and block scalars the same way PyYAML does instead of
+failing open. `hooks/dispatch_advisory.py` keeps its trigger (a completed
+traversal of a design node this run) and drops the design-entry id from
+its text. `schemas/run-state.schema.json` drops `scan_entry_id` and
+`design_entry_id` (required fields 21 become 19); the fixtures follow, and
+`tests/test_run_state_schema.py` is now collected by the suite. The two
+plugin manifests read 1.6.0 and `tests/test_codex_port.py` ties the
+manifest version to this file's first line. Suite: 97 pytest cases, 96
+hook checks, the fallback-parser tests run with and without PyYAML.
 
 ## 1.5.9 — 2026-09-19
 

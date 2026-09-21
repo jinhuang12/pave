@@ -39,8 +39,6 @@ ACTIVE_STATE: dict[str, object] = {
     "evidence_references": {},
     "open_questions": [],
     "final_status": None,
-    "scan_entry_id": None,
-    "design_entry_id": None,
 }
 
 
@@ -49,7 +47,13 @@ class PackageStructureTests(unittest.TestCase):
         path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
         manifest = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        self.assertEqual(manifest["version"], "1.5.9")
+        # Both manifests carry the release VERSION declares, so a bump cannot drift.
+        declared = (PLUGIN_ROOT / "VERSION").read_text(encoding="utf-8").splitlines()[0]
+        declared = declared.partition(":")[2].strip()
+        self.assertRegex(declared, r"^\d+\.\d+\.\d+$")
+        self.assertEqual(manifest["version"], declared)
+        claude = json.loads((PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(claude["version"], declared)
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())

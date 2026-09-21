@@ -45,8 +45,6 @@ ACTIVE_STATE: dict[str, object] = {
     "evidence_references": {},
     "open_questions": [],
     "final_status": None,
-    "scan_entry_id": None,
-    "design_entry_id": None,
 }
 
 GRAPH = """pave:
@@ -64,6 +62,46 @@ GRAPH = """pave:
         max_per_checkpoint: 20
         created_by: "cp-1"
   nodes: []
+"""
+
+# The same block in three other shapes PyYAML accepts, for the no-PyYAML fallback parser:
+# list items at the key's own indent, a scalar wrapped over two lines, folded block scalars.
+SAME_INDENT_GRAPH = """pave:
+  write_limits:
+    deny:
+    - glob: "increments/build-*.py"
+      bound_to: [lead]
+      reason: "Build scripts are seat work."
+      created_by: "cp-1"
+    caps:
+    - name_group_glob: "leases/*-grant-*.md"
+      max_per_checkpoint: 20
+      created_by: "cp-1"
+"""
+
+WRAPPED_SCALAR_GRAPH = """write_limits:
+  deny:
+    - glob: "increments/build-*.py"
+      bound_to: [lead]
+      reason: "Build scripts are seat work; the lead ordering
+        them is the form under audit."
+      remedy: Brief a seat with the script's purpose and let
+        the seat write it.
+      created_by: "cp-1"
+  caps: []
+"""
+
+FOLDED_SCALAR_GRAPH = """write_limits:
+  deny:
+    - glob: "increments/build-*.py"
+      bound_to: [lead]
+      reason: >-
+        Build scripts are seat work; the lead ordering
+        them is the form under audit.
+      remedy: >
+        Brief a seat with the script's purpose.
+      created_by: "cp-1"
+  caps: []
 """
 
 LEAD = {"session_id": "lead-1"}
@@ -128,6 +166,14 @@ class RunTree:
         return sidecar
 
 
+def yaml_available() -> bool:
+    try:
+        import yaml  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def advisory(result: subprocess.CompletedProcess[str]) -> str:
     doc = json.loads(result.stdout)
     assert set(doc) == {"hookSpecificOutput"}, doc
@@ -161,16 +207,66 @@ class RouterModeTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn("Build scripts are seat work", advisory(result))
 
-    def test_lead_bash_naming_denied_path_is_blocked(self) -> None:
-        payload = self.tree.bash_payload(LEAD, "python3 increments/build-x.py", cwd=self.tree.increments.parent)
-        result = self.tree.run(ROUTER, "write-limits", payload)
-        self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertIn("Remedy:", result.stderr)
-        # An absolute token blocks too; an unrelated command passes.
-        result = self.tree.run(ROUTER, "write-limits", self.tree.bash_payload(LEAD, f"cat > '{self.denied}'"))
-        self.assertEqual(result.returncode, 2, result.stderr)
-        result = self.tree.run(ROUTER, "write-limits", self.tree.bash_payload(LEAD, "git status"))
-        self.assertEqual(result.returncode, 0, result.stderr)
+    def test_lead_bash_writing_a_denied_path_blocks_reading_it_passes(self) -> None:
+        self.denied.write_text("x\n", encoding="utf-8")
+        for command in (f"cat > '{self.denied}'", f"tee '{self.denied}' < a.md",
+                        f"cp a.md '{self.denied}'"):
+            with self.subTest(writes=command[:20]):
+                result = self.tree.run(ROUTER, "write-limits", self.tree.bash_payload(LEAD, command))
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn("Remedy:", result.stderr)
+        for command, cwd in (                        # a read or a mention is not a write
+            ("python3 increments/build-x.py", self.tree.increments.parent),
+            (f"cat '{self.denied}'", None),
+            (f"grep -rn x '{self.denied}'", None),
+            (f"grep -rn x '{self.tree.increments}/'", None),
+            ("git status", None),
+        ):
+            with self.subTest(reads=command[:20]):
+                result = self.tree.run(ROUTER, "write-limits", self.tree.bash_payload(LEAD, command, cwd=cwd))
+                self.assertEqual((result.returncode, result.stdout), (0, ""), result.stderr)
+
+    def test_a_git_command_that_rewrites_a_denied_repo_is_blocked(self) -> None:
+        denied_repo = self.tree.workspace / "denied-repo"
+        plain_repo = self.tree.workspace / "plain-repo"
+        for repo in (denied_repo, plain_repo):
+            (repo / ".git").mkdir(parents=True)
+            (repo / ".git" / "index").write_bytes(b"DIRC")
+        graph = GRAPH.replace('glob: "increments/build-*.py"', f'glob: "{denied_repo}/*"')
+        (self.tree.evolution / "workflow.pave.yaml").write_text(graph, encoding="utf-8")
+        try:
+            for command in (f"git -C '{denied_repo}' checkout x",
+                            f"cd '{denied_repo}' && git apply p.patch",
+                            f"git -C '{denied_repo}' stash pop",
+                            f"git -C '{denied_repo}' reset --hard origin/main"):
+                with self.subTest(writes=command[:34]):
+                    result = self.tree.run(ROUTER, "write-limits", self.tree.bash_payload(LEAD, command))
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn("Remedy:", result.stderr)
+            for command in (f"git -C '{denied_repo}' status", f"git -C '{denied_repo}' diff HEAD",
+                            f"git -C '{denied_repo}' push origin main", f"git -C '{denied_repo}' stash list",
+                            f"git -C '{plain_repo}' merge x",
+                            f"git -C '{self.tree.workspace}/no-repo' checkout x"):
+                with self.subTest(passes=command[:34]):
+                    result = self.tree.run(ROUTER, "write-limits", self.tree.bash_payload(LEAD, command))
+                    self.assertEqual((result.returncode, result.stdout), (0, ""), result.stderr)
+        finally:
+            (self.tree.evolution / "workflow.pave.yaml").write_text(GRAPH, encoding="utf-8")
+
+    def test_a_home_relative_glob_is_an_absolute_glob(self) -> None:
+        target = Path("~/vllm-neuron-parity-home-glob-test/build-x.py").expanduser()
+        self.assertFalse(target.parent.exists(), "the test never writes under the home directory")
+        graph = GRAPH.replace('glob: "increments/build-*.py"',
+                              'glob: "~/vllm-neuron-parity-home-glob-test/*"')
+        (self.tree.evolution / "workflow.pave.yaml").write_text(graph, encoding="utf-8")
+        try:
+            result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, target))
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn("Remedy:", result.stderr)
+            result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.denied))
+            self.assertEqual(result.returncode, 0, result.stderr)
+        finally:
+            (self.tree.evolution / "workflow.pave.yaml").write_text(GRAPH, encoding="utf-8")
 
     def test_lead_write_to_undenied_path_passes(self) -> None:
         result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.tree.increments / "evidence-1.md"))
@@ -197,6 +293,28 @@ class RouterModeTests(unittest.TestCase):
         self.assertEqual(rb.parse_write_limits("pave:\n  name: t\n", use_yaml=False), {"deny": [], "caps": []})
         with self.assertRaises(ValueError):
             rb.parse_write_limits("write_limits:\n  deny: scalar\n", use_yaml=False)
+
+    def test_minimal_parser_reads_the_other_shapes_pyyaml_accepts(self) -> None:
+        wrapped = "Build scripts are seat work; the lead ordering them is the form under audit."
+        cases = {
+            "list items at the key's own indent": (SAME_INDENT_GRAPH, "Build scripts are seat work."),
+            "a scalar wrapped over two lines": (WRAPPED_SCALAR_GRAPH, wrapped),
+            "a folded block scalar": (FOLDED_SCALAR_GRAPH, wrapped),
+        }
+        for shape, (text, reason) in cases.items():
+            with self.subTest(shape=shape):
+                parsed = rb.parse_write_limits(text, use_yaml=False)
+                entry = parsed["deny"][0]
+                self.assertEqual(entry["glob"], "increments/build-*.py")
+                self.assertEqual(entry["bound_to"], ["lead"])
+                self.assertEqual(entry["reason"], reason)
+                self.assertEqual(entry["created_by"], "cp-1")
+                if yaml_available():                 # the same text, read by PyYAML
+                    self.assertEqual(parsed, rb.parse_write_limits(text, use_yaml=True))
+        same = rb.parse_write_limits(SAME_INDENT_GRAPH, use_yaml=False)
+        self.assertEqual(same["caps"][0]["max_per_checkpoint"], 20)
+        self.assertEqual(rb.parse_write_limits(WRAPPED_SCALAR_GRAPH, use_yaml=False)["deny"][0]["remedy"],
+                         "Brief a seat with the script's purpose and let the seat write it.")
 
     # --- no-retry-copy -------------------------------------------------------------
 
@@ -474,9 +592,12 @@ class RouterModeTests(unittest.TestCase):
             (self.tree.evolution / "workflow.pave.yaml").write_text(graph, encoding="utf-8")
             result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, scratch / "log_write_017.py"))
             self.assertEqual(result.returncode, 2, result.stderr)
-            result = self.tree.run(ROUTER, "write-limits",
-                                   self.tree.bash_payload(LEAD, f"python3 {scratch}/log_write_017.py"))
+            result = self.tree.run(ROUTER, "write-limits",           # a shell write outside it too
+                                   self.tree.bash_payload(LEAD, f"echo x > {scratch}/log_write_017.py"))
             self.assertEqual(result.returncode, 2, result.stderr)
+            result = self.tree.run(ROUTER, "write-limits",           # running it is a read
+                                   self.tree.bash_payload(LEAD, f"python3 {scratch}/log_write_017.py"))
+            self.assertEqual(result.returncode, 0, result.stderr)
             result = self.tree.run(ROUTER, "write-limits", self.tree.write_payload(LEAD, self.tree.increments / "build-x.py"))
             self.assertEqual(result.returncode, 0, result.stderr)
         finally:

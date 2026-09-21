@@ -112,8 +112,7 @@ Every adversarial-review finding record carries exactly:
 1. stable per-finding label
 2. cited location
 3. defect class, `material` or `bookkeeping` (a bookkeeping finding names
-   the surface it edits and never selects an outcome), plus
-   `repair-introduced` when the graph's `design_loop_within_bound` applies
+   the surface it edits and never selects an outcome)
 4. required change
 5. measurement content hash(es) — review_pr_evidence's verdict check only
 
@@ -127,7 +126,7 @@ their detector keys on, or the pair's fingerprint triple (§4.2 pair 1).
 
 ### 4.2 The SEVEN producer/consumer pairs
 
-1. **impl/review**: review_implementation emits findings records in the
+1. **impl/review**: review_increment_batch emits findings records in the
    §4.1 shape; every material finding also carries the fingerprint triple
    **(increment id + surface + defect class)**, coarser than fields 1-2 so
    round-over-round comparison stays a string match when labels or
@@ -149,7 +148,11 @@ their detector keys on, or the pair's fingerprint triple (§4.2 pair 1).
    `cpu_mode`, the job's declared purpose at launch, never a note added
    after the run — and, on a served tip, `launch_reading`, the queue tool's
    remaining-capacity reading at launch; only `serving` enters
-   `hardware_attempt_counts`. A localization record names the compare tool
+   `hardware_attempt_counts`. A record's measurement outcome (served or
+   failed, and what the request path returned) stands apart from hygiene
+   findings on the host after it (a leftover process, an open device
+   handle), which never set the outcome. The tier-0 bring-up rungs on a tip
+   are records of class `cpu_mode` or `diagnostic`, each naming its rung. A localization record names the compare tool
    it ran (path and revision) and the reference it compared against.
    Failure case: a format mismatch between the two readers silently
    disables the tier-1 gate.
@@ -164,8 +167,10 @@ their detector keys on, or the pair's fingerprint triple (§4.2 pair 1).
    campaign lease carries host, markers verified, markers unavailable, deltas
    explained, grant reference, and event ordering so record-before-report is
    checkable; the boot identifier arrives as an amendment event applying to
-   every campaign lease on the host; a job lease carries the job, the pools
-   and amounts reserved, grant time, and its release; remaining capacity is
+   every campaign lease on the host; a job lease carries the job, its class (`serving`,
+   `diagnostic`, `cpu_mode`), on a serving job its tip, its client leg and
+   its bring-up record, the pools and amounts reserved, grant time, and its
+   release; remaining capacity is
    derived from open job leases, never stored. Failure case: divergent
    normalization confirms a lease the recovery pre-check later rejects.
 7. **defect-record shape**: path pattern under `measurements/runs/`
@@ -249,7 +254,7 @@ nothing. Rationale and measured cases: `references/measurement-pitfalls.md`,
 
 ### 4.6 Evidence index
 
-Element set pinned here; consumers are review_implementation, the
+Element set pinned here; consumers are review_increment_batch, the
 coverage-gap check, and prepare_pr: every planned increment resolves to
 a passing evidence record; the index binds increment id -> evidence
 file(s) -> acceptance command + exit code.
@@ -257,7 +262,7 @@ file(s) -> acceptance command + exit code.
   command line, raw output, and numeric exit code; a missing exit code
   makes the transcript non-evidence.
 - **"Ported code" / "added-modified lines"** (one definition for the
-  NxDI import scan, review_implementation, and the re-run check): the
+  NxDI import scan, review_increment_batch, and the re-run check): the
   added and modified lines of the campaign branch diff against the
   pinned base — never whole files, never upstream context lines.
 - **Scan-completeness discipline** (every scan, run-wide): a reported
@@ -278,11 +283,9 @@ file(s) -> acceptance command + exit code.
 
 ### 4.7 Scan phase conventions
 
-- Per-target report: `run/delta/<target-id>/report.md`, metadata stamped
-  with the scan entry id.
-- Grant files: one per re-trace grant under the target's directory,
-  stamped with the scan entry id; the re-trace bound is the count of
-  those files, never a stored integer.
+- Per-target report: `run/delta/<target-id>/report.md`.
+- Grant files: one per re-trace grant under the target's directory; the
+  re-trace bound is the count of those files, never a stored integer.
 - Report content originates only from the tracer seat; a report change
   with no tracer write behind it is a violation.
 

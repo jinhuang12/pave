@@ -23,9 +23,7 @@
     "completed_outcomes",
     "evidence_references",
     "open_questions",
-    "final_status",
-    "scan_entry_id",
-    "design_entry_id"
+    "final_status"
   ],
   "additionalProperties": false,
   "properties": {
@@ -268,16 +266,6 @@
         "reason": {"type": "string", "maxLength": 1000},
         "at": {"type": "string", "maxLength": 200}
       }
-    },
-    "scan_entry_id": {
-      "type": ["string", "null"],
-      "maxLength": 200,
-      "description": "Minted by the lead at each entry into the scan phase and written into grant files and report metadata; decision refuses to run without it. Re-trace grants are counted under scan-entry ids, never a stored integer."
-    },
-    "design_entry_id": {
-      "type": ["string", "null"],
-      "maxLength": 200,
-      "description": "Minted by the lead at each entry into the design phase and written into every design-round artifact; serves the design node's progress and record-gap detectors. The design node refuses to run without it."
     },
     "discrepant_campaigns": {
       "type": ["array", "null"],

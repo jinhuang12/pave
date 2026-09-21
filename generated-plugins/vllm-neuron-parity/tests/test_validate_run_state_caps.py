@@ -51,8 +51,6 @@ MINIMAL = {
     "evidence_references": {},
     "open_questions": [],
     "final_status": None,
-    "scan_entry_id": None,
-    "design_entry_id": None,
 }
 
 # Path-typed fields: no cap by design; the validator resolves them instead.
@@ -140,13 +138,13 @@ class CapsAreWarnings(unittest.TestCase):
                 self.assertEqual(set(warn_lines(out)), expected, out)
                 self.assertEqual(out.strip().splitlines()[-1], f"PASS ({mode}): {path} — 4 warning(s)")
 
-    def test_cap_in_additional_properties_map_and_at_root(self):
+    def test_cap_in_additional_properties_map_and_nested_object(self):
         state = json.loads(json.dumps(MINIMAL))
         state["campaign_target_pins"] = {"c1": "p" * 201}
-        state["scan_entry_id"] = "s" * 201
+        state["workflow_identity"] = {"run_id": "run-0001", "bundle_digest": "s" * 201}
         expected = {
             "WARN: <root>/campaign_target_pins/c1: 201 chars > cap 200",
-            "WARN: <root>/scan_entry_id: 201 chars > cap 200",
+            "WARN: <root>/workflow_identity/bundle_digest: 201 chars > cap 200",
         }
         for label, stdlib, _ in modes():
             with self.subTest(mode=label), tempfile.TemporaryDirectory() as tmp:

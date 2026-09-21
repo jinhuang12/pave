@@ -27,18 +27,25 @@ writing session's own id. Protected paths are compared by on-disk spelling
 
 Limits: `write_limits.deny` / `.caps` from `<revision-folder>/workflow.pave.yaml`
 at the top level or under `pave:`. PyYAML is used when importable; otherwise a
-tolerant indent parser reads exactly this block (mappings, `- ` items, quoted
-scalars, `[a, b]` flow lists). A parse error, or a `.applying` marker in the
-revision folder, yields no limits.
+tolerant indent parser reads exactly this block: mappings, `- ` items at a deeper
+indent or at the key's own indent, quoted and plain scalars (including one wrapped
+over following deeper lines, joined by single spaces), `>`/`|` block scalars, and
+`[a, b]` flow lists. A parse error, or a `.applying` marker in the revision folder,
+yields no limits.
 
 Glob matching: a relative blocked path pattern is matched (fnmatchcase) against the
 target's workspace-relative path and every trailing component suffix of it, so
 `increments/build-*.py` matches `campaigns/c1/increments/build-x.py`; paths
-outside the workspace never match a relative glob. A glob starting with `/` is
-matched against the absolute path, so a scratch name_group outside the workspace
-(`/tmp/<dir>/*.py`) can be cut. The run-state file, its hook-owned sidecars and
-the revision folder's revision_log, graph and history are never denied: their own
-guards own them.
+outside the workspace never match a relative glob. A glob starting with `/` or `~`
+is matched against the absolute path, so a scratch name_group outside the workspace
+(`/tmp/<dir>/*.py`, `~/GitHub/<repo>/*`) can be cut. The run-state file, its
+hook-owned sidecars and the revision folder's revision_log, graph and history are
+never denied: their own guards own them.
+
+Write targets in a shell command (write_target_paths): redirect targets, the
+arguments of a writer command, and - for a git subcommand that rewrites files
+without naming one (checkout, apply, merge, ...) - one path under the repository
+it writes. A path merely read or mentioned is not a write target.
 """
 
 from __future__ import annotations
@@ -212,12 +219,49 @@ def _strip_scalar(text: str) -> Any:
     return text
 
 
+def _first_content(lines: list[str], index: int) -> int:
+    """Index of the first line from `index` that carries content, else len(lines)."""
+    while index < len(lines):
+        stripped = lines[index].strip()
+        if stripped and not stripped.startswith("#"):
+            return index
+        index += 1
+    return index
+
+
+def _is_item(lines: list[str], index: int) -> bool:
+    """True when the next content line is a `- ` list item."""
+    index = _first_content(lines, index)
+    if index >= len(lines):
+        return False
+    stripped = lines[index].strip()
+    return stripped.startswith("- ") or stripped == "-"
+
+
+def _continuation(lines: list[str], index: int, indent: int) -> tuple[list[str], int]:
+    """The content lines deeper than `indent` from `index`, stripped, and the next index.
+    A plain or quoted scalar wrapped over several lines, and the body of a block scalar,
+    both continue this way. Blank lines inside are skipped, so a folded scalar that uses
+    one as a paragraph break reads as one paragraph."""
+    out: list[str] = []
+    while True:
+        nxt = _first_content(lines, index)
+        if nxt >= len(lines):
+            return out, nxt
+        if len(lines[nxt]) - len(lines[nxt].lstrip(" ")) <= indent:
+            return out, nxt
+        out.append(lines[nxt].strip())
+        index = nxt + 1
+
+
+_BLOCK_SCALARS = (">", ">-", ">+", "|", "|-", "|+")
+
+
 def _parse_block(lines: list[str], index: int, indent: int) -> tuple[Any, int]:
     """Parse the lines at `indent` starting at `index`; return (value, next index)."""
     if index >= len(lines):
         return None, index
-    first = lines[index].strip()
-    is_list = first.startswith("- ") or first == "-"
+    is_list = _is_item(lines, index)
     result: Any = [] if is_list else {}
     while index < len(lines):
         raw = lines[index]
@@ -232,7 +276,7 @@ def _parse_block(lines: list[str], index: int, indent: int) -> tuple[Any, int]:
             raise ValueError("unexpected indent")
         if is_list:
             if not (stripped.startswith("- ") or stripped == "-"):
-                raise ValueError("mixed list and mapping")
+                break                                # a key at this indent ends a same-indent list
             body = stripped[1:].strip()
             if not body:
                 value, index = _parse_block(lines, index + 1, _next_indent(lines, index + 1))
@@ -250,12 +294,18 @@ def _parse_block(lines: list[str], index: int, indent: int) -> tuple[Any, int]:
         if not sep:
             raise ValueError("no key")
         rest = rest.split(" #", 1)[0].strip()
-        if rest:
-            result[key.strip()] = _strip_scalar(rest)
-            index += 1
+        if rest in _BLOCK_SCALARS:                   # `>-` folds its body, `|` keeps the lines
+            body, index = _continuation(lines, index + 1, current)
+            text = (" " if rest[0] == ">" else "\n").join(body)
+            result[key.strip()] = text if rest.endswith("-") or not text else text + "\n"
+            continue
+        if rest:                                     # a scalar may wrap onto deeper lines
+            body, index = _continuation(lines, index + 1, current)
+            result[key.strip()] = _strip_scalar(" ".join([rest, *body]))
             continue
         child_indent = _next_indent(lines, index + 1)
-        if child_indent <= indent:
+        same_indent_list = child_indent == indent and _is_item(lines, index + 1)
+        if child_indent <= indent and not same_indent_list:
             result[key.strip()] = None
             index += 1
             continue
@@ -265,12 +315,10 @@ def _parse_block(lines: list[str], index: int, indent: int) -> tuple[Any, int]:
 
 
 def _next_indent(lines: list[str], index: int) -> int:
-    while index < len(lines):
-        stripped = lines[index].strip()
-        if stripped and not stripped.startswith("#"):
-            return len(lines[index]) - len(lines[index].lstrip(" "))
-        index += 1
-    return -1
+    index = _first_content(lines, index)
+    if index >= len(lines):
+        return -1
+    return len(lines[index]) - len(lines[index].lstrip(" "))
 
 
 def _parse_minimal(text: str) -> dict[str, Any] | None:
@@ -350,8 +398,11 @@ def never_denied(path: Path, run: RunContext) -> bool:
 
 
 def _absolute_glob_forms(glob: str) -> set[str]:
-    """The glob as written and with its literal directory prefix resolved through
-    symlinks (/tmp -> /private/tmp on macOS), since target paths are resolved."""
+    """The glob as written, with a leading `~` expanded (a home-relative glob names an
+    absolute path, as a home-relative token does), and with its literal directory prefix
+    resolved through symlinks (/tmp -> /private/tmp on macOS), since targets are resolved."""
+    if glob.startswith("~"):
+        glob = os.path.expanduser(glob)
     forms = {glob}
     head = re.split(r"[*?\[]", glob, maxsplit=1)[0]
     prefix = head[: head.rfind("/") + 1] if "/" in head else ""
@@ -376,7 +427,7 @@ def matching_deny(path: Path, run: RunContext, deny: list[dict[str, Any]]) -> di
         glob = entry.get("glob")
         if not (isinstance(glob, str) and glob):
             continue
-        if glob.startswith("/"):
+        if glob.startswith(("/", "~")):              # `~/x/*` is an absolute glob too
             if any(fnmatchcase(abs_posix.casefold(), g.casefold()) for g in _absolute_glob_forms(glob)):
                 return entry
         elif rel is not None and glob_matches(rel, glob):
@@ -480,6 +531,47 @@ _WRITERS = {"tee", "cp", "mv", "rm", "truncate", "dd", "install", "ln", "mkdir",
             "rsync", "shred", "chmod", "chown", "unlink", "rmdir"}
 _WRITE_REDIRECT = re.compile(r"^(?:\d?>>?|&>>?)")
 _SEGMENT_SPLIT = re.compile(r"\s*(?:\|\||&&|;|\||&)\s*")
+# git subcommands that write files under the repository with no file token of their own.
+_GIT_WRITERS = {"am", "apply", "checkout", "cherry-pick", "clean", "merge", "pull",
+                "rebase", "reset", "restore", "revert", "stash", "switch"}
+_GIT_STASH_READERS = {"list", "show"}
+_GIT_OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--exec-path", "--namespace"}
+
+
+def git_write_tree(words: list[str], cwd: str) -> list[str]:
+    """The tree a git command writes into, named as one path UNDER it, else [].
+
+    `git -C DIR checkout x` (and apply, merge, cherry-pick, stash pop, reset, rebase,
+    pull, am, restore, switch, clean, revert) rewrites files under DIR without naming
+    one, so the directory is the write target; a glob over DIR then matches. DIR comes
+    from `-C DIR`, else the segment's own working directory. status, log, diff, show,
+    push, fetch, rev-parse, branch and commit write no file in the worktree - push is
+    the push guard's business - so they yield nothing, and neither does a directory
+    with no .git in it."""
+    directory, index = cwd, 1
+    while index < len(words):
+        word = words[index]
+        if word == "-C" and index + 1 < len(words):
+            value = os.path.expanduser(words[index + 1])
+            directory = value if os.path.isabs(value) else os.path.join(directory, value)
+            index += 2
+            continue
+        if word in _GIT_OPTIONS_WITH_VALUE and index + 1 < len(words):
+            index += 2
+            continue
+        if word.startswith("-"):
+            index += 1
+            continue
+        break
+    if index >= len(words) or words[index] not in _GIT_WRITERS:
+        return []
+    if words[index] == "stash" and words[index + 1: index + 2] and words[index + 1] in _GIT_STASH_READERS:
+        return []
+    git = os.path.join(directory, ".git")
+    if not os.path.exists(git):
+        return []                                    # not a repository: nothing is written here
+    marker = os.path.join(git, "index")              # a path under DIR, so `DIR/*` matches it
+    return [marker if os.path.exists(marker) else git]
 
 
 def bash_write_tokens(command: str, cwd: str | None) -> list[Path]:
@@ -538,6 +630,9 @@ def bash_write_tokens(command: str, cwd: str | None) -> list[Path]:
             link_dir = os.path.dirname(args[-1]) or "."
             args += [os.path.join(link_dir, a) for a in args[:-1] if not a.startswith("-") and not os.path.isabs(a)]
         chosen = redirected + (args if writer else [])
+        if head == "git":                            # a git write names no file token
+            start = next((i for i, w in enumerate(words) if os.path.basename(w) == "git"), 0)
+            chosen = chosen + git_write_tree(words[start:], cwd)
         if not chosen:
             continue
         for p in bash_path_tokens(" ".join(shlex.quote(c) for c in chosen), cwd):

@@ -15,6 +15,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,8 +42,6 @@ MINIMAL = {
     "evidence_references": {},
     "open_questions": [],
     "final_status": None,
-    "scan_entry_id": None,
-    "design_entry_id": None,
 }
 
 
@@ -77,8 +76,8 @@ def main() -> int:
     required = schema["required"]
     results.append(
         (
-            "required list mirrors the 21 state fields",
-            len(required) == 21 and len(set(required)) == 21,
+            "required list mirrors the 19 state fields",
+            len(required) == 19 and len(set(required)) == 19,
         )
     )
     results.append(("additionalProperties is false", schema.get("additionalProperties") is False))
@@ -128,6 +127,14 @@ def main() -> int:
         return 1
     print("PASS: run-state schema and validator behave as declared")
     return 0
+
+
+class RunStateSchemaChecks(unittest.TestCase):
+    """So the suite runs these checks too: as a bare script this file was collected
+    by no runner, and the required-field count drifted from the schema unseen."""
+
+    def test_schema_and_validator_behave_as_declared(self) -> None:
+        self.assertEqual(main(), 0)
 
 
 if __name__ == "__main__":

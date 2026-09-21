@@ -68,7 +68,7 @@ Rules for every seat that turns an observation into evidence, the measurer above
 
 **Trap:** A watcher adjudicated when `exit-status.txt` appeared. The runner writes that file before the post-run source, HLO, NEFF, and cache-count files, so good evidence was graded `failed`.
 
-**Rule:** After a completion signal appears, re-read the full evidence set until N consecutive reads are identical before adjudicating. Take N and the minimum re-read spacing from the campaign design record; never default them. A process-exit signal is not proof that output artifacts are fully materialized.
+**Rule:** A process-exit signal is not proof that output artifacts are fully materialized. Read the producer's own completion record (the evaluated-threshold record the bundle carries), and when a file under verdict changes between two reads, report it unstable instead of grading it. This is a pitfall note, not a graph check: no gate counts re-reads.
 
 **Evidence:** GLM-5.2 campaign `working-profile-512/adjudication-manifest.json` (`watcher_race_adjudication`) (campaign history).
 
@@ -76,7 +76,7 @@ Rules for every seat that turns an observation into evidence, the measurer above
 
 **Trap:** Producers here signal before they finish: an artifact timestamp and the driver's tear-down line precede a compile's end, a warmup log line precedes device completion, a poll-derived global "last pass" can move backward, and a readback placed after the primary one reads zero on every failing run.
 
-**Rule:** Take completion from the producer's own completion line plus a check that no producing process is still alive. Count progress per module tag, never from a global tail value. Gate any device claim on a device completion counter or a forced readback, never on a log line. Confirm readback order in the loaded module before you report a zero readback as clean. This is the producer-side half of the stable-read rule above.
+**Rule:** Take completion from the producer's own completion line plus a check that no producing process is still alive. Count progress per module tag, never from a global tail value. Gate any device claim on a device completion counter or a forced readback, never on a log line. Confirm readback order in the loaded module before you report a zero readback as clean. This is the producer-side half of the stable-read note above.
 
 **Evidence:** L-064, L-175, L-300, L-384 (campaign history).
 
