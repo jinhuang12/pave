@@ -1,4 +1,37 @@
-version: 1.6.0
+version: 1.7.0
+
+## 1.7.0 — 2026-09-22
+
+Graph revision 17 (`history/v17.patch`, kind graph, approval "Approve
+revision 17 at digest 89e7cfb9"): process residue in shipped code becomes a
+gate. Counts unchanged: 21 nodes, 67 edges, 15 checks, 5 control nodes, 24
+evidence definitions; the graph grows from 2399 to 2425 lines.
+
+What changes for a run:
+- `changeset_complete` has a sixth component, a process-vocabulary scan over
+  the diff's added lines and added paths with zero hits (class (f)). The
+  tool is `scripts/process_vocabulary_scan.py`: the word list is the run's
+  minted identifiers and the workflow's process nouns, a built-in control
+  line must fire before any scan, license files are skipped, and the
+  summary carries the commits, the tree state and the control reading.
+  Field readings on the fork (`git diff BASE..TIP` counts; GitHub shows
+  237,512 for PR #4): PR #4's closure head b3e9c257 785 hits over 236,624
+  added lines; the cleaned PR #10 0 hits over 107,476; the whole base tree
+  at f8abae64 0 hits, the Llama license's three "grant" lines skipped.
+- `review_increment_batch` treats process residue in shipped source or tests
+  as material: a process word on an added line or path, a test filed by the
+  increment or round that wrote it, a test asserting the run's own state, a
+  test pinning a digest of a repo-authored file. Record hygiene stays narrow.
+- The PR description is the fork maintainer's form - what changed, how
+  tested with each claim linked once to its record, what stays open; the
+  evidence index is gone. `references/artifact-layout.md` §4.2 pair 3 pins
+  the sections.
+
+Release layer: implementer and adversarial-reviewer contracts (both harness
+ports), SKILL.md stage rows 6 and 10, artifact-layout §4.2 pairs 1 and 3 and
+§4.6, the new scan tool and its test, the README script list. Evidence:
+artifacts/run/closure/lessons-pr-leanout-20260922T192633Z.md in the
+NeuronAgenticDevelopment repo; DECISIONS §1092 and §1093.
 
 ## 1.6.0 — 2026-09-21
 

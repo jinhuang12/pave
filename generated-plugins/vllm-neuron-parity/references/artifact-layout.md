@@ -131,16 +131,16 @@ their detector keys on, or the pair's fingerprint triple (§4.2 pair 1).
    **(increment id + surface + defect class)**, coarser than fields 1-2 so
    round-over-round comparison stays a string match when labels or
    locations are re-minted. scope_next_increment's no-progress detector
-   keys on that triple plus the no-new-evidence qualifier (§4.3). Failure
-   cases: keying on the label lets relabeled findings evade the detector;
-   the triple without the qualifier false-fires on converging work. The
+   keys on that triple plus the no-new-evidence qualifier (§4.3). The
    qualifier's anchor is the ANSWERING record: findings with no answering
    record between them stay distinct, and a triple re-raised AFTER a
    passing repair is read as repetition on purpose.
 2. **adjudicate/pr-review**: adjudication_verdict shape;
    review_pr_evidence keys on fields 1-3 + 5 when it checks the verdict.
-3. **prepare/pr-review**: findings-record fields 1-4; frozen build-unit
-   interface.
+3. **prepare/pr-review**: PR description sections — What changed; How tested
+   (test command + counts, acceptance measurement + verdict, each linked once
+   to its record); Known open items; campaign-specific sections optional;
+   findings-record fields 1-4.
 4. **repo fingerprint file + this-run attempt-log**, split by horizon:
    `cross-run/failure-fingerprints.yaml` = prior runs, lead-merged at
    closure; `attempts/` = this run. Guards the identical-retry forbidden
@@ -261,8 +261,8 @@ file(s) -> acceptance command + exit code.
 - **Exit-code discipline** (every transcript, run-wide): the verbatim
   command line, raw output, and numeric exit code; a missing exit code
   makes the transcript non-evidence.
-- **"Ported code" / "added-modified lines"** (one definition for the
-  NxDI import scan, review_increment_batch, and the re-run check): the
+- **"Ported code" / "added-modified lines"** (one definition for the NxDI
+  and process-vocabulary scans, review_increment_batch, the re-run check): the
   added and modified lines of the campaign branch diff against the
   pinned base — never whole files, never upstream context lines.
 - **Scan-completeness discipline** (every scan, run-wide): a reported

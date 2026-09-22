@@ -1,4 +1,4 @@
-version: 2.6.2
+version: 2.6.3
 
 ## How changelog entries are written
 
@@ -17,6 +17,11 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.6.3 (2026-09-22)
+
+- Changed — The written-for-the-reader duty (pave-spec section 8.5) now binds what a workflow ships outside itself: source, tests and PR text landed in another repository. A plan block, ruling, round number or campaign identifier in shipped code is a material defect a check fails on, not a wording finding.
+  - Evidence: the GLM-5.3-Flash port's closure PR needed a second 251-file PR to strip its process vocabulary (vllm-neuron-parity graph revision 17 lands the check). Reference text only; no schema and no script changed. Section 8.5's rationale sentences were shortened so the document stays inside its line and byte budget.
 
 ### 2.6.2 (2026-09-11)
 

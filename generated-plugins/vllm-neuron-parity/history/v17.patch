@@ -1,0 +1,388 @@
+kind: graph
+semantic_diff: >-
+  Base: revision 16, digest
+  sha256:dd5312fd8f8e4255beb65307e28f7105c6db1a8a70a766122a8ee4eebe088d6d, verified
+  intact with pave-init 2.6.2 record_revision.py (20 entries) at 2026-09-22T19:33:52Z
+  and again at 2026-09-22T20:12:42Z for round 2 (review r1: one HIGH, three LOW, all
+  folded below).
+  Counts unchanged: 21 nodes, 67 edges, 67 outcomes, 15 checks, 24 evidence
+  definitions, 8 roles, 5 control nodes, 19 required state fields; write_limits,
+  state, principles and roles byte-equal. Skeleton compared field by field by parsing
+  both graphs: every node's roles, consumes, produces, effects, outcomes and
+  required_evidence equal, every edge and check skeleton equal. The prose sites that
+  change, and nothing else: changeset_complete's question; pr_evidence_package's
+  subject; the purposes of review_increment_batch, prepare_pr, review_pr_evidence,
+  scope_next_increment and realize_increment; one scope_next_increment activity;
+  pr_package_ready's meaning. Line balance: 10 hunks, 53 lines added against 27
+  removed; 2399 lines become 2425 and 136,922 bytes become 138,895 (ceiling 3100
+  lines, not raised). Layer test (pave-spec 2.1, revision rule 9): a check gains a
+  component that fails it, a review node's material definition gains a class, and an
+  evidence definition's subject changes what its consumer accepts - graph meaning
+  moves, so kind graph; no seat, model, effort or implementation moves. Source: the
+  lead's lessons file artifacts/run/closure/lessons-pr-leanout-20260922T192633Z.md
+  (PR #4, 305 files and 237,512 added lines, to PR #10, 251 files and 107,476 -
+  numbers reproduced from gh pr view on 2026-09-22), the tools under
+  artifacts/run/closure/leanout-tools/, the rule-8 usage record
+  (artifacts/run/usage-log.md, run-20260827-glm-5.3-flash-port), debt
+  D-CAMPAIGN-PROCESS-REFS (artifacts/cross-run/debt-ledger.yaml), and the user's
+  "yes" of 2026-09-22 quoted in the approval field. The revision-15 test decided
+  every sentence: does it ever change an outcome? Each added clause below names the
+  outcome it moves.
+
+  (1) A PROCESS-VOCABULARY SCAN AT THE CHANGESET GATE. changeset_complete gains a
+  sixth component - a scan transcript over the diff's added lines and added paths
+  with zero hits - and class (f), a process-vocabulary hit. The question names the
+  word classes (the run's minted identifiers - increment and block ids, decision and
+  ruling references, round and attempt numbers - and this workflow's process nouns)
+  and leaves the list itself with the scan tool in the release layer, as the NxDI
+  import pattern is (SKILL.md P4 row names neuronx_distributed*; the graph says
+  "NxDI-import scan"). scope_next_increment's assembly sentence ("six",
+  "three transcripts", "(a)-(f)"), its coverage-gap acceptance list, its activity,
+  and realize_increment's acceptance list each gain the re-run in one clause, the
+  shape revision 15 used for component (e). Evidence: lessons gaps 1 and 2 - PR #4
+  carried the campaign's vocabulary in product code, tests, fixtures and its body;
+  the clean-up was a second PR (#10, 251 files, six lanes, two days) plus two
+  AST-freeze gates to prove no behavior moved; of 71 changed product files 62 are
+  AST-identical and 9 differ only in string literals - the whole difference was
+  prose. Revision 15 recorded the same class ("70 minted ids leaked into product
+  comments and cost a cleanup increment"), cut the ids from state, and declared no
+  check; the debt ledger closed the run with 253 hits in 83 files
+  (D-CAMPAIGN-PROCESS-REFS). Outcome it changes: a hit fails the check into a
+  coverage-gap item and the round re-enters, where today the same diff passes. Why
+  mechanical, at this check (pave-spec 9.14.1): the pattern is precisely detectable
+  by a grep the doer does not run; the implementer contract's house-style clause
+  ("No plan block, ruling, or campaign identifier ... in shipped source or tests")
+  was prose for a likely, costly violation - the level the spec calls a defect in
+  both directions. Why not a new check, node or edge (4.11): this check already runs
+  two scans on plan_satisfied_to_hardware; a third is one more transcript in the same
+  lead-run round, no seat. Scope: the branch diff, as component (c)'s is; a launcher
+  or checker committed to the branch is scanned as product source, because what is
+  on the branch ships (PR #4 shipped benchmarks/, experiments/ and verification/;
+  PR #10 dropped them). Why the graph names classes and not the regex list: the list
+  carries this campaign's prefixes (inc-glm53f-, P13), which change per run - the
+  generalize rule; leanout-tools/jargon_scan.py is the seed list. A noun enters the
+  list only when it is absent from the base's product vocabulary at the pin - review
+  r1 found "lane" is the base's own kernel term (attention_decode.py, pack_tokens.py
+  at f8abae64), so it is out; the remaining nouns (plan block, ruling, lease, grant,
+  seat, campaign) occur in the graph and not in the base's product code, and the
+  release-layer list is pruned by the same test (follow-up). Upper-case emphasis
+  in string literals stays with the house-style clause - style, not process
+  vocabulary, and PR #10 kept two upper-case messages its tests match. Scan
+  completeness: the zero carries the commit, tree state and completion signal
+  (layout 4.6), and the tool ships with a line that must hit (measurement-pitfalls,
+  "A zero is evidence only with a firing control"). Cost per run: one grep over the
+  diff per plan_satisfied round. User-only: check strength, stronger - inside the
+  user's item 1.
+
+  (2) PROCESS RESIDUE IS MATERIAL AT THE BATCH REVIEW. review_increment_batch's
+  material list gains one class - process residue in shipped source or tests: a plan
+  block, ruling, campaign identifier or process word on an added line or path; a test
+  filed by the increment or round that wrote it instead of the product module it
+  tests; a test that asserts the run's own state (the repository's history, a log
+  line, a cache counter) instead of product behavior; a test that pins a digest of a
+  file this repository authors, a copy of external bytes keeping its digest - with
+  its reason: the fork's maintainer has to strip it, and the strip is a second PR.
+  The narrow list is qualified "in the records", so record hygiene stays narrow.
+  Before: line 720 made process prose in code narrow by definition ("wording"), so
+  the reviewer that read every one of 130 batches classified the leak as routing
+  nowhere. Evidence: gap 3 - numbered increment test files, test_load_weights.py at
+  8,296 lines, tiny/test_tiny_glm5next_forward.py at 6,653 lines;
+  test_platform_pre_register.py asserted a cache cold-miss and a log line and could
+  not be made honest because vLLM memoises model info in-process; PR #10 removed
+  digest pins on files authored here, import-origin checks, counter self-checks and
+  tests that asserted the git diff. Gap 4 - fixtures/config.json's digest asserted at
+  10 sites; rewriting the fixture's provenance text broke about 80 tests; revision 7
+  cut digests of mutable files in artifacts and left tests uncovered, and pave-spec
+  9.14.3 says the same rule - for anything in version control the commit is the
+  record; hf-config.json, a byte copy of an external file, kept its digest and that
+  is the exception the clause names. Why the judgment halves live here and not in
+  changeset_complete as the lead's shape (g) proposed: "process state" and
+  "repo-authored versus external copy" are judgments - a fixture that copies HF bytes
+  may keep its digest, a log line may be the product's own promise - and a mechanical
+  check the lead evaluates must be decidable from declared content (revision 15
+  review r3, LOW-4); the batch review is the seat that already reads every added
+  test beside its block, and it fires per batch (pave-spec 9.4), so a test filed
+  wrong at batch 3 is a repair item at batch 3, not a whole-diff clean-up at
+  plan_satisfied - which is the second-PR cost the evidence prices. Why not "one
+  test module per product module the diff touches" (the lead's wording): PR #10
+  split oversized files by subject, so one module may carry several test files; the
+  defect is filing by process, not a count per module, and the clause says that. No
+  test-file line cap: the evidence shows no outcome a cap would have changed, and the
+  reviewer's --classify already reports the ratio. Outcome it changes: a batch with
+  residue exits material_findings instead of batch_sound; scoping mints the repair
+  items with the fingerprint triple, as for every material class. Cost per run: none
+  added - the reviewer reads the same diff and reclassifies. User-only: no - a
+  review's materiality contract; the user's item 1 named it anyway.
+
+  (3) THE PR DESCRIPTION IN THE MAINTAINER'S FORM. pr_evidence_package's subject,
+  prepare_pr's purpose, pr_package_ready's meaning and review_pr_evidence's purpose:
+  the description says what the change is, how it was tested (the whole-tree test
+  command with its counts and the acceptance measurement with its verdict, each
+  linked once to its record), and what stays open; no evidence index and no separate
+  package - the records are the evidence and the description says what they show.
+  Before (revision 15, cut 12): "one document whose evidence index links every
+  claim to its record". Evidence: gap 5 - the user named the indexed essay as the
+  prose to strip ("make it a clean PR that strips away all the campaign prose");
+  leanout-tools/pr-body.md is the body the user accepted, with sections What /
+  Relation to #4 / Product code / How tested / Known open items; usage record item 8
+  (PR write-ups outgrowing line caps, ruling 79). Generalized: "Relation to #4" and
+  "Product code" are this clean-up's own sections (a second PR describing its
+  relation to a first); the class every campaign shares is what, how tested, open
+  items, so the graph names those three and the layout reference pins the section
+  list (follow-up below). The increment evidence index (layout 4.6, read by
+  changeset_complete and scope_next_increment) is a different object and stays - it
+  is the record "how tested" links once. Outcome it changes: pr_package_ready no
+  longer accepts a description that indexes claims, and the reviewer's material test
+  is whether the maintainer can read it. Cost: negative - one shorter document, one
+  shorter review read. User-only: yes - a user-facing artifact; decided by the user
+  (approval field), so approved, not pending.
+
+  NO CHANGE, WITH THE EVIDENCE. No node, edge, check, outcome, seat, state field or
+  write limit moves - the evidence names no lead write form and no routing gap. The
+  implementer's house-style clause stays in the release layer and should name the
+  check that now enforces it (follow-up); it named the defect the scan catches.
+  measure_artifact.py --classify stays: its numbers were the user's first ask.
+  asserted_fragments.py, ast_equal.py and ast_literals_only.py are clean-up tools for
+  a strip that this revision exists to make unnecessary; they stay beside the lessons
+  file, not in the graph. Usage record (rule 8): friction items 1 to 7 landed at
+  revisions 10 to 16; item 8 is answered by (3); no seat's paid decision is shown
+  never to fire, so no lead-run-implementation move. The prior lessons file
+  (lessons-run-20260827-20260920T171728Z.md) landed at revisions 15 and 16 and
+  nothing from it is re-landed. Revision 7's digest rule for artifacts stands; (2)
+  extends its class to tests without restating it.
+
+  EVERY COPY (release layer at /Users/jinhun/GitHub/pave/generated-plugins/vllm-neuron-parity,
+  outside this root; none edited here). agents/implementer.md 275-280 and
+  codex/agents/vllm_neuron_parity_implementer.toml, the prepare_pr bullet ("whose
+  evidence index links every claim") - the maintainer's form; implementer.md 356-360
+  and the toml's house-style paragraph - stays, gains one clause naming
+  changeset_complete's scan and the batch review as its check. agents/adversarial-reviewer.md
+  88-99 and the toml's batch bullet - the process-residue class joins the material
+  list, "narrow findings ... in the records"; adversarial-reviewer.md 107-113 and the
+  toml's review_pr_evidence bullet ("every claim links to world evidence") - the
+  three parts and their linked records. skills/vllm-neuron-parity/SKILL.md row 6
+  (five changeset components become six, class (f)) and row 10 ("whose evidence index
+  links every claim" becomes the maintainer's form). references/artifact-layout.md
+  4.2 pair 3 (prepare/pr-review) pins the section list - What, How tested, Known open
+  items, campaign-specific sections optional - the single authority the graph's
+  class points at; 4.6 stays (prepare_pr still reads the increment index to write
+  "how tested"); 4.12's pr/ cap stands and the form fits it. A scan tool - a mode of
+  scripts/measure_artifact.py or one new script - carries the word list seeded from
+  leanout-tools/jargon_scan.py, scoped to added lines and pruned against the base's
+  product vocabulary before it becomes the check's instrument: the seed list's
+  "increments?" and three-digit patterns hit upstream vllm/core/scheduler.py
+  ("pre-increment") and model/qwen3_vl/weight_loaders_mxfp8.py ("stride-128 blocks")
+  on their own lines, and "lane" is the base's kernel term (review r1, LOW-3 and
+  HIGH-1); it ships with a must-hit control line and its test.
+  README.md 273 and 280 (the mermaid edge labels) and tests/test_workflow_pave.py
+  EXPECTED ("21 nodes, 67 edges, 5 control nodes") are unchanged; VERSION gains an
+  entry; tests/test_document_ceilings.py is unchanged (2425 of 3100). The old
+  wording survives nowhere else in the graph: "evidence index" at lines 450 and 1196
+  of the scratch is the increment index, kept by design.
+
+  DECISION RECORD: artifacts/campaigns/glm-5.3-flash-port/approvals/DECISIONS.md 1092
+  (2026-09-22T19:42:37Z) records the exchange the approval field quotes; the lessons
+  file line 20 carries the same text.
+user_only_changes: approved
+approval: >-
+  The user's decision, verbatim, 2026-09-22 - DECISIONS.md 1092 (2026-09-22T19:42:37Z)
+  and artifacts/run/closure/lessons-pr-leanout-20260922T192633Z.md line 20. The lead
+  asked: "Both edits are outside artifacts/, so I need your yes,
+  once: run /pave-evolve for revision 17 with items 1 and 2, and draft the §8.5
+  sentence for pave-init? Any yes counts, and a '1 only' limits it." Item 1 - "add a
+  process-word scan with zero hits over added lines to the changeset check, make a
+  process identifier in shipped code a material finding, and add one clause on
+  test-file ownership and no fixture digests". Item 2 - "change the PR description
+  evidence to the plain form used in PR #10. This changes a user-facing artifact, so
+  it is your decision." The user answered: "yes". Item 1 is (1) and (2) above; item 2
+  is (3). One sub-class of (2) - a test that asserts the run's own state - is outside
+  item 1's wording ("test-file ownership and no fixture digests") and rides the same
+  gate. The plan records approval: when_needed (SKILL.md rule 6): a changed check
+  question, outcome meaning and evidence subject are changed declared meaning, so
+  applying takes the user's answer at the pave-evolve approval gate, recorded
+  verbatim by the apply step.
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: >-
+  Graph revision 17 (`history/v17.patch`, kind graph): process residue in shipped
+  code becomes a gate. changeset_complete gains a sixth component - a
+  process-vocabulary scan over the diff's added lines and paths with zero hits - and
+  class (f), with the six-component count and the scan's re-run clause at
+  scope_next_increment and realize_increment; review_increment_batch's material list
+  gains process residue in shipped
+  source or tests (process words, tests filed by increment, tests of the run's own
+  state, digests of repo-authored files), record hygiene staying narrow; the PR
+  description takes the fork maintainer's form - what changed, how it was tested with
+  its records linked once, what stays open - in place of the evidence index (the
+  user's decision of 2026-09-22). Counts unchanged (21 nodes, 67 edges, 15 checks);
+  2399 lines become 2425, ceiling 3100 not raised. Release-layer follow-ups: the scan
+  tool and its word list with a must-hit control; the implementer and reviewer
+  contracts in both harness ports; SKILL rows 6 and 10; artifact-layout pair 3
+  pinning the PR section list.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index a486941..05b2b98 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -200,8 +200,10 @@ pave:
+     pr_evidence_package:
+       kind: derivation
+       produced_by: prepare_pr
+-      subject: the PR description - one document whose evidence index links every
+-        claim to its record
++      subject: the PR description in the form the fork's maintainer reads - what
++        the change is, how it was tested (the whole-tree test command with its
++        counts and the acceptance measurement with its verdict, each linked once to
++        its record), and what stays open - never an index that links every claim
+       artifact: artifacts/campaigns/<campaign>/pr/
+     closure_record:
+       kind: observation
+@@ -447,16 +449,23 @@ pave:
+         the git-produced branch diff against the target base recorded in
+         campaign_target_pins, an evidence index in which every planned and repair
+         increment resolves to a passing CPU-mode record, an NxDI-import scan
+-        transcript over the diff with zero hits, and a substrate-fidelity transcript
+-        in which every design-declared-NKI increment shows NKI usage, and the run
++        transcript over the diff with zero hits, a substrate-fidelity transcript
++        in which every design-declared-NKI increment shows NKI usage, the run
+         record of the declared test paths collected and run whole-tree on the tip -
+         zero collection errors and zero new failures against the target base, a
+-        quarantined item carrying its import proof - each recomputable by a reviewer
++        quarantined item carrying its import proof - and a process-vocabulary scan
++        transcript over the diff's added lines and added paths with zero hits (the
++        run's minted identifiers - increment and block ids, decision and ruling
++        references, round and attempt numbers - and this workflow's process nouns -
++        plan block, ruling, lease, grant, seat, campaign; the word list is kept
++        with the scan tool, as the import pattern is; code that records how the work
++        was scheduled costs a second PR to strip it) - each recomputable by a reviewer
+         from the branch and the records? A gap fails
+         the check as a coverage-gap item recorded in the round record with its
+         class - (a) an increment lacks a passing record, (b) the diff holds work no
+         increment record covers, (c) an import-scan hit, (d) a substrate-fidelity hit,
+-        (e) a collection error or a new failure in the declared test paths - whose
++        (e) a collection error or a new failure in the declared test paths, (f) a
++        process-vocabulary hit - whose
+         declared acceptance is the recomputed check that found it.
+       evaluated_by: lead
+       on_failure_route: scope_next_increment
+@@ -713,15 +722,24 @@ pave:
+         of the touched functions, never by reading; a frozen or registered value moved
+         (P9); a kernel-class item rides a torch
+         substitute, or a non-kernel declaration hides kernel-class substance (the
+-        kernel-substrate rule); an NxDI import on added lines (P4); or an integration
+-        defect against already-landed work. Every material finding carries the
++        kernel-substrate rule); an NxDI import on added lines (P4); an integration
++        defect against already-landed work; or process residue in shipped source or
++        tests - a plan block, ruling, campaign identifier or process word on an added
++        line or path, a test filed by the increment or round that wrote it instead of
++        the product module it tests, a test that asserts the run's own state (the
++        repository's history, a log line, a cache counter) instead of product
++        behavior, or a test that pins a digest of a file this repository authors (a
++        copy of external bytes keeps its digest) - material because the fork's
++        maintainer has to strip it, and the strip is a second PR. Every material
++        finding carries the
+         fingerprint triple (increment id + surface + defect class) the no-progress
+         detector keys on; the artifact-layout impl/review pair entry is the shape
+-        authority. Narrow findings (cite hygiene, wording, evidence formatting) are
+-        recorded in the same file and route nowhere. The newest batch's record is the
+-        changeset's code review before hardware - the lead's changeset_complete scans
+-        and the whole-tree test record close that gate, and no whole-changeset re-read
+-        follows. Read-only on the worktree and branch; no host execution. Out of scope
++        authority. Narrow findings (cite hygiene, wording, evidence formatting in the
++        records) are recorded in the same file and route nowhere. The newest batch's
++        record is the changeset's code review before hardware - the lead's
++        changeset_complete scans and the whole-tree test record close that gate, and
++        no whole-changeset re-read follows. Read-only on the worktree and branch; no
++        host execution. Out of scope
+         - any code change, any edit to the
+         plan or the design record.
+       roles:
+@@ -844,12 +862,16 @@ pave:
+       intent: execute
+       instance_per: approved_campaigns
+       purpose: Write one document - the PR description, contribution-checklist
+-        complete, whose evidence index links every claim to its measurement bundle,
+-        verdict, or review record - for the campaign branch's clean diff against the
++        complete, in the form the fork's maintainer reads - what the change is, how it
++        was tested (the whole-tree test command with its counts and the acceptance
++        measurement with its verdict, each linked once to its record), and what stays
++        open - for the campaign branch's clean diff against the
+         target base recorded in campaign_target_pins (the pinned release branch for
+         backport-route
+         campaigns; the kickoff-declared upgrade base for upgrade-route campaigns). No
+-        separate evidence package - the records the index links are the evidence. Out
++        evidence index and no separate evidence package - the records are the
++        evidence and the description says what they show; an index that links every
++        claim is the run's record rewritten for a reader who did not ask for it. Out
+         of scope - opening the PR (a gate-3 closure action).
+       roles:
+       - implementer
+@@ -862,8 +884,8 @@ pave:
+       - pr_evidence_package
+       outcomes:
+         pr_package_ready:
+-          meaning: The description is complete and every claim links to external
+-            evidence.
++          meaning: The description is complete in that form and its test and
++            acceptance claims link to their records.
+           required_evidence:
+           - pr_evidence_package
+         evidence_gap_found:
+@@ -875,7 +897,7 @@ pave:
+       intent: review
+       instance_per: approved_campaigns
+       purpose: Adversarial, material-findings-only review of the PR description and
+-        its evidence index before anything is pushed for closure.
++        the records it links before anything is pushed for closure.
+       roles:
+       - adversarial_reviewer
+       consumes:
+@@ -1173,12 +1195,14 @@ pave:
+         campaign branch diff against the target base recorded in campaign_target_pins,
+         the evidence index proving every planned and repair increment carries a passing
+         CPU-mode record, the transcript of a mechanical NxDI-import scan over the diff
+-        (zero hits), and the transcript of the mechanical substrate-fidelity check
+-        (every design-declared-NKI increment''s diff shows NKI usage); both transcripts
++        (zero hits), the transcript of the mechanical substrate-fidelity check
++        (every design-declared-NKI increment''s diff shows NKI usage), and the
++        transcript of the process-vocabulary scan over the added lines and paths of
++        the diff (zero hits); the three transcripts
+         meet the scan-completeness discipline pinned at references/artifact-layout.md
+         section 4.6, and the whole-tree run record of the declared test paths on the
+-        tip (changeset_complete names its two zeros). A gap in any of the five is a
+-        coverage-gap work item minted in the same round record with its class (a)-(e),
++        tip (changeset_complete names its two zeros). A gap in any of the six is a
++        coverage-gap work item minted in the same round record with its class (a)-(f),
+         and the round re-enters. Work-item classes and their declared acceptance:
+         build or repair increments (the design''s CPU-mode command); coverage-gap
+         items (the recomputed gap check that found the gap - the missing increment''s
+@@ -1186,7 +1210,8 @@ pave:
+         recomputation for a diff-work-uncovered gap, the import scan re-run for an
+         import-scan hit, the substrate-fidelity check re-run for a substrate-fidelity
+         hit, the whole-tree run re-run for a
+-        test-tree hit); repackaging items when review
++        test-tree hit, the process-vocabulary scan re-run for a process-vocabulary
++        hit); repackaging items when review
+         found the changeset not reviewable as one unit against the increment plan
+         (the recomputed one-unit coverage check); localization items, minted at a
+         re-entry from a correctness-shortfall or regression verdict before any repair
+@@ -1272,7 +1297,7 @@ pave:
+       - When a seat is dispatched, it is the one retained doer thread per campaign
+         that answers this node and its stage-6 loop sibling (realize_increment)
+         for every item; replaced only when its context degrades the work.
+-      - On plan_satisfied, assemble the five changeset components with the commands
++      - On plan_satisfied, assemble the six changeset components with the commands
+         recorded in the round record; each is recomputable by a reviewer from the
+         branch and the records.
+       allowed_effects:
+@@ -1349,8 +1374,9 @@ pave:
+         that found it, as the round record declares - the missing increment''s own
+         CPU-mode command, the evidence-index coverage recomputation, the import
+         scan re-run over the repaired diff, the substrate-fidelity check re-run over
+-        the repaired diff, or the whole-tree run of the declared test paths re-run on
+-        the repaired tip. When the selected item is a repackaging item (review
++        the repaired diff, the whole-tree run of the declared test paths re-run on
++        the repaired tip, or the process-vocabulary scan re-run over the repaired
++        diff. When the selected item is a repackaging item (review
+         found the changeset not reviewable as one unit against the increment plan),
+         the work is instead to regroup the campaign branch''s commits and increment
+         records so the changeset reads as one unit per plan increment, deciding

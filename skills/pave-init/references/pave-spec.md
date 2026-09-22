@@ -803,14 +803,11 @@ failure, not a preference.
 Every standing document is written for a reader who was not present: the
 user auditing a gate, the next session resuming, the reviewer verifying a
 claim. The budget (§8.4) bounds how much prose exists; this rule binds what
-the prose is like. The failure it prevents is also measured: record entries
-compressed into identifier chains and inlined checker output that no one —
-including the agents that wrote them — could parse a week later.
-Compression that defeats the reader meets the budget's letter and fails its
-purpose; both are the same defect.
+the prose is like. Its measured failure: record entries compressed into
+identifier chains and inlined checker output nobody could parse a week
+later; compression that defeats the reader fails the budget's purpose.
 
-Four duties, for every entry a person will read, written in concise simple
-plain english:
+Four duties, for every entry a person will read, in plain english:
 
 - Lead with one sentence saying what happened and why.
 - An identifier is a pointer, never a noun. Pair each id with its plain
@@ -824,11 +821,13 @@ plain english:
   parse fails, whatever else it satisfies.
 
 The duty binds documents a person reads — the standing documents, review and
-decision records, delivered docs, anything a user gate renders — and every
-message to the user, read by the same stranger. Working state written for
-the next agent and deleted or ignored at close — a planning queue, a scratch
-draft, structured run state — is exempt, because plain-english ceremony with
-no reader is cost without a return. When in doubt, ask who reads it after the
+decision records, delivered docs, anything a user gate renders — every
+message to the user, and what the workflow ships outside itself: source,
+tests and PR text, read by a stranger to the run. A plan block, ruling,
+round number or campaign identifier in shipped code is a material defect a
+check fails on, not a wording finding. Working state written for the next
+agent and deleted or ignored at close — a planning queue, a scratch draft,
+structured run state — is exempt. When in doubt, ask who reads it after the
 run; "a person might" means the duty applies.
 
 ## 9. Reusable graph patterns

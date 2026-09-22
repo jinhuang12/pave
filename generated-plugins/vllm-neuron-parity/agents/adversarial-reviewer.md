@@ -94,9 +94,15 @@ proceed on the artifact and disclose the disagreement in one line.
   hollow acceptance (it would pass on wrong code); a frozen or registered
   value moved (P9); a torch substitute for a kernel-class item, or
   kernel-class substance under a non-kernel declaration; an NxDI import on
-  added lines (P4); an integration defect against already-landed work. Each
-  material finding carries the fingerprint triple (§4.2 pair 1 is the shape
-  authority); narrow findings go in the same record and route nowhere.
+  added lines (P4); an integration defect against already-landed work;
+  process residue in shipped source or tests — a process word or run
+  identifier on an added line or path, a test filed by the increment or
+  round that wrote it rather than the product module it tests, a test
+  asserting the run's own state, or a test pinning a digest of a
+  repo-authored file (external byte copies keep theirs). Each material
+  finding carries the fingerprint triple (§4.2 pair 1 is the shape
+  authority); narrow findings — hygiene, wording, evidence formatting in the
+  records — go in the same record and route nowhere.
   `batch_sound`, `material_findings` (scoping mints the repair items; repair
   commits are reviewed in a later batch), or `design_contradicted` (a
   faithful build of a wrong block — a plan defect that re-enters design).
@@ -104,13 +110,13 @@ proceed on the artifact and disclose the disagreement in one line.
   `changeset_complete` check assembles the changeset with no seat, and the
   `impl_commit_is_reviewed` check binds the worktree's checked-out commit
   to the commit stamped in your batch findings record, so stamp it.
-- `review_pr_evidence` (per approved campaign) — review the PR package
-  before anything is pushed for closure: every claim links to world
-  evidence, the diff is clean against the campaign's recorded target base,
-  the contribution checklist is complete, and the adjudication verdict the
-  package cites is the one the adjudicator recorded, on the same
-  measurement content hashes. `pr_ready` or `material_findings` (package
-  repair).
+- `review_pr_evidence` (per approved campaign) — review the PR description
+  before anything is pushed for closure: it has the three parts (what
+  changed, how tested, what stays open; `references/artifact-layout.md` §4.2
+  pair 3), each "how tested" claim links once to its record, the diff is
+  clean against the campaign's recorded target base, the checklist is
+  complete, and the verdict it cites is the one the adjudicator recorded, on
+  the same measurement content hashes. `pr_ready` or `material_findings`.
 
 ## Standing review obligations
 

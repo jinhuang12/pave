@@ -481,12 +481,14 @@ vllm-neuron-parity/
     validate_pave.py                   # graph checker
     record_revision.py                 # revision record tool: init, install, propose, apply, pin, verify, rollback
     measure_artifact.py                # living-document size vs its cap (references/artifact-layout.md §4.12)
+    process_vocabulary_scan.py         # changeset component six: process words on added lines/paths, zero hits
     run_write_report.py                # what the run wrote since the last audit checkpoint (the block text's write report)
   tests/
     test_codex_port.py                 # Codex port: version pin, hook control count, TOML fields, legacy-token absence, harness tool map
     test_document_ceilings.py          # every prose document under its pinned line ceiling, and none unpinned
     test_hooks.sh                      # hook behaviour: marker gating, guards, reader reminder, cap notice, goal restatement
     test_measure_artifact.py           # size check tool tests
+    test_process_vocabulary_scan.py    # process-vocabulary scan tests
     test_run_state_schema.py           # schema accept/reject tests
     test_write_limits.py           # router modes: lead-only deny, no-retry-copy, checkpoint sidecar, write log
     test_validate_run_state_caps.py    # validate_run_state.py length caps and path checks, stdlib and jsonschema paths

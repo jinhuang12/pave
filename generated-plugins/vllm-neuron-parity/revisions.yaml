@@ -1555,3 +1555,200 @@ entries:
   commit: null
   derived_from: null
   run_id: null
+
+- revision: 17
+  kind: graph
+  applied_at: '2026-09-22T22:01:21Z'
+  digest_before: sha256:dd5312fd8f8e4255beb65307e28f7105c6db1a8a70a766122a8ee4eebe088d6d
+  digest_after: sha256:89e7cfb928edf4a05b53df0824eea3f29c19ff1641216732e4056ccd5b3440cc
+  semantic_diff: 'Base: revision 16, digest sha256:dd5312fd8f8e4255beb65307e28f7105c6db1a8a70a766122a8ee4eebe088d6d,
+    verified intact with pave-init 2.6.2 record_revision.py (20 entries) at 2026-09-22T19:33:52Z
+    and again at 2026-09-22T20:12:42Z for round 2 (review r1: one HIGH, three LOW,
+    all folded below). Counts unchanged: 21 nodes, 67 edges, 67 outcomes, 15 checks,
+    24 evidence definitions, 8 roles, 5 control nodes, 19 required state fields; write_limits,
+    state, principles and roles byte-equal. Skeleton compared field by field by parsing
+    both graphs: every node''s roles, consumes, produces, effects, outcomes and required_evidence
+    equal, every edge and check skeleton equal. The prose sites that change, and nothing
+    else: changeset_complete''s question; pr_evidence_package''s subject; the purposes
+    of review_increment_batch, prepare_pr, review_pr_evidence, scope_next_increment
+    and realize_increment; one scope_next_increment activity; pr_package_ready''s
+    meaning. Line balance: 10 hunks, 53 lines added against 27 removed; 2399 lines
+    become 2425 and 136,922 bytes become 138,895 (ceiling 3100 lines, not raised).
+    Layer test (pave-spec 2.1, revision rule 9): a check gains a component that fails
+    it, a review node''s material definition gains a class, and an evidence definition''s
+    subject changes what its consumer accepts - graph meaning moves, so kind graph;
+    no seat, model, effort or implementation moves. Source: the lead''s lessons file
+    artifacts/run/closure/lessons-pr-leanout-20260922T192633Z.md (PR #4, 305 files
+    and 237,512 added lines, to PR #10, 251 files and 107,476 - numbers reproduced
+    from gh pr view on 2026-09-22), the tools under artifacts/run/closure/leanout-tools/,
+    the rule-8 usage record (artifacts/run/usage-log.md, run-20260827-glm-5.3-flash-port),
+    debt D-CAMPAIGN-PROCESS-REFS (artifacts/cross-run/debt-ledger.yaml), and the user''s
+    "yes" of 2026-09-22 quoted in the approval field. The revision-15 test decided
+    every sentence: does it ever change an outcome? Each added clause below names
+    the outcome it moves.
+
+    (1) A PROCESS-VOCABULARY SCAN AT THE CHANGESET GATE. changeset_complete gains
+    a sixth component - a scan transcript over the diff''s added lines and added paths
+    with zero hits - and class (f), a process-vocabulary hit. The question names the
+    word classes (the run''s minted identifiers - increment and block ids, decision
+    and ruling references, round and attempt numbers - and this workflow''s process
+    nouns) and leaves the list itself with the scan tool in the release layer, as
+    the NxDI import pattern is (SKILL.md P4 row names neuronx_distributed*; the graph
+    says "NxDI-import scan"). scope_next_increment''s assembly sentence ("six", "three
+    transcripts", "(a)-(f)"), its coverage-gap acceptance list, its activity, and
+    realize_increment''s acceptance list each gain the re-run in one clause, the shape
+    revision 15 used for component (e). Evidence: lessons gaps 1 and 2 - PR #4 carried
+    the campaign''s vocabulary in product code, tests, fixtures and its body; the
+    clean-up was a second PR (#10, 251 files, six lanes, two days) plus two AST-freeze
+    gates to prove no behavior moved; of 71 changed product files 62 are AST-identical
+    and 9 differ only in string literals - the whole difference was prose. Revision
+    15 recorded the same class ("70 minted ids leaked into product comments and cost
+    a cleanup increment"), cut the ids from state, and declared no check; the debt
+    ledger closed the run with 253 hits in 83 files (D-CAMPAIGN-PROCESS-REFS). Outcome
+    it changes: a hit fails the check into a coverage-gap item and the round re-enters,
+    where today the same diff passes. Why mechanical, at this check (pave-spec 9.14.1):
+    the pattern is precisely detectable by a grep the doer does not run; the implementer
+    contract''s house-style clause ("No plan block, ruling, or campaign identifier
+    ... in shipped source or tests") was prose for a likely, costly violation - the
+    level the spec calls a defect in both directions. Why not a new check, node or
+    edge (4.11): this check already runs two scans on plan_satisfied_to_hardware;
+    a third is one more transcript in the same lead-run round, no seat. Scope: the
+    branch diff, as component (c)''s is; a launcher or checker committed to the branch
+    is scanned as product source, because what is on the branch ships (PR #4 shipped
+    benchmarks/, experiments/ and verification/; PR #10 dropped them). Why the graph
+    names classes and not the regex list: the list carries this campaign''s prefixes
+    (inc-glm53f-, P13), which change per run - the generalize rule; leanout-tools/jargon_scan.py
+    is the seed list. A noun enters the list only when it is absent from the base''s
+    product vocabulary at the pin - review r1 found "lane" is the base''s own kernel
+    term (attention_decode.py, pack_tokens.py at f8abae64), so it is out; the remaining
+    nouns (plan block, ruling, lease, grant, seat, campaign) occur in the graph and
+    not in the base''s product code, and the release-layer list is pruned by the same
+    test (follow-up). Upper-case emphasis in string literals stays with the house-style
+    clause - style, not process vocabulary, and PR #10 kept two upper-case messages
+    its tests match. Scan completeness: the zero carries the commit, tree state and
+    completion signal (layout 4.6), and the tool ships with a line that must hit (measurement-pitfalls,
+    "A zero is evidence only with a firing control"). Cost per run: one grep over
+    the diff per plan_satisfied round. User-only: check strength, stronger - inside
+    the user''s item 1.
+
+    (2) PROCESS RESIDUE IS MATERIAL AT THE BATCH REVIEW. review_increment_batch''s
+    material list gains one class - process residue in shipped source or tests: a
+    plan block, ruling, campaign identifier or process word on an added line or path;
+    a test filed by the increment or round that wrote it instead of the product module
+    it tests; a test that asserts the run''s own state (the repository''s history,
+    a log line, a cache counter) instead of product behavior; a test that pins a digest
+    of a file this repository authors, a copy of external bytes keeping its digest
+    - with its reason: the fork''s maintainer has to strip it, and the strip is a
+    second PR. The narrow list is qualified "in the records", so record hygiene stays
+    narrow. Before: line 720 made process prose in code narrow by definition ("wording"),
+    so the reviewer that read every one of 130 batches classified the leak as routing
+    nowhere. Evidence: gap 3 - numbered increment test files, test_load_weights.py
+    at 8,296 lines, tiny/test_tiny_glm5next_forward.py at 6,653 lines; test_platform_pre_register.py
+    asserted a cache cold-miss and a log line and could not be made honest because
+    vLLM memoises model info in-process; PR #10 removed digest pins on files authored
+    here, import-origin checks, counter self-checks and tests that asserted the git
+    diff. Gap 4 - fixtures/config.json''s digest asserted at 10 sites; rewriting the
+    fixture''s provenance text broke about 80 tests; revision 7 cut digests of mutable
+    files in artifacts and left tests uncovered, and pave-spec 9.14.3 says the same
+    rule - for anything in version control the commit is the record; hf-config.json,
+    a byte copy of an external file, kept its digest and that is the exception the
+    clause names. Why the judgment halves live here and not in changeset_complete
+    as the lead''s shape (g) proposed: "process state" and "repo-authored versus external
+    copy" are judgments - a fixture that copies HF bytes may keep its digest, a log
+    line may be the product''s own promise - and a mechanical check the lead evaluates
+    must be decidable from declared content (revision 15 review r3, LOW-4); the batch
+    review is the seat that already reads every added test beside its block, and it
+    fires per batch (pave-spec 9.4), so a test filed wrong at batch 3 is a repair
+    item at batch 3, not a whole-diff clean-up at plan_satisfied - which is the second-PR
+    cost the evidence prices. Why not "one test module per product module the diff
+    touches" (the lead''s wording): PR #10 split oversized files by subject, so one
+    module may carry several test files; the defect is filing by process, not a count
+    per module, and the clause says that. No test-file line cap: the evidence shows
+    no outcome a cap would have changed, and the reviewer''s --classify already reports
+    the ratio. Outcome it changes: a batch with residue exits material_findings instead
+    of batch_sound; scoping mints the repair items with the fingerprint triple, as
+    for every material class. Cost per run: none added - the reviewer reads the same
+    diff and reclassifies. User-only: no - a review''s materiality contract; the user''s
+    item 1 named it anyway.
+
+    (3) THE PR DESCRIPTION IN THE MAINTAINER''S FORM. pr_evidence_package''s subject,
+    prepare_pr''s purpose, pr_package_ready''s meaning and review_pr_evidence''s purpose:
+    the description says what the change is, how it was tested (the whole-tree test
+    command with its counts and the acceptance measurement with its verdict, each
+    linked once to its record), and what stays open; no evidence index and no separate
+    package - the records are the evidence and the description says what they show.
+    Before (revision 15, cut 12): "one document whose evidence index links every claim
+    to its record". Evidence: gap 5 - the user named the indexed essay as the prose
+    to strip ("make it a clean PR that strips away all the campaign prose"); leanout-tools/pr-body.md
+    is the body the user accepted, with sections What / Relation to #4 / Product code
+    / How tested / Known open items; usage record item 8 (PR write-ups outgrowing
+    line caps, ruling 79). Generalized: "Relation to #4" and "Product code" are this
+    clean-up''s own sections (a second PR describing its relation to a first); the
+    class every campaign shares is what, how tested, open items, so the graph names
+    those three and the layout reference pins the section list (follow-up below).
+    The increment evidence index (layout 4.6, read by changeset_complete and scope_next_increment)
+    is a different object and stays - it is the record "how tested" links once. Outcome
+    it changes: pr_package_ready no longer accepts a description that indexes claims,
+    and the reviewer''s material test is whether the maintainer can read it. Cost:
+    negative - one shorter document, one shorter review read. User-only: yes - a user-facing
+    artifact; decided by the user (approval field), so approved, not pending.
+
+    NO CHANGE, WITH THE EVIDENCE. No node, edge, check, outcome, seat, state field
+    or write limit moves - the evidence names no lead write form and no routing gap.
+    The implementer''s house-style clause stays in the release layer and should name
+    the check that now enforces it (follow-up); it named the defect the scan catches.
+    measure_artifact.py --classify stays: its numbers were the user''s first ask.
+    asserted_fragments.py, ast_equal.py and ast_literals_only.py are clean-up tools
+    for a strip that this revision exists to make unnecessary; they stay beside the
+    lessons file, not in the graph. Usage record (rule 8): friction items 1 to 7 landed
+    at revisions 10 to 16; item 8 is answered by (3); no seat''s paid decision is
+    shown never to fire, so no lead-run-implementation move. The prior lessons file
+    (lessons-run-20260827-20260920T171728Z.md) landed at revisions 15 and 16 and nothing
+    from it is re-landed. Revision 7''s digest rule for artifacts stands; (2) extends
+    its class to tests without restating it.
+
+    EVERY COPY (release layer at /Users/jinhun/GitHub/pave/generated-plugins/vllm-neuron-parity,
+    outside this root; none edited here). agents/implementer.md 275-280 and codex/agents/vllm_neuron_parity_implementer.toml,
+    the prepare_pr bullet ("whose evidence index links every claim") - the maintainer''s
+    form; implementer.md 356-360 and the toml''s house-style paragraph - stays, gains
+    one clause naming changeset_complete''s scan and the batch review as its check.
+    agents/adversarial-reviewer.md 88-99 and the toml''s batch bullet - the process-residue
+    class joins the material list, "narrow findings ... in the records"; adversarial-reviewer.md
+    107-113 and the toml''s review_pr_evidence bullet ("every claim links to world
+    evidence") - the three parts and their linked records. skills/vllm-neuron-parity/SKILL.md
+    row 6 (five changeset components become six, class (f)) and row 10 ("whose evidence
+    index links every claim" becomes the maintainer''s form). references/artifact-layout.md
+    4.2 pair 3 (prepare/pr-review) pins the section list - What, How tested, Known
+    open items, campaign-specific sections optional - the single authority the graph''s
+    class points at; 4.6 stays (prepare_pr still reads the increment index to write
+    "how tested"); 4.12''s pr/ cap stands and the form fits it. A scan tool - a mode
+    of scripts/measure_artifact.py or one new script - carries the word list seeded
+    from leanout-tools/jargon_scan.py, scoped to added lines and pruned against the
+    base''s product vocabulary before it becomes the check''s instrument: the seed
+    list''s "increments?" and three-digit patterns hit upstream vllm/core/scheduler.py
+    ("pre-increment") and model/qwen3_vl/weight_loaders_mxfp8.py ("stride-128 blocks")
+    on their own lines, and "lane" is the base''s kernel term (review r1, LOW-3 and
+    HIGH-1); it ships with a must-hit control line and its test. README.md 273 and
+    280 (the mermaid edge labels) and tests/test_workflow_pave.py EXPECTED ("21 nodes,
+    67 edges, 5 control nodes") are unchanged; VERSION gains an entry; tests/test_document_ceilings.py
+    is unchanged (2425 of 3100). The old wording survives nowhere else in the graph:
+    "evidence index" at lines 450 and 1196 of the scratch is the increment index,
+    kept by design.
+
+    DECISION RECORD: artifacts/campaigns/glm-5.3-flash-port/approvals/DECISIONS.md
+    1092 (2026-09-22T19:42:37Z) records the exchange the approval field quotes; the
+    lessons file line 20 carries the same text.'
+  approval: "Approve revision 17 at digest 89e7cfb9 (Recommended) \u2014 user, AskUserQuestion,\
+    \ 2026-09-22; second question answered \"Parity plugin 1.7.0 (Recommended), pave-init\
+    \ 2.6.3 with the \xA78.5 sentence\""
+  user_only_changes: approved
+  plan_evidence: verified
+  usage_evidence: field
+  review: PASS (pave-init:update-reviewer seat update-reviewer-r17, round 2 of 3;
+    round 1 revision_required with 1 HIGH and 3 LOW, all folded in round 2; drafter
+    pave-init:workflow-updater seat workflow-updater-r17)
+  written_by: unverified
+  patch: history/v17.patch
+  commit: null
+  derived_from: null
+  run_id: null

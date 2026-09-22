@@ -200,8 +200,10 @@ pave:
     pr_evidence_package:
       kind: derivation
       produced_by: prepare_pr
-      subject: the PR description - one document whose evidence index links every
-        claim to its record
+      subject: the PR description in the form the fork's maintainer reads - what
+        the change is, how it was tested (the whole-tree test command with its
+        counts and the acceptance measurement with its verdict, each linked once to
+        its record), and what stays open - never an index that links every claim
       artifact: artifacts/campaigns/<campaign>/pr/
     closure_record:
       kind: observation
@@ -447,16 +449,23 @@ pave:
         the git-produced branch diff against the target base recorded in
         campaign_target_pins, an evidence index in which every planned and repair
         increment resolves to a passing CPU-mode record, an NxDI-import scan
-        transcript over the diff with zero hits, and a substrate-fidelity transcript
-        in which every design-declared-NKI increment shows NKI usage, and the run
+        transcript over the diff with zero hits, a substrate-fidelity transcript
+        in which every design-declared-NKI increment shows NKI usage, the run
         record of the declared test paths collected and run whole-tree on the tip -
         zero collection errors and zero new failures against the target base, a
-        quarantined item carrying its import proof - each recomputable by a reviewer
+        quarantined item carrying its import proof - and a process-vocabulary scan
+        transcript over the diff's added lines and added paths with zero hits (the
+        run's minted identifiers - increment and block ids, decision and ruling
+        references, round and attempt numbers - and this workflow's process nouns -
+        plan block, ruling, lease, grant, seat, campaign; the word list is kept
+        with the scan tool, as the import pattern is; code that records how the work
+        was scheduled costs a second PR to strip it) - each recomputable by a reviewer
         from the branch and the records? A gap fails
         the check as a coverage-gap item recorded in the round record with its
         class - (a) an increment lacks a passing record, (b) the diff holds work no
         increment record covers, (c) an import-scan hit, (d) a substrate-fidelity hit,
-        (e) a collection error or a new failure in the declared test paths - whose
+        (e) a collection error or a new failure in the declared test paths, (f) a
+        process-vocabulary hit - whose
         declared acceptance is the recomputed check that found it.
       evaluated_by: lead
       on_failure_route: scope_next_increment
@@ -713,15 +722,24 @@ pave:
         of the touched functions, never by reading; a frozen or registered value moved
         (P9); a kernel-class item rides a torch
         substitute, or a non-kernel declaration hides kernel-class substance (the
-        kernel-substrate rule); an NxDI import on added lines (P4); or an integration
-        defect against already-landed work. Every material finding carries the
+        kernel-substrate rule); an NxDI import on added lines (P4); an integration
+        defect against already-landed work; or process residue in shipped source or
+        tests - a plan block, ruling, campaign identifier or process word on an added
+        line or path, a test filed by the increment or round that wrote it instead of
+        the product module it tests, a test that asserts the run's own state (the
+        repository's history, a log line, a cache counter) instead of product
+        behavior, or a test that pins a digest of a file this repository authors (a
+        copy of external bytes keeps its digest) - material because the fork's
+        maintainer has to strip it, and the strip is a second PR. Every material
+        finding carries the
         fingerprint triple (increment id + surface + defect class) the no-progress
         detector keys on; the artifact-layout impl/review pair entry is the shape
-        authority. Narrow findings (cite hygiene, wording, evidence formatting) are
-        recorded in the same file and route nowhere. The newest batch's record is the
-        changeset's code review before hardware - the lead's changeset_complete scans
-        and the whole-tree test record close that gate, and no whole-changeset re-read
-        follows. Read-only on the worktree and branch; no host execution. Out of scope
+        authority. Narrow findings (cite hygiene, wording, evidence formatting in the
+        records) are recorded in the same file and route nowhere. The newest batch's
+        record is the changeset's code review before hardware - the lead's
+        changeset_complete scans and the whole-tree test record close that gate, and
+        no whole-changeset re-read follows. Read-only on the worktree and branch; no
+        host execution. Out of scope
         - any code change, any edit to the
         plan or the design record.
       roles:
@@ -844,12 +862,16 @@ pave:
       intent: execute
       instance_per: approved_campaigns
       purpose: Write one document - the PR description, contribution-checklist
-        complete, whose evidence index links every claim to its measurement bundle,
-        verdict, or review record - for the campaign branch's clean diff against the
+        complete, in the form the fork's maintainer reads - what the change is, how it
+        was tested (the whole-tree test command with its counts and the acceptance
+        measurement with its verdict, each linked once to its record), and what stays
+        open - for the campaign branch's clean diff against the
         target base recorded in campaign_target_pins (the pinned release branch for
         backport-route
         campaigns; the kickoff-declared upgrade base for upgrade-route campaigns). No
-        separate evidence package - the records the index links are the evidence. Out
+        evidence index and no separate evidence package - the records are the
+        evidence and the description says what they show; an index that links every
+        claim is the run's record rewritten for a reader who did not ask for it. Out
         of scope - opening the PR (a gate-3 closure action).
       roles:
       - implementer
@@ -862,8 +884,8 @@ pave:
       - pr_evidence_package
       outcomes:
         pr_package_ready:
-          meaning: The description is complete and every claim links to external
-            evidence.
+          meaning: The description is complete in that form and its test and
+            acceptance claims link to their records.
           required_evidence:
           - pr_evidence_package
         evidence_gap_found:
@@ -875,7 +897,7 @@ pave:
       intent: review
       instance_per: approved_campaigns
       purpose: Adversarial, material-findings-only review of the PR description and
-        its evidence index before anything is pushed for closure.
+        the records it links before anything is pushed for closure.
       roles:
       - adversarial_reviewer
       consumes:
@@ -1173,12 +1195,14 @@ pave:
         campaign branch diff against the target base recorded in campaign_target_pins,
         the evidence index proving every planned and repair increment carries a passing
         CPU-mode record, the transcript of a mechanical NxDI-import scan over the diff
-        (zero hits), and the transcript of the mechanical substrate-fidelity check
-        (every design-declared-NKI increment''s diff shows NKI usage); both transcripts
+        (zero hits), the transcript of the mechanical substrate-fidelity check
+        (every design-declared-NKI increment''s diff shows NKI usage), and the
+        transcript of the process-vocabulary scan over the added lines and paths of
+        the diff (zero hits); the three transcripts
         meet the scan-completeness discipline pinned at references/artifact-layout.md
         section 4.6, and the whole-tree run record of the declared test paths on the
-        tip (changeset_complete names its two zeros). A gap in any of the five is a
-        coverage-gap work item minted in the same round record with its class (a)-(e),
+        tip (changeset_complete names its two zeros). A gap in any of the six is a
+        coverage-gap work item minted in the same round record with its class (a)-(f),
         and the round re-enters. Work-item classes and their declared acceptance:
         build or repair increments (the design''s CPU-mode command); coverage-gap
         items (the recomputed gap check that found the gap - the missing increment''s
@@ -1186,7 +1210,8 @@ pave:
         recomputation for a diff-work-uncovered gap, the import scan re-run for an
         import-scan hit, the substrate-fidelity check re-run for a substrate-fidelity
         hit, the whole-tree run re-run for a
-        test-tree hit); repackaging items when review
+        test-tree hit, the process-vocabulary scan re-run for a process-vocabulary
+        hit); repackaging items when review
         found the changeset not reviewable as one unit against the increment plan
         (the recomputed one-unit coverage check); localization items, minted at a
         re-entry from a correctness-shortfall or regression verdict before any repair
@@ -1272,7 +1297,7 @@ pave:
       - When a seat is dispatched, it is the one retained doer thread per campaign
         that answers this node and its stage-6 loop sibling (realize_increment)
         for every item; replaced only when its context degrades the work.
-      - On plan_satisfied, assemble the five changeset components with the commands
+      - On plan_satisfied, assemble the six changeset components with the commands
         recorded in the round record; each is recomputable by a reviewer from the
         branch and the records.
       allowed_effects:
@@ -1349,8 +1374,9 @@ pave:
         that found it, as the round record declares - the missing increment''s own
         CPU-mode command, the evidence-index coverage recomputation, the import
         scan re-run over the repaired diff, the substrate-fidelity check re-run over
-        the repaired diff, or the whole-tree run of the declared test paths re-run on
-        the repaired tip. When the selected item is a repackaging item (review
+        the repaired diff, the whole-tree run of the declared test paths re-run on
+        the repaired tip, or the process-vocabulary scan re-run over the repaired
+        diff. When the selected item is a repackaging item (review
         found the changeset not reviewable as one unit against the increment plan),
         the work is instead to regroup the campaign branch''s commits and increment
         records so the changeset reads as one unit per plan increment, deciding

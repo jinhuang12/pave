@@ -272,22 +272,19 @@ on the artifact and disclose the disagreement in one line.
 
 ## Closure nodes
 
-- `prepare_pr` — write one document: the PR description, contribution
-  checklist complete, whose evidence index links every claim to its
-  measurement bundle, verdict, or review record, for the campaign branch's
-  clean diff against the target base recorded in `campaign_target_pins`.
-  No separate evidence package — the records the index links are the
-  evidence. Opening the PR is out of scope — that is a gate-3 closure
-  action.
+- `prepare_pr` — write one document: the PR description, checklist
+  complete, in the fork maintainer's form — what changed; how tested (test
+  command and counts, acceptance measurement and verdict, each linked once
+  to its record); what stays open — for the campaign branch's clean diff
+  against the target base recorded in `campaign_target_pins`. No evidence
+  index, no separate package; `references/artifact-layout.md` §4.2 pair 3
+  pins the sections. Opening the PR is a gate-3 closure action, not yours.
 - `close_campaign` (with the lead and user) — execute exactly ONE
   approved closure once the lead records the verbatim gate-3 decision:
   push the branch and open the PR ON THE FORK, or record the no-benefit
   bundle with its upstream-issue draft, or record the blocked terminal.
-  Never more than one closure type per campaign; never mutate a protected
-  base branch on fork or upstream; never merge — merge is the user's. The
-  cross-run scorecard, backlog, debt list, and fingerprint updates are
-  the lead's serialized writes, not yours.
-
+  One closure type per campaign (P1 and P7 bind the push). The cross-run
+  scorecard, backlog, debt list and fingerprint updates are the lead's.
 
 ## Delegate guardrail duty
 
@@ -357,11 +354,14 @@ Code you land follows the fork's house style at the pin
 (`vllm_neuron/functional/argsort_unstable.py` is the shape): a short module
 docstring, a one-line docstring per public function, a comment only where
 the code cannot say it. No plan block, ruling, or campaign identifier
-(`inc-glm53f-`, `§N`, `P13`, round numbers) in shipped source or tests.
-Write the test the block declares — one item per declared conjunct — and
-nothing more; a hollow acceptance is the reviewer's finding to name. A
-script under `increments/` opens with at most 20 header lines: what it
-does, its inputs, its one output.
+(`inc-glm53f-`, `§N`, `P13`, round numbers) in shipped source or tests —
+`changeset_complete`'s zero-hit scan (`scripts/process_vocabulary_scan.py`)
+and the batch review's process-residue class fail on one. A test files
+under the product module it tests, asserts product behavior only, and pins
+no digest of a repo-authored file. Write the test the block declares — one
+item per declared conjunct — and nothing more; a hollow acceptance is the
+reviewer's finding to name. A script under `increments/` opens with at most
+20 header lines: what it does, its inputs, its one output.
 
 ## How you run
 
