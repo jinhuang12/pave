@@ -9,8 +9,9 @@
 # valid stops are common (a pending user decision, waiting on a background
 # reviewer, a recorded pause_for_user_authority). The questions (heredoc
 # below) carry every lead duty no other moment re-asks; the lead answers
-# only on a hit, else "lgtm" -- a retrospective at every firing is itself
-# ceremony.
+# each in one line that names the fact behind it. There is no
+# acknowledgement-only reply: the one-word form ("lgtm") let the lead stop
+# without assessing anything, so it was removed.
 #
 # Stop hooks have NO non-blocking channel: additionalContext is dropped, so
 # the questions can only be delivered by blocking once (exit 2). A cooldown
@@ -128,10 +129,12 @@ printf '%s\n' "$((STOP_EVERY - 1))" > "$MARKER" 2>/dev/null || true
 cat >&2 <<EOF
 $TAG Active pave-init run $RUN_ID ($FOUND_STATE_LABEL): last traversal $LAST, run state last written ${AGE_MIN} min ago.
 
-You decided to stop. Socratic check -- answer only the questions where you
-find an issue; otherwise reply "lgtm" and stop again. A pending user decision
-or approval gate, a background reviewer still working, a recorded pause: all
-lgtm. The next $((STOP_EVERY - 1)) stops pass before this fires again.
+You decided to stop. Socratic check -- answer every question below in one
+line that names the fact behind it: a path, a run-state entry, a seat name,
+or "none: <why>". There is no acknowledgement-only reply; a question with no
+line is a duty you skipped. A pending user decision, a background reviewer
+still working, a recorded pause are answers -- name which one. The next
+$((STOP_EVERY - 1)) stops pass before this fires again.
   1. Next practical step toward the approved goal, and why -- a declared edge
      after $LAST (references/pave-init.pave.yaml) or a graph change you will
      propose; never an invented edge.

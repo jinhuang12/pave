@@ -46,26 +46,30 @@ import measure_artifact as ma  # noqa: E402
 # apply flags to pave-evolve; SKILL.md gains the hook-pair sentence.
 # 2026-09-11 (2.6.1): the always-fixable retry copy rule's declared scope gains shell
 # commands and the parked-marker sibling in the hooks reference.
+# 2026-09-24 (2.7.0): the inverse one-agent test, the batched user gate, the counter
+# restart on a user change and the framework-word clause grow the spec; the fusion and
+# simplify steps grow explore-and-plan; SKILL.md, README, planning-layout and the
+# reviewer template each gain one clause of the same change.
 CEILINGS = {
-    "skills/pave-init/SKILL.md": (267, 38031),
-    "skills/pave-init/README.md": (448, 26027),
+    "skills/pave-init/SKILL.md": (267, 38471),
+    "skills/pave-init/README.md": (451, 26261),
     "skills/pave-evolve/SKILL.md": (65, 8508),
     "skills/pave-init/references/approval-briefs.md": (72, 9498),
     "skills/pave-init/references/lead-hooks.md": (479, 47886),
     "skills/pave-init/references/pave-composition.md": (186, 10792),
     "skills/pave-init/references/pave-init-traceability.md": (169, 21888),
     "skills/pave-init/references/pave-revisions.md": (81, 16744),
-    "skills/pave-init/references/pave-spec.md": (1720, 76427),
+    "skills/pave-init/references/pave-spec.md": (1750, 78436),
     "skills/pave-init/references/pave-yaml.md": (431, 17721),
-    "skills/pave-init/references/planning-layout.md": (50, 4066),
+    "skills/pave-init/references/planning-layout.md": (50, 4232),
     "skills/pave-init/references/technique-selection.md": (202, 9904),
-    "skills/pave-init/orchestration/explore-and-plan.md": (174, 15273),
+    "skills/pave-init/orchestration/explore-and-plan.md": (176, 18351),
     "skills/pave-init/orchestration/interview-and-fitness.md": (131, 6946),
     "skills/pave-init/orchestration/review-and-build.md": (134, 14386),
     "sources/fragments/reviewer-core.md": (21, 3261),
     "sources/roles/forward-tester.md.tmpl": (21, 1783),
     "sources/roles/node-planner.md.tmpl": (72, 12795),
-    "sources/roles/pave-material-reviewer.md.tmpl": (91, 15549),
+    "sources/roles/pave-material-reviewer.md.tmpl": (91, 15867),
     "sources/roles/research-delegate.md.tmpl": (58, 2422),
     "sources/roles/skill-builder.md.tmpl": (44, 4703),
     "sources/roles/system-explorer.md.tmpl": (23, 1510),

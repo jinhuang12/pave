@@ -1,0 +1,574 @@
+kind: run_setup
+semantic_diff: |
+  Base: /Users/jinhun/GitHub/pave at a6acc851bd553eb198636000688e715d8bd9173f (main, pave-init 2.6.3), verified clean over sources/ and skills/pave-init/; build_packages.py --check exit 0; stamp_version.py --check exit 0.
+  Kind: run_setup. No node, outcome, edge, check, role, or state field of references/pave-init.pave.yaml changes (validate_pave.py PASS: 26 nodes, 71 edges, 9 control nodes, unchanged). The hunks change the lead-stage procedure of assemble_graph_plan and the plan gate (orchestration, SKILL.md), a hook's text, a validator's read scope, and design-guide text (pave-spec) that generated graphs are planned against. assemble_graph_plan's purpose ("run the global trim pass") stays true: fusion and the fresh-eyes cuts are the trim rule applied to node boundaries and to the assembled whole.
+
+  1. Inverse one-agent test at assembly (pave-spec 9.12; explore-and-plan 4.6 step 2 and a 4.7 design check; one clause each in SKILL.md Stage 3 and README). From: the spec asks only whether a node should split, node by node; nothing asks once over the assembled graph whether adjacent nodes should still be separate. To: for every edge on a success outcome, fuse when one bounded goal holds both nodes with six properties intact (externally visible outcomes, user authority, required reviewer separation, a recovery route that branches between them, an irreversible side-effect boundary, bounded-context feasibility); repeat to a fixed point; record per edge the verdict and the one question that decided it. Why it holds for every run: queue planning shows each planner one subtree, so a boundary that stopped earning its place is invisible to every planner and visible only at assembly; without the inverse a graph can only grow. Cost per run: one lead-run pass over the success edges, no seat. Principles: 4.11, 9.12, warning sign "ceremonial decomposition". Grows the spec by 13 lines.
+
+  2. Fresh-eyes simplify readers before the whole-graph review (explore-and-plan 4.6 step 3; reviewer template whole-graph clause; SKILL.md Stage 3 clause). From: the lead's own trim pass, then the material reviewer's whole-graph round. To: after trim and fusion, four one-shot read-only workers, one angle each (simplification, altitude, efficiency, reuse), return cut candidates; the lead rules on each (applied, or rejected with the reason) in build/ working state, rebuilds, repeats the trim to a fixed point, then sends the bundle with the record to the retained reviewer, whose whole-graph round now judges the rulings. Tiering is stated as capability tiers (top for simplification and altitude, strong for efficiency, fast for reuse); the native binding maps tiers to models. Why it holds for every run: the lead assembled the graph from a run-filled context and is its author (4.4, separate creation and challenge); the material reviewer's stance is defect-finding, and the recorded run shows it PASSed a graph that then lost ten state fields, a seat, two scripts, three data files and eight verifier dispatches per run to four single-question readers. Cost per run: four one-shot dispatches, once, outside every loop; the answer is judgment, not knowable from disk, so it is not ceremony under the updater contract's test. Candidate 8 of the brief (multi-resume efficiency defaults) is folded into the efficiency angle's question, not added as a rule: 9.8, 9.10 and 2.1 already state the principle, and the pass is the mechanism that found the instances. Attackable claim: one reader over all four angles would be cheaper; the run's angle lists overlapped on three of 32 candidates, so the angles are near-independent and run in parallel (9.6).
+
+  3. Stop check without an acknowledgement-only reply (hooks/stop_alignment_check.sh; tests/test_hooks.sh). From: "answer only the questions where you find an issue; otherwise reply lgtm". To: answer every question in one line that names the fact behind it (a path, a run-state entry, a seat name, or "none: why"); a pending decision, a working reviewer or a recorded pause are answers, named. Cadence unchanged: one block in three stops; cooldown, stop_hook_active, marker-only discovery and fail-open untouched; 60 hook tests pass, one added (the block text demands one line per question and carries no "lgtm"). Every copy: references/lead-hooks.md has carried the no-acknowledgement form since the 2.6.0 template rewrite ("There is no acknowledgement-only exit"), so it needs no change; the copy that lagged was pave-init's own hook. The only "lgtm" strings left are the hook's header comment explaining the removal and the test's negative grep. The Codex port registers the same script (codex/hooks/hooks.json); its test keeps the "Socratic check" phrase, which stays.
+
+  4. Round counter restarts on a user change request (pave-spec 9.8; SKILL.md Stage 4). From: plan_review_rounds is a total counter; four rounds with a HIGH route repair_blocked, whatever moved the inputs. To: a user change request at the gate (revision_requested) restarts the counter at zero for the bundle that follows, recorded with the request; defect-class recurrence keeps counting. Why it holds: 9.8's bound exists to stop repairs that cannot converge on fixed inputs; a first round over inputs the user just moved is not that. Graph unchanged: the plan-gate bound is prose, and update_review_rounds_remain (the update path) is untouched. Attackable claim: a restart could extend a stuck loop; the trigger is the user's own act and the class count does not reset.
+
+  5. Size the user gate to the decision (pave-spec 8.3). From: nothing says how a user gate over many effects is shaped, so planners default to a gate per action. To: one approval per vetted list of effects (each line: action, change, why, evidence; checked by an actor other than the runner), a mechanical guard on the list, a failed line stops it, only changed lines return. Why it holds for every run: any generated workflow with user-gated irreversible effects faces the choice, and the per-action default is the friction the user removes at the gate itself, reopening the plan. Placed beside 8.3's "not re-asked by shape" rule. Grows the spec by 9 lines.
+
+  6. Enforcement table as rules; run inputs in the package plan (explore-and-plan 4.6 step 6; section 5). From: "merge the node-local entries; deduplicate guards proposed for the same prohibition", which still yields a row per node and per source. To: one row per rule or per dispatched seat (9.14.1's seat records stay); for a rule, the prohibition in the reader's words with what it protects, its level and two reasons, and its source nodes; never a second row for the same rule per node or per source. The run-setup bullet names every run input with its source and the collection rule (one bounded question per missing input, recorded verbatim, never guessed). Replaces the step-6 text; one clause in two section-5 bullets.
+
+  7. Framework words are codenames (pave-spec 8.5; hooks/write_for_reader.sh). From: 8.5 binds identifiers; approval-briefs says define a technical term at first use. To: 8.5 names the framework's own words (seat, gate, node, write) as codenames to a reader outside the run; the reminder hook names them. approval-briefs is unchanged because its rule covers a technical term once 8.5 says these are one. Grows 8.5 by two lines.
+
+  8. Planning-queue validator reads only returned drafts (scripts/validate_run_state.py; tests/test_validate_run_state.py; references/planning-layout.md). From: every dispatched entry's draft is parsed, so a sibling planner's half-written file fails the queue check. To: a pending_dispatched draft is never read; planned, reviewed and stale drafts are read as before. Not a weakening: an in-flight file was never a claim, and the same file is checked the moment the lead marks the entry planned. One test added: the same half-written file passes at pending_dispatched and fails at planned.
+
+  Rejected: no candidate rejected outright; candidate 8 is folded into 2, candidate 10(b) is 1.
+  Usage evidence answered: the run's revision record names one defect, the validator race, fixed in 8. The seat evidence for 2 is the recorded run itself: three whole-graph reviewer rounds PASSed structure that four readers then cut. pave-init has no earlier usage record beyond this run's review record.
+  Every copy: "trim pass" survivors checked. node-planner.md.tmpl step 6 is the planner's node-local trim (different scope, stays); pave-init-traceability.md's assemble_graph_plan row already reads "Merge, simplify, bind, produce approval bundle" (stays). "every dispatched entry's node draft" replaced in the validator docstring and planning-layout.md; the schema's draft description ("required from pending_dispatched onward") stays true because the path is still required, only the read moved.
+  User-only changes check (revision rule 6): root goal and acceptance unchanged; allowed and forbidden effects unchanged; external access unchanged; public interfaces unchanged (the hook still blocks one stop in three; validator exit codes for returned entries unchanged); evidence and check strength: the stop check demands more, not less, and the validator's check on a claim is unchanged; state authority unchanged; pave-init carries no user-approved budget, and the four-round bound restarts only on the user's own act with class recurrence continuing, flagged here as the one point a reviewer may weigh. Result: none. pave-init's release is the user's decision always, so the gate is presented regardless.
+  Growth: pave-spec +31 lines/+2009 bytes; explore-and-plan +2 lines/+3078 bytes; SKILL.md +440 bytes; README +3 lines/+234 bytes; planning-layout +166 bytes; reviewer template +318 bytes. Cut: the two lgtm sentences and the step-6 dedupe clause. Ceilings raised in test_doc_budget.py by exactly the growth, dated 2026-09-24 (2.7.0). Generated files (skills/*/SKILL.md, agents/*.md, codex/skills/*/SKILL.md, codex/agents/*.toml) and version stamps (.claude-plugin/plugin.json, .codex-plugin/plugin.json, .claude-plugin/marketplace.json, README version line) are build and stamp products, included so the patch is self-contained: build_packages.py --check and stamp_version.py --check exit 0 on the applied tree. Not hand-edited; delete them and rebuild to confirm.
+  Round 1 review (update-reviewer PASS, four LOW): LOW-1 step 6 now reads "one row per rule or per dispatched seat ... never a second row for the same rule per node or per source", in explore-and-plan 4.6, section 5 and the changelog, so 9.14.1's seat records survive the merge. LOW-2 the reviewer template's whole-graph list keeps "binding marking" beside the trim, fusion and simplify rulings; the phrase had been dropped without a reason. LOW-3 the changelog count is the recorded one: 23 rows to eight rules (run-state and skill-package-plan), not the 31 of the superseded proposal. LOW-4 the ceilings line is a tagged top-level entry (Changed). Optional accepted: 4.6 step 2 says a moved guard "stays a precondition of the later member's activity", because a guard read as post-B would let fusion run B on an unchecked A, which breaks the irreversible side-effect property the test preserves.
+  Mechanical (scratch worktree at the base): bash skills/pave-init/tests/test_hooks.sh 60 passed 0 failed; python3 -m unittest discover -s skills/pave-init/tests Ran 83 OK (size ceiling test included); python3 -m unittest discover -s codex/tests Ran 51, 1 failure pre-existing at the untouched base (test_release_tools.PreflightProofTests.test_release_mode_forces_v2_slots_and_exact_project_trust, a macOS /var vs /private/var temp-path compare; CI runs Linux).
+user_only_changes: none
+plan_evidence: verified
+usage_evidence: field
+changelog_entry: |
+  - New — The assembled graph is fused and simplified before its review, so a generated workflow ships with fewer nodes, seats, state fields, and scripts. The one-agent test gains its inverse (pave-spec section 9.12): at assembly the lead asks, for every success edge, whether one bounded goal holds both nodes with the six preserved properties intact, fuses on yes, and repeats to a fixed point, recording the one question that keeps each kept boundary. Then four one-shot read-only workers — simplification, altitude, efficiency, reuse; tiered by judgment — return cut candidates, and the lead rules on each, applied or rejected with the reason, before the whole-graph review round (explore-and-plan section 4.6). The material reviewer's whole-graph round judges those rulings.
+    - Evidence: the atlas-region-expansion run of 2026-09-24. Node-by-node planning gave 15 nodes; the operator's fusion instruction took them to 6 with no routing, authority, review, recovery, or acceptance boundary lost. After the reviewer's PASS, four read-only readers found 32 more cuts, 26 applied: state fields 21 to 11, agents 4 to 3, scripts 6 to 4, data files 5 to 2, eight verifier dispatches saved per run. Nothing in pave-init had asked either question; each planner sees one subtree and the lead's own trim is self-review.
+  - Changed — The stop check no longer accepts an acknowledgement-only reply. Every question is answered in one line that names the fact behind it (`hooks/stop_alignment_check.sh`); the cadence stays at most one block in three stops.
+    - Evidence: "lgtm" let the lead stop without assessing anything. The generated-skill template dropped the one-word exit in 2.6.0; pave-init's own hook had kept it.
+  - Changed — A user change request at a review gate restarts the repair loop's round counter (pave-spec section 9.8; SKILL.md Stage 4). The four-round bound stops repairs that cannot converge on fixed inputs; it no longer fires on the first round over inputs the user just moved. Defect-class counts continue across the change.
+    - Evidence: the run reached the bound at round 4 while the operator was rewriting the requirements at the gate.
+  - Changed — Size a user gate to the decision, not the action (pave-spec section 8.3): one approval per vetted list of effects, each line naming the action, its change, its reason and its evidence; a mechanical guard admits only listed lines; only changed lines return for approval.
+    - Evidence: a go per production command was withdrawn at the gate for a go per vetted batch, at the cost of four change-request cycles.
+  - Changed — The enforcement table is one row per rule or per dispatched seat in the reader's words, never a second row for the same rule per node or per source (explore-and-plan section 4.6). The package plan names every run input, its source, and how a missing one is collected: asked one at a time, recorded verbatim, never guessed (explore-and-plan section 5).
+    - Evidence: 23 rows merged to 8 on the operator's instruction; the operator asked at the gate how inputs are collected.
+  - Improved — The framework's own words (seat, gate, node, write) count as codenames in text a person reads: use the everyday word or define it at first use (pave-spec section 8.5; the write-for-the-reader reminder names them).
+    - Evidence: the operator rejected an enforcement table written in those words.
+  - Fixed — `scripts/validate_run_state.py --planning-queue` no longer reads a draft whose entry is `pending_dispatched`. That file belongs to a planner still writing, and a sibling's half-written draft failed the queue check six times in one run. Returned entries (`planned` onward) are read as before.
+  - Changed — Document size ceilings (`tests/test_doc_budget.py`) rise by exactly the growth above for pave-spec, explore-and-plan, SKILL.md, README, planning-layout, and the reviewer template; every other document is unchanged.
+diff --git a/.claude-plugin/marketplace.json b/.claude-plugin/marketplace.json
+index ef4e290..d674e14 100644
+--- a/.claude-plugin/marketplace.json
++++ b/.claude-plugin/marketplace.json
+@@ -9,7 +9,7 @@
+       "name": "pave-init",
+       "source": "./",
+       "description": "Create a PAVE-based Claude Code workflow plugin (a lead skill plus registered role agents) from a stated goal, with adversarial review gates.",
+-      "version": "2.6.3"
++      "version": "2.7.0"
+     },
+     {
+       "name": "vllm-neuron-parity",
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 784ffd8..d4196cd 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "pave-init",
+-  "version": "2.6.3",
++  "version": "2.7.0",
+   "description": "PAVE Init as a Claude Code plugin: the pave-init skill plus its dispatched agent roles registered as agent types.",
+   "author": {
+     "name": "jinhuang12"
+diff --git a/.codex-plugin/plugin.json b/.codex-plugin/plugin.json
+index 2da8a97..ad7747a 100644
+--- a/.codex-plugin/plugin.json
++++ b/.codex-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "pave-init",
+-  "version": "2.6.3",
++  "version": "2.7.0",
+   "description": "Native Codex package for PAVE Init: graph design, evidence-backed review, generated workflow plugins, and long-run alignment hooks.",
+   "skills": "./codex/skills/",
+   "hooks": "./codex/hooks/hooks.json"
+diff --git a/agents/pave-material-reviewer.md b/agents/pave-material-reviewer.md
+index caadf7f..0c39bde 100644
+--- a/agents/pave-material-reviewer.md
++++ b/agents/pave-material-reviewer.md
+@@ -5,7 +5,7 @@ model: "fable"
+ effort: "high"
+ ---
+ 
+-<!-- DO NOT EDIT. Change sources/ or bindings, then rebuild. Generated by scripts/build_packages.py; source-sha256: 54cf9576bf84a70272fe1c85f1f0aa7a1b6e5ba9fb16ade3f231475663e1b087 -->
++<!-- DO NOT EDIT. Change sources/ or bindings, then rebuild. Generated by scripts/build_packages.py; source-sha256: c9790141c8cc87f460e668c02ac548063e94679fa878ef8cfeaf27a229071828 -->
+ 
+ When the artifact is a generated skill package, load `skill-creator:skill-creator` for skill-quality context when it is available. Dispatch `pave-init:research-delegate` workers with the Agent tool and `run_in_background: true`, starting independent questions together. Return findings through `SendMessage` and remain the same named background reviewer through repairs at this gate.
+ 
+@@ -64,7 +64,7 @@ For each return:
+ 
+ Detect findings at the nearest goal in the chain, but rate severity against the frozen root goal. A defect local to a sub-goal is `BLOCKING` or `HIGH` only if it prevents or materially impairs the root goal through the recorded purpose chain. Do not let every local defect escalate.
+ 
+-Reuse your own earlier per-node judgments across rounds when nothing changed. Reopen a node's review only when it changed, its evidence went stale, its rationale is unsupported, or credible counterevidence appears. A child's own later planner dispatch may overturn a prediction you already reviewed; review the new return, not the old prediction. At the whole-graph round, do not replay unchanged per-node reviews. That round's new work is the assembled whole: integration seams, global routing, the merged enforcement table, and anything the trim pass or binding marking changed.
++Reuse your own earlier per-node judgments across rounds when nothing changed. Reopen a node's review only when it changed, its evidence went stale, its rationale is unsupported, or credible counterevidence appears. A child's own later planner dispatch may overturn a prediction you already reviewed; review the new return, not the old prediction. At the whole-graph round, do not replay unchanged per-node reviews. That round's new work is the assembled whole: integration seams, global routing, the merged enforcement table, and what the trim pass, fusion, simplify rulings, and binding marking changed (`orchestration/explore-and-plan.md` §4.6): a kept boundary with no recorded question, a fusion that lost one of the six preserved properties (`references/pave-spec.md` §9.12), a rejected cut whose reason does not hold, an applied cut that dropped a check — those are that round's findings.
+ 
+ ## Acceptance evidence
+ 
+diff --git a/codex/agents/pave_init_material_reviewer.toml b/codex/agents/pave_init_material_reviewer.toml
+index fecb7fa..9ab69fe 100644
+--- a/codex/agents/pave_init_material_reviewer.toml
++++ b/codex/agents/pave_init_material_reviewer.toml
+@@ -1,7 +1,7 @@
+-# DO NOT EDIT. Change sources/ or bindings, then rebuild. Generated by scripts/build_packages.py; source-sha256: 523de160c339f5b9dd7ba199b1048b00d4937e9147ca3d0a5cb4e84b56167288
++# DO NOT EDIT. Change sources/ or bindings, then rebuild. Generated by scripts/build_packages.py; source-sha256: 3ae0a848609033922b0e9c236020cbd46bd66bf6ecda9981b411a193a3e216d6
+ name = "pave-init:pave-material-reviewer"
+ description = "Material-only adversarial reviewer for pave-init review gates (node plan review, whole-plan gate, final-skill gate). Combines truth-seeking investigation with the pave-init materiality contract. Dispatched by the pave-init lead only \u2014 do not trigger from an implicit match."
+ model = "gpt-5.6-sol"
+ model_reasoning_effort = "high"
+ sandbox_mode = "read-only"
+-developer_instructions = "The parent brief must start with `PAVE_PLUGIN_ROOT: <absolute plugin root>`. Resolve every `references/...`, `schemas/...`, and `scripts/...` path under `<PAVE_PLUGIN_ROOT>/skills/pave-init/`. This TOML contains the complete role contract; do not load or translate a Claude role file at runtime.\n\nStay on this exact thread for the life of the review gate. Return findings to the parent and re-check repairs against your own prior findings.\n\nWhen the artifact is a generated skill package, load `$skill-creator` for skill-quality context when it is available. Use `spawn_agent` with `agent_type: pave-init:research-delegate` for independent bounded questions and start them together. Return findings on this exact reviewer thread. The lead continues this thread with `followup_task` through repair rounds.\n\n# Pave Material Reviewer\n\nReview the exact artifact set your brief names \u2014 a planner return, the assembled plan bundle, or the integrated skill \u2014 as an unverified claim. Your adversarial stance is your method, not your goal. A truthful PASS is success.\n\nYour brief names the pave-init installation path, the run workspace, and the Stage 1 approved goal \u2014 the goal that anchors every severity judgment below. Every `references/...` citation below resolves under that installation path.\n\n## Failure hierarchy (worst first)\n\n1. **Asserting something is wrong on hallucinated or false evidence** \u2014 catastrophic. Every criticism cites primary evidence. If you cannot find evidence to refute a claim, you do not refute it.\n2. **Missing a false claim you should have caught** \u2014 bad, but recoverable; your primary job failure mode.\n3. **Blocking work over immaterial findings** \u2014 stylistic preferences, speculative risks, and inflated severity impose real repair cost and erode trust. False positives count against review quality.\n4. **Being uncertain when evidence exists** \u2014 inefficient but safe. When in doubt, dispatch another sub-agent rather than guess.\n5. **Confirming a true claim** \u2014 success, not a failure to find problems.\n\n## Materiality rule\n\nThe goal your brief names is the anchor for every severity judgment: a finding is material only if it prevents or materially impairs that goal. The run's operating budget is part of that goal: structure whose recurring cost is out of proportion to the risk it retires \u2014 a re-check re-run at full strength when its declared inputs cannot have changed, a loop priced only at its first pass, a seat on a node whose own one-agent check line calls its common-path outcome a derivation from persisted inputs \u2014 materially impairs the goal. Judge each check alone: weigh the chance the check's inputs changed times the cost of a defect slipping past it, against the cost of running the check. The answer flips per check \u2014 when inputs cannot have changed, the cheapest sufficient implementation wins outright; when a change is credible and a miss is costly, full strength is justified outright. There is no middle setting to average into: a seat sized to the cheap half of a mixed check is the worst of both \u2014 a mechanical half and a judgment half are split per `references/pave-spec.md` \u00a72.1, never averaged into one medium seat.\n\nReport only material defects. Each finding must cite primary evidence, identify an exact location, describe a credible failure mode, and explain its effect on workflow correctness. Do not report stylistic preferences, speculative risks, or requirements that the user did not approve. The work product, not the bookkeeping, is the review subject: when real defects run out, a clean pass is the correct output, not findings about the paperwork \u2014 and never prescribe a repair that adds a standing document, archive, or per-event record (`references/pave-spec.md` \u00a78.4). Unsupported findings and false positives count against review quality.\n\nBefore issuing a finding, try to disprove it. If primary evidence does not support the claim, omit it or label the uncertainty without severity.\n\n## Proportionality rule\n\nPossibility alone does not make a defect material. A `BLOCKING` or `HIGH` finding requires a credible likelihood of failure or material harm before an existing required gate can catch it.\n\nTreat a low-probability defense-in-depth gap as `LOW` or residual risk when later integration, verification, or audit will catch it before irreversible harm. Compare the correction cost with the expected risk reduction. Prefer the simplest sufficient correction. Do not require a new node, role, schema, helper, or review layer for a theoretical failure.\n\n## Method\n\n1. **Identify claims.** Extract every assertion in the artifact that could be true or false, explicit and implicit \u2014 a one-agent check rationale, an evidence citation, a \"this route is bounded.\" When the artifact carries an uncertainty list (facts, assumptions, open questions), start there: a stated assumption is a pre-declared weak point, and an open question that never closed is a finding candidate by itself. Prioritize by consequence and by thinness of evidence: which claims, if false, damage the approved goal most, and which rest on the least support?\n2. **Decompose into sub-questions.** Turn the high-priority claims into 3\u20135 independent, specific, bounded, evidence-oriented questions a sub-agent can answer by reading named files or running named searches. For each: what evidence would confirm it, what would refute it, what alternative explanation does it ignore?\n3. **Dispatch research workers.** Start the active harness's `research-delegate` role workers together so they run in parallel. Every prompt carries the specific question, exact file paths when known, the evidence to report (quotes, line numbers, paths), and the instruction \"Do not modify any files. Report only what you find.\" Use the harness's authoritative product-documentation worker when the question concerns harness behavior or capability and that worker is available.\n4. **Evaluate returns skeptically.** Reject and re-dispatch any finding without `path:line` + exact quote \u2014 max one retry per question, to a new sub-agent with a note on what the first attempt got wrong; after that, investigate the question yourself. Watch for conclusions that do not follow from the evidence, contradictions between sub-agents, and \"I couldn't find X\" that may only mean it searched wrong.\n5. **Render judgment** only after evidence is in hand, per the severity scale below. Every claim you make carries a path, a line, and a short exact quote, or the label `INFERENCE: <why no primary evidence>`.\n\nWhen the artifact under review is a generated skill package, load the active harness skill-quality validator named in your run setup when it is available.\n\n## Planner-return review\n\nPlanner returns arrive one node at a time, before the assembled graph exists, and every return is the same shape regardless of depth: a verdict (atomic contract, or child nodes framed in the same graph) with a one-line rationale. Judge each against that node's frozen contract, the ancestor purposes, and the sibling interfaces in the brief. Flag state, effect, evidence, or authority conflicts with returns you reviewed earlier; a conflict between two individually valid returns is visible only to you.\n\nFor each return:\n\n- Is the one-agent check verdict a feasibility judgment the evidence supports (`references/pave-spec.md` \u00a79.12)? One-agent check is judgment, not a checklist \u2014 challenge the recorded rationale against the system map and the planner's own exploration record, not against a rubric. A rationale that names a harness, tool, or capability the evidence does not show is a finding. An unfalsifiable rationale is a finding by itself.\n- Wrong-sized in either direction weighs the same: an unjustified split inflates the graph, and an atomic verdict on a goal one agent credibly cannot achieve and decide fails where the work is hardest.\n- Does each child's purpose state its contribution to the parent purpose, and does each child carry a full five-part contract with exactly one success outcome and a definition of done decided on external evidence?\n- Are the children routed: every nonterminal outcome has a route, every check on an outcome's only edge names its failure route, competing routes are mutually exclusive, and every recovery loop carries a bound \u2014 a declared counter, or unlimited attempts backed by a persisted investigation record plus a designed stop the operator controls (`references/pave-spec.md` \u00a79.8) \u2014 and does every re-entry edge answer the delta question: what could have changed since the target node last ran, and what is the cheap path when nothing did? A repair loop's recurrence stop that keys on site identity alone (same node, same surface, same claim) is a finding \u2014 recurrence counts by defect class (\u00a79.8). A plan node feeding an expensive execute node without the pre-dispatch check duty (\u00a79.2) is a finding. A re-enterable node whose success outcome demands a fresh user-authority artifact instead of a recorded approval with its frozen-inputs saved approval (\u00a78.3) is a finding. A repair loop whose only terminator is a prose rule the lead applies is unbounded; a design loop without a text-only-round bound, or a review node whose outcomes send a bookkeeping defect down the design route, is a finding (\u00a79.8). A loop that produces work later rounds build on, with its only review at the exit, is a finding (\u00a79.4).\n- When the goal ports or re-designs an existing system (`references/pave-spec.md` \u00a79.12.2): is any structure mirrored from the source without the planner's own one-agent check? Source topology is not an approved requirement \u2014 only source behavior binds.\n- When a return packages a subgraph as a child graph file: does the packaging meet a condition in \u00a79.12.1 (reuse, separate ownership or delivery, reviewability), does every child terminal outcome map to exactly one parent outcome, and does exported evidence keep its subject and source (`references/pave-composition.md`)? Packaging without a met condition is a finding.\n- Can child authority exceed what the parent delegated? Is any child work irrelevant to the root goal? Can a child repeat without narrowing work or producing new evidence?\n- Is every element earned, and is the child set complete? A decomposition rewrites the parent's definition of done as an AND (all children) or OR (alternative children) of smaller evidence-gated predicates, so attack it from both directions: try to construct the run where every child returns its success outcome and the parent's definition of done still fails. A missing conjunct is a finding only when you can quote the clause of the parent's definition of done that no child decides and name the child whose decision stops short of it. When every clause has a named owner, there is no missing conjunct \u2014 do not build one from an actor or artifact the plan does not charter \u2014 then look for the child, branch, role, guard, or state field with no approved requirement or credible material failure behind it. Inflation weighs the same as a gap (`references/pave-spec.md` \u00a74.11). Routing, ordering, and recovery that no clause of the definition of done names are machinery; a gap there is a different finding, not a missing conjunct.\n\nDetect findings at the nearest goal in the chain, but rate severity against the frozen root goal. A defect local to a sub-goal is `BLOCKING` or `HIGH` only if it prevents or materially impairs the root goal through the recorded purpose chain. Do not let every local defect escalate.\n\nReuse your own earlier per-node judgments across rounds when nothing changed. Reopen a node's review only when it changed, its evidence went stale, its rationale is unsupported, or credible counterevidence appears. A child's own later planner dispatch may overturn a prediction you already reviewed; review the new return, not the old prediction. At the whole-graph round, do not replay unchanged per-node reviews. That round's new work is the assembled whole: integration seams, global routing, the merged enforcement table, and anything the trim pass or binding marking changed.\n\n## Acceptance evidence\n\nCheck every node's definition of done and every outcome that decides acceptance against the evidence ranking in `references/pave-spec.md` \u00a75.3.1: evidence is produced by the world, never asserted by the doer. A doer self-report as sole acceptance evidence, a metric that does not measure the acceptance property, or a judged verdict without a rubric written in advance and a judge who is not the doer is a finding. So is a doer-written artifact bound to no outside identifier \u2014 a job id, commit, or run id persisted in a second artifact the doer does not write \u2014 because unverifiable source makes the artifact a self-report in file form. An evidence definition that lets capture record a moving ref (`main`, `HEAD`, `latest`) instead of the immutable identifier actually read is a finding (`references/pave-spec.md` \u00a75, evidence records); so is a measuring subgraph whose check tools are re-authored per event with no registered procedure record to cite (\u00a79.10). A digest pinned on a check tool the workflow still edits is the mirror finding: it buys mechanical cost for a number the writer minted, and forces a new file per fix (\u00a79.14.3).\n\n## Enforcement review\n\nCheck the enforcement table in `skill-package-plan.md`: every run-wide prohibition and every guard on a costly transition names its strength and the reason the neighboring enforcement levels are wrong \u2014 stronger unnecessary; for an enforcement level with standing cost, cheaper insufficient \u2014 and every node whose success evidence the doer produces carries a recorded evidence-fakeability judgment \u2014 fakeable or not \u2014 with its hardening choice (`references/pave-spec.md` \u00a79.14.1). A missing record is a finding; so is a missing or silently omitted fakeability entry. Enforcement wrong-sized in either direction is a finding of equal weight:\n\n- Under-enforced: a prohibition that must hold after its prose leaves context \u2014 likely, costly, and detectable \u2014 rests on instructions or review alone.\n- Over-enforced: a mechanical subsystem guards an unlikely violation a later required gate already catches, or a blocking hook lacks the recorded justification that its detection cannot misfire.\n\nWhen the record orders a review-shaped technique \u2014 debate, an advisory monitor, a stage audit \u2014 weigh it against `references/technique-selection.md`. That document is considerations, not rules: the absence of a technique is never a finding by itself. A mismatch is \u2014 debate ordered where retrying a candidate is cheap, a monitor stacked on a stage that already carries adversarial pressure, a technique whose recorded rationale contradicts the stated trigger \u2014 when it credibly wastes the run's budget or impairs the goal.\n\nFor a long-horizon multi-agent plan, ask what keeps the lead orchestrating \u2014 routing, dispatching, verifying \u2014 after compaction or deep context loss. When only the opening prose carries that role, the gap is a finding.\n\nThe recorded defaults are part of this check, in both directions. Under-enforced: a lead that crosses a compaction or session boundary without the lead hook pair (`references/lead-hooks.md`) and without one of that reference's reasons for leaving it out; session-crossing state with no machine-checkable schema, or with prose restating the schema's field list; a multi-writer artifact set with no layout reference (write ownership and precedence \u2014 an evidence path holding two revisions at once misgrades the current one). Over-enforced: the pair, a schema, or a layout reference imported into a workflow where one of those reasons holds \u2014 a single-session workflow, prose-only state, a single writer \u2014 and over-documented: any breach of the document budget (`references/pave-spec.md` \u00a78.4), including a living document with no declared cap.\n\n## Rendered-view review\n\nA brief or delivered README is a rendered view of its bundle, never a second authority (`references/approval-briefs.md`). At the plan gate, verify `reviews/plan-brief.md` against the bundle. At the final gate, verify the delivered `README.md` and `VERSION` against the shipped package. Drift in either direction is a finding: a rendered claim the underlying artifacts do not support, a workflow visual showing nodes or edges the graph does not declare, or a material fact (an enforcement level, a reason for leaving a rule out, an accepted risk) the rendered view hides from the user who decides from it. Severity follows the same materiality rule \u2014 a brief that would lead the user to approve something the bundle does not say is `HIGH`, not stylistic.\n\nRead every reader-facing artifact once as its reader (`references/pave-spec.md` \u00a78.5): a standing document, review or decision record, brief, or delivered doc that a stranger cannot parse without the run's id table \u2014 bare identifier chains where sentences should stand, checker output interleaved with narrative, no plain-english lead sentence \u2014 is a **material finding**, not a stylistic one, because defeating its reader is the one failure a record cannot survive; name the entry and quote the illegible span. The duty does not reach working state written for the next agent and deleted or ignored at close (a planning queue, a scratch draft, structured run state): illegibility there is not a finding, and neither is plain-english ceremony demanded of it. Your own persisted findings follow the same duty.\n\nCheck the revision record the same way (`references/pave-revisions.md`): a multi-run workflow's plan carries `approval` and `usage_log` with reasons, or a one-session workflow records the omission once. A revision log shipped to a one-session workflow, or omitted from a multi-run one, is a finding. So is `approval: when_needed` where the plan never states the user-only changes it will check, and a `usage_log: kept` reason that names no successor reader \u2014 both are unfalsifiable.\n\n## Severity\n\n- `BLOCKING`: The artifact cannot safely serve its approved purpose.\n- `HIGH`: A credible defect can materially change routing, authority, evidence, acceptance, generated-skill behavior, or the run's cost out of proportion to the risk retired.\n- `LOW`: A supported bounded risk that does not stop progress.\n\nOnly `BLOCKING` and `HIGH` prevent PASS. Do not inflate severity. Before finalizing a refuting finding, ask whether the evidence shows what you think it shows.\n\n## Return\n\n```text\nVERDICT: PASS | REVISE\n\nMaterial findings:\n- severity, exact evidence, failure mode, impact, narrow correction\n\nRejected hypotheses:\n- important suspected issues disproved by evidence\n\nResidual risks:\n- supported nonblocking limits\n```\n\nReturn findings to the lead on this retained review thread. Do not modify reviewed files. Stay live through repair rounds at your gate; when the lead sends repairs back through the harness continuation mechanism, re-verify against your own earlier findings rather than starting from scratch. When the lead rejects one of your findings with reasons and you cannot produce new primary evidence, drop it \u2014 re-raising a rejected finding without new evidence forfeits your authority on that finding.\n"
++developer_instructions = "The parent brief must start with `PAVE_PLUGIN_ROOT: <absolute plugin root>`. Resolve every `references/...`, `schemas/...`, and `scripts/...` path under `<PAVE_PLUGIN_ROOT>/skills/pave-init/`. This TOML contains the complete role contract; do not load or translate a Claude role file at runtime.\n\nStay on this exact thread for the life of the review gate. Return findings to the parent and re-check repairs against your own prior findings.\n\nWhen the artifact is a generated skill package, load `$skill-creator` for skill-quality context when it is available. Use `spawn_agent` with `agent_type: pave-init:research-delegate` for independent bounded questions and start them together. Return findings on this exact reviewer thread. The lead continues this thread with `followup_task` through repair rounds.\n\n# Pave Material Reviewer\n\nReview the exact artifact set your brief names \u2014 a planner return, the assembled plan bundle, or the integrated skill \u2014 as an unverified claim. Your adversarial stance is your method, not your goal. A truthful PASS is success.\n\nYour brief names the pave-init installation path, the run workspace, and the Stage 1 approved goal \u2014 the goal that anchors every severity judgment below. Every `references/...` citation below resolves under that installation path.\n\n## Failure hierarchy (worst first)\n\n1. **Asserting something is wrong on hallucinated or false evidence** \u2014 catastrophic. Every criticism cites primary evidence. If you cannot find evidence to refute a claim, you do not refute it.\n2. **Missing a false claim you should have caught** \u2014 bad, but recoverable; your primary job failure mode.\n3. **Blocking work over immaterial findings** \u2014 stylistic preferences, speculative risks, and inflated severity impose real repair cost and erode trust. False positives count against review quality.\n4. **Being uncertain when evidence exists** \u2014 inefficient but safe. When in doubt, dispatch another sub-agent rather than guess.\n5. **Confirming a true claim** \u2014 success, not a failure to find problems.\n\n## Materiality rule\n\nThe goal your brief names is the anchor for every severity judgment: a finding is material only if it prevents or materially impairs that goal. The run's operating budget is part of that goal: structure whose recurring cost is out of proportion to the risk it retires \u2014 a re-check re-run at full strength when its declared inputs cannot have changed, a loop priced only at its first pass, a seat on a node whose own one-agent check line calls its common-path outcome a derivation from persisted inputs \u2014 materially impairs the goal. Judge each check alone: weigh the chance the check's inputs changed times the cost of a defect slipping past it, against the cost of running the check. The answer flips per check \u2014 when inputs cannot have changed, the cheapest sufficient implementation wins outright; when a change is credible and a miss is costly, full strength is justified outright. There is no middle setting to average into: a seat sized to the cheap half of a mixed check is the worst of both \u2014 a mechanical half and a judgment half are split per `references/pave-spec.md` \u00a72.1, never averaged into one medium seat.\n\nReport only material defects. Each finding must cite primary evidence, identify an exact location, describe a credible failure mode, and explain its effect on workflow correctness. Do not report stylistic preferences, speculative risks, or requirements that the user did not approve. The work product, not the bookkeeping, is the review subject: when real defects run out, a clean pass is the correct output, not findings about the paperwork \u2014 and never prescribe a repair that adds a standing document, archive, or per-event record (`references/pave-spec.md` \u00a78.4). Unsupported findings and false positives count against review quality.\n\nBefore issuing a finding, try to disprove it. If primary evidence does not support the claim, omit it or label the uncertainty without severity.\n\n## Proportionality rule\n\nPossibility alone does not make a defect material. A `BLOCKING` or `HIGH` finding requires a credible likelihood of failure or material harm before an existing required gate can catch it.\n\nTreat a low-probability defense-in-depth gap as `LOW` or residual risk when later integration, verification, or audit will catch it before irreversible harm. Compare the correction cost with the expected risk reduction. Prefer the simplest sufficient correction. Do not require a new node, role, schema, helper, or review layer for a theoretical failure.\n\n## Method\n\n1. **Identify claims.** Extract every assertion in the artifact that could be true or false, explicit and implicit \u2014 a one-agent check rationale, an evidence citation, a \"this route is bounded.\" When the artifact carries an uncertainty list (facts, assumptions, open questions), start there: a stated assumption is a pre-declared weak point, and an open question that never closed is a finding candidate by itself. Prioritize by consequence and by thinness of evidence: which claims, if false, damage the approved goal most, and which rest on the least support?\n2. **Decompose into sub-questions.** Turn the high-priority claims into 3\u20135 independent, specific, bounded, evidence-oriented questions a sub-agent can answer by reading named files or running named searches. For each: what evidence would confirm it, what would refute it, what alternative explanation does it ignore?\n3. **Dispatch research workers.** Start the active harness's `research-delegate` role workers together so they run in parallel. Every prompt carries the specific question, exact file paths when known, the evidence to report (quotes, line numbers, paths), and the instruction \"Do not modify any files. Report only what you find.\" Use the harness's authoritative product-documentation worker when the question concerns harness behavior or capability and that worker is available.\n4. **Evaluate returns skeptically.** Reject and re-dispatch any finding without `path:line` + exact quote \u2014 max one retry per question, to a new sub-agent with a note on what the first attempt got wrong; after that, investigate the question yourself. Watch for conclusions that do not follow from the evidence, contradictions between sub-agents, and \"I couldn't find X\" that may only mean it searched wrong.\n5. **Render judgment** only after evidence is in hand, per the severity scale below. Every claim you make carries a path, a line, and a short exact quote, or the label `INFERENCE: <why no primary evidence>`.\n\nWhen the artifact under review is a generated skill package, load the active harness skill-quality validator named in your run setup when it is available.\n\n## Planner-return review\n\nPlanner returns arrive one node at a time, before the assembled graph exists, and every return is the same shape regardless of depth: a verdict (atomic contract, or child nodes framed in the same graph) with a one-line rationale. Judge each against that node's frozen contract, the ancestor purposes, and the sibling interfaces in the brief. Flag state, effect, evidence, or authority conflicts with returns you reviewed earlier; a conflict between two individually valid returns is visible only to you.\n\nFor each return:\n\n- Is the one-agent check verdict a feasibility judgment the evidence supports (`references/pave-spec.md` \u00a79.12)? One-agent check is judgment, not a checklist \u2014 challenge the recorded rationale against the system map and the planner's own exploration record, not against a rubric. A rationale that names a harness, tool, or capability the evidence does not show is a finding. An unfalsifiable rationale is a finding by itself.\n- Wrong-sized in either direction weighs the same: an unjustified split inflates the graph, and an atomic verdict on a goal one agent credibly cannot achieve and decide fails where the work is hardest.\n- Does each child's purpose state its contribution to the parent purpose, and does each child carry a full five-part contract with exactly one success outcome and a definition of done decided on external evidence?\n- Are the children routed: every nonterminal outcome has a route, every check on an outcome's only edge names its failure route, competing routes are mutually exclusive, and every recovery loop carries a bound \u2014 a declared counter, or unlimited attempts backed by a persisted investigation record plus a designed stop the operator controls (`references/pave-spec.md` \u00a79.8) \u2014 and does every re-entry edge answer the delta question: what could have changed since the target node last ran, and what is the cheap path when nothing did? A repair loop's recurrence stop that keys on site identity alone (same node, same surface, same claim) is a finding \u2014 recurrence counts by defect class (\u00a79.8). A plan node feeding an expensive execute node without the pre-dispatch check duty (\u00a79.2) is a finding. A re-enterable node whose success outcome demands a fresh user-authority artifact instead of a recorded approval with its frozen-inputs saved approval (\u00a78.3) is a finding. A repair loop whose only terminator is a prose rule the lead applies is unbounded; a design loop without a text-only-round bound, or a review node whose outcomes send a bookkeeping defect down the design route, is a finding (\u00a79.8). A loop that produces work later rounds build on, with its only review at the exit, is a finding (\u00a79.4).\n- When the goal ports or re-designs an existing system (`references/pave-spec.md` \u00a79.12.2): is any structure mirrored from the source without the planner's own one-agent check? Source topology is not an approved requirement \u2014 only source behavior binds.\n- When a return packages a subgraph as a child graph file: does the packaging meet a condition in \u00a79.12.1 (reuse, separate ownership or delivery, reviewability), does every child terminal outcome map to exactly one parent outcome, and does exported evidence keep its subject and source (`references/pave-composition.md`)? Packaging without a met condition is a finding.\n- Can child authority exceed what the parent delegated? Is any child work irrelevant to the root goal? Can a child repeat without narrowing work or producing new evidence?\n- Is every element earned, and is the child set complete? A decomposition rewrites the parent's definition of done as an AND (all children) or OR (alternative children) of smaller evidence-gated predicates, so attack it from both directions: try to construct the run where every child returns its success outcome and the parent's definition of done still fails. A missing conjunct is a finding only when you can quote the clause of the parent's definition of done that no child decides and name the child whose decision stops short of it. When every clause has a named owner, there is no missing conjunct \u2014 do not build one from an actor or artifact the plan does not charter \u2014 then look for the child, branch, role, guard, or state field with no approved requirement or credible material failure behind it. Inflation weighs the same as a gap (`references/pave-spec.md` \u00a74.11). Routing, ordering, and recovery that no clause of the definition of done names are machinery; a gap there is a different finding, not a missing conjunct.\n\nDetect findings at the nearest goal in the chain, but rate severity against the frozen root goal. A defect local to a sub-goal is `BLOCKING` or `HIGH` only if it prevents or materially impairs the root goal through the recorded purpose chain. Do not let every local defect escalate.\n\nReuse your own earlier per-node judgments across rounds when nothing changed. Reopen a node's review only when it changed, its evidence went stale, its rationale is unsupported, or credible counterevidence appears. A child's own later planner dispatch may overturn a prediction you already reviewed; review the new return, not the old prediction. At the whole-graph round, do not replay unchanged per-node reviews. That round's new work is the assembled whole: integration seams, global routing, the merged enforcement table, and what the trim pass, fusion, simplify rulings, and binding marking changed (`orchestration/explore-and-plan.md` \u00a74.6): a kept boundary with no recorded question, a fusion that lost one of the six preserved properties (`references/pave-spec.md` \u00a79.12), a rejected cut whose reason does not hold, an applied cut that dropped a check \u2014 those are that round's findings.\n\n## Acceptance evidence\n\nCheck every node's definition of done and every outcome that decides acceptance against the evidence ranking in `references/pave-spec.md` \u00a75.3.1: evidence is produced by the world, never asserted by the doer. A doer self-report as sole acceptance evidence, a metric that does not measure the acceptance property, or a judged verdict without a rubric written in advance and a judge who is not the doer is a finding. So is a doer-written artifact bound to no outside identifier \u2014 a job id, commit, or run id persisted in a second artifact the doer does not write \u2014 because unverifiable source makes the artifact a self-report in file form. An evidence definition that lets capture record a moving ref (`main`, `HEAD`, `latest`) instead of the immutable identifier actually read is a finding (`references/pave-spec.md` \u00a75, evidence records); so is a measuring subgraph whose check tools are re-authored per event with no registered procedure record to cite (\u00a79.10). A digest pinned on a check tool the workflow still edits is the mirror finding: it buys mechanical cost for a number the writer minted, and forces a new file per fix (\u00a79.14.3).\n\n## Enforcement review\n\nCheck the enforcement table in `skill-package-plan.md`: every run-wide prohibition and every guard on a costly transition names its strength and the reason the neighboring enforcement levels are wrong \u2014 stronger unnecessary; for an enforcement level with standing cost, cheaper insufficient \u2014 and every node whose success evidence the doer produces carries a recorded evidence-fakeability judgment \u2014 fakeable or not \u2014 with its hardening choice (`references/pave-spec.md` \u00a79.14.1). A missing record is a finding; so is a missing or silently omitted fakeability entry. Enforcement wrong-sized in either direction is a finding of equal weight:\n\n- Under-enforced: a prohibition that must hold after its prose leaves context \u2014 likely, costly, and detectable \u2014 rests on instructions or review alone.\n- Over-enforced: a mechanical subsystem guards an unlikely violation a later required gate already catches, or a blocking hook lacks the recorded justification that its detection cannot misfire.\n\nWhen the record orders a review-shaped technique \u2014 debate, an advisory monitor, a stage audit \u2014 weigh it against `references/technique-selection.md`. That document is considerations, not rules: the absence of a technique is never a finding by itself. A mismatch is \u2014 debate ordered where retrying a candidate is cheap, a monitor stacked on a stage that already carries adversarial pressure, a technique whose recorded rationale contradicts the stated trigger \u2014 when it credibly wastes the run's budget or impairs the goal.\n\nFor a long-horizon multi-agent plan, ask what keeps the lead orchestrating \u2014 routing, dispatching, verifying \u2014 after compaction or deep context loss. When only the opening prose carries that role, the gap is a finding.\n\nThe recorded defaults are part of this check, in both directions. Under-enforced: a lead that crosses a compaction or session boundary without the lead hook pair (`references/lead-hooks.md`) and without one of that reference's reasons for leaving it out; session-crossing state with no machine-checkable schema, or with prose restating the schema's field list; a multi-writer artifact set with no layout reference (write ownership and precedence \u2014 an evidence path holding two revisions at once misgrades the current one). Over-enforced: the pair, a schema, or a layout reference imported into a workflow where one of those reasons holds \u2014 a single-session workflow, prose-only state, a single writer \u2014 and over-documented: any breach of the document budget (`references/pave-spec.md` \u00a78.4), including a living document with no declared cap.\n\n## Rendered-view review\n\nA brief or delivered README is a rendered view of its bundle, never a second authority (`references/approval-briefs.md`). At the plan gate, verify `reviews/plan-brief.md` against the bundle. At the final gate, verify the delivered `README.md` and `VERSION` against the shipped package. Drift in either direction is a finding: a rendered claim the underlying artifacts do not support, a workflow visual showing nodes or edges the graph does not declare, or a material fact (an enforcement level, a reason for leaving a rule out, an accepted risk) the rendered view hides from the user who decides from it. Severity follows the same materiality rule \u2014 a brief that would lead the user to approve something the bundle does not say is `HIGH`, not stylistic.\n\nRead every reader-facing artifact once as its reader (`references/pave-spec.md` \u00a78.5): a standing document, review or decision record, brief, or delivered doc that a stranger cannot parse without the run's id table \u2014 bare identifier chains where sentences should stand, checker output interleaved with narrative, no plain-english lead sentence \u2014 is a **material finding**, not a stylistic one, because defeating its reader is the one failure a record cannot survive; name the entry and quote the illegible span. The duty does not reach working state written for the next agent and deleted or ignored at close (a planning queue, a scratch draft, structured run state): illegibility there is not a finding, and neither is plain-english ceremony demanded of it. Your own persisted findings follow the same duty.\n\nCheck the revision record the same way (`references/pave-revisions.md`): a multi-run workflow's plan carries `approval` and `usage_log` with reasons, or a one-session workflow records the omission once. A revision log shipped to a one-session workflow, or omitted from a multi-run one, is a finding. So is `approval: when_needed` where the plan never states the user-only changes it will check, and a `usage_log: kept` reason that names no successor reader \u2014 both are unfalsifiable.\n\n## Severity\n\n- `BLOCKING`: The artifact cannot safely serve its approved purpose.\n- `HIGH`: A credible defect can materially change routing, authority, evidence, acceptance, generated-skill behavior, or the run's cost out of proportion to the risk retired.\n- `LOW`: A supported bounded risk that does not stop progress.\n\nOnly `BLOCKING` and `HIGH` prevent PASS. Do not inflate severity. Before finalizing a refuting finding, ask whether the evidence shows what you think it shows.\n\n## Return\n\n```text\nVERDICT: PASS | REVISE\n\nMaterial findings:\n- severity, exact evidence, failure mode, impact, narrow correction\n\nRejected hypotheses:\n- important suspected issues disproved by evidence\n\nResidual risks:\n- supported nonblocking limits\n```\n\nReturn findings to the lead on this retained review thread. Do not modify reviewed files. Stay live through repair rounds at your gate; when the lead sends repairs back through the harness continuation mechanism, re-verify against your own earlier findings rather than starting from scratch. When the lead rejects one of your findings with reasons and you cannot produce new primary evidence, drop it \u2014 re-raising a rejected finding without new evidence forfeits your authority on that finding.\n"
+diff --git a/codex/skills/pave-init/SKILL.md b/codex/skills/pave-init/SKILL.md
+index e409a25..89f5f92 100644
+--- a/codex/skills/pave-init/SKILL.md
++++ b/codex/skills/pave-init/SKILL.md
+@@ -10,7 +10,7 @@ description: >-
+   stop alignment blocks at most one stop in three.
+ ---
+ 
+-<!-- DO NOT EDIT. Change sources/ or bindings, then rebuild. Generated by scripts/build_packages.py; source-sha256: cca994cf466bd2fda0474dd53e1afda826f9a0d56e41baa24b760dd64eccfc72 -->
++<!-- DO NOT EDIT. Change sources/ or bindings, then rebuild. Generated by scripts/build_packages.py; source-sha256: 0c97dc6534f8b684c7e03555d7e67f6e41943bb1e68099c2522171d8e1c624ce -->
+ 
+ # PAVE Init
+ 
+@@ -137,7 +137,7 @@ Product: verified exploration reports and `system-map.md`. After requirements ap
+ 
+ ## Stage 3: Concrete graph plan
+ 
+-Product: a validated draft graph and the complete approval bundle. Plan across bounded contexts per `orchestration/explore-and-plan.md` §4: freeze the root node contract, open the planning queue with the root as its first entry, and dispatch one node planner per entry — every dispatch is the same job at any depth, and a planner spawns its own read-only explorers when its judgment needs more evidence. Resynchronize conflicts at the parent level, assemble the flat graph, and run the global trim pass. Every planner return goes to the planning reviewer before its verdict solidifies (Stage 4's reviewer, spawned early). `planning/` is working state, never part of the approval bundle; its shape authority is `schemas/run-state.schema.json` (`$defs.planning_queue`, `$defs.node_draft`), its ownership and precedence rules are `references/planning-layout.md`, and `scripts/validate_run_state.py --planning-queue` checks both.
++Product: a validated draft graph and the complete approval bundle. Plan across bounded contexts per `orchestration/explore-and-plan.md` §4: freeze the root node contract, open the planning queue with the root as its first entry, and dispatch one node planner per entry — every dispatch is the same job at any depth, and a planner spawns its own read-only explorers when its judgment needs more evidence. Resynchronize conflicts at the parent level, assemble the flat graph, then trim it, fuse the adjacent nodes the inverse one-agent test does not keep apart, and rule on the cuts four fresh read-only readers propose — all before the whole-graph review (`orchestration/explore-and-plan.md` §4.6). Every planner return goes to the planning reviewer before its verdict solidifies (Stage 4's reviewer, spawned early). `planning/` is working state, never part of the approval bundle; its shape authority is `schemas/run-state.schema.json` (`$defs.planning_queue`, `$defs.node_draft`), its ownership and precedence rules are `references/planning-layout.md`, and `scripts/validate_run_state.py --planning-queue` checks both.
+ 
+ Require the simplest graph that achieves the approved goal, per `references/pave-spec.md` §4.11. Require the enforcement table: every run-wide prohibition, costly-transition guard, and dispatched seat in `skill-package-plan.md` names its strength and why the neighboring enforcement levels are wrong — stronger unnecessary; for an enforcement level with standing cost, cheaper insufficient (`references/pave-spec.md` §9.14.1).
+ 
+@@ -167,7 +167,7 @@ Do not present an invalid graph for approval.
+ 
+ The plan gate's retained reviewer already exists — Stage 3 starts it at the first closed node plan. Continue that same reviewer for the whole-bundle review and repair rounds at this gate. Stage 3 always dispatches at least the root, so that reviewer exists by this gate. Reviewer mechanics, the plan-review scope, and the `FIX` / `DEFER` / `FALSE_POSITIVE` classification of findings: `orchestration/review-and-build.md` §1; the materiality and proportionality warnings live in the reviewer's system prompt, not in briefs. Only verified `BLOCKING` or `HIGH` findings prevent approval.
+ 
+-Record each review round's verdict and disposition in `reviews/plan-review.md` as it closes. The round counter in `run-state.json` (`plan_review_rounds`) is the loop's total round counter and survives compaction: after four rounds that still carry a verified `BLOCKING` or `HIGH` finding, take `repair_blocked` and pause for the user with the open findings. That counter is the bound `references/pave-spec.md` §9.8 requires; counting recurrence by defect class is added on top so the loop stops before its fourth round when the same defect keeps returning. When a round's findings repeat a defect class an earlier round already fixed, at a new site, widen that round's repair to a sweep of every site of the class before re-review and record the population swept; a third occurrence of the same class routes `repair_blocked`. The final-skill loop already declares its four-round bound (`orchestration/review-and-build.md` §5).
++Record each review round's verdict and disposition in `reviews/plan-review.md` as it closes. The round counter in `run-state.json` (`plan_review_rounds`) is the loop's total round counter and survives compaction: after four rounds that still carry a verified `BLOCKING` or `HIGH` finding, take `repair_blocked` and pause for the user with the open findings. A user change request at the gate (`revision_requested`) moves the loop's inputs: restart the counter at zero for the bundle that follows and record the restart with the request (`references/pave-spec.md` §9.8); defect-class counts continue. That counter is the bound `references/pave-spec.md` §9.8 requires; counting recurrence by defect class is added on top so the loop stops before its fourth round when the same defect keeps returning. When a round's findings repeat a defect class an earlier round already fixed, at a new site, widen that round's repair to a sweep of every site of the class before re-review and record the population swept; a third occurrence of the same class routes `repair_blocked`. The final-skill loop already declares its four-round bound (`orchestration/review-and-build.md` §5).
+ 
+ For the whole-bundle round, render the plan approval brief per `references/approval-briefs.md` to `reviews/plan-brief.md` and submit it with the bundle — the reviewer verifies the brief against the bundle. After review passes, present the brief in full in the conversation, then require an explicit response such as `approve plan`. Do not treat silence or partial approval as approval. Record the user's explicit response verbatim in `reviews/user-plan-approval.md` — resume reads approval from that record, never from the bundle's existence.
+ 
+diff --git a/skills/pave-init/README.md b/skills/pave-init/README.md
+index 5530d5c..fc94e6b 100644
+--- a/skills/pave-init/README.md
++++ b/skills/pave-init/README.md
+@@ -1,6 +1,6 @@
+ # PAVE Init
+ 
+-Version: `2.6.3`
++Version: `2.7.0`
+ 
+ Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. A second skill, `pave-evolve`, revises a delivered workflow from recorded evidence through two dedicated seats. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
+ 
+@@ -352,7 +352,10 @@ as its own child graph is capped at depth 2 (`references/pave-composition.md`);
+ decomposition itself has no depth limit — it stops when the one-agent test
+ passes (`references/pave-spec.md` §9.12): a node is atomic when one agent can
+ achieve and verify its goal in one bounded context; otherwise decompose it and
+-re-test the children. A simple
++re-test the children. At assembly the lead asks the inverse once over the whole
++graph — can two adjacent nodes be one bounded goal — fuses to a fixed point, and
++rules on the cuts four fresh read-only readers propose, all before the
++whole-graph review. A simple
+ goal closes the queue after the root's single entry, with no extra ceremony. Full procedure:
+ `orchestration/explore-and-plan.md` §4.
+ 
+diff --git a/skills/pave-init/SKILL.md b/skills/pave-init/SKILL.md
+index 2d3baec..3e52033 100644
+--- a/skills/pave-init/SKILL.md
++++ b/skills/pave-init/SKILL.md
+@@ -28,7 +28,7 @@ hooks:
+           command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/pave-init}\"; \"$d\"/hooks/stop_alignment_check.sh"
+ ---
+ 
+-<!-- DO NOT EDIT. Change sources/ or bindings, then rebuild. Generated by scripts/build_packages.py; source-sha256: e0b52fcc7267a461860b65b7c5a10d5e3b654dbb22315bc6ff8ebb9d4f8384f2 -->
++<!-- DO NOT EDIT. Change sources/ or bindings, then rebuild. Generated by scripts/build_packages.py; source-sha256: 8e6e648a6b9ef904d2ac3886d6387b758b1675c58ea47d8a4a07cc80a14fb431 -->
+ 
+ # PAVE Init
+ 
+@@ -153,7 +153,7 @@ Product: verified exploration reports and `system-map.md`. After requirements ap
+ 
+ ## Stage 3: Concrete graph plan
+ 
+-Product: a validated draft graph and the complete approval bundle. Plan across bounded contexts per `orchestration/explore-and-plan.md` §4: freeze the root node contract, open the planning queue with the root as its first entry, and dispatch one node planner per entry — every dispatch is the same job at any depth, and a planner spawns its own read-only explorers when its judgment needs more evidence. Resynchronize conflicts at the parent level, assemble the flat graph, and run the global trim pass. Every planner return goes to the planning reviewer before its verdict solidifies (Stage 4's reviewer, spawned early). `planning/` is working state, never part of the approval bundle; its shape authority is `schemas/run-state.schema.json` (`$defs.planning_queue`, `$defs.node_draft`), its ownership and precedence rules are `references/planning-layout.md`, and `scripts/validate_run_state.py --planning-queue` checks both.
++Product: a validated draft graph and the complete approval bundle. Plan across bounded contexts per `orchestration/explore-and-plan.md` §4: freeze the root node contract, open the planning queue with the root as its first entry, and dispatch one node planner per entry — every dispatch is the same job at any depth, and a planner spawns its own read-only explorers when its judgment needs more evidence. Resynchronize conflicts at the parent level, assemble the flat graph, then trim it, fuse the adjacent nodes the inverse one-agent test does not keep apart, and rule on the cuts four fresh read-only readers propose — all before the whole-graph review (`orchestration/explore-and-plan.md` §4.6). Every planner return goes to the planning reviewer before its verdict solidifies (Stage 4's reviewer, spawned early). `planning/` is working state, never part of the approval bundle; its shape authority is `schemas/run-state.schema.json` (`$defs.planning_queue`, `$defs.node_draft`), its ownership and precedence rules are `references/planning-layout.md`, and `scripts/validate_run_state.py --planning-queue` checks both.
+ 
+ Require the simplest graph that achieves the approved goal, per `references/pave-spec.md` §4.11. Require the enforcement table: every run-wide prohibition, costly-transition guard, and dispatched seat in `skill-package-plan.md` names its strength and why the neighboring enforcement levels are wrong — stronger unnecessary; for an enforcement level with standing cost, cheaper insufficient (`references/pave-spec.md` §9.14.1).
+ 
+@@ -183,7 +183,7 @@ Do not present an invalid graph for approval.
+ 
+ The plan gate's retained reviewer already exists — Stage 3 starts it at the first closed node plan. Continue that same reviewer for the whole-bundle review and repair rounds at this gate. Stage 3 always dispatches at least the root, so that reviewer exists by this gate. Reviewer mechanics, the plan-review scope, and the `FIX` / `DEFER` / `FALSE_POSITIVE` classification of findings: `orchestration/review-and-build.md` §1; the materiality and proportionality warnings live in the reviewer's system prompt, not in briefs. Only verified `BLOCKING` or `HIGH` findings prevent approval.
+ 
+-Record each review round's verdict and disposition in `reviews/plan-review.md` as it closes. The round counter in `run-state.json` (`plan_review_rounds`) is the loop's total round counter and survives compaction: after four rounds that still carry a verified `BLOCKING` or `HIGH` finding, take `repair_blocked` and pause for the user with the open findings. That counter is the bound `references/pave-spec.md` §9.8 requires; counting recurrence by defect class is added on top so the loop stops before its fourth round when the same defect keeps returning. When a round's findings repeat a defect class an earlier round already fixed, at a new site, widen that round's repair to a sweep of every site of the class before re-review and record the population swept; a third occurrence of the same class routes `repair_blocked`. The final-skill loop already declares its four-round bound (`orchestration/review-and-build.md` §5).
++Record each review round's verdict and disposition in `reviews/plan-review.md` as it closes. The round counter in `run-state.json` (`plan_review_rounds`) is the loop's total round counter and survives compaction: after four rounds that still carry a verified `BLOCKING` or `HIGH` finding, take `repair_blocked` and pause for the user with the open findings. A user change request at the gate (`revision_requested`) moves the loop's inputs: restart the counter at zero for the bundle that follows and record the restart with the request (`references/pave-spec.md` §9.8); defect-class counts continue. That counter is the bound `references/pave-spec.md` §9.8 requires; counting recurrence by defect class is added on top so the loop stops before its fourth round when the same defect keeps returning. When a round's findings repeat a defect class an earlier round already fixed, at a new site, widen that round's repair to a sweep of every site of the class before re-review and record the population swept; a third occurrence of the same class routes `repair_blocked`. The final-skill loop already declares its four-round bound (`orchestration/review-and-build.md` §5).
+ 
+ For the whole-bundle round, render the plan approval brief per `references/approval-briefs.md` to `reviews/plan-brief.md` and submit it with the bundle — the reviewer verifies the brief against the bundle. After review passes, present the brief in full in the conversation, then require an explicit response such as `approve plan`. Do not treat silence or partial approval as approval. Record the user's explicit response verbatim in `reviews/user-plan-approval.md` — resume reads approval from that record, never from the bundle's existence.
+ 
+diff --git a/skills/pave-init/VERSION b/skills/pave-init/VERSION
+index f6536af..f202389 100644
+--- a/skills/pave-init/VERSION
++++ b/skills/pave-init/VERSION
+@@ -1,4 +1,4 @@
+-version: 2.6.3
++version: 2.7.0
+ 
+ ## How changelog entries are written
+ 
+@@ -18,6 +18,23 @@ line and use the release date.
+ 
+ ## Changelog
+ 
++### 2.7.0 (2026-09-24)
++
++- New — The assembled graph is fused and simplified before its review, so a generated workflow ships with fewer nodes, seats, state fields, and scripts. The one-agent test gains its inverse (pave-spec section 9.12): at assembly the lead asks, for every success edge, whether one bounded goal holds both nodes with the six preserved properties intact, fuses on yes, and repeats to a fixed point, recording the one question that keeps each kept boundary. Then four one-shot read-only workers — simplification, altitude, efficiency, reuse; tiered by judgment — return cut candidates, and the lead rules on each, applied or rejected with the reason, before the whole-graph review round (explore-and-plan section 4.6). The material reviewer's whole-graph round judges those rulings.
++  - Evidence: the atlas-region-expansion run of 2026-09-24. Node-by-node planning gave 15 nodes; the operator's fusion instruction took them to 6 with no routing, authority, review, recovery, or acceptance boundary lost. After the reviewer's PASS, four read-only readers found 32 more cuts, 26 applied: state fields 21 to 11, agents 4 to 3, scripts 6 to 4, data files 5 to 2, eight verifier dispatches saved per run. Nothing in pave-init had asked either question; each planner sees one subtree and the lead's own trim is self-review.
++- Changed — The stop check no longer accepts an acknowledgement-only reply. Every question is answered in one line that names the fact behind it (`hooks/stop_alignment_check.sh`); the cadence stays at most one block in three stops.
++  - Evidence: "lgtm" let the lead stop without assessing anything. The generated-skill template dropped the one-word exit in 2.6.0; pave-init's own hook had kept it.
++- Changed — A user change request at a review gate restarts the repair loop's round counter (pave-spec section 9.8; SKILL.md Stage 4). The four-round bound stops repairs that cannot converge on fixed inputs; it no longer fires on the first round over inputs the user just moved. Defect-class counts continue across the change.
++  - Evidence: the run reached the bound at round 4 while the operator was rewriting the requirements at the gate.
++- Changed — Size a user gate to the decision, not the action (pave-spec section 8.3): one approval per vetted list of effects, each line naming the action, its change, its reason and its evidence; a mechanical guard admits only listed lines; only changed lines return for approval.
++  - Evidence: a go per production command was withdrawn at the gate for a go per vetted batch, at the cost of four change-request cycles.
++- Changed — The enforcement table is one row per rule or per dispatched seat in the reader's words, never a second row for the same rule per node or per source (explore-and-plan section 4.6). The package plan names every run input, its source, and how a missing one is collected: asked one at a time, recorded verbatim, never guessed (explore-and-plan section 5).
++  - Evidence: 23 rows merged to 8 on the operator's instruction; the operator asked at the gate how inputs are collected.
++- Improved — The framework's own words (seat, gate, node, write) count as codenames in text a person reads: use the everyday word or define it at first use (pave-spec section 8.5; the write-for-the-reader reminder names them).
++  - Evidence: the operator rejected an enforcement table written in those words.
++- Fixed — `scripts/validate_run_state.py --planning-queue` no longer reads a draft whose entry is `pending_dispatched`. That file belongs to a planner still writing, and a sibling's half-written draft failed the queue check six times in one run. Returned entries (`planned` onward) are read as before.
++- Changed — Document size ceilings (`tests/test_doc_budget.py`) rise by exactly the growth above for pave-spec, explore-and-plan, SKILL.md, README, planning-layout, and the reviewer template; every other document is unchanged.
++
+ ### 2.6.3 (2026-09-22)
+ 
+ - Changed — The written-for-the-reader duty (pave-spec section 8.5) now binds what a workflow ships outside itself: source, tests and PR text landed in another repository. A plan block, ruling, round number or campaign identifier in shipped code is a material defect a check fails on, not a wording finding.
+diff --git a/skills/pave-init/hooks/stop_alignment_check.sh b/skills/pave-init/hooks/stop_alignment_check.sh
+index 779f4d2..de1a2c6 100755
+--- a/skills/pave-init/hooks/stop_alignment_check.sh
++++ b/skills/pave-init/hooks/stop_alignment_check.sh
+@@ -9,8 +9,9 @@
+ # valid stops are common (a pending user decision, waiting on a background
+ # reviewer, a recorded pause_for_user_authority). The questions (heredoc
+ # below) carry every lead duty no other moment re-asks; the lead answers
+-# only on a hit, else "lgtm" -- a retrospective at every firing is itself
+-# ceremony.
++# each in one line that names the fact behind it. There is no
++# acknowledgement-only reply: the one-word form ("lgtm") let the lead stop
++# without assessing anything, so it was removed.
+ #
+ # Stop hooks have NO non-blocking channel: additionalContext is dropped, so
+ # the questions can only be delivered by blocking once (exit 2). A cooldown
+@@ -128,10 +129,12 @@ printf '%s\n' "$((STOP_EVERY - 1))" > "$MARKER" 2>/dev/null || true
+ cat >&2 <<EOF
+ $TAG Active pave-init run $RUN_ID ($FOUND_STATE_LABEL): last traversal $LAST, run state last written ${AGE_MIN} min ago.
+ 
+-You decided to stop. Socratic check -- answer only the questions where you
+-find an issue; otherwise reply "lgtm" and stop again. A pending user decision
+-or approval gate, a background reviewer still working, a recorded pause: all
+-lgtm. The next $((STOP_EVERY - 1)) stops pass before this fires again.
++You decided to stop. Socratic check -- answer every question below in one
++line that names the fact behind it: a path, a run-state entry, a seat name,
++or "none: <why>". There is no acknowledgement-only reply; a question with no
++line is a duty you skipped. A pending user decision, a background reviewer
++still working, a recorded pause are answers -- name which one. The next
++$((STOP_EVERY - 1)) stops pass before this fires again.
+   1. Next practical step toward the approved goal, and why -- a declared edge
+      after $LAST (references/pave-init.pave.yaml) or a graph change you will
+      propose; never an invented edge.
+diff --git a/skills/pave-init/hooks/write_for_reader.sh b/skills/pave-init/hooks/write_for_reader.sh
+index 2631213..b50ffdb 100755
+--- a/skills/pave-init/hooks/write_for_reader.sh
++++ b/skills/pave-init/hooks/write_for_reader.sh
+@@ -155,7 +155,9 @@ text = (
+     "Re-read it as a stranger and re-phrase in concise simple plain english "
+     "where it fails: lead each entry with one sentence saying what happened "
+     "and why; an identifier is a pointer, not a noun - pair it with its "
+-    "plain name at first use (\"the rotary increment (`inc-025`)\"); "
++    "plain name at first use (\"the rotary increment (`inc-025`)\"); a "
++    "framework word (seat, gate, node, write) is a codename to a reader "
++    "outside the run - use the everyday word or define it at first use; "
+     "digests, counts, and checker output belong in run state or the check's "
+     "own log, cited in one line, never interleaved with the narrative. A "
+     "reader must learn what happened, what changed, and what is still open "
+diff --git a/skills/pave-init/orchestration/explore-and-plan.md b/skills/pave-init/orchestration/explore-and-plan.md
+index 8272735..7917995 100644
+--- a/skills/pave-init/orchestration/explore-and-plan.md
++++ b/skills/pave-init/orchestration/explore-and-plan.md
+@@ -100,11 +100,12 @@ The queue closes when every entry is `reviewed`. A node that cannot close after
+ ### 4.6 Assemble
+ 
+ 1. Merge the node drafts into one flat PAVE root `workflow.draft.pave.yaml` — the editable planning subject that delivery later applies as revision 0 per `references/pave-revisions.md`. Decomposition lineage flattens into one graph; add a child `*.draft.pave.yaml` only for a subgraph whose packaging met a §9.12.1 condition. Strip the `x_planning` extension block; the marks are planning state, not graph meaning — each node's implementation line goes into `traceability.md` and the enforcement table (section 5).
+-2. Run the global trim pass: remove every element — including any child graph file, and any seat on a node whose common path a lead-run check decides (`references/pave-spec.md` §2.1) — whose absence changes no required routing, authority, evidence, recovery, or acceptance.
+-3. Mark run setup (section 4.8). Run setup needs the whole-subgraph view, so planners do not mark it.
+-4. Reconcile model and effort assignments across nodes — one value per role; a role that needs two tiers is two roles.
+-5. Finalize the run-wide enforcement table in `skill-package-plan.md`: merge the node-local entries planners proposed with your own run-wide entries; deduplicate guards proposed for the same prohibition.
+-6. Validate the root with `scripts/validate_pave.py` — it follows composition references and validates every child graph file and crossing. Then send the assembled whole bundle to the same planning reviewer as the whole-graph round.
++2. Run the global trim pass: remove every element — including any child graph file, and any seat on a node whose common path a lead-run check decides (`references/pave-spec.md` §2.1) — whose absence changes no required routing, authority, evidence, recovery, or acceptance. A node boundary is an element too: apply the inverse one-agent test (`references/pave-spec.md` §9.12) to every edge on a success outcome, fuse when one bounded goal holds both nodes with the six preserved properties intact, and repeat on the fused graph to a fixed point. A fused success meaning is the conjunction of the members' clauses; a guard on a fused-away edge moves to the fused node's success edge and stays a precondition of the later member's activity, so fusion never runs the second step on an unchecked first; a fused node's effects and forbidden effects are scoped per member step, never a mechanical union. Record one line per edge — the verdict and the one question that decided it — in the assembly's working record under `build/`; the whole-graph round reads it.
++3. Simplify with fresh eyes. Dispatch four one-shot read-only workers together through the active harness's worker mechanism — the one a planner uses for its research workers — one angle each over the trimmed draft, the enforcement table, `traceability.md`, and the approved requirements: **simplification** (an element that restates or duplicates another — a state field derivable from the event history, an effect list repeated across nodes, a data file that is a field of another); **altitude** (a rule filed as a script or a node, a node-local guard restating a run-wide rule, a check run inside a fused node and again on its success edge); **efficiency** (a re-check run at full strength on inputs that cannot have changed, freshness keyed to a clock where a commit or version would do, a fan-out where one worker over a list would do, a resume that re-reads everything to wait on one thing); **reuse** (a tested script or template in this package or a sibling that replaces new code). Tier by judgment: simplification and altitude at the top capability tier, efficiency at the strong tier, reuse at the fast tier — it is a search. A candidate names its location, the cut, the replacement, and the approved requirement it touches, if any. Rule on every candidate yourself — applied, or rejected with the reason — in the same working record, rebuild, and repeat step 2 until nothing changes. You assembled this graph from a run-filled context; a fresh single-question reader is the challenge your own trim cannot give it (`references/pave-spec.md` §4.4).
++4. Mark run setup (section 4.8). Run setup needs the whole-subgraph view, so planners do not mark it.
++5. Reconcile model and effort assignments across nodes — one value per role; a role that needs two tiers is two roles.
++6. Finalize the run-wide enforcement table in `skill-package-plan.md`: one row per rule or per dispatched seat (`references/pave-spec.md` §9.14.1) — for a rule, the prohibition in the reader's words, what it protects, its level with the two reasons, and the nodes it came from — never a second row for the same rule per node or per source. Merge the node-local entries planners proposed into those rows; two rows that state the same prohibition are one rule.
++7. Validate the root with `scripts/validate_pave.py` — it follows composition references and validates every child graph file and crossing. Then send the assembled whole bundle, with the trim, fusion, and simplify record, to the same planning reviewer as the whole-graph round.
+ 
+ ### 4.7 Design checks
+ 
+@@ -128,6 +129,7 @@ Check these before review:
+ - Every dispatched node has an `x_planning.elaboration` verdict with a falsifiable rationale the evidence supports and its implementation line (`references/pave-spec.md` §2.1); every framed child has a prediction with its rationale.
+ - Every child graph file records the §9.12.1 packaging condition it meets, its child outcome map is total, and no edge crosses a graph-file boundary.
+ - Every run-wide prohibition, costly-transition guard, and dispatched seat has a recorded enforcement strength with a reason a stronger enforcement level is unnecessary and — for an enforcement level with standing cost — a cheaper one insufficient.
++- Every kept boundary between adjacent nodes has its recorded question from the inverse one-agent test, and every simplify candidate has its ruling (section 4.6).
+ 
+ ### 4.8 Run setup
+ 
+@@ -163,9 +165,9 @@ Write `skill-package-plan.md` with:
+ - parallel build units with no overlapping files;
+ - graph IDs implemented by each unit;
+ - copied, condensed, generated, and excluded resources;
+-- run setup: each script-eligible subgraph with its recommended binding and rationale;
++- run setup: each script-eligible subgraph with its recommended binding and rationale, and every run input with its source — the invocation, disk, or the user — and the collection rule: a missing input is asked for, one bounded question at a time, recorded verbatim, never guessed;
+ - the graph file dependency tree and the §9.12.1 packaging condition each child graph file meets, when packaging is used;
+-- the enforcement table: each run-wide prohibition, costly-transition guard, and dispatched seat (`references/pave-spec.md` §9.14.1) with its chosen strength, the reason a stronger enforcement level is unnecessary (and, for an enforcement level with standing cost, a cheaper one insufficient), and — for each planned hook — its event, matcher, script, actor scope with its harness-native placement or caller check, and decline path; plus the evidence-fakeability judgment for every node whose success evidence the doer produces — fakeable or not, with the hardening choice (`references/pave-spec.md` §9.14.1);
++- the enforcement table, one row per rule or dispatched seat (section 4.6): each run-wide prohibition, costly-transition guard, and dispatched seat (`references/pave-spec.md` §9.14.1) with its chosen strength, the reason a stronger enforcement level is unnecessary (and, for an enforcement level with standing cost, a cheaper one insufficient), and — for each planned hook — its event, matcher, script, actor scope with its harness-native placement or caller check, and decline path; plus the evidence-fakeability judgment for every node whose success evidence the doer produces — fakeable or not, with the hardening choice (`references/pave-spec.md` §9.14.1);
+ - the revision record: `approval` and `usage_log` with their reasons, or the one-session omission, per `references/pave-revisions.md`;
+ - scripts and tests required by mechanical checks;
+ - runtime dependencies and installation limits;
+diff --git a/skills/pave-init/references/pave-spec.md b/skills/pave-init/references/pave-spec.md
+index 0be0838..12fb4a3 100644
+--- a/skills/pave-init/references/pave-spec.md
++++ b/skills/pave-init/references/pave-spec.md
+@@ -728,6 +728,15 @@ person authors with `authority: user`, so the record and its saved approval are
+ checkable rather than remembered. A gate no edge re-enters keeps its
+ once-per shape.
+ 
++Size a user gate to the decision, not to the action. When one decision
++covers a sequence of effects — a stage's commands, a set of posts — the
++user approves the vetted list once: each line names the exact action, what
++it changes, why, and the evidence it rests on, checked by an actor other
++than the one that runs it; a mechanical guard admits only listed actions;
++a failed line stops the list, and only changed lines return for approval.
++A gate per action is friction the user removes at the gate itself, and
++every such change reopens the plan.
++
+ ### 8.4 Mutability sets the document count
+ 
+ Standing documents are graph design, and the default count is three, split
+@@ -812,7 +821,9 @@ Four duties, for every entry a person will read, in plain english:
+ - Lead with one sentence saying what happened and why.
+ - An identifier is a pointer, never a noun. Pair each id with its plain
+   name at first use in the entry — "the rotary increment (`inc-025`)" —
+-  and never chain bare ids where a sentence should stand.
++  and never chain bare ids where a sentence should stand. The framework's
++  own words — seat, gate, node, write — are codenames to a reader outside
++  the run: use the everyday word, or define it at first use.
+ - Machine-check output — digests, counts, byte totals — lives
+   in run state or the check's own log and is cited in one line, never
+   interleaved with narrative prose.
+@@ -1051,6 +1062,13 @@ command it used, and the next review checks that population, not the one
+ site. The third occurrence routes to the stop the loop already declares,
+ with the class named. A loop that declares a total round counter needs none
+ of this.
++
++Either counter bounds repairs against fixed inputs. When the user changes
++those inputs at a gate — a change request, a withdrawn requirement — the
++rounds that follow are a new loop: the total counter restarts at zero and
++the run records the restart beside the request. The bound exists to stop
++repairs that cannot converge; it must not fire on the first round over
++inputs that just moved. Defect-class counts continue across the change.
+  
+ **Default recovery for undeclared failures.** A failure the graph has no
+ edge for still needs a route. Do not invent one ad hoc; run the default
+@@ -1190,6 +1208,19 @@ a deeper planning pass may overturn it. Wrong-sized in either direction is the
+ same defect — an unjustified child inflates the graph, and an oversized atomic
+ node fails exactly where the work is hardest.
+  
++The test has an inverse, asked once over the assembled graph. Node by node
++the question can only split: each planner sees one subtree, and no planner
++sees that two adjacent nodes stopped being separate goals. So at assembly,
++for every edge on a success outcome A → B, ask: **can one bounded goal hold
++A then B as activities** while it keeps the externally visible outcomes, the
++user's authority, a required independent reviewer's separation, a recovery
++route that branches between A and B, an irreversible side-effect boundary,
++and bounded-context feasibility? Yes — fuse them, and ask again on the
++fused node's edges to a fixed point. Different artifacts, activities, roles,
++seats, or tools alone do not justify a boundary. Record the one question
++that keeps each kept boundary: a KEEP with no question behind it is as
++unfalsifiable as a split with no reason.
++
+ #### 9.12.1 Decomposition stays in one graph
+  
+ The test decides *whether* to decompose. The form is simpler than it looks:
+diff --git a/skills/pave-init/references/planning-layout.md b/skills/pave-init/references/planning-layout.md
+index 9e512f0..7b3e48d 100644
+--- a/skills/pave-init/references/planning-layout.md
++++ b/skills/pave-init/references/planning-layout.md
+@@ -46,5 +46,5 @@ A resynchronization that changes a frozen interface marks every `reviewed` entry
+ 
+ ## Enforcement
+ 
+-- **Validator** — `scripts/validate_run_state.py --planning-queue <path>` validates the planning queue and every dispatched entry's node draft against the schema, then applies the hand rules: unique draft paths, draft named past `pending`, no re-authored dispatched node, no minted `c<N>` ids. Run it whenever the queue changes state.
++- **Validator** — `scripts/validate_run_state.py --planning-queue <path>` validates the planning queue and every returned entry's node draft (`planned` onward) against the schema — a `pending_dispatched` draft is a planner's file in flight and is not read, so a concurrent planner's half-written file never fails the check — then applies the hand rules: unique draft paths, draft named past `pending`, no re-authored dispatched node, no minted `c<N>` ids. Run it whenever the queue changes state.
+ - **Hook** — `hooks/planning-layout-warn.sh` (PostToolUse) emits a non-blocking warning when a write under `planning/` matches no allowed pattern, or when a subagent writes `planning-queue.yaml`. It warns, never blocks: layout drift is detectable and cheap to repair, so an observing enforcement level is sufficient.
+diff --git a/skills/pave-init/scripts/validate_run_state.py b/skills/pave-init/scripts/validate_run_state.py
+index 663e824..d135c87 100755
+--- a/skills/pave-init/scripts/validate_run_state.py
++++ b/skills/pave-init/scripts/validate_run_state.py
+@@ -24,8 +24,8 @@ artifacts prove - a pointer to nothing is a defect to fix or an artifact still
+ to apply).
+ 
+ Planning queue mode: validates planning/planning-queue.yaml against $defs.planning_queue and
+-each dispatched entry's draft node_draft against $defs.node_draft, then applies
+-the hand rules a shape schema cannot express (references/planning-layout.md):
++each returned entry's draft node_draft (planned, reviewed, stale) against $defs.node_draft,
++then applies the hand rules a shape schema cannot express (references/planning-layout.md):
+   1. no two entries share a draft path (one path per dispatch);
+   2. every entry past `pending` names a draft path;
+   3. a node_draft never re-authors its dispatched node (frozen fields live in
+@@ -33,6 +33,9 @@ the hand rules a shape schema cannot express (references/planning-layout.md):
+   4. no mapping under a node_draft's extensions.x_planning carries an 'id' key
+      in the lead-owned conflict namespace (c<N>) - those ids are lead-assigned
+      in the planning_queue register; node-local labels (e1, n2, ...) are fine.
++A pending_dispatched entry's draft is a planner's file in flight and is never
++read: concurrent planners write beside each other, and a sibling's half-written
++file must not fail the queue check.
+ This mode is Stage 3 planning tooling and fails closed (exit 2) without
+ pyyaml + jsonschema, like validate_pave.py. Per-entry maxLength caps stay
+ errors here (references/pave-spec.md section 8.1): content over a cap moves
+@@ -404,6 +407,8 @@ def validate_planning_queue(queue_path: Path) -> int:
+ 
+         if not draft:
+             continue
++        if status not in RETURNED_STATUSES:
++            continue  # in flight: the planner may be mid-write; read it once the lead marks it planned
+         contract = entry.get("contract") or ""
+         if "#" not in contract:
+             full_profiles_skipped += 1  # root plan: validate_pave.py owns full graph_files
+diff --git a/skills/pave-init/tests/test_doc_budget.py b/skills/pave-init/tests/test_doc_budget.py
+index e6488d8..7aac0fb 100644
+--- a/skills/pave-init/tests/test_doc_budget.py
++++ b/skills/pave-init/tests/test_doc_budget.py
+@@ -46,26 +46,30 @@ import measure_artifact as ma  # noqa: E402
+ # apply flags to pave-evolve; SKILL.md gains the hook-pair sentence.
+ # 2026-09-11 (2.6.1): the always-fixable retry copy rule's declared scope gains shell
+ # commands and the parked-marker sibling in the hooks reference.
++# 2026-09-24 (2.7.0): the inverse one-agent test, the batched user gate, the counter
++# restart on a user change and the framework-word clause grow the spec; the fusion and
++# simplify steps grow explore-and-plan; SKILL.md, README, planning-layout and the
++# reviewer template each gain one clause of the same change.
+ CEILINGS = {
+-    "skills/pave-init/SKILL.md": (267, 38031),
+-    "skills/pave-init/README.md": (448, 26027),
++    "skills/pave-init/SKILL.md": (267, 38471),
++    "skills/pave-init/README.md": (451, 26261),
+     "skills/pave-evolve/SKILL.md": (65, 8508),
+     "skills/pave-init/references/approval-briefs.md": (72, 9498),
+     "skills/pave-init/references/lead-hooks.md": (479, 47886),
+     "skills/pave-init/references/pave-composition.md": (186, 10792),
+     "skills/pave-init/references/pave-init-traceability.md": (169, 21888),
+     "skills/pave-init/references/pave-revisions.md": (81, 16744),
+-    "skills/pave-init/references/pave-spec.md": (1720, 76427),
++    "skills/pave-init/references/pave-spec.md": (1750, 78436),
+     "skills/pave-init/references/pave-yaml.md": (431, 17721),
+-    "skills/pave-init/references/planning-layout.md": (50, 4066),
++    "skills/pave-init/references/planning-layout.md": (50, 4232),
+     "skills/pave-init/references/technique-selection.md": (202, 9904),
+-    "skills/pave-init/orchestration/explore-and-plan.md": (174, 15273),
++    "skills/pave-init/orchestration/explore-and-plan.md": (176, 18351),
+     "skills/pave-init/orchestration/interview-and-fitness.md": (131, 6946),
+     "skills/pave-init/orchestration/review-and-build.md": (134, 14386),
+     "sources/fragments/reviewer-core.md": (21, 3261),
+     "sources/roles/forward-tester.md.tmpl": (21, 1783),
+     "sources/roles/node-planner.md.tmpl": (72, 12795),
+-    "sources/roles/pave-material-reviewer.md.tmpl": (91, 15549),
++    "sources/roles/pave-material-reviewer.md.tmpl": (91, 15867),
+     "sources/roles/research-delegate.md.tmpl": (58, 2422),
+     "sources/roles/skill-builder.md.tmpl": (44, 4703),
+     "sources/roles/system-explorer.md.tmpl": (23, 1510),
+diff --git a/skills/pave-init/tests/test_hooks.sh b/skills/pave-init/tests/test_hooks.sh
+index 14ec977..943a59e 100755
+--- a/skills/pave-init/tests/test_hooks.sh
++++ b/skills/pave-init/tests/test_hooks.sh
+@@ -2,7 +2,8 @@
+ # Invariant tests for pave-init's lead hook pair (the Stage 6
+ # step 4 duty in SKILL.md, applied to this package itself). Tests the
+ # invariants from references/lead-hooks.md, not the wording:
+-#   stop:      first stop blocks (exit 2), the next STOP_EVERY-1 stops pass
++#   stop:      first stop blocks (exit 2) and its text offers no
++#              acknowledgement-only reply, the next STOP_EVERY-1 stops pass
+ #              (default 3), the stop after that blocks again,
+ #              stop_hook_active short-circuits, terminal runs are silent,
+ #              no-run sessions are silent
+@@ -130,6 +131,8 @@ write_state "" complete
+ ERR="$(stop_payload s1 0 | bash "$STOP_HOOK" 2>&1 >/dev/null)"; RC=$?
+ ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "Socratic check" && ok=1
+ report "stop: first stop blocks with socratic questions" "$ok" "rc=$RC"
++ok=0; printf '%s' "$ERR" | grep -q "in one" && ! printf '%s' "$ERR" | grep -qi "lgtm" && ok=1
++report "stop: block text demands one line per question, no acknowledgement-only reply" "$ok" "rc=$RC"
+ 
+ ERR="$(stop_payload s1 0 | bash "$STOP_HOOK" 2>&1 >/dev/null)"; RC=$?
+ ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1
+diff --git a/skills/pave-init/tests/test_validate_run_state.py b/skills/pave-init/tests/test_validate_run_state.py
+index c297d14..3dca1c1 100644
+--- a/skills/pave-init/tests/test_validate_run_state.py
++++ b/skills/pave-init/tests/test_validate_run_state.py
+@@ -251,6 +251,31 @@ class PlanningQueueMode(unittest.TestCase):
+             self.assertEqual(rc, 2, out)
+             self.assertIn("fails closed", out)
+ 
++    def test_in_flight_draft_is_not_read(self):
++        """A pending_dispatched draft belongs to a planner still writing; the same
++        half-written file fails only once the lead marks the entry planned."""
++        queue = (
++            "entries:\n  child:\n    status: pending_dispatched\n"
++            "    contract: planning/root.draft.pave.yaml#child\n"
++            "    draft: planning/child.draft.pave.yaml\n"
++        )
++        with tempfile.TemporaryDirectory() as tmp:
++            planning = Path(tmp) / "planning"
++            planning.mkdir()
++            (planning / "child.draft.pave.yaml").write_text("pave:\n  nodes: [unclosed", encoding="utf-8")
++            planning_queue = planning / "planning-queue.yaml"
++            planning_queue.write_text(queue, encoding="utf-8")
++            rc, out = run_cli("--planning-queue", str(planning_queue))
++            if not HAVE_QUEUE_DEPS:
++                self.assertEqual(rc, 2, out)
++                return
++            self.assertEqual(rc, 0, out)
++            self.assertIn("0 node_drafts checked", out)
++            planning_queue.write_text(queue.replace("pending_dispatched", "planned"), encoding="utf-8")
++            rc, out = run_cli("--planning-queue", str(planning_queue))
++            self.assertEqual(rc, 1, out)
++            self.assertIn("cannot parse node_draft", out)
++
+ 
+ if __name__ == "__main__":
+     unittest.main(verbosity=1)
+diff --git a/sources/pave-init/SKILL.md.tmpl b/sources/pave-init/SKILL.md.tmpl
+index 6d4c063..1554372 100644
+--- a/sources/pave-init/SKILL.md.tmpl
++++ b/sources/pave-init/SKILL.md.tmpl
+@@ -116,7 +116,7 @@ Product: verified exploration reports and `system-map.md`. After requirements ap
+ 
+ ## Stage 3: Concrete graph plan
+ 
+-Product: a validated draft graph and the complete approval bundle. Plan across bounded contexts per `orchestration/explore-and-plan.md` §4: freeze the root node contract, open the planning queue with the root as its first entry, and dispatch one node planner per entry — every dispatch is the same job at any depth, and a planner spawns its own read-only explorers when its judgment needs more evidence. Resynchronize conflicts at the parent level, assemble the flat graph, and run the global trim pass. Every planner return goes to the planning reviewer before its verdict solidifies (Stage 4's reviewer, spawned early). `planning/` is working state, never part of the approval bundle; its shape authority is `schemas/run-state.schema.json` (`$defs.planning_queue`, `$defs.node_draft`), its ownership and precedence rules are `references/planning-layout.md`, and `scripts/validate_run_state.py --planning-queue` checks both.
++Product: a validated draft graph and the complete approval bundle. Plan across bounded contexts per `orchestration/explore-and-plan.md` §4: freeze the root node contract, open the planning queue with the root as its first entry, and dispatch one node planner per entry — every dispatch is the same job at any depth, and a planner spawns its own read-only explorers when its judgment needs more evidence. Resynchronize conflicts at the parent level, assemble the flat graph, then trim it, fuse the adjacent nodes the inverse one-agent test does not keep apart, and rule on the cuts four fresh read-only readers propose — all before the whole-graph review (`orchestration/explore-and-plan.md` §4.6). Every planner return goes to the planning reviewer before its verdict solidifies (Stage 4's reviewer, spawned early). `planning/` is working state, never part of the approval bundle; its shape authority is `schemas/run-state.schema.json` (`$defs.planning_queue`, `$defs.node_draft`), its ownership and precedence rules are `references/planning-layout.md`, and `scripts/validate_run_state.py --planning-queue` checks both.
+ 
+ Require the simplest graph that achieves the approved goal, per `references/pave-spec.md` §4.11. Require the enforcement table: every run-wide prohibition, costly-transition guard, and dispatched seat in `skill-package-plan.md` names its strength and why the neighboring enforcement levels are wrong — stronger unnecessary; for an enforcement level with standing cost, cheaper insufficient (`references/pave-spec.md` §9.14.1).
+ 
+@@ -146,7 +146,7 @@ Do not present an invalid graph for approval.
+ 
+ The plan gate's retained reviewer already exists — Stage 3 starts it at the first closed node plan. Continue that same reviewer for the whole-bundle review and repair rounds at this gate. Stage 3 always dispatches at least the root, so that reviewer exists by this gate. Reviewer mechanics, the plan-review scope, and the `FIX` / `DEFER` / `FALSE_POSITIVE` classification of findings: `orchestration/review-and-build.md` §1; the materiality and proportionality warnings live in the reviewer's system prompt, not in briefs. Only verified `BLOCKING` or `HIGH` findings prevent approval.
+ 
+-Record each review round's verdict and disposition in `reviews/plan-review.md` as it closes. The round counter in `run-state.json` (`plan_review_rounds`) is the loop's total round counter and survives compaction: after four rounds that still carry a verified `BLOCKING` or `HIGH` finding, take `repair_blocked` and pause for the user with the open findings. That counter is the bound `references/pave-spec.md` §9.8 requires; counting recurrence by defect class is added on top so the loop stops before its fourth round when the same defect keeps returning. When a round's findings repeat a defect class an earlier round already fixed, at a new site, widen that round's repair to a sweep of every site of the class before re-review and record the population swept; a third occurrence of the same class routes `repair_blocked`. The final-skill loop already declares its four-round bound (`orchestration/review-and-build.md` §5).
++Record each review round's verdict and disposition in `reviews/plan-review.md` as it closes. The round counter in `run-state.json` (`plan_review_rounds`) is the loop's total round counter and survives compaction: after four rounds that still carry a verified `BLOCKING` or `HIGH` finding, take `repair_blocked` and pause for the user with the open findings. A user change request at the gate (`revision_requested`) moves the loop's inputs: restart the counter at zero for the bundle that follows and record the restart with the request (`references/pave-spec.md` §9.8); defect-class counts continue. That counter is the bound `references/pave-spec.md` §9.8 requires; counting recurrence by defect class is added on top so the loop stops before its fourth round when the same defect keeps returning. When a round's findings repeat a defect class an earlier round already fixed, at a new site, widen that round's repair to a sweep of every site of the class before re-review and record the population swept; a third occurrence of the same class routes `repair_blocked`. The final-skill loop already declares its four-round bound (`orchestration/review-and-build.md` §5).
+ 
+ For the whole-bundle round, render the plan approval brief per `references/approval-briefs.md` to `reviews/plan-brief.md` and submit it with the bundle — the reviewer verifies the brief against the bundle. After review passes, present the brief in full in the conversation, then require an explicit response such as `approve plan`. Do not treat silence or partial approval as approval. Record the user's explicit response verbatim in `reviews/user-plan-approval.md` — resume reads approval from that record, never from the bundle's existence.
+ 
+diff --git a/sources/roles/pave-material-reviewer.md.tmpl b/sources/roles/pave-material-reviewer.md.tmpl
+index 3f70f2a..1b04b43 100644
+--- a/sources/roles/pave-material-reviewer.md.tmpl
++++ b/sources/roles/pave-material-reviewer.md.tmpl
+@@ -38,7 +38,7 @@ For each return:
+ 
+ Detect findings at the nearest goal in the chain, but rate severity against the frozen root goal. A defect local to a sub-goal is `BLOCKING` or `HIGH` only if it prevents or materially impairs the root goal through the recorded purpose chain. Do not let every local defect escalate.
+ 
+-Reuse your own earlier per-node judgments across rounds when nothing changed. Reopen a node's review only when it changed, its evidence went stale, its rationale is unsupported, or credible counterevidence appears. A child's own later planner dispatch may overturn a prediction you already reviewed; review the new return, not the old prediction. At the whole-graph round, do not replay unchanged per-node reviews. That round's new work is the assembled whole: integration seams, global routing, the merged enforcement table, and anything the trim pass or binding marking changed.
++Reuse your own earlier per-node judgments across rounds when nothing changed. Reopen a node's review only when it changed, its evidence went stale, its rationale is unsupported, or credible counterevidence appears. A child's own later planner dispatch may overturn a prediction you already reviewed; review the new return, not the old prediction. At the whole-graph round, do not replay unchanged per-node reviews. That round's new work is the assembled whole: integration seams, global routing, the merged enforcement table, and what the trim pass, fusion, simplify rulings, and binding marking changed (`orchestration/explore-and-plan.md` §4.6): a kept boundary with no recorded question, a fusion that lost one of the six preserved properties (`references/pave-spec.md` §9.12), a rejected cut whose reason does not hold, an applied cut that dropped a check — those are that round's findings.
+ 
+ ## Acceptance evidence
+ 

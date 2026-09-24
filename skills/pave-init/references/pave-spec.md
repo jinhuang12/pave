@@ -728,6 +728,15 @@ person authors with `authority: user`, so the record and its saved approval are
 checkable rather than remembered. A gate no edge re-enters keeps its
 once-per shape.
 
+Size a user gate to the decision, not to the action. When one decision
+covers a sequence of effects — a stage's commands, a set of posts — the
+user approves the vetted list once: each line names the exact action, what
+it changes, why, and the evidence it rests on, checked by an actor other
+than the one that runs it; a mechanical guard admits only listed actions;
+a failed line stops the list, and only changed lines return for approval.
+A gate per action is friction the user removes at the gate itself, and
+every such change reopens the plan.
+
 ### 8.4 Mutability sets the document count
 
 Standing documents are graph design, and the default count is three, split
@@ -812,7 +821,9 @@ Four duties, for every entry a person will read, in plain english:
 - Lead with one sentence saying what happened and why.
 - An identifier is a pointer, never a noun. Pair each id with its plain
   name at first use in the entry — "the rotary increment (`inc-025`)" —
-  and never chain bare ids where a sentence should stand.
+  and never chain bare ids where a sentence should stand. The framework's
+  own words — seat, gate, node, write — are codenames to a reader outside
+  the run: use the everyday word, or define it at first use.
 - Machine-check output — digests, counts, byte totals — lives
   in run state or the check's own log and is cited in one line, never
   interleaved with narrative prose.
@@ -1051,6 +1062,13 @@ command it used, and the next review checks that population, not the one
 site. The third occurrence routes to the stop the loop already declares,
 with the class named. A loop that declares a total round counter needs none
 of this.
+
+Either counter bounds repairs against fixed inputs. When the user changes
+those inputs at a gate — a change request, a withdrawn requirement — the
+rounds that follow are a new loop: the total counter restarts at zero and
+the run records the restart beside the request. The bound exists to stop
+repairs that cannot converge; it must not fire on the first round over
+inputs that just moved. Defect-class counts continue across the change.
  
 **Default recovery for undeclared failures.** A failure the graph has no
 edge for still needs a route. Do not invent one ad hoc; run the default
@@ -1190,6 +1208,19 @@ a deeper planning pass may overturn it. Wrong-sized in either direction is the
 same defect — an unjustified child inflates the graph, and an oversized atomic
 node fails exactly where the work is hardest.
  
+The test has an inverse, asked once over the assembled graph. Node by node
+the question can only split: each planner sees one subtree, and no planner
+sees that two adjacent nodes stopped being separate goals. So at assembly,
+for every edge on a success outcome A → B, ask: **can one bounded goal hold
+A then B as activities** while it keeps the externally visible outcomes, the
+user's authority, a required independent reviewer's separation, a recovery
+route that branches between A and B, an irreversible side-effect boundary,
+and bounded-context feasibility? Yes — fuse them, and ask again on the
+fused node's edges to a fixed point. Different artifacts, activities, roles,
+seats, or tools alone do not justify a boundary. Record the one question
+that keeps each kept boundary: a KEEP with no question behind it is as
+unfalsifiable as a split with no reason.
+
 #### 9.12.1 Decomposition stays in one graph
  
 The test decides *whether* to decompose. The form is simpler than it looks:

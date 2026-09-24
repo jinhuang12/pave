@@ -2,7 +2,8 @@
 # Invariant tests for pave-init's lead hook pair (the Stage 6
 # step 4 duty in SKILL.md, applied to this package itself). Tests the
 # invariants from references/lead-hooks.md, not the wording:
-#   stop:      first stop blocks (exit 2), the next STOP_EVERY-1 stops pass
+#   stop:      first stop blocks (exit 2) and its text offers no
+#              acknowledgement-only reply, the next STOP_EVERY-1 stops pass
 #              (default 3), the stop after that blocks again,
 #              stop_hook_active short-circuits, terminal runs are silent,
 #              no-run sessions are silent
@@ -130,6 +131,8 @@ write_state "" complete
 ERR="$(stop_payload s1 0 | bash "$STOP_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "2" ] && printf '%s' "$ERR" | grep -q "Socratic check" && ok=1
 report "stop: first stop blocks with socratic questions" "$ok" "rc=$RC"
+ok=0; printf '%s' "$ERR" | grep -q "in one" && ! printf '%s' "$ERR" | grep -qi "lgtm" && ok=1
+report "stop: block text demands one line per question, no acknowledgement-only reply" "$ok" "rc=$RC"
 
 ERR="$(stop_payload s1 0 | bash "$STOP_HOOK" 2>&1 >/dev/null)"; RC=$?
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && ok=1

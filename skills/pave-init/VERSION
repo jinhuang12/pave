@@ -1,4 +1,4 @@
-version: 2.6.3
+version: 2.7.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,23 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.7.0 (2026-09-24)
+
+- New — The assembled graph is fused and simplified before its review, so a generated workflow ships with fewer nodes, seats, state fields, and scripts. The one-agent test gains its inverse (pave-spec section 9.12): at assembly the lead asks, for every success edge, whether one bounded goal holds both nodes with the six preserved properties intact, fuses on yes, and repeats to a fixed point, recording the one question that keeps each kept boundary. Then four one-shot read-only workers — simplification, altitude, efficiency, reuse; tiered by judgment — return cut candidates, and the lead rules on each, applied or rejected with the reason, before the whole-graph review round (explore-and-plan section 4.6). The material reviewer's whole-graph round judges those rulings.
+  - Evidence: the atlas-region-expansion run of 2026-09-24. Node-by-node planning gave 15 nodes; the operator's fusion instruction took them to 6 with no routing, authority, review, recovery, or acceptance boundary lost. After the reviewer's PASS, four read-only readers found 32 more cuts, 26 applied: state fields 21 to 11, agents 4 to 3, scripts 6 to 4, data files 5 to 2, eight verifier dispatches saved per run. Nothing in pave-init had asked either question; each planner sees one subtree and the lead's own trim is self-review.
+- Changed — The stop check no longer accepts an acknowledgement-only reply. Every question is answered in one line that names the fact behind it (`hooks/stop_alignment_check.sh`); the cadence stays at most one block in three stops.
+  - Evidence: "lgtm" let the lead stop without assessing anything. The generated-skill template dropped the one-word exit in 2.6.0; pave-init's own hook had kept it.
+- Changed — A user change request at a review gate restarts the repair loop's round counter (pave-spec section 9.8; SKILL.md Stage 4). The four-round bound stops repairs that cannot converge on fixed inputs; it no longer fires on the first round over inputs the user just moved. Defect-class counts continue across the change.
+  - Evidence: the run reached the bound at round 4 while the operator was rewriting the requirements at the gate.
+- Changed — Size a user gate to the decision, not the action (pave-spec section 8.3): one approval per vetted list of effects, each line naming the action, its change, its reason and its evidence; a mechanical guard admits only listed lines; only changed lines return for approval.
+  - Evidence: a go per production command was withdrawn at the gate for a go per vetted batch, at the cost of four change-request cycles.
+- Changed — The enforcement table is one row per rule or per dispatched seat in the reader's words, never a second row for the same rule per node or per source (explore-and-plan section 4.6). The package plan names every run input, its source, and how a missing one is collected: asked one at a time, recorded verbatim, never guessed (explore-and-plan section 5).
+  - Evidence: 23 rows merged to 8 on the operator's instruction; the operator asked at the gate how inputs are collected.
+- Improved — The framework's own words (seat, gate, node, write) count as codenames in text a person reads: use the everyday word or define it at first use (pave-spec section 8.5; the write-for-the-reader reminder names them).
+  - Evidence: the operator rejected an enforcement table written in those words.
+- Fixed — `scripts/validate_run_state.py --planning-queue` no longer reads a draft whose entry is `pending_dispatched`. That file belongs to a planner still writing, and a sibling's half-written draft failed the queue check six times in one run. Returned entries (`planned` onward) are read as before.
+- Changed — Document size ceilings (`tests/test_doc_budget.py`) rise by exactly the growth above for pave-spec, explore-and-plan, SKILL.md, README, planning-layout, and the reviewer template; every other document is unchanged.
 
 ### 2.6.3 (2026-09-22)
 

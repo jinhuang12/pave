@@ -1,6 +1,6 @@
 # PAVE Init
 
-Version: `2.6.3`
+Version: `2.7.0`
 
 Turn a goal into a reviewed workflow and a ready-to-use native harness plugin: a lead workflow skill plus role agents. A second skill, `pave-evolve`, revises a delivered workflow from recorded evidence through two dedicated seats. Claude Code uses registered Markdown agents. Codex uses custom-agent TOML and an explicit agent installer. Each generated package documents its native installation path.
 
@@ -352,7 +352,10 @@ as its own child graph is capped at depth 2 (`references/pave-composition.md`);
 decomposition itself has no depth limit — it stops when the one-agent test
 passes (`references/pave-spec.md` §9.12): a node is atomic when one agent can
 achieve and verify its goal in one bounded context; otherwise decompose it and
-re-test the children. A simple
+re-test the children. At assembly the lead asks the inverse once over the whole
+graph — can two adjacent nodes be one bounded goal — fuses to a fixed point, and
+rules on the cuts four fresh read-only readers propose, all before the
+whole-graph review. A simple
 goal closes the queue after the root's single entry, with no extra ceremony. Full procedure:
 `orchestration/explore-and-plan.md` §4.
 

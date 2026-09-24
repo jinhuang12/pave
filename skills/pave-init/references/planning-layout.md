@@ -46,5 +46,5 @@ A resynchronization that changes a frozen interface marks every `reviewed` entry
 
 ## Enforcement
 
-- **Validator** — `scripts/validate_run_state.py --planning-queue <path>` validates the planning queue and every dispatched entry's node draft against the schema, then applies the hand rules: unique draft paths, draft named past `pending`, no re-authored dispatched node, no minted `c<N>` ids. Run it whenever the queue changes state.
+- **Validator** — `scripts/validate_run_state.py --planning-queue <path>` validates the planning queue and every returned entry's node draft (`planned` onward) against the schema — a `pending_dispatched` draft is a planner's file in flight and is not read, so a concurrent planner's half-written file never fails the check — then applies the hand rules: unique draft paths, draft named past `pending`, no re-authored dispatched node, no minted `c<N>` ids. Run it whenever the queue changes state.
 - **Hook** — `hooks/planning-layout-warn.sh` (PostToolUse) emits a non-blocking warning when a write under `planning/` matches no allowed pattern, or when a subagent writes `planning-queue.yaml`. It warns, never blocks: layout drift is detectable and cheap to repair, so an observing enforcement level is sufficient.

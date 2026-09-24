@@ -251,6 +251,31 @@ class PlanningQueueMode(unittest.TestCase):
             self.assertEqual(rc, 2, out)
             self.assertIn("fails closed", out)
 
+    def test_in_flight_draft_is_not_read(self):
+        """A pending_dispatched draft belongs to a planner still writing; the same
+        half-written file fails only once the lead marks the entry planned."""
+        queue = (
+            "entries:\n  child:\n    status: pending_dispatched\n"
+            "    contract: planning/root.draft.pave.yaml#child\n"
+            "    draft: planning/child.draft.pave.yaml\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            planning = Path(tmp) / "planning"
+            planning.mkdir()
+            (planning / "child.draft.pave.yaml").write_text("pave:\n  nodes: [unclosed", encoding="utf-8")
+            planning_queue = planning / "planning-queue.yaml"
+            planning_queue.write_text(queue, encoding="utf-8")
+            rc, out = run_cli("--planning-queue", str(planning_queue))
+            if not HAVE_QUEUE_DEPS:
+                self.assertEqual(rc, 2, out)
+                return
+            self.assertEqual(rc, 0, out)
+            self.assertIn("0 node_drafts checked", out)
+            planning_queue.write_text(queue.replace("pending_dispatched", "planned"), encoding="utf-8")
+            rc, out = run_cli("--planning-queue", str(planning_queue))
+            self.assertEqual(rc, 1, out)
+            self.assertIn("cannot parse node_draft", out)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

@@ -24,8 +24,8 @@ artifacts prove - a pointer to nothing is a defect to fix or an artifact still
 to apply).
 
 Planning queue mode: validates planning/planning-queue.yaml against $defs.planning_queue and
-each dispatched entry's draft node_draft against $defs.node_draft, then applies
-the hand rules a shape schema cannot express (references/planning-layout.md):
+each returned entry's draft node_draft (planned, reviewed, stale) against $defs.node_draft,
+then applies the hand rules a shape schema cannot express (references/planning-layout.md):
   1. no two entries share a draft path (one path per dispatch);
   2. every entry past `pending` names a draft path;
   3. a node_draft never re-authors its dispatched node (frozen fields live in
@@ -33,6 +33,9 @@ the hand rules a shape schema cannot express (references/planning-layout.md):
   4. no mapping under a node_draft's extensions.x_planning carries an 'id' key
      in the lead-owned conflict namespace (c<N>) - those ids are lead-assigned
      in the planning_queue register; node-local labels (e1, n2, ...) are fine.
+A pending_dispatched entry's draft is a planner's file in flight and is never
+read: concurrent planners write beside each other, and a sibling's half-written
+file must not fail the queue check.
 This mode is Stage 3 planning tooling and fails closed (exit 2) without
 pyyaml + jsonschema, like validate_pave.py. Per-entry maxLength caps stay
 errors here (references/pave-spec.md section 8.1): content over a cap moves
@@ -404,6 +407,8 @@ def validate_planning_queue(queue_path: Path) -> int:
 
         if not draft:
             continue
+        if status not in RETURNED_STATUSES:
+            continue  # in flight: the planner may be mid-write; read it once the lead marks it planned
         contract = entry.get("contract") or ""
         if "#" not in contract:
             full_profiles_skipped += 1  # root plan: validate_pave.py owns full graph_files
