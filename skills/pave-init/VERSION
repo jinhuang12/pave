@@ -1,4 +1,4 @@
-version: 2.7.0
+version: 2.8.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,16 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.8.0 (2026-10-05)
+
+- New — `/pave-init:orchestrate`: a one-session fan-out for tasks with independent parts. The lead decomposes the goal into subtasks, each with a one-agent line (pave-spec section 9.12), runs them on `pave-init:orchestrate-worker` teammates, and gives every two or three workers one `pave-init:adversarial-investigator` that reviews them directly until PASS; the lead brokers only when direct messaging fails, integrates, sends one whole-goal review, and closes with a stopping word (pave-spec section 9.13). A lighter sibling of pave-init: no graph, validator, plan gates, or revision log. Claude Code only; the skill, its hooks, its scripts, and its two agents are hand-maintained files outside the `sources/` build until a Codex binding exists.
+  - Evidence: the user-level skill's first run (three modules, one provider respawn) and this release's own build, which was run as an orchestrate session: three workers, one reviewer, two design changes caught at the seams. Design record: `docs/superpowers/specs/2026-10-05-orchestrate-in-pave-plugin-design.md`.
+- New — Every orchestrate run keeps an append-only log at `<cwd>/.orchestrate/<timestamp>.md`, written only by the lead through `scripts/orchestrate_log.py` (`init`, `append`, `status`, `adopt`): one line per subtask planned, done, blocked, escalated, respawned, integrated, reviewed, or closed. `status` rebuilds the open subtasks from the log in file order, so a fix round after a failed whole-goal review is one more PLAN line that reopens the subtask. Ownership is per session through a marker named after `CLAUDE_CODE_SESSION_ID`; `adopt` re-points it after `/clear`.
+- New — One lead-only hook registered in the skill's frontmatter, on a shared skeleton (`hooks/_hook_common.sh`): a goal restate on SessionStart `resume|compact` that names the open subtasks from the log and asks for the fewest steps to CLOSE. It acts only on the run its own session owns, never blocks, and exits 0 on any parse or read error. No Stop hook: a one-session run keeps its closing steps in context, an unclosed run is caught by the next `init` and the next restate, and `append CLOSE` prints the one reminder that matters, release idle teammates. `ORCHESTRATE_PYTHON` overrides the interpreter.
+- New — Workers run PAVE's recovery loop (pave-spec section 9.8) on a non-trivial error that is not a review finding: one retry if transient, one investigation to root cause with a tried record, then a fix inside their write set or a `BLOCKED` message carrying Failed, Tried, Cause, Need. The lead rules from the record and logs one line; repeated guessing is not repair.
+- Changed — pave-init's fitness guidance (`orchestration/interview-and-fitness.md`) names `orchestrate` as the simpler option when the task is a one-session fan-out of independent subtasks; `tests/test_doc_budget.py` rises by that one sentence. The codex release test excludes the two hand-written agents from the generated-marker check. `validate.yml` runs the new hook and log tests.
+- Changed — The plugin's `adversarial-investigator` copy dispatches `pave-init:research-delegate` and carries the Anthropic prompt-audit edits for Fable 5.1 (evidence gathering described by purpose, not as a step script); the user-level copy is unchanged and now differs.
 
 ### 2.7.0 (2026-09-24)
 

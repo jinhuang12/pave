@@ -1,0 +1,49 @@
+# Worker subtask
+
+Send this as the `prompt` of every `orchestrate-worker` spawn. Fill every field; the worker refuses to start on an empty goal or write set because those are what the DA reviews against.
+
+```
+SUBTASK worker-N
+
+Orchestrator: team-lead       # teammates cannot address "main"
+Reviewer: da-M                # the adversarial-investigator assigned to you
+Wave: 1 of 2
+
+## Goal
+<one sentence, testable. This is the DA's anchor.>
+
+## One agent
+<why one agent can do this and decide its acceptance in one bounded context>
+
+## Write set
+<absolute paths of files/dirs you may create or edit. Nothing else.>
+- /abs/path/a.py
+- /abs/path/tests/test_a.py
+
+## Inputs
+<files to read first, prior decisions, constraints, interfaces you must match>
+- Read /abs/path/interfaces.py — implement `Foo` exactly as declared there.
+- Do not change the public signature of `bar()`.
+
+## Acceptance
+<commands or checks that prove the goal. Run them before you submit; the DA re-runs them.>
+- `cd /abs/repo && pytest tests/test_a.py -q` exits 0
+- `grep -c "def foo" /abs/path/a.py` returns 1
+
+## Skills to load first
+- superpowers:test-driven-development
+- <domain skill from the available list>
+
+## Context
+<2-4 sentences: what the overall task is, where this piece fits, what the other workers are doing so you do not duplicate or collide.>
+```
+
+## Filling it well
+
+- **Goal**: if you cannot write an acceptance check for it, the goal is not yet a goal. Split or sharpen it.
+- **One agent**: one falsifiable line, `One agent: <why one agent can do this and decide its acceptance>` (`skills/pave-init/references/pave-spec.md` §9.12 in this plugin). Name what the worker does and how it decides done. A split that cannot state it is not a split: merge it with a sibling or split it further.
+- **Acceptance**: every check must hold while siblings edit their own files in the same tree at the same time. Scope checks to the worker's paths (`git status --short -- <its files>`, `git diff --quiet -- tests/`), never to whole-repo cleanliness; a repo-wide "only my file changed" check fails the moment a sibling saves.
+- **Write set**: list files, not "the auth module". A worker that needs a file outside its set sends `BLOCKED` and waits; that is the intended behaviour, not a failure.
+- **Inputs**: include interface contracts between workers verbatim or by path. Two workers guessing the same interface independently is the most common integration failure.
+- **Skills**: name the ones you know apply. The worker also scans the available list itself, so you do not have to be exhaustive.
+- **Context**: enough for the worker to make routine judgment calls without asking you.

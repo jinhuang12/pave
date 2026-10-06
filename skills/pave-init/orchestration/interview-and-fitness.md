@@ -107,7 +107,7 @@ Return one verdict:
 - `fit_with_gaps`: PAVE is useful, but named gaps require resolution or acceptance.
 - `not_fit`: A simpler skill or procedure is more appropriate.
 
-Explain which characteristics matter, cite observed facts, and identify the simpler option for `not_fit`.
+Explain which characteristics matter, cite observed facts, and identify the simpler option for `not_fit`. When the task is a one-session fan-out of independent subtasks, name this plugin's `orchestrate` skill as that simpler option.
 
 ## 5. Get approval
 

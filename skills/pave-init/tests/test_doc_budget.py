@@ -50,6 +50,8 @@ import measure_artifact as ma  # noqa: E402
 # restart on a user change and the framework-word clause grow the spec; the fusion and
 # simplify steps grow explore-and-plan; SKILL.md, README, planning-layout and the
 # reviewer template each gain one clause of the same change.
+# 2026-10-05: interview-and-fitness names the plugin's orchestrate skill as the simpler
+# not_fit option for a one-session fan-out of independent subtasks.
 CEILINGS = {
     "skills/pave-init/SKILL.md": (267, 38471),
     "skills/pave-init/README.md": (451, 26261),
@@ -64,7 +66,7 @@ CEILINGS = {
     "skills/pave-init/references/planning-layout.md": (50, 4232),
     "skills/pave-init/references/technique-selection.md": (202, 9904),
     "skills/pave-init/orchestration/explore-and-plan.md": (176, 18351),
-    "skills/pave-init/orchestration/interview-and-fitness.md": (131, 6946),
+    "skills/pave-init/orchestration/interview-and-fitness.md": (131, 7073),
     "skills/pave-init/orchestration/review-and-build.md": (134, 14386),
     "sources/fragments/reviewer-core.md": (21, 3261),
     "sources/roles/forward-tester.md.tmpl": (21, 1783),

@@ -1,0 +1,134 @@
+# Team protocol
+
+Everything between peers travels by `SendMessage`. A teammate's plain text never reaches another teammate; it reaches the orchestrator only as the `result` field of an idle notification, delivered at the orchestrator's next turn boundary. Names are stable addresses: a send to an idle agent wakes it, which is what lets a worker end its turn after submitting a brief and be woken by the DA's reply. Every agent type used here must have `SendMessage` in its tools; a restricted tool list silently strands the agent.
+
+## Names
+
+| Role | Name | Spawned by |
+|---|---|---|
+| Orchestrator | `team-lead` (teammates cannot address `main`; that name means "myself" inside a teammate) | user |
+| Worker | `worker-1`, `worker-2`, … | orchestrator |
+| DA | `da-1`, `da-2`, … | orchestrator |
+
+Indices continue across waves. Never reuse a name in one run; a later agent with the same name shadows the earlier one.
+
+## DA spawn prompt
+
+```
+You are da-M, the adversarial reviewer for a worker team. Your workers are:
+worker-A, worker-B, worker-C. The orchestrator is `team-lead`.
+
+Rules for this role, which override your default "report to whoever dispatched you":
+
+1. Wait for review briefs via SendMessage. When idle, do nothing: no exploring,
+   no proactive research.
+2. Reply to the WORKER that sent each brief, by name, with your full review in
+   your team output format. The orchestrator does not want a copy of routine
+   verdicts.
+3. Keep a per-worker round counter. Start each reply with
+   `REVIEW worker-A round N: PASS|REVISE`.
+4. Re-run the acceptance commands in the brief yourself before ruling; the
+   worker's pasted output is a claim, not evidence.
+5. Respect rejections. If a worker marks a finding FALSE_POSITIVE with a reason
+   and you cannot produce new primary evidence, drop it.
+6. Escalate to the orchestrator with first line `ESCALATE da-M worker-A: <reason>`
+   when a worker reaches round 4 without PASS, or dismisses findings without
+   evidence twice. Otherwise never message the orchestrator unprompted.
+7. The orchestrator may also send you whole-goal integration briefs. Reply to
+   the orchestrator for those.
+8. If a message arrives prefixed `From worker-A (via orchestrator):`, the direct
+   channel failed. Reply to the orchestrator, first line `RELAY to worker-A:`,
+   and it will forward.
+9. Your plain text output reaches nobody. Every verdict and every escalation
+   is a SendMessage. After sending, end your turn; the next brief wakes you.
+
+Materiality standard: report only BLOCKING and HIGH findings that prevent or
+materially impair the brief's stated goal. Each finding cites file:line and an
+exact quote, describes a credible failure, and names the simplest fix.
+Stylistic preferences, speculative risks, and unstated requirements are not
+findings.
+```
+
+## Worker → DA: review brief
+
+Workers send this brief, with the round number on the first line:
+
+```
+REVIEW REQUEST worker-N round 1
+
+**Goal:** <verbatim from the subtask>
+**Context:** <what you built and why, 2-3 sentences>
+**Files:** <absolute paths you changed>
+**Acceptance:** <the subtask's commands, each with the exit code / output you observed>
+**Check for:** <what you are least sure about, edge cases, interfaces with other workers>
+**Comparison:** <path to a known-good analogue, if any>
+```
+
+Round 2+ lists each prior finding with `FIX (what changed, file:line)`, `DEFER (reason)`, or `FALSE_POSITIVE (reason)`, then asks the DA to re-read the changed lines.
+
+## Orchestrator → DA: whole-goal brief
+
+Step 6 sends one DA this brief after the last wave integrates. Per-worker PASSes prove parts; this brief asks about the whole, so fill it from the log header and every subtask, not from one worker's report.
+
+```
+WHOLE-GOAL REVIEW
+Reply to team-lead with first line `REVIEW whole-goal: PASS|REVISE`.
+
+**Goal:** <the user's goal, verbatim from the log header>
+**Context:** <the decomposition in 2-3 sentences: who owned what, and any re-scope, respawn, or ruling>
+**Files:** <every write set, by worker, as absolute paths>
+**Acceptance:** <the top-level build or test command and each subtask's acceptance commands, with the output you observed at integration>
+**Check for:** <the seams: interfaces between workers, behaviour no single write set owns, files changed outside every write set>
+```
+
+Route each REVISE finding to the worker that owns the cited file, as a new round through its DA.
+
+## Worker → orchestrator
+
+First line is the event type; the orchestrator switches on it.
+
+```
+DONE worker-N: PASS after R rounds
+Rounds: r1 REVISE (1 HIGH slug.py:12); r2 PASS
+<files changed, acceptance output, deferred findings, anything the orchestrator must know for integration>
+
+BLOCKED worker-N: <one line reason>
+<what you need: a decision, a file outside your write set, another worker's output>
+<for a non-trivial error, after one retry and one investigation, four labelled lines:>
+Failed: <command and the key line of its output>
+Tried: <attempt -> result, one per line>
+Cause: <what you found, or "unknown after N attempts">
+Need: <the decision, access, or change that unblocks you>
+
+ESCALATE worker-N: round 4 reached | disagreement on finding #K
+<your position, the DA's position, evidence for each, what you recommend>
+
+BROKER worker-N -> da-M
+<the full brief; the orchestrator forwards it verbatim>
+```
+
+Workers send nothing else to the orchestrator by SendMessage. The heartbeat is the plain-text last line of each waiting turn, `WAITING worker-N: round R sent to da-M`, which the orchestrator sees as an idle-notification result.
+
+## Broker fallback
+
+Use only when a direct send fails (the tool errors, or the sender gets no reply within a reasonable wait and `ListAgents` does not show the peer).
+
+```
+worker-N ──BROKER──> orchestrator ──"From worker-N (via orchestrator):"──> da-M
+worker-N <──"From da-M (via orchestrator):"── orchestrator <──"RELAY to worker-N:"── da-M
+```
+
+The orchestrator forwards verbatim in both directions and adds nothing. Once one round has gone through the broker, keep brokering that pair for the rest of the run; do not flip channels mid-loop.
+
+## Reassignment
+
+Reassign a worker when its DA has not replied for far longer than the DA's other reviews take and another DA is idle, or when a DA is unreachable for everyone.
+
+```
+SendMessage(to: "worker-N", message: "Your reviewer is now da-K. Resend your current round brief to da-K, including the prior findings and your FIX/DEFER/FALSE_POSITIVE notes so da-K has the history.")
+SendMessage(to: "da-K", message: "worker-N is now yours in addition to your current workers. Its brief follows from the worker.")
+```
+
+## Shutdown
+
+After the final report, tell each agent `You are released; no further work.` Use `TaskStop` on any agent that stays busy.

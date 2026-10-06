@@ -774,10 +774,14 @@ class BuildSafetyTests(unittest.TestCase):
             self.assertNotIn("HAND EDIT", generated.read_text(encoding="utf-8"))
 
     def test_generated_outputs_warn_and_ci_checks_drift(self) -> None:
+        # The orchestrate skill's two agents are hand-written Claude-only files, not
+        # build outputs: docs/superpowers/specs/2026-10-05-orchestrate-in-pave-plugin-design.md
+        # section 3.
+        hand_written = {"orchestrate-worker.md", "adversarial-investigator.md"}
         generated = [
             REPO_ROOT / "skills" / "pave-init" / "SKILL.md",
             REPO_ROOT / "codex" / "skills" / "pave-init" / "SKILL.md",
-            *sorted((REPO_ROOT / "agents").glob("*.md")),
+            *sorted(p for p in (REPO_ROOT / "agents").glob("*.md") if p.name not in hand_written),
             *sorted((REPO_ROOT / "codex" / "agents").glob("*.toml")),
         ]
         for path in generated:

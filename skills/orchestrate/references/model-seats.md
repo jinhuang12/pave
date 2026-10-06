@@ -1,0 +1,17 @@
+# Model seats
+
+Tiering follows the user's standing rule: fable for hard judgment, opus for medium work, sonnet for evidence and mechanical checks. Never default every seat to fable.
+
+| Role | Agent call | Why |
+|---|---|---|
+| Worker | `subagent_type: "pave-init:orchestrate-worker", model: "opus"` | Implementation is medium work; opus is fast enough and cheaper than fable per round. |
+| DA | `subagent_type: "pave-init:adversarial-investigator", model: "fable"` | Reviewing is the hard-judgment seat; a weak reviewer passes bad work. |
+| Evidence | DAs spawn `pave-init:research-delegate` on `sonnet` themselves; workers may spawn `Explore` on `sonnet` | Read-only lookups do not need judgment. |
+
+## Always pass `model:` explicitly
+
+Teammate spawns **ignore the `model:` field in the agent's frontmatter** and use the Agent call's `model` parameter, inheriting the parent's model when it is omitted (verified 2026-09-30: an `orchestrate-worker` spawned without `model:` ran on Fable 5.1 under a fable parent). If you forget `model: "opus"` on a worker, the whole team silently runs on the orchestrator's model and the tiering rule is broken.
+
+## Why there is no 60/20/20 id spread here
+
+The user's rule spreads each tier over several model ids for capacity (`opus` / `anthropic.claude-opus-5[1m]` / `anthropic.claude-opus-4-8[1m]`, and `fable` / `global.anthropic.claude-fable-5[1m]`). The Agent tool's `model` parameter only accepts `sonnet | opus | haiku | fable`, and agent-file frontmatter is ignored for teammates, so this skill cannot select a full id per seat. The only place a per-teammate id can be set is the teammate launch command (`CLAUDE_CODE_TEAMMATE_COMMAND`, the user's launcher wrapper), which already rotates AWS identity per teammate and receives `--model opus` on the command line. Rewriting `--model` there by seat is the follow-up that would restore the spread; until then, plain `opus` and `fable` are what every seat gets.

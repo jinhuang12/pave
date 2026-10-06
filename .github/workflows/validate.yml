@@ -25,3 +25,7 @@ jobs:
         run: bash skills/pave-init/tests/test_hooks.sh
       - name: Test pave-init helpers and document budget
         run: python3 -m unittest discover -s skills/pave-init/tests
+      - name: Test orchestrate hooks
+        run: bash skills/orchestrate/tests/test_hooks.sh
+      - name: Test orchestrate run log
+        run: python3 -m unittest discover -s skills/orchestrate/tests -q

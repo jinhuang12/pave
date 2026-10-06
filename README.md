@@ -89,6 +89,8 @@ The 14 native lead and role files are generated installation artifacts. Do not
 edit them directly. Change `sources/` or a shared reference, inspect
 `python3 scripts/build_packages.py --check`, then regenerate explicitly with
 `python3 scripts/build_packages.py --force`.
+`skills/orchestrate/` and its two agents are hand-maintained Claude-only
+files until a Codex binding exists.
 
 The Codex package requires V2 nested agents with 16 child slots and 17 total
 slots. Claude `fable` and `opus` roles map to `gpt-5.6-sol`; `sonnet` roles map
