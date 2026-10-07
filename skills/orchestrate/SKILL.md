@@ -78,6 +78,8 @@ Orchestrate only when you can name at least two subtasks that can run at the sam
 
 Read enough of the codebase to plan, but stop before you start fixing things. Produce a plan with one entry per subtask:
 
+Decompose the goal so that each subtask is externally verifiable by both its worker and its DA: a check whose result comes from the world (a test, a build, a count) and not from the worker's report. Without one, "looks done" is the only signal the worker has, the DA can only re-read that claim, and you become the verification loop for every mistake neither of them noticed.
+
 - **id** — `worker-N`, numbered from 1.
 - **goal** — one sentence, testable. This becomes the DA's anchor, so a vague goal produces a vague review.
 - **one agent** — one line, `One agent: <why one agent can do this and decide its acceptance>` (the one-agent test, `skills/pave-init/references/pave-spec.md` §9.12 in this plugin). A split that cannot state it is not a split: merge it or split it further.
