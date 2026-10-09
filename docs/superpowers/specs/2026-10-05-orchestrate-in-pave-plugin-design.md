@@ -1,54 +1,65 @@
 # Design: orchestrate as a skill in the pave-init plugin
 
-Date: 2026-10-05 (revised after /simplify review the same day)
-Status: draft for user review
+Date: 2026-10-05 (updated 2026-10-09 for the shared Claude Code and Codex source)
+Status: implementation in the working tree; release validation remains separate
 
 ## 1. Purpose
 
-Move the user-level `orchestrate` skill into this plugin as a Claude-only skill, so one plugin holds the multi-agent orchestration workflows, and give it the parts of PAVE that keep a long orchestration aligned: a persistent run log, decomposition with a one-agent clause, and lead alignment hooks. Leave out PAVE's design-time ceremony: graph YAML, validator, plan gates, revision log, Codex port.
+Provide the `orchestrate` skill for Claude Code and Codex from one source in this plugin. Keep a persistent run log, decomposition with a one-agent clause, and lead alignment hooks. Preserve the original instructions except for required platform changes. Leave out PAVE's design-time graph YAML, validator, plan gates, and revision log.
 
 In the user's words: "a lite or dynamic version of pave-init, which adopts orchestrator reminder/re-alignment hooks, run-state to have a persistent history of work, goal decomposition, and maybe some other things."
 
 Success looks like:
 
-- `/pave-init:orchestrate <task>` runs the same worker-and-reviewer team the user-level skill runs today, from a marketplace install, with no file under `~/.claude/` referenced by the skill or its roles.
+- `/pave-init:orchestrate <task>` in Claude Code and `$pave-init:orchestrate <task>` in Codex run the worker-and-reviewer team from the plugin. Codex also needs the explicit custom-agent installation. Neither package depends on user-level Claude skill or agent files.
 - A run that is compacted, resumed, or stopped early keeps orchestrating from its log instead of inventing state, and the hooks never fire for a session that does not own the run.
 - Every event the orchestrator acts on is in one file a person can read afterwards, including a per-worker round summary.
-- `python3 scripts/build_packages.py --check` and the existing test suites pass unchanged except for one named exclusion.
+- `python3 scripts/build_packages.py --check` and the test suites pass. The generated-file checks include the skill, both roles, and all three references for each platform.
 
 ## 2. Decisions
 
 | decision | choice | why |
 |---|---|---|
-| Harness scope | Claude only now; Codex later | Codex has no teammates or peer messaging. |
-| Build | Hand-written files, not generated from `sources/` | No build-script, schema, or binding change; no wrapping most of the body in Claude blocks. `--check` tracks only files with the generated marker. Templating is earned when the Codex port is real. |
+| Harness scope | Claude Code and Codex | Claude uses teammates and SendMessage. Codex uses named custom agents, followup_task for peer delivery, and send_message for events to the active lead. |
+| Build | Shared `sources/` templates with platform bindings | Generate the skill, roles, and references for each platform. Each reader receives only its platform's instructions. `--check` detects stale or orphaned generated files. |
 | Reviewer role | Copy the user's `adversarial-investigator` into the plugin as a role; keep the user-level copy for `/adversarial-review` | User decision. Known cost: two copies will drift; recorded in section 10. |
 | Plugin name | Stays `pave-init`; rename deferred to its own spec | Review found exact-name gates in the generated plugin, Codex per-project installs, and every existing install's settings key would break, for a cosmetic prefix. |
 | Persistent state | Append-only markdown run log | Nothing goes stale; no schema or validator. |
 | Log writer | The orchestrator only | PAVE one-writer rule. Reviewer verdicts are already persisted verbatim in each reviewer's transcript, so round history is not lost; the worker's DONE message carries a one-line round summary the orchestrator copies. |
-| Ownership | Per-session marker written by `init` from `$CLAUDE_CODE_SESSION_ID` | Verified the variable is set for Bash tool calls. Hooks act only on the run their session owns, which the lead-hooks doctrine requires. |
+| Ownership | Per-session marker from `CLAUDE_CODE_SESSION_ID` or `CODEX_THREAD_ID` | The explicit `--runtime` selects the correct variable when both are present. Hooks use the payload session ID and act only on the run that session owns. |
 | Hooks | One, lead-only: goal restate on SessionStart resume/compact. The Stop check was built, reviewed, then dropped on 2026-10-06 (section 5) | A stop check that fires on normal waits would block 6 to 14 stops per wave. Staleness has no signal when the lead is the only writer and writes rarely. SubagentStart would hit the reviewers' research helpers. |
 | PAVE bits imported | Run log, one-agent clause on each subtask, stopping vocabulary, frozen purpose, worker recovery loop, one lead hook | Each addresses a failure seen or named. |
-| Left out | Staleness hook, SubagentStart restate, write log, audit checkpoint, deny hooks, revision log, debate/monitor/audit, Codex binding, rename | No consumer or evidence in a one-session tool. |
+| Left out | Staleness hook, SubagentStart restate, write log, audit checkpoint, deny hooks, revision log, debate/monitor/audit, rename | No consumer or evidence in a one-session tool. |
 
 ## 3. Placement
 
 ```
 jinhuang12-plugins/
-├── skills/orchestrate/                 hand-written; no generated marker
-│   ├── SKILL.md                        frontmatter registers the restate hook
+├── sources/orchestrate/
+│   ├── SKILL.md.tmpl                   shared skill instructions
+│   └── references/*.md.tmpl           shared protocol, subtask, and model structure
+├── sources/roles/*.md.tmpl             shared agent instructions
+├── sources/bindings/{claude,codex}.toml platform tools, models, paths, and skill names
+├── skills/orchestrate/
+│   ├── SKILL.md                        generated Claude skill; frontmatter registers the hook
 │   ├── hooks/
 │   │   ├── _hook_common.sh             shared skeleton (section 5)
 │   │   └── goal_restate.sh
-│   ├── references/protocol.md, subtask.md, model-seats.md
+│   ├── references/*.md                 generated Claude references
 │   ├── scripts/orchestrate_log.py, preflight.py
 │   └── tests/test_hooks.sh, test_orchestrate_log.py
-├── agents/orchestrate-worker.md        hand-written; no generated marker
-└── agents/adversarial-investigator.md  hand-written copy; no generated marker
+├── agents/orchestrate-worker.md        generated Claude role
+├── agents/adversarial-investigator.md  generated Claude role
+└── codex/
+    ├── skills/orchestrate/SKILL.md     generated Codex skill
+    ├── skills/orchestrate/references/  generated Codex references
+    ├── agents/pave_init_*.toml         generated Codex roles
+    ├── hooks/hooks.json                plugin-level hook registration
+    └── orchestrate_preflight.py        installed-file checks; live tools checked by the lead
 ```
 
-- `codex/tests/test_release_tools.py` asserts the generated marker in every `agents/*.md`; it gets a two-name exclusion for the hand-written agents, with a comment naming this spec.
-- The plugin README's "14 native lead and role files are generated" paragraph gains one sentence: `skills/orchestrate/` and its two agents are hand-maintained Claude-only files until a Codex binding exists.
+- `codex/tests/test_release_tools.py` asserts the generated marker in every `agents/*.md`; no orchestrate exclusion is needed.
+- The build generates 26 native skill and role files plus six orchestrate reference files. The README identifies the shared sources and the platform outputs.
 - `agents/adversarial-investigator.md` is the user-level file minus `memory: user`, with its `research-delegate` dispatch qualified as `pave-init:research-delegate` so the plugin copy depends on no user-level agent, and with the `claude-api` `prompt-audit` findings applied (the step-scripted dispatch section de-prescribed for Fable 5.1, keeping the sub-agent prompt contract, materiality standard, output format, and reply rules). The skill dispatches `pave-init:adversarial-investigator`.
 - `agents/orchestrate-worker.md` is the user-level file with the DONE message change in section 6 and the audit's neutral wording for the finding-rejection rule.
 - pave-init's fitness text (`orchestration/interview-and-fitness.md`) names the plugin's `orchestrate` skill as the simpler option for a one-session fan-out of independent subtasks. That file ships to Codex too, so the sentence names the skill, not its mechanics. `skills/pave-init/tests/test_doc_budget.py` pins that file's size; the ceiling moves in the same commit.
@@ -97,9 +108,9 @@ Open subtask, derived in file order: `PLAN <w>` opens `w`; `RESPAWN <old> -> <ne
 
 ### 4.1 `scripts/orchestrate_log.py`
 
-Standard library only, about 100 lines.
+Standard library only. Use `--runtime claude` or `--runtime codex` before the subcommand. Automatic selection is available when only one session variable is set.
 
-- `init --goal "<text>" [--plan "<line>"]...` creates `.orchestrate/`, `.gitignore`, the log with header and goal, the `PLAN` lines given, and `active-$CLAUDE_CODE_SESSION_ID`. Refuses when that session already has an open run and prints its path and the `CLOSE incomplete` command. Prints the log path.
+- `init --goal "<text>" [--plan "<line>"]...` creates `.orchestrate/`, `.gitignore`, the log with header and goal, the `PLAN` lines given, and `active-<session-id>`. Refuses when that session already has an open run and prints its path and the `CLOSE incomplete` command. Prints the log path.
 - `append EVENT <actor> "<text>"` appends one line to the session's open run. Also accepts several lines on stdin for a wave's `PLAN` block. Rejects an unknown event or a `CLOSE` without a stopping word. On `CLOSE` it removes the marker.
 - `status` prints the goal, one line per subtask labelled with the first `|` field of its `PLAN` text (`worker-1 -> da-1 — DONE r1 PASS`, `worker-4 -> da-1 — open, replaced worker-3`), and the last line. Finished subtasks are one line each; open ones keep their `PLAN` text.
 - `adopt <log>` re-points the marker at the current session, for a run resumed after `/clear` rotated the session id.
@@ -112,13 +123,13 @@ The log is the durable record; the orchestrator's context is working memory. Aft
 
 ## 5. Hooks
 
-One hook, lead-only, registered in the skill's frontmatter. It sources `hooks/_hook_common.sh`, which carries the parts the lead-hooks doctrine calls invariant: payload parse with a parse-fail sentinel and fail-open exit, session id extraction, the run-log readers, and the JSON `additionalContext` emitter. Per-skill code is exactly the doctrine's re-derive list: discovery, terminal rule, question text, env prefix `ORCHESTRATE_`. pave-init's own hooks are not changed in this work; moving them onto the skeleton is a later refactor (section 10).
+One hook, lead-only, registered in the Claude skill's frontmatter and in `codex/hooks/hooks.json` for Codex. It sources `hooks/_hook_common.sh`, which carries the parts the lead-hooks doctrine calls invariant: payload parse with a parse-fail sentinel and fail-open exit, session id extraction, the run-log readers, and the JSON `additionalContext` emitter. Per-skill code is exactly the doctrine's re-derive list: discovery, terminal rule, question text, env prefix `ORCHESTRATE_`. pave-init's own hooks are not changed in this work; moving them onto the skeleton is a later refactor (section 10).
 
-Discovery: `$root/.orchestrate/active-<payload session_id>` for `root` in `CLAUDE_PROJECT_DIR` then `$PWD`. No marker, or the marker's target missing, or its last line a `CLOSE`: exit 0. This is marker-authoritative and session-scoped, so a second session in the same cwd is never touched.
+Discovery: `$root/.orchestrate/active-<payload session_id>` for `root` in payload `cwd`, then `CLAUDE_PROJECT_DIR`, then `$PWD`. No marker, or the marker's target missing, or its last line a `CLOSE`: exit 0. This is marker-authoritative and session-scoped, so a second session in the same cwd is never touched.
 
 | hook | event | behaviour |
 |---|---|---|
-| `goal_restate.sh` | SessionStart `resume\|compact` | `additionalContext`, exit 0. Asks the lead to state the goal from the log header, run `status` and `ListAgents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`; you orchestrate, you do not implement. Never throttled. |
+| `goal_restate.sh` | SessionStart `resume\|compact` | `additionalContext`, exit 0. Prints the literal log `status` command and `ListAgents` for Claude or `list_agents` for Codex. Asks for the goal, open subtasks, and fewest steps to `CLOSE`; you orchestrate, you do not implement. Never throttled. |
 
 The skill description discloses the hook in one sentence, as the doctrine requires.
 
@@ -128,7 +139,7 @@ Seat alignment rides in the subtask: the worker contract already makes a seat re
 
 ## 6. Skill body changes
 
-Relative to the current `~/.claude/skills/orchestrate/SKILL.md`:
+The original migration from `~/.claude/skills/orchestrate/SKILL.md` made the changes below. The shared source preserves them; platform bindings supply Codex tools, addresses, model settings, skill names, and paths.
 
 1. **Step 1, decompose.** Each subtask gains one line, `One agent: <why one agent can do this and decide its acceptance>` (`pave-spec.md` §9.12). A split that cannot state it is not a split.
 2. **Step 3, spawn.** The spawn call and `init` (or `append` for a later wave) happen in the same step, `PLAN` lines included. Model is still passed explicitly on every spawn.
@@ -152,7 +163,7 @@ Relative to the current `~/.claude/skills/orchestrate/SKILL.md`:
 
 ## 8. Testing
 
-Build: `python3 scripts/build_packages.py --check` clean; `codex/tests` pass with the two-name exclusion; `skills/pave-init/tests` pass with the doc-budget ceiling moved.
+Build: `python3 scripts/build_packages.py --check` clean; `codex/tests` pass without a generated-role exclusion; `skills/pave-init/tests` pass with the doc-budget ceiling moved. Codex port tests cover native reference rendering, hook ownership, and the printed status commands for both platforms.
 
 Log script (`skills/orchestrate/tests/test_orchestrate_log.py`, unittest):
 
@@ -181,7 +192,7 @@ Live run, from a real install (version bump, then `/plugin update pave-init`, si
 
 ## 9. Work order
 
-1. Move the skill, references, roles, and `preflight.py` into the plugin as hand-written files; fix the `~/.claude/` paths; add `orchestrate_log.py` and its tests; the README sentence; the release-test exclusion; the fitness line and its budget bump.
+1. Keep the skill, role, and reference instructions in shared templates. Generate both platform outputs from bindings. Keep `preflight.py`, `orchestrate_log.py`, and their tests in the plugin; update the README and generated-file checks.
 2. Hooks: `_hook_common.sh`, the restate hook (the Stop hook was built here and dropped on 2026-10-06), their tests, CI wiring.
 3. Adversarial review, fixes, then the live run.
 4. Version bump and `VERSION` changelog entry. The user-level `~/.claude/skills/orchestrate/` and `~/.claude/agents/*.md` are not touched by this work; the user retires them by hand later.
@@ -191,6 +202,5 @@ Steps 1 and 2 can run in parallel.
 ## 10. Deferred, with the reason recorded
 
 - **Plugin rename to `pave`.** Own spec. Must cover: `write_limits.py` and `stop-guard.sh` exact-name sets in vllm-neuron-parity (a pave-evolve round, since that plugin is revision-controlled), `codex/install_agents.py` names written into every Codex project, existing installs keyed `pave-init@jinhuang12-plugins`, and a word-boundary form for any new forbidden token (`pave:` would false-match "PAVE:" in three reference files).
-- **Codex binding for orchestrate**, and with it moving the skill and roles onto `sources/` templates with bindings-own-shipping in the build script.
 - **Single-source reviewer.** The plugin and user-level `adversarial-investigator` are two copies and already differ: the plugin copy carries the `pave-init:` prefixes and the prompt-audit rewrite, the user copy carries `memory: user`. The user chose to keep both for now; the user-level copy is retired by hand.
 - **pave-init hooks onto `_hook_common.sh`.** Same skeleton, separate refactor with pave-init's own tests as the gate.

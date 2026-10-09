@@ -16,14 +16,18 @@ That structure follows PAVE's own layer model:
 ```text
 .codex-plugin/plugin.json             Codex plugin manifest
 codex/skills/pave-init/SKILL.md       generated native Codex lead skill
+codex/skills/orchestrate/SKILL.md     generated orchestration skill
+codex/skills/orchestrate/references/  generated Codex protocol and model guidance
 codex/agents/*.toml                   generated native custom-agent contracts
 codex/install_agents.py               explicit project/user agent installer
+codex/orchestrate_preflight.py        orchestration file checks
 codex/hooks/hooks.json                Codex lifecycle registration
 codex/hooks/post_tool_use_router.py   apply_patch wire adapter
 codex/tests/test_codex_port.py        stdlib validation and hook tests
 sources/pave-init/SKILL.md.tmpl       shared workflow source
+sources/orchestrate/SKILL.md.tmpl     shared orchestration workflow
 sources/roles/*.md.tmpl               shared role sources
-sources/bindings/*.toml               narrow harness mechanics
+sources/bindings/*.toml               narrow harness mechanics and reference slots
 scripts/build_packages.py             deterministic materializer and drift check
 ```
 
@@ -116,10 +120,49 @@ python3 codex/install_agents.py --project /path/to/repo --check
 python3 codex/install_agents.py --project /path/to/repo --uninstall
 ```
 
-The installer owns only the eight safe file names `pave_init_*.toml` listed in
+The installer owns only the ten safe file names `pave_init_*.toml` listed in
 its manifest. Each file declares its namespaced `pave-init:<role>` runtime
 name. The installer refuses to overwrite or remove an unowned modified file
 unless you pass `--force`.
+
+## Orchestrate
+
+Orchestrate uses the same generated-package and explicit agent installation
+steps above. It needs Python 3.11+, Codex V2, a trusted project, and the two
+loaded roles `pave-init:orchestrate-worker` and
+`pave-init:adversarial-investigator`. Start a new session after installing the
+roles. The worker uses `gpt-6.1-sol` at `xhigh`; the reviewer uses
+`gpt-6-astra` at `xhigh`. Change approved model choices in the platform binding
+and regenerate, rather than editing installed role files.
+
+```bash
+python3 codex/install_agents.py --project /path/to/target-repository
+python3 codex/orchestrate_preflight.py --project /path/to/target-repository
+```
+
+The orchestration preflight checks installed files only. The lead also checks
+the live role list, collaboration tools, model access, and available slots.
+The separate `codex/preflight.py` proves the PAVE campaign's nested reviewer
+chain; it does not prove orchestrate's worker-to-reviewer protocol.
+
+Review the plugin's `SessionStart` hook through `/hooks`, then invoke:
+
+```text
+$pave-init:orchestrate <task with independent parts>
+```
+
+Actionable peer messages use `followup_task` so idle workers and reviewers
+wake. Events to the lead use `send_message`; the lead waits with `wait_agent`.
+Six workers and two reviewers need eight child slots, with extra slots for
+research helpers. Smaller sessions use smaller waves. Do not assume that a
+new worker changes provider credentials or quota.
+
+Both platforms use the same log helper. Pass `--runtime codex` before its
+subcommand to select `CODEX_THREAD_ID`; Claude passes `--runtime claude` to
+select `CLAUDE_CODE_SESSION_ID`. This also handles nested shells that contain
+both variables. The reminder uses the hook payload's session ID and cwd to
+find the same marker. If hooks are not trusted, use the skill's Resume steps
+manually.
 
 ## What changed from Claude Code
 
@@ -139,10 +182,10 @@ differences are:
   `gpt-5.6-sol`; Claude `sonnet` maps to `gpt-5.6-terra`.
 - Nested dispatch uses Codex V2 with 16 child slots and 17 total slots.
 - Plugin-level `hooks/hooks.json` replaces skill-frontmatter hook registration.
-- The goal-restatement hook (`SessionStart` resume|compact, `SubagentStart`)
-  is not registered for Codex: its event coverage there is unverified. This is
-  the written reason for leaving it out; the Resume duty in SKILL.md carries the goal
-  reconciliation as prose.
+- Orchestrate registers its lead-only goal-restatement hook for `SessionStart`
+  with `resume|compact`. Codex supports both sources. The hook uses the
+  session-owned orchestrate marker; it does not register a PAVE campaign
+  restatement hook or a `SubagentStart` hook.
 - `apply_patch` needs a path/content adapter for the planning-layout hook.
 - Direct Codex caller identity is preserved so the canonical hooks remain the
   only authority for lead-versus-worker policy.
@@ -156,14 +199,18 @@ terminal status, or revision rule changes.
 
 ## Hooks
 
-The Codex plugin registers:
+The Codex plugin registers five hook actions:
 
 1. A throttled run-state staleness reminder after Bash or file-edit tools.
 2. A non-blocking planning-layout warning after file edits.
-3. A Socratic stop-alignment check with the canonical cooldown.
+3. A non-blocking write-for-reader warning after file edits.
+4. A Socratic stop-alignment check with the canonical cooldown.
+5. Orchestrate's lead-only goal restatement on `SessionStart` resume or compact.
 
 The canonical Bash scripts remain the policy implementations. The Codex Python
 file adapts only the `apply_patch` wire format and preserves caller identity.
+The orchestrate registration passes `codex` to the shared restatement script,
+which prints the literal log-status command and `list_agents`.
 
 Codex requires explicit trust for non-managed hooks. A disabled or untrusted
 hook is a recorded enforcement degradation. The canonical resume, checkpoint,
@@ -176,6 +223,7 @@ From the repository root:
 ```bash
 python3 -m unittest codex.tests.test_codex_port
 python3 -m unittest codex.tests.test_release_tools
+python3 -m unittest codex.tests.test_orchestrate_port
 python3 scripts/build_packages.py --check
 python3 scripts/stamp_version.py --check
 python3 -m json.tool .codex-plugin/plugin.json >/dev/null
@@ -213,7 +261,7 @@ and complete two turns on one reviewer thread is a release failure.
 PAVE Init fails closed unless each V2 spawn returns one canonical task path and
 the child rollout persists the expected role instructions, model, effort, and
 effective sandbox. A project that contains any PAVE agent file must contain the
-complete current eight-file set; this prevents stale project roles from
+complete current ten-file set; this prevents stale project roles from
 shadowing current user roles.
 
 Codex 0.153.2 preserves the parent permission state when it applies a custom

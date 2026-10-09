@@ -1,4 +1,4 @@
-version: 2.8.1
+version: 2.8.2
 
 ## How changelog entries are written
 
@@ -17,6 +17,13 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.8.2 (2026-10-09)
+
+- New — `$pave-init:orchestrate` is available in Codex after explicit custom-agent installation. Workers use `gpt-6.1-sol` and shared reviewers use `gpt-6-astra`, both at `xhigh`. Direct review messages wake idle agents, and the lead stays active to handle their results.
+- Improved — Claude Code and Codex skills, roles, and references now come from one shared source. Each platform receives its own tool calls, model settings, paths, and skill names. The original Claude agent and reference instructions are preserved.
+- Fixed — Run logs select the correct session when both platform session variables are present. The resume and compaction reminder prints a runnable status command, uses the configured Python interpreter and owning project directory, and names the correct agent-list tool.
+- Updated — Installation checks, hook documentation, and the design spec cover both platforms. Codex checks the installed roles and native references before dispatch; its plugin registers the session-owned orchestrate reminder.
 
 ### 2.8.1 (2026-10-07)
 

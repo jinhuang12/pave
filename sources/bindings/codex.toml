@@ -2,6 +2,128 @@ version = 1
 harness = "codex"
 agent_output_kind = "toml"
 
+[skills.orchestrate]
+template = "sources/orchestrate/SKILL.md.tmpl"
+output = "codex/skills/orchestrate/SKILL.md"
+
+[skills.orchestrate.slots]
+FRONTMATTER = '''---
+name: orchestrate
+description: >-
+  Turn yourself into a pure orchestrator for any complex task. Decompose the
+  goal into independent subtasks, run them in parallel on gpt-6.1-sol
+  `orchestrate-worker` agents, and give each group of 2-3 workers a shared
+  gpt-6-astra `adversarial-investigator` that reviews their work until it PASSes.
+  Use this skill whenever a task has 3 or more independent parts, spans many
+  files or components, would take one agent more than roughly an hour, or when
+  the user says "parallelize", "fan out", "orchestrate", "delegate", "use
+  workers", "split this up", "swarm", or "/orchestrate". Also use it when a
+  task mixes unrelated domains (e.g. backend + frontend + docs) even if the
+  user never mentions parallelism. Do not use it for single-file edits,
+  trivial fixes, or tasks whose steps are strictly sequential with no parallel
+  width. Registers one lead-only hook: a goal restate on session resume and
+  after compaction, which adds context and never blocks.
+---'''
+PEER_MESSAGES = "direct messages"
+RESOURCE_PATHS = '''`$SKILL` in this file means the shared script directory `<PAVE_PLUGIN_ROOT>/skills/orchestrate`. Resolve PAVE_PLUGIN_ROOT three directories above this skill directory (`<root>/codex/skills/orchestrate` to `<root>`). These are placeholders, not environment variables, so write literal absolute paths in commands. References/ paths resolve beside this Codex SKILL.md, under `<PAVE_PLUGIN_ROOT>/codex/skills/orchestrate/`; scripts/ and hooks/ resolve under `$SKILL`. Supply `ORCHESTRATE_ROOT: <absolute shared script directory>` in agent briefs.'''
+LOG_COMMAND = "python3 $SKILL/scripts/orchestrate_log.py --runtime codex"
+ISOLATION = "give each an explicit separate Git worktree"
+TEAM_MODELS = '''Workers use `pave-init:orchestrate-worker` on `gpt-6.1-sol` with `xhigh`; DAs use `pave-init:adversarial-investigator` on `gpt-6-astra` with `xhigh`. Use `fork_turns: "none"` so each installed custom agent keeps its own model and effort. See `references/model-seats.md` for the runtime-specific dispatch rules. Count available agent slots before dispatch; retained agents and research helpers count too. Reduce the wave or investigate without helpers when capacity is insufficient.'''
+PREFLIGHT = '''**Pre-flight first.** Run `python3 <PAVE_PLUGIN_ROOT>/codex/orchestrate_preflight.py --project <working directory>` to check installed roles and shared resources. Then check the live session: `spawn_agent`, `followup_task`, `send_message`, `list_agents`, `wait_agent`, and `interrupt_agent` must be available, and the custom-agent list must include `pave-init:orchestrate-worker` and `pave-init:adversarial-investigator`. File checks do not prove live availability. If either check fails, report the setup commands in `codex/README.md`; do not install roles or alter trust automatically.'''
+SPAWN_RUNTIME = '''Spawn every agent through `spawn_agent` with its installed `agent_type`, a unique `task_name` such as `worker_1` or `da_1`, and `fork_turns: "none"`. Retain the canonical task paths returned by the tool; labels such as worker-1 and da-1 remain the run-log IDs. Record the lead, worker, and reviewer paths in each PLAN entry so Resume can match log IDs to the live roster. Include the actual lead and reviewer paths in every subtask, and update reviewers with worker paths as workers start. Do not assume the lead is `/root` when this orchestrator is nested. After spawning, call `list_agents` once and confirm the roster. If direct peer delivery fails, broker through the lead (Step 4).'''
+SPAWN_ORDER = "Spawn DAs first, then workers, using independent calls concurrently where the runtime permits."
+SPAWN_ADDRESSES = '''Read `references/protocol.md` for the exact DA spawn prompt and `references/subtask.md` for the worker subtask. Set `Orchestrator` and `Reviewer` to their actual canonical task paths, and supply `ORCHESTRATE_ROOT`. Read applicable skills from their listed SKILL.md files.'''
+SPAWN_EXAMPLE = '''spawn_agent(task_name: "da_1", agent_type: "pave-init:adversarial-investigator", fork_turns: "none", message: <DA prompt from protocol.md>)
+spawn_agent(task_name: "worker_1", agent_type: "pave-init:orchestrate-worker", fork_turns: "none", message: <subtask>)'''
+MONITOR_DELIVERY = '''Workers and DAs talk directly using their canonical task paths. For every actionable brief, verdict, relay, or reassignment to a worker or DA, use `followup_task(target=<canonical path>, message=<full message>)`; it wakes an idle peer. Passive `send_message` does not wake an idle agent. Workers and DAs send lead events with `send_message`.
+
+Keep the lead active and use bounded `wait_agent` waits for arrivals; do not end the lead turn while required work remains. Do not poll with `list_agents` or "are you done?" messages. Two kinds of traffic arrive:
+
+- **Turn completions.** A worker ending with `WAITING worker-N: round R sent to da-M` is waiting for its DA, not DONE.
+- **Messages.** These are the events. Act only on a message whose first line is one of these:'''
+PROVIDER_FAILURE = '''**Provider failures.** An explicit runtime failure or confirmed dead agent means the worker died mid-task, and its files may be half-written. Spawn a replacement under the **next unused index** (`worker-7`, never a reused name), with the same subtask plus a line saying which files the dead worker may have touched, and tell its DA the new canonical path. Log it as `append RESPAWN <old> "-> <new> | <reason>"`. A new Codex agent does not imply a different provider identity or quota.'''
+SHUTDOWN = '''Then release the team: use `interrupt_agent` for agents that remain busy. Idle completed agents need no close; do not wake them merely to announce shutdown.'''
+LIST_AGENTS = "`list_agents`"
+NEW_SESSION = '''After a new session changes the session ID, `status` finds no run for this session and prints the `adopt` command for the orphaned log. Run `adopt <log>` first, then the steps above.'''
+HOOK_CONTRACT = '''The plugin registers **goal restate** in `codex/hooks/hooks.json`. Review and trust it through `/hooks`. It fires on session resume and after compaction, only in your own session, and only for the run this session owns (its `.orchestrate/active-<session id>` marker). The hook reads the payload session ID and cwd; the log uses `CODEX_THREAD_ID`. It stays silent once the log's last line is a `CLOSE`. It asks you to state the goal from the log header, run `status` and `list_agents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`. Answer it with Resume. It never throttles and never blocks. `ORCHESTRATE_PYTHON` sets the interpreter it uses.'''
+RUNTIME_ANTIPATTERNS = '''- **Expecting peers to read each other's plain text.** Worker-to-DA briefs and verdicts must use `followup_task`; a final line only reports turn completion to the lead.
+- **Using an unavailable role or delivery operation.** Stop and report the missing capability; do not substitute a generic worker or rely on passive messages to wake an idle peer.
+- **Ending the lead turn while workers wait.** Stay active with `wait_agent` so lead events can be handled.'''
+MODEL_REFERENCE = '''`references/model-seats.md` — which model each role gets and how to preserve its configured model and effort.'''
+PREFLIGHT_REFERENCE = '''`<PAVE_PLUGIN_ROOT>/codex/orchestrate_preflight.py` — installed-role and shared-resource checks; also check the live tools before every spawn.'''
+
+SKILL_EXAMPLES = "domain skills, available testing skills, etc."
+
+[skills.orchestrate.references.protocol]
+DELIVERY = '''Everything between peers travels by `followup_task`, addressed to canonical task paths; it wakes an idle worker or DA. Events to the active orchestrator use `send_message`, and the orchestrator waits with `wait_agent`. Plain text never delivers a review to a peer. A worker's WAITING turn completion is a heartbeat, not DONE. Passive `send_message` does not wake idle peers.'''
+LEAD_NAME = "The orchestrator's canonical task path supplied in the brief"
+NAMING = '''Names below are run-log IDs; pair them with the canonical task paths returned by `spawn_agent`. Indices continue across waves. Never reuse a name in one run; a later agent with the same name shadows the earlier one.'''
+DA_ADDRESSES = '''worker-A, worker-B, worker-C, paired with their canonical task paths.
+Orchestrator: <actual canonical task path>
+ORCHESTRATE_ROOT: <absolute plugin root>/skills/orchestrate'''
+WAIT_BRIEFS = "Wait for review briefs via `followup_task`."
+VERDICT_DELIVERY = "uses `followup_task` to a worker or `send_message` to the active orchestrator."
+WHOLE_GOAL_REPLY = "Use `send_message` to the supplied orchestrator path with first line"
+LEAD_EVENTS = '''Workers send nothing else to the orchestrator by `send_message`. The heartbeat is the plain-text last line of each waiting turn, `WAITING worker-N: round R sent to da-M`, which the orchestrator sees as a turn-completion notification.'''
+ROSTER = "`list_agents` does not show the peer"
+REASSIGN = '''```
+followup_task(target: "<worker-N canonical path>", message: "Your reviewer is now da-K at <canonical path>. Resend your current round brief there, including the prior findings and your FIX/DEFER/FALSE_POSITIVE notes so da-K has the history.")
+followup_task(target: "<da-K canonical path>", message: "worker-N at <canonical path> is now yours in addition to your current workers. Its brief follows from the worker.")
+```'''
+SHUTDOWN = '''After the final report, use `interrupt_agent` on any agent that stays busy. Idle completed agents need no close; do not wake them just to announce shutdown.'''
+
+[skills.orchestrate.references.subtask]
+SPAWN_FIELD = "`message`"
+ADDRESSES = '''Orchestrator: <canonical task path>
+Reviewer: <DA canonical task path>
+ORCHESTRATE_ROOT: <absolute plugin root>/skills/orchestrate'''
+TESTING_SKILL = "- <available testing skill>"
+
+[skills.orchestrate.references.model-seats]
+MODEL_DOCTRINE = '''Use gpt-6.1-sol for implementation and gpt-6-astra for review. Use the installed research-delegate role for evidence and mechanical checks.'''
+SEAT_TABLE = '''| Role | Custom agent | Model and effort |
+|---|---|---|
+| Worker | `pave-init:orchestrate-worker` | `gpt-6.1-sol`, `xhigh` |
+| DA | `pave-init:adversarial-investigator` | `gpt-6-astra`, `xhigh` |
+| Evidence | `pave-init:research-delegate` | The installed role's configured model and effort |'''
+DISPATCH_GUIDANCE = '''## Keep each role's model and effort
+
+Use `spawn_agent` with the named `agent_type` and `fork_turns: "none"` to retain its model and effort. Count retained agents and research helpers against available capacity; reserve helper slots or investigate directly. A fresh agent does not imply a different provider identity or quota.'''
+
+[roles.orchestrate-worker]
+sandbox_mode = "workspace-write"
+model = "gpt-6.1-sol"
+reasoning_effort = "xhigh"
+runtime = '''Use the canonical task paths supplied in the brief, not display labels. Read applicable skills from their listed SKILL.md files. Deliver review requests with followup_task(target=<reviewer path>, message=<full brief>), which wakes an idle reviewer. After sending, end your turn with WAITING <worker ID>: round R sent to <reviewer>. The reviewer's followup_task wakes you with the verdict. Send DONE, BLOCKED, ESCALATE, and BROKER to the lead with send_message; the lead waits actively. Do not rely on passive send_message to wake a peer. Do not start another reviewer.'''
+
+[roles.orchestrate-worker.slots]
+TESTING_SKILLS = "an available testing skill for code with tests, an available verification skill before you submit"
+DESCRIPTION = '''Implements one subtask issued by the orchestrate skill, loads the relevant skills, and loops with its assigned adversarial-investigator until the review PASSes. Dispatched by the orchestrate skill only, with the installed Codex custom-agent role; do not trigger from an implicit match.'''
+LEAD_ADDRESS = "(the canonical task path supplied in the brief)"
+SKILL_LOADER = "Read the listed SKILL.md files to load"
+REVIEW_WAIT = '''When acceptance passes, send your DA a brief with `followup_task`, then end your turn with one plain-text line: `WAITING <your name>: round 1 sent to <Reviewer>`. That line never reaches the DA; the orchestrator receives your turn completion. The DA's `followup_task` reply wakes you.'''
+REVIEW_SEND = "followup_task(target: \"<Reviewer canonical path>\", message: |"
+DONE_SEND = "`DONE` message via send_message"
+PEER_FAILURE = "If `followup_task` to your DA errors, or `list_agents` does not show it"
+BLOCKED_ADDRESS = "`WAITING <your name>: BLOCKED sent to <Orchestrator>`"
+MESSAGE_DELIVERY = '''- Every review request to your DA goes through `followup_task`; events to the active orchestrator go through `send_message`. Your plain output never reaches the DA; the orchestrator receives your turn completion. Passive `send_message` does not wake an idle peer.'''
+
+[roles.adversarial-investigator]
+sandbox_mode = "workspace-write"
+model = "gpt-6-astra"
+reasoning_effort = "xhigh"
+runtime = '''For standalone reviews, return findings directly to the requester. The following delivery rules apply to orchestration assignments only. Use the canonical task paths supplied in each brief. Read applicable skills from their listed SKILL.md files. Deliver worker verdicts with followup_task(target=<worker path>, message=<full verdict>), which wakes an idle worker. Send whole-goal verdicts, escalations, and relays to the lead with send_message. End each startup or waiting turn; do not wait indefinitely or rely on passive send_message to wake a peer. If the lead reserved a research slot, use spawn_agent with agent_type pave-init:research-delegate and fork_turns none. Start that helper's brief with PAVE_PLUGIN_ROOT: <two directories above ORCHESTRATE_ROOT>. Otherwise investigate directly.'''
+
+[roles.adversarial-investigator.slots]
+GOAL_CHANNEL = "(send_message to the active requester)"
+SKILL_LOADER = "Read the listed SKILL.md files to load"
+SKILL_EXAMPLE = "`skill-creator`"
+RESEARCH_DISPATCH = '''For each high-priority claim, decide what would confirm it and what would refute it, then get that evidence. Read the cited files and run the cited commands yourself. Delegate when it pays: several independent reads that can run at once, or a search whose bulk you do not need in your own context, go to `pave-init:research-delegate` sub-agents using `spawn_agent` with `fork_turns: "none"` and the installed role model and effort. Dispatch independent questions together. Under orchestration, use only capacity reserved by the lead. Start each helper brief with `PAVE_PLUGIN_ROOT: <absolute plugin root>` (two directories above ORCHESTRATE_ROOT when supplied). If the root, role, or capacity is unavailable, investigate directly. Questions about Codex itself go through the available `openai-docs` skill and primary documentation.'''
+TEAM_OUTPUT = "### When Part of a Team (use followup_task for workers; send_message for the active lead)"
+STANDALONE_OUTPUT = "rather than via followup_task or send_message"
+COMMUNICATION = '''- When dispatched by an orchestrator or as part of a team: use **followup_task** for worker verdicts and **send_message** for events to the active lead, using the canonical paths supplied in the brief.
+- When spawned standalone by the user or main Codex session: output findings directly as text.'''
+
 [skills.pave-init]
 template = "sources/pave-init/SKILL.md.tmpl"
 output = "codex/skills/pave-init/SKILL.md"

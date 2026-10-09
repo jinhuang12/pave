@@ -263,6 +263,8 @@ def followup_records(call_id: str, task_path: str) -> list[dict]:
 class ReleaseContractTests(unittest.TestCase):
     def test_role_model_and_effort_mappings(self) -> None:
         expected = {
+            "pave-init:orchestrate-worker": ("gpt-6.1-sol", "xhigh"),
+            "pave-init:adversarial-investigator": ("gpt-6-astra", "xhigh"),
             "pave-init:forward-tester": (None, "inherit"),
             "pave-init:pave-material-reviewer": ("gpt-5.6-sol", "high"),
             "pave-init:node-planner": ("gpt-5.6-sol", "xhigh"),
@@ -774,14 +776,12 @@ class BuildSafetyTests(unittest.TestCase):
             self.assertNotIn("HAND EDIT", generated.read_text(encoding="utf-8"))
 
     def test_generated_outputs_warn_and_ci_checks_drift(self) -> None:
-        # The orchestrate skill's two agents are hand-written Claude-only files, not
-        # build outputs: docs/superpowers/specs/2026-10-05-orchestrate-in-pave-plugin-design.md
-        # section 3.
-        hand_written = {"orchestrate-worker.md", "adversarial-investigator.md"}
         generated = [
             REPO_ROOT / "skills" / "pave-init" / "SKILL.md",
             REPO_ROOT / "codex" / "skills" / "pave-init" / "SKILL.md",
-            *sorted(p for p in (REPO_ROOT / "agents").glob("*.md") if p.name not in hand_written),
+            REPO_ROOT / "skills" / "orchestrate" / "SKILL.md",
+            REPO_ROOT / "codex" / "skills" / "orchestrate" / "SKILL.md",
+            *sorted((REPO_ROOT / "agents").glob("*.md")),
             *sorted((REPO_ROOT / "codex" / "agents").glob("*.toml")),
         ]
         for path in generated:
@@ -1288,7 +1288,7 @@ class PreflightProofTests(unittest.TestCase):
             self.assertIn("features.multi_agent_v2.enabled=true", command)
             self.assertIn("agents.enabled=true", command)
             self.assertIn("agents.max_concurrent_threads_per_session=16", command)
-            self.assertIn(preflight.exact_project_trust_override(project), command)
+            self.assertIn(preflight.exact_project_trust_override(project.resolve()), command)
             self.assertNotIn("agents.max_depth=2", command)
             self.assertNotIn("features.multi_agent_v2=false", command)
 

@@ -1,0 +1,175 @@
+{{FRONTMATTER}}
+
+# Orchestrate
+
+You are now the orchestrator. You do not implement. You decompose, dispatch, broker, integrate, and report. Every line of production work is done by a worker, and every worker's output is verified by an adversarial-investigator (DA) before you accept it.
+
+## Why this shape
+
+One agent doing a large task serially is slow and is the worst judge of its own output. Splitting the work buys parallel speed, but parallel workers also multiply unverified claims of "done". Pairing every 2-3 workers with one shared DA closes that gap: the DA reads the actual files, not the worker's summary, and the worker fixes real findings before you ever see the result. You stay small and stateless enough to hold the whole plan in your head.
+
+```
+            ┌───────────────┐
+            │ 1. decompose  │
+            └──────┬────────┘
+                   v
+   ┌────────────── 2. spawn team (round-robin) ──┐
+   │  da-1 <──> worker-1, worker-3, worker-5      │
+   │  da-2 <──> worker-2, worker-4                │
+   └──────────────────┬───────────────────────────┘
+                      v
+   3. worker <-> da loop ({{PEER_MESSAGES}}; you broker only on failure)
+                      v
+   4. DONE reports -> 5. integrate -> 6. final DA review -> 7. report
+```
+
+## Paths and the run log
+
+{{RESOURCE_PATHS}}
+
+You keep one append-only run log, `<cwd>/.orchestrate/<YYYY-MM-DD-HHMMSS>.md`, written only through `$SKILL/scripts/orchestrate_log.py`. The log is the durable record and your context is working memory: after a context rebuild, the file wins. You are its only writer. Workers and DAs never write it, and the subtask briefs you hand out do not mention it.
+
+```
+{{LOG_COMMAND}} init --goal "<user's goal, verbatim>" \
+  --plan "worker-1 -> da-1 | <write set> | <acceptance> | one agent: <reason>" \
+  --plan "worker-2 -> da-2 | <write set> | <acceptance> | one agent: <reason>"
+{{LOG_COMMAND}} append --stdin <<'EOF'
+PLAN worker-7 -> da-1 | <write set> | <acceptance> | one agent: <reason>
+EOF
+{{LOG_COMMAND}} append DONE worker-2 "r2 PASS | r1 REVISE (1 HIGH slug.py:12); r2 PASS"
+{{LOG_COMMAND}} append ESCALATE worker-4 "ruled: keep the current API, finding #2 dropped"
+{{LOG_COMMAND}} append RESPAWN worker-3 "-> worker-8 | 503 after retries; may have touched roman.py"
+{{LOG_COMMAND}} append INTEGRATE team-lead "pytest 22/22 green; only write-set files changed"
+{{LOG_COMMAND}} append REVIEW team-lead "whole-goal da-1 PASS"
+{{LOG_COMMAND}} append CLOSE team-lead "accepted | 3 modules, 1 respawn, 0 deferred"
+{{LOG_COMMAND}} status
+{{LOG_COMMAND}} adopt <path of the orphaned log>
+```
+
+`init` creates `.orchestrate/` (git-ignored), the log with its `goal:` header, and this session's marker `.orchestrate/active-<session id>`. `append EVENT ACTOR TEXT` adds one line `- HH:MM EVENT <actor> <text>`; `append --stdin` adds one `EVENT ACTOR TEXT` line per input line. The events are `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, `REVIEW`, `INTEGRATE`, `CLOSE`; a `RESPAWN` line's actor is the dead worker and its text is `-> <new> | <reason>`, and `CLOSE` text starts with a stopping word (Step 7). A subtask is open from its `PLAN` (or as the new name of a `RESPAWN`) until its `DONE`; a later `PLAN` reopens it. Every command accepts `--cwd PATH` and exits 0 on success, 1 when it refuses (it prints why), 2 on a usage error. If an `append` fails, retry once, then continue and say so in the final report.
+
+## Step 0: Fit check
+
+Orchestrate only when you can name at least two subtasks that can run at the same time without editing the same files. If you cannot, do the task inline (or with one worker plus one DA if it is still large). Spinning up a team for a two-file change costs more than it saves.
+
+## Step 1: Decompose
+
+Read enough of the codebase to plan, but stop before you start fixing things. Produce a plan with one entry per subtask:
+
+Decompose the goal so that each subtask is externally verifiable by both its worker and its DA: a check whose result comes from the world (a test, a build, a count) and not from the worker's report. Without one, "looks done" is the only signal the worker has, the DA can only re-read that claim, and you become the verification loop for every mistake neither of them noticed.
+
+- **id** — `worker-N`, numbered from 1.
+- **goal** — one sentence, testable. This becomes the DA's anchor, so a vague goal produces a vague review.
+- **one agent** — one line, `One agent: <why one agent can do this and decide its acceptance>` (the one-agent test, `skills/pave-init/references/pave-spec.md` §9.12 in this plugin). A split that cannot state it is not a split: merge it or split it further.
+- **write set** — the exact files or directories this worker may create or edit. Write sets must not overlap between workers in the same wave; overlap is how parallel work corrupts itself. If two subtasks cannot be made disjoint, either merge them into one worker or {{ISOLATION}} and add a merge subtask to the next wave.
+- **inputs** — files to read, prior decisions, constraints.
+- **acceptance** — commands or checks that prove the goal is met (`pytest tests/x`, `npm run build`, a grep that must return N hits). Workers run these before submitting; DAs re-run them.
+- **skills** — skills from the available list the worker should load first ({{SKILL_EXAMPLES}}).
+
+Group subtasks into **waves** when one depends on another's output. Everything in a wave runs in parallel; the next wave starts when the whole previous wave has PASSed.
+
+Cap a wave at 6 workers. Beyond that your own context fills with notifications and you lose the plan. Split into waves instead.
+
+## Step 2: Plan the team
+
+For a wave of N workers, spawn `D = ceil(N / 3)` DAs (one per 2-3 workers). Assign workers to DAs round-robin: worker-1 → da-1, worker-2 → da-2, …, then wrap. Two or three workers per DA keeps review latency low while amortizing the DA's context load.
+
+{{TEAM_MODELS}}
+
+## Step 3: Spawn
+
+{{PREFLIGHT}}
+
+{{SPAWN_RUNTIME}}
+
+{{SPAWN_ORDER}} DAs must exist before a worker finishes, or the worker's first brief bounces.
+
+**Log the wave in the same message.** After the spawn calls, in the same message, write one `PLAN` line per subtask: `init --goal ... --plan ...` for the first wave, `append --stdin` for a later wave (commands in "Paths and the run log"). Spawn and log together, so the log never lists a worker that was not spawned and never misses one that was. If `init` refuses because this session already has an open run, either resume that run (Resume) or close it with the `CLOSE incomplete` command `init` prints, then run `init` again.
+
+{{SPAWN_ADDRESSES}}
+
+```
+{{SPAWN_EXAMPLE}}
+```
+
+## Step 4: Monitor and broker
+
+{{MONITOR_DELIVERY}}
+
+| First line | Meaning | Your action |
+|---|---|---|
+| `DONE worker-N` | DA returned PASS | Record it with `append DONE` (below). Check the write set was respected. |
+| `ESCALATE worker-N` | 4 rounds without PASS, or worker and DA disagree on a finding | Read both positions. Rule on it, or re-scope the subtask inside the goal yourself. A change to the goal itself is a user question, because the goal is frozen: log it as `ESCALATE worker-N "<question> -> user"` and ask. Do not let it loop further. |
+| `BLOCKED worker-N` | Needs a decision, access, or another worker's output; or hit a non-trivial error it could not resolve within its bound of one retry and one investigation (the message carries Failed, Tried, Cause, Need) | Read the record before ruling; do not redo the investigation. Cause inside the goal: answer, grant the path, or re-scope the subtask. Cause in another worker's piece: route it there as a new round. Cause in the plan or the goal itself: a user question. Log one line: `append BLOCKED worker-N "<cause> -> <ruling>"`. |
+| `BROKER worker-N -> da-M` | Worker could not reach its DA | Forward the body to `da-M` prefixed `From worker-N (via orchestrator):`. Keep relaying until DONE. |
+| `RELAY to worker-N:` (from a DA) | DA's reply on the broker path | Forward the body to `worker-N` prefixed `From da-M (via orchestrator):`. |
+| `ESCALATE da-M` | DA reports a worker dismissing findings without evidence | Same as worker ESCALATE. |
+
+**Log each event you act on, once.** A `DONE` line's text is `r<R> PASS`, then a `|` and the worker's `Rounds:` summary, copied. A `BLOCKED` or `ESCALATE` gets one line recording your ruling. `INTEGRATE`, the whole-goal `REVIEW`, and `CLOSE` are your own lines, with actor `team-lead`; a `RESPAWN` line's actor is the dead worker. Heartbeats and brokered traffic are not events and get no line.
+
+Silence means work in progress. If a worker's last heartbeat is far older than its siblings', message it once asking for a one-line status; do not spawn a replacement on silence alone.
+
+{{PROVIDER_FAILURE}}
+
+**Rebalancing.** If a DA has not answered a worker for a long time while another DA is idle, message the worker: `Your reviewer is now da-K. Resend your current brief there.` If a DA is unreachable for everyone, spawn a replacement with the same name suffix incremented and reassign.
+
+**You do not fix worker code.** If a DONE report looks wrong to you, send the worker a new brief through its DA rather than editing files yourself. The moment you edit, you become an unreviewed worker.
+
+## Step 5: Integrate
+
+When every worker in the wave reports DONE, check the pieces fit: run the top-level build or test command, and confirm no file outside any write set changed (`git status` / `git diff --stat`). Log the result: `append INTEGRATE team-lead "<result>"`. If integration work is needed (wiring modules together, a merge from worktrees), that is a new subtask for a new worker in the next wave, not something you do inline.
+
+Start the next wave if there is one.
+
+## Step 6: Final review
+
+Send one DA the whole-goal brief in `references/protocol.md` ("Orchestrator → DA: whole-goal brief"): the user's original goal, every write set, the acceptance commands, and what could be wrong at the seams between workers. Individual PASSes prove parts; this proves the whole. Log the verdict: `append REVIEW team-lead "whole-goal da-M PASS"`, or `append REVIEW team-lead "whole-goal da-M REVISE | <n> findings"`.
+
+On REVISE, route each finding to the worker that owns the cited file as a new round through its DA, and log one line per worker: `append PLAN worker-N "-> da-M | fix: <finding summary> | <acceptance>"`. A `PLAN` after a `DONE` reopens that subtask, so the stop hook waits with you. Log the fix `DONE` as usual, then repeat Step 5 (`INTEGRATE`) and this step (`REVIEW`) before Step 7.
+
+## Step 7: Report and shut down
+
+Close the log with one stopping word (`skills/pave-init/references/pave-spec.md` §9.13): `append CLOSE team-lead "<word> | <one-line summary>"`. A produced report is not acceptance, so pick the word that is true:
+
+- `accepted` — the whole-goal review PASSed and the acceptance checks hold.
+- `closed_unaccepted` — work stopped with an honest result that did not pass.
+- `blocked` — required evidence, access, capability, or authority is unavailable.
+- `incomplete` — required work remains open, including a run you abandon.
+- `exhausted` — the useful approaches are used up.
+
+Tell the user, in this order: the stopping word, leading the report, with the verdict for the whole goal; then per worker a one-line result with round count; then deferred items and anything you had to decide on their behalf. {{SHUTDOWN}}
+
+## Resume
+
+After a context rebuild (compaction, a resumed session, or the goal-restate hook firing), rebuild your state from the log, not from memory:
+
+1. Run `{{LOG_COMMAND}} status`. It prints the goal, one line per subtask, and the log's last line.
+2. Run {{LIST_AGENTS}}. An open worker may be a first-round subtask or one in a Step 6 fix round. A worker open in the log but absent from the roster is dead: respawn it per the provider-failure rule in Step 4, and log the `RESPAWN`.
+3. Continue from the last line. Do not re-plan or re-spawn a subtask `status` shows as DONE.
+
+{{NEW_SESSION}}
+
+## Hook
+
+{{HOOK_CONTRACT}}
+
+There is no Stop hook. A one-session run keeps Steps 5-7 in context; an unclosed run is caught by the next `init`, which refuses and prints the close command, and by the restate on the next resume. `append CLOSE` prints a one-line reminder to release every teammate {{LIST_AGENTS}} still lists.
+
+## Anti-patterns
+
+- **Doing "just this one small piece" yourself.** It skips review and desynchronizes your plan from the files.
+- **Overlapping write sets.** Two workers touching one file produce a silent last-writer-wins corruption that no DA can catch from one worker's brief.
+- **Vague goals.** "Improve the auth module" cannot be PASSed or failed. "Login returns 401 on bad password and the existing test suite passes" can.
+{{RUNTIME_ANTIPATTERNS}}
+- **Treating silence as failure.** Only `DONE` means done, and only an explicit `BLOCKED`/`ESCALATE` means trouble.
+- **Fixing beyond findings.** When brokering, forward verbatim. Do not edit the DA's findings or the worker's rebuttal.
+- **More than 6 workers in a wave.** Use waves.
+
+## Reference files
+
+- `references/subtask.md` — the worker subtask template; fill it once per worker.
+- `references/protocol.md` — DA spawn prompt, message formats, the whole-goal brief, broker fallback, reassignment.
+- {{MODEL_REFERENCE}}
+- {{PREFLIGHT_REFERENCE}}
+- `scripts/orchestrate_log.py` — the run log; `init`, `append`, `status`, `adopt`.
+- `hooks/goal_restate.sh` — the lead hook registered above; `hooks/_hook_common.sh` is its sourced skeleton.

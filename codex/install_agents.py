@@ -3,7 +3,7 @@
 
 Codex custom-agent files live in ``.codex/agents`` or ``~/.codex/agents``;
 they are not part of the documented plugin manifest.  This explicit installer
-copies only the eight PAVE files, records their hashes, refuses unsafe
+copies only the declared PAVE files, records their hashes, refuses unsafe
 overwrite, and can remove only files it still owns.
 """
 
@@ -27,6 +27,8 @@ except ImportError as exc:  # pragma: no cover - Python 3.11+ is expected.
 MANIFEST_NAME = ".pave-init-codex-agents.json"
 REQUIRED_FIELDS = ("name", "description", "developer_instructions")
 EXPECTED_AGENTS = {
+    "pave_init_adversarial_investigator.toml": "pave-init:adversarial-investigator",
+    "pave_init_orchestrate_worker.toml": "pave-init:orchestrate-worker",
     "pave_init_forward_tester.toml": "pave-init:forward-tester",
     "pave_init_material_reviewer.toml": "pave-init:pave-material-reviewer",
     "pave_init_node_planner.toml": "pave-init:node-planner",

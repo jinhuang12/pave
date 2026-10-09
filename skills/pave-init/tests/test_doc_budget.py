@@ -52,6 +52,8 @@ import measure_artifact as ma  # noqa: E402
 # reviewer template each gain one clause of the same change.
 # 2026-10-05: interview-and-fitness names the plugin's orchestrate skill as the simpler
 # not_fit option for a one-session fan-out of independent subtasks.
+# 2026-10-09 (2.8.2): research-delegate also names adversarial-investigator as
+# an allowed dispatcher; its original instructions are otherwise preserved.
 CEILINGS = {
     "skills/pave-init/SKILL.md": (267, 38471),
     "skills/pave-init/README.md": (451, 26261),
@@ -72,7 +74,7 @@ CEILINGS = {
     "sources/roles/forward-tester.md.tmpl": (21, 1783),
     "sources/roles/node-planner.md.tmpl": (72, 12795),
     "sources/roles/pave-material-reviewer.md.tmpl": (91, 15867),
-    "sources/roles/research-delegate.md.tmpl": (58, 2422),
+    "sources/roles/research-delegate.md.tmpl": (58, 2450),
     "sources/roles/skill-builder.md.tmpl": (44, 4703),
     "sources/roles/system-explorer.md.tmpl": (23, 1510),
     "sources/roles/update-reviewer.md.tmpl": (65, 8735),

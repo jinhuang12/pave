@@ -20,8 +20,10 @@ BINDING_DIR = ROOT / "sources" / "bindings"
 SCHEMA_PATH = BINDING_DIR / "schema.json"
 EXPECTED_BINDING_FILES = {"claude.toml", "codex.toml"}
 EXPECTED_ROLE_NAMES = {
+    "adversarial-investigator",
     "forward-tester",
     "node-planner",
+    "orchestrate-worker",
     "pave-material-reviewer",
     "research-delegate",
     "skill-builder",
@@ -32,10 +34,41 @@ EXPECTED_ROLE_NAMES = {
 # One authority for the skill table: which skills exist, where each template
 # lives, and which slots each template consumes.
 EXPECTED_SKILL_TEMPLATES = {
+    "orchestrate": "sources/orchestrate/SKILL.md.tmpl",
     "pave-init": "sources/pave-init/SKILL.md.tmpl",
     "pave-evolve": "sources/pave-evolve/SKILL.md.tmpl",
 }
+REFERENCE_TEMPLATES = {
+    "orchestrate": {
+        "protocol": "sources/orchestrate/references/protocol.md.tmpl",
+        "subtask": "sources/orchestrate/references/subtask.md.tmpl",
+        "model-seats": "sources/orchestrate/references/model-seats.md.tmpl",
+    },
+}
 EXPECTED_SKILL_SLOTS = {
+    "orchestrate": {
+        "FRONTMATTER",
+        "PEER_MESSAGES",
+        "RESOURCE_PATHS",
+        "LOG_COMMAND",
+        "ISOLATION",
+        "TEAM_MODELS",
+        "PREFLIGHT",
+        "SPAWN_RUNTIME",
+        "SPAWN_ORDER",
+        "SPAWN_ADDRESSES",
+        "SPAWN_EXAMPLE",
+        "MONITOR_DELIVERY",
+        "PROVIDER_FAILURE",
+        "SHUTDOWN",
+        "LIST_AGENTS",
+        "NEW_SESSION",
+        "HOOK_CONTRACT",
+        "RUNTIME_ANTIPATTERNS",
+        "MODEL_REFERENCE",
+        "PREFLIGHT_REFERENCE",
+        "SKILL_EXAMPLES",
+    },
     "pave-init": {
         "FRONTMATTER",
         "PRODUCT_INTRO",
@@ -65,6 +98,8 @@ EXPECTED_TOP_LEVEL = {
     "roles",
 }
 GENERATED_SKILL_OUTPUTS = (
+    "codex/skills/orchestrate/SKILL.md",
+    "skills/orchestrate/SKILL.md",
     "codex/skills/pave-evolve/SKILL.md",
     "codex/skills/pave-init/SKILL.md",
     "skills/pave-evolve/SKILL.md",
@@ -117,6 +152,10 @@ HARNESS_SECTION = re.compile(
 
 class BuildError(RuntimeError):
     pass
+
+
+def skill_keys(skill_name: str) -> set[str]:
+    return EXPECTED_SKILL_KEYS | ({"references"} if skill_name in REFERENCE_TEMPLATES else set())
 
 
 def display_path(path: Path) -> str:
@@ -204,9 +243,9 @@ def validate_schema_contract() -> dict:
             raise BuildError(
                 f"{SCHEMA_PATH}: {skill_name} additionalProperties must be false"
             )
-        if set(entry_schema.get("required", [])) != EXPECTED_SKILL_KEYS:
+        if set(entry_schema.get("required", [])) != skill_keys(skill_name):
             raise BuildError(
-                f"{SCHEMA_PATH}: {skill_name} must require {sorted(EXPECTED_SKILL_KEYS)}"
+                f"{SCHEMA_PATH}: {skill_name} must require {sorted(skill_keys(skill_name))}"
             )
         slot_schema = entry_schema.get("properties", {}).get("slots", {})
         if slot_schema.get("additionalProperties") is not False:
@@ -249,6 +288,7 @@ def shared_runtime_sources() -> list[Path]:
     paths.extend(sorted((ROOT / "skills" / "pave-init" / "orchestration").glob("*.md")))
     references = ROOT / "skills" / "pave-init" / "references"
     paths.extend(sorted(references.glob("*.md")))
+    paths.extend(ROOT / path for refs in REFERENCE_TEMPLATES.values() for path in refs.values())
     return paths
 
 
@@ -288,11 +328,13 @@ def load_binding(path: Path, schema: dict) -> dict:
             f"actual={sorted(skills)}"
         )
     for skill_name, entry in sorted(skills.items()):
-        if set(entry) != EXPECTED_SKILL_KEYS:
+        if set(entry) != skill_keys(skill_name):
             raise BuildError(
-                f"{path}: {skill_name} needs exactly {sorted(EXPECTED_SKILL_KEYS)}: "
+                f"{path}: {skill_name} needs exactly {sorted(skill_keys(skill_name))}: "
                 f"actual={sorted(entry)}"
             )
+        if skill_name in REFERENCE_TEMPLATES and set(entry["references"]) != set(REFERENCE_TEMPLATES[skill_name]):
+            raise BuildError(f"{path}: {skill_name} reference bindings differ from generator contract")
         expected_template = EXPECTED_SKILL_TEMPLATES[skill_name]
         if entry["template"] != expected_template:
             raise BuildError(
@@ -402,8 +444,10 @@ def expand_includes(source: Path, text: str) -> str:
     return "\n".join(expanded)
 
 
-def parse_role(path: Path) -> tuple[dict[str, str], str, str]:
+def parse_role(path: Path, slots: dict[str, str] | None = None) -> tuple[dict[str, str], str, str]:
     text = expand_includes(path, read_utf8(path))
+    if slots is not None:
+        text = render_template(text, slots, path)
     placeholders, malformed = analyze_placeholders(text)
     if placeholders or malformed:
         raise BuildError(
@@ -438,6 +482,14 @@ def codex_role_filename(role_name: str) -> str:
 
 
 def codex_role_preamble(role_name: str) -> str:
+    if role_name in {"orchestrate-worker", "adversarial-investigator"}:
+        return (
+            "For an orchestration assignment, the brief must name "
+            "ORCHESTRATE_ROOT: <absolute plugin root>/skills/orchestrate. "
+            "Resolve references/ under <ORCHESTRATE_ROOT>/../../codex/skills/orchestrate/. "
+            "This TOML contains the complete role "
+            "contract; do not load a Claude role file.\n\n"
+        )
     shared = (
         "The parent brief must start with `PAVE_PLUGIN_ROOT: <absolute plugin root>`. "
         "Resolve every `references/...`, `schemas/...`, and `scripts/...` path under "
@@ -481,10 +533,10 @@ def render_roles(binding: dict) -> dict[Path, str]:
         )
     for source in sources:
         role_name = source.name.removesuffix(".md.tmpl")
-        fields, body, expanded = parse_role(source)
+        settings = role_settings[role_name]
+        fields, body, expanded = parse_role(source, settings.get("slots"))
         if fields["name"] != role_name:
             raise BuildError(f"{source}: name does not match file")
-        settings = role_settings[role_name]
         # Hash the include-expanded text so editing a fragment re-stamps every
         # agent that includes it.
         digest = source_hash(
@@ -493,12 +545,12 @@ def render_roles(binding: dict) -> dict[Path, str]:
             binding["harness"],
         )
         runtime = settings.get("runtime")
-        if not isinstance(runtime, str) or not runtime.strip():
+        if not isinstance(runtime, str) or (not runtime.strip() and "slots" not in settings):
             raise BuildError(f"{source}: role binding needs non-empty runtime text")
         if binding["agent_output_kind"] == "markdown":
-            if set(settings) != {"effort", "model", "runtime", "sandbox_mode"}:
+            if set(settings) - {"sandbox_mode", "slots"} != {"effort", "model", "runtime"}:
                 raise BuildError(
-                    f"{source}: Claude role settings must contain model, effort, runtime, and sandbox_mode"
+                    f"{source}: Claude role settings must contain model, effort, and runtime"
                 )
             for key in ("model", "effort"):
                 if not isinstance(settings[key], str) or not settings[key]:
@@ -510,13 +562,13 @@ def render_roles(binding: dict) -> dict[Path, str]:
                 for key, value in fields.items()
             )
             output = add_markdown_marker(
-                f"---\n{frontmatter}\n---\n\n{runtime.strip()}\n\n{body}",
+                f"---\n{frontmatter}\n---\n\n" + (runtime.strip() + "\n\n" if runtime.strip() else "") + body,
                 digest,
             )
             output_path = ROOT / "agents" / f"{role_name}.md"
         else:
             allowed = {"model", "reasoning_effort", "runtime", "sandbox_mode"}
-            if set(settings) != allowed:
+            if set(settings) - {"slots"} != allowed:
                 raise BuildError(f"{source}: Codex role settings must be {sorted(allowed)}")
             name = codex_role_name(role_name)
             instructions = (
@@ -587,6 +639,16 @@ def build_outputs() -> dict[Path, str]:
             rendered = render_template(template, entry["slots"], template_path)
             digest = source_hash(template, binding_text)
             outputs[skill_path] = add_markdown_marker(rendered, digest)
+            for name, relative in REFERENCE_TEMPLATES.get(skill_name, {}).items():
+                source = ROOT / relative
+                reference = read_utf8(source)
+                slots = entry["references"][name]
+                content = render_template(reference, slots, source)
+                digest = source_hash(reference, json.dumps(slots, sort_keys=True), binding["harness"])
+                output = skill_path.parent / "references" / f"{name}.md"
+                if output in outputs:
+                    raise BuildError(f"duplicate generated output {output}")
+                outputs[output] = f"<!-- {EDIT_WARNING} {GENERATED_MARKER} {digest} -->\n\n{content}"
         for path, content in render_roles(binding).items():
             if path in outputs:
                 raise BuildError(f"duplicate generated output {path}")
@@ -599,6 +661,8 @@ def marked_generated_files() -> set[Path]:
         *(ROOT / relative for relative in GENERATED_SKILL_OUTPUTS),
         *(ROOT / "agents").glob("*.md"),
         *(ROOT / "codex" / "agents").glob("*.toml"),
+        *(ROOT / "skills" / "orchestrate" / "references").glob("*.md"),
+        *(ROOT / "codex" / "skills" / "orchestrate" / "references").glob("*.md"),
     }
     marked: set[Path] = set()
     for path in candidates:

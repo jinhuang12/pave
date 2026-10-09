@@ -85,17 +85,25 @@ run-state schema, and a README rendered from the approved plan. The shared PAVE
 graph, system evidence, references, scripts, and traceability record remain one
 physical source.
 
-The 14 native lead and role files are generated installation artifacts. Do not
-edit them directly. Change `sources/` or a shared reference, inspect
+The 26 native lead and role files are generated installation artifacts. Do not
+edit them directly. The six orchestrate reference files are also generated.
+Change `sources/` or a shared reference for another skill, inspect
 `python3 scripts/build_packages.py --check`, then regenerate explicitly with
 `python3 scripts/build_packages.py --force`.
-`skills/orchestrate/` and its two agents are hand-maintained Claude-only
-files until a Codex binding exists.
+`pave-init`, `pave-evolve`, and `orchestrate` share workflow sources under
+`sources/`. Platform settings generate separate Claude Code and Codex skills
+and roles. Orchestrate also generates separate platform references from one
+source. Its run log and reminder script remain shared.
 
 The Codex package requires V2 nested agents with 16 child slots and 17 total
-slots. Claude `fable` and `opus` roles map to `gpt-5.6-sol`; `sonnet` roles map
+slots. PAVE campaign `fable` and `opus` roles map to `gpt-5.6-sol`; `sonnet` roles map
 to `gpt-5.6-terra`. A persisted-thread preflight must prove the canonical
 depth-2 task path and reviewer continuity before release.
+
+For Codex orchestration, invoke `$pave-init:orchestrate <task>` after the
+[Codex setup](codex/README.md#orchestrate). Workers use `gpt-6.1-sol`; reviewers
+use `gpt-6-astra`, both at `xhigh`. Claude orchestration keeps `opus` workers
+and `fable` reviewers.
 
 ## Install
 

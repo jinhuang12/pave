@@ -2,6 +2,133 @@ version = 1
 harness = "claude"
 agent_output_kind = "markdown"
 
+[skills.orchestrate]
+template = "sources/orchestrate/SKILL.md.tmpl"
+output = "skills/orchestrate/SKILL.md"
+
+[skills.orchestrate.slots]
+FRONTMATTER = '''---
+name: orchestrate
+description: >-
+  Turn yourself into a pure orchestrator for any complex task. Decompose the
+  goal into independent subtasks, run them in parallel on opus
+  `orchestrate-worker` agents, and give each group of 2-3 workers a shared
+  fable `adversarial-investigator` that reviews their work until it PASSes.
+  Use this skill whenever a task has 3 or more independent parts, spans many
+  files or components, would take one agent more than roughly an hour, or when
+  the user says "parallelize", "fan out", "orchestrate", "delegate", "use
+  workers", "split this up", "swarm", or "/orchestrate". Also use it when a
+  task mixes unrelated domains (e.g. backend + frontend + docs) even if the
+  user never mentions parallelism. Do not use it for single-file edits,
+  trivial fixes, or tasks whose steps are strictly sequential with no parallel
+  width. Registers one lead-only hook: a goal restate on session resume and
+  after compaction, which adds context and never blocks.
+hooks:
+  SessionStart:
+    - matcher: "resume|compact"
+      hooks:
+        - type: command
+          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/orchestrate}\"; \"$d\"/hooks/goal_restate.sh"
+---'''
+PEER_MESSAGES = "direct SendMessage"
+RESOURCE_PATHS = '''`$SKILL` in this file means this skill's base directory: the Skill tool printed it as `Base directory for this skill: <path>` when the skill loaded. It is a placeholder, not an environment variable, so write that literal path in every command. Do not guess an install path.'''
+LOG_COMMAND = "python3 $SKILL/scripts/orchestrate_log.py --runtime claude"
+ISOLATION = "give each `isolation: \"worktree\"`"
+TEAM_MODELS = '''Workers run on `opus`, DAs on `fable`, always passed explicitly on the Agent call; teammate spawns ignore the agent file's `model:` and inherit yours when the call omits it. See `references/model-seats.md` for why, and why no per-seat id spread is possible from here.'''
+PREFLIGHT = '''**Pre-flight first.** Run `python3 $SKILL/scripts/preflight.py --fix` from the working directory. Teammates open in your cwd, and if that directory was never trusted in your Claude config (`.claude.json` in your home directory) every teammate stalls at the trust dialog with an unread inbox, looking alive but silent for as long as you wait. The script marks the cwd trusted and confirms agent teams are on.'''
+SPAWN_RUNTIME = '''Spawn every agent as a **teammate**, not an in-process subagent. Teammates are separate processes with their own inbox, so a worker can message its DA directly and the pair can loop without you in the middle. With agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), an Agent call that carries a `name` becomes a teammate; the `name` is what makes it addressable. After spawning, run `ListAgents` once and confirm every worker and DA appears under **Teammates**. If they appear as plain subagents instead, teams are off in this session; the protocol still works, but expect to broker (Step 4).'''
+SPAWN_ORDER = "Spawn DAs first, then workers, all in one message so they run concurrently."
+SPAWN_ADDRESSES = '''Read `references/protocol.md` for the exact DA spawn prompt and `references/subtask.md` for the worker subtask. Teammates address you as **`team-lead`**, never `main` (a teammate that sends to `main` is told it *is* main and the send fails); put `Orchestrator: team-lead` in every subtask. Every spawn uses `run_in_background: true`, a `name`, and an explicit `model`.'''
+SPAWN_EXAMPLE = '''Agent(name: "da-1", subagent_type: "pave-init:adversarial-investigator", model: "fable", run_in_background: true, prompt: <DA prompt from protocol.md>)
+Agent(name: "worker-1", subagent_type: "pave-init:orchestrate-worker", model: "opus", run_in_background: true, prompt: <subtask>)'''
+MONITOR_DELIVERY = '''Workers and DAs talk to each other directly by name. You wait. Do not poll with `ListAgents` or "are you done?" messages; every relevant event arrives as a SendMessage.
+
+Teammate traffic reaches you **only between your turns**. After spawning, end your turn and wait; a `sleep` loop or repeated `ListAgents` inside one turn sees nothing. Two kinds of traffic arrive:
+
+- **Idle notifications.** Whenever a teammate ends a turn you get its last plain-text line as `result`. Workers end each waiting turn with `WAITING worker-N: round R sent to da-M`, so these are your heartbeat. They are not events; do not act on them.
+- **SendMessages.** These are the events. Act only on a message whose first line is one of these:'''
+PROVIDER_FAILURE = '''**Provider failures.** An idle notification with `idleReason: failed` and an API error as the reason (503/429 after exhausted retries) means the worker died mid-task, and its files may be half-written. Spawn a replacement under the **next unused index** (`worker-7`, never a reused name), with the same subtask plus a line saying which files the dead worker may have touched, and tell its DA the new name. Log it as `append RESPAWN <old> "-> <new> | <reason>"`. Each teammate launch gets its own identity slot from the teammate launcher, so a fresh spawn usually lands on a different quota than the one that failed.'''
+SHUTDOWN = "Then release the team: tell each agent it is done; use `TaskStop` on any that remain busy."
+LIST_AGENTS = "`ListAgents`"
+NEW_SESSION = '''After `/clear` the session id changes, so `status` finds no run for this session and prints the `adopt` command for the orphaned log. Run `adopt <log>` first, then the steps above.'''
+HOOK_CONTRACT = '''The one hook in this skill's frontmatter, **goal restate**, fires on session resume and after compaction, only in your own session, and only for the run this session owns (its `.orchestrate/active-<session id>` marker). It stays silent once the log's last line is a `CLOSE`. It asks you to state the goal from the log header, run `status` and `ListAgents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`. Answer it with Resume. It never throttles and never blocks. `ORCHESTRATE_PYTHON` sets the interpreter it uses.'''
+RUNTIME_ANTIPATTERNS = '''- **Expecting peers to read each other's plain text.** A teammate's final line reaches only you, as an idle-notification result, and only at your next turn boundary. Worker-to-DA traffic must be SendMessage.
+- **Using an agent type with a restricted tool list.** No `SendMessage` in its tools means it can never reach its DA or you. `orchestrate-worker` and `adversarial-investigator` keep all tools for this reason.
+- **Running this headless.** `claude -p` never spawns teammates; the skill is for interactive sessions.'''
+MODEL_REFERENCE = "`references/model-seats.md` — which model each role gets and why `model:` must be explicit."
+PREFLIGHT_REFERENCE = "`scripts/preflight.py` — trust-dialog and agent-teams check; run with `--fix` before every spawn."
+
+SKILL_EXAMPLES = "domain skills, `superpowers:test-driven-development`, etc."
+
+[skills.orchestrate.references.protocol]
+DELIVERY = '''Everything between peers travels by `SendMessage`. A teammate's plain text never reaches another teammate; it reaches the orchestrator only as the `result` field of an idle notification, delivered at the orchestrator's next turn boundary. Names are stable addresses: a send to an idle agent wakes it, which is what lets a worker end its turn after submitting a brief and be woken by the DA's reply. Every agent type used here must have `SendMessage` in its tools; a restricted tool list silently strands the agent.'''
+LEAD_NAME = "`team-lead` (teammates cannot address `main`; that name means \"myself\" inside a teammate)"
+NAMING = '''Indices continue across waves. Never reuse a name in one run; a later agent with the same name shadows the earlier one.'''
+DA_ADDRESSES = "worker-A, worker-B, worker-C. The orchestrator is `team-lead`."
+WAIT_BRIEFS = "Wait for review briefs via SendMessage."
+VERDICT_DELIVERY = "is a SendMessage."
+WHOLE_GOAL_REPLY = "Reply to team-lead with first line"
+LEAD_EVENTS = '''Workers send nothing else to the orchestrator by SendMessage. The heartbeat is the plain-text last line of each waiting turn, `WAITING worker-N: round R sent to da-M`, which the orchestrator sees as an idle-notification result.'''
+ROSTER = "`ListAgents` does not show the peer"
+REASSIGN = '''```
+SendMessage(to: "worker-N", message: "Your reviewer is now da-K. Resend your current round brief to da-K, including the prior findings and your FIX/DEFER/FALSE_POSITIVE notes so da-K has the history.")
+SendMessage(to: "da-K", message: "worker-N is now yours in addition to your current workers. Its brief follows from the worker.")
+```'''
+SHUTDOWN = '''After the final report, tell each agent `You are released; no further work.` Use `TaskStop` on any agent that stays busy.'''
+
+[skills.orchestrate.references.subtask]
+SPAWN_FIELD = "`prompt`"
+ADDRESSES = '''Orchestrator: team-lead       # teammates cannot address "main"
+Reviewer: da-M                # the adversarial-investigator assigned to you'''
+TESTING_SKILL = "- superpowers:test-driven-development"
+
+[skills.orchestrate.references.model-seats]
+MODEL_DOCTRINE = '''Tiering follows the user's standing rule: fable for hard judgment, opus for medium work, sonnet for evidence and mechanical checks. Never default every seat to fable.'''
+SEAT_TABLE = '''| Role | Agent call | Why |
+|---|---|---|
+| Worker | `subagent_type: "pave-init:orchestrate-worker", model: "opus"` | Implementation is medium work; opus is fast enough and cheaper than fable per round. |
+| DA | `subagent_type: "pave-init:adversarial-investigator", model: "fable"` | Reviewing is the hard-judgment seat; a weak reviewer passes bad work. |
+| Evidence | DAs spawn `pave-init:research-delegate` on `sonnet` themselves; workers may spawn `Explore` on `sonnet` | Read-only lookups do not need judgment. |'''
+DISPATCH_GUIDANCE = '''## Always pass `model:` explicitly
+
+Teammate spawns **ignore the `model:` field in the agent's frontmatter** and use the Agent call's `model` parameter, inheriting the parent's model when it is omitted (verified 2026-09-30: an `orchestrate-worker` spawned without `model:` ran on Fable 5.1 under a fable parent). If you forget `model: "opus"` on a worker, the whole team silently runs on the orchestrator's model and the tiering rule is broken.
+
+## Why there is no 60/20/20 id spread here
+
+The user's rule spreads each tier over several model ids for capacity (`opus` / `anthropic.claude-opus-5[1m]` / `anthropic.claude-opus-4-8[1m]`, and `fable` / `global.anthropic.claude-fable-5[1m]`). The Agent tool's `model` parameter only accepts `sonnet | opus | haiku | fable`, and agent-file frontmatter is ignored for teammates, so this skill cannot select a full id per seat. The only place a per-teammate id can be set is the teammate launch command (`CLAUDE_CODE_TEAMMATE_COMMAND`, the user's launcher wrapper), which already rotates AWS identity per teammate and receives `--model opus` on the command line. Rewriting `--model` there by seat is the follow-up that would restore the spread; until then, plain `opus` and `fable` are what every seat gets.'''
+
+[roles.orchestrate-worker]
+model = "opus"
+effort = "inherit"
+runtime = ""
+
+[roles.orchestrate-worker.slots]
+TESTING_SKILLS = '''`superpowers:test-driven-development` for code with tests, `superpowers:verification-before-completion` before you submit'''
+DESCRIPTION = '''Implements one subtask issued by the orchestrate skill, loads the relevant skills, and loops with its assigned adversarial-investigator until the review PASSes. Dispatched by the orchestrate skill only, as a teammate with model opus passed on the Agent call; do not trigger from an implicit match.'''
+LEAD_ADDRESS = "(`team-lead`; sending to `main` fails because inside a teammate `main` means yourself)"
+SKILL_LOADER = "Use the `Skill` tool to load"
+REVIEW_WAIT = '''When acceptance passes, send your DA a brief, then end your turn with one plain-text line: `WAITING <your name>: round 1 sent to <Reviewer>`. That line never reaches the DA; it reaches the orchestrator as a heartbeat when you go idle. The DA's reply wakes you.'''
+REVIEW_SEND = "SendMessage(to: \"<Reviewer>\", message: |"
+DONE_SEND = "`DONE` message via SendMessage"
+PEER_FAILURE = "If `SendMessage` to your DA errors, or `ListAgents` does not show it"
+BLOCKED_ADDRESS = "`WAITING <your name>: BLOCKED sent to team-lead`"
+MESSAGE_DELIVERY = '''- Every message to a peer goes through `SendMessage`. Your plain output never reaches the DA; only your last line reaches the orchestrator, as a heartbeat, when you go idle.'''
+
+[roles.adversarial-investigator]
+model = "fable"
+effort = "inherit"
+runtime = ""
+
+[roles.adversarial-investigator.slots]
+GOAL_CHANNEL = "(SendMessage)"
+SKILL_LOADER = "Use the `Skill` tool to load"
+SKILL_EXAMPLE = "`skill-creator:skill-creator`"
+RESEARCH_DISPATCH = '''For each high-priority claim, decide what would confirm it and what would refute it, then get that evidence. Read the cited files and run the cited commands yourself. Delegate when it pays: several independent reads that can run at once, or a search whose bulk you do not need in your own context, go to `pave-init:research-delegate` sub-agents (`model: "sonnet"`, `run_in_background: true`), spawned in one message so they run in parallel. Questions about Claude Code itself (hooks, slash commands, MCP servers, settings, the Agent SDK) go to a `claude-code-guide` sub-agent, also on `sonnet`.'''
+TEAM_OUTPUT = "### When Part of a Team (use SendMessage)"
+STANDALONE_OUTPUT = "rather than via SendMessage"
+COMMUNICATION = '''- When dispatched by an orchestrator or as part of a team: report via **SendMessage** to whoever dispatched you.
+- When spawned standalone by the user or main Claude session: output findings directly as text.'''
+
 [skills.pave-init]
 template = "sources/pave-init/SKILL.md.tmpl"
 output = "skills/pave-init/SKILL.md"

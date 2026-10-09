@@ -33,12 +33,14 @@ class OrchestrateLogTests(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def run_log(self, *args, sid="sess-a", stdin=None, cwd=True):
+    def run_log(self, *args, sid="sess-a", stdin=None, cwd=True, runtime="auto", extra_env=None):
         env = dict(os.environ)
         env.pop("CLAUDE_CODE_SESSION_ID", None)
+        env.pop("CODEX_THREAD_ID", None)
         if sid is not None:
-            env["CLAUDE_CODE_SESSION_ID"] = sid
-        argv = [sys.executable, str(SCRIPT), *args]
+            env["CODEX_THREAD_ID" if runtime == "codex" else "CLAUDE_CODE_SESSION_ID"] = sid
+        env.update(extra_env or {})
+        argv = [sys.executable, str(SCRIPT), "--runtime", runtime, *args]
         if cwd:
             argv += ["--cwd", str(self.root)]
         return subprocess.run(argv, input=stdin, capture_output=True, text=True,
@@ -97,7 +99,7 @@ class OrchestrateLogTests(unittest.TestCase):
         self.assertEqual(res.returncode, 1)
         out = res.stdout + res.stderr
         self.assertIn(str(log), out)
-        self.assertIn(f'python3 {SCRIPT} append CLOSE <actor> "incomplete | <reason>"', out)
+        self.assertIn(f'python3 {SCRIPT} --runtime claude append CLOSE <actor> "incomplete | <reason>"', out)
         self.assertEqual(len(list(self.dir.glob("*.md"))), 1)
         self.assertEqual(self.marker().read_text(encoding="utf-8").strip(), str(log))
 
@@ -153,7 +155,7 @@ class OrchestrateLogTests(unittest.TestCase):
         self.assertEqual(res.returncode, 0, res.stderr)
         self.assertRegex(self.lines(log)[-1], r"^- \d\d:\d\d CLOSE lead accepted \| 1 module, 0 deferred$")
         self.assertFalse(self.marker().exists())
-        self.assertIn("release every teammate", res.stdout)
+        self.assertIn("release live team agents", res.stdout)
         res = self.run_log("append", "DONE", "worker-1", "r1 PASS")
         self.assertEqual(res.returncode, 1)
 
@@ -233,7 +235,7 @@ class OrchestrateLogTests(unittest.TestCase):
         res = self.run_log("append", "--stdin", stdin="DONE worker-1 r1 PASS\nCLOSE lead accepted | done\n")
         self.assertEqual(res.returncode, 0, res.stderr)
         self.assertFalse(self.marker().exists())
-        self.assertIn("release every teammate", res.stdout)
+        self.assertIn("release live team agents", res.stdout)
 
     # status -------------------------------------------------------------
 
@@ -319,7 +321,7 @@ class OrchestrateLogTests(unittest.TestCase):
         self.marker("old-session").unlink()
         res = self.run_log("status", sid="new-session")
         self.assertEqual(res.returncode, 1)
-        self.assertIn(f"no run for this session; adopt with: python3 {SCRIPT} adopt {log}",
+        self.assertIn(f"no run for this session; adopt with: python3 {SCRIPT} --runtime claude adopt {log}",
                       res.stdout + res.stderr)
 
     def test_status_does_not_offer_another_live_sessions_log(self):
@@ -357,6 +359,44 @@ class OrchestrateLogTests(unittest.TestCase):
         self.assertFalse(self.marker().exists())
 
     # session id ---------------------------------------------------------
+
+    def test_codex_run_lifecycle_and_session_isolation(self):
+        result = self.run_log("init", "--goal", "codex goal", "--plan", PLAN1,
+                              sid="thread-a", runtime="codex")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        log = Path(result.stdout.strip())
+        self.assertEqual(self.marker("thread-a").read_text().strip(), str(log))
+        self.assertEqual(self.run_log("status", sid="thread-b", runtime="codex").returncode, 1)
+        self.assertIn("worker-1", self.run_log("status", sid="thread-a", runtime="codex").stdout)
+        result = self.run_log("append", "DONE", "worker-1", "r1 PASS", sid="thread-a", runtime="codex")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        result = self.run_log("append", "CLOSE", "lead", "accepted | done", sid="thread-a", runtime="codex")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.marker("thread-a").exists())
+
+    def test_auto_selects_codex_when_it_is_the_only_session(self):
+        result = self.run_log("init", "--goal", "g", sid=None, extra_env={"CODEX_THREAD_ID": "thread-auto"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(self.marker("thread-auto").exists())
+
+    def test_explicit_runtime_ignores_other_runtime_session(self):
+        result = self.run_log("init", "--goal", "g", sid="thread-right", runtime="codex",
+                              extra_env={"CLAUDE_CODE_SESSION_ID": "inherited-wrong"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(self.marker("thread-right").exists())
+        self.assertFalse(self.marker("inherited-wrong").exists())
+
+    def test_auto_refuses_ambiguous_runtime(self):
+        result = self.run_log("init", "--goal", "g", extra_env={"CODEX_THREAD_ID": "nested"})
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--runtime", result.stderr)
+        self.assertFalse(self.dir.exists())
+
+    def test_session_id_cannot_escape_marker_directory(self):
+        for runtime in ("claude", "codex"):
+            result = self.run_log("init", "--goal", "g", sid="../bad", runtime=runtime)
+            self.assertEqual(result.returncode, 2)
+        self.assertFalse(self.dir.exists())
 
     def test_missing_session_id_exits_2(self):
         for args in (("init", "--goal", "g"), ("append", "DONE", "w", "x"), ("status",), ("adopt", "x.md")):

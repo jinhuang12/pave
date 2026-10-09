@@ -20,6 +20,8 @@ from codex.tests.test_release_tools import stage_pending_sources
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 AGENT_NAMES = {
+    "pave-init:adversarial-investigator",
+    "pave-init:orchestrate-worker",
     "pave-init:forward-tester",
     "pave-init:pave-material-reviewer",
     "pave-init:node-planner",
@@ -63,7 +65,8 @@ class PackageStructureTests(unittest.TestCase):
         path = REPO_ROOT / "codex" / "hooks" / "hooks.json"
         data = json.loads(path.read_text(encoding="utf-8"))
         hooks = data["hooks"]
-        self.assertEqual(set(hooks), {"PostToolUse", "Stop"})
+        self.assertEqual(set(hooks), {"SessionStart", "PostToolUse", "Stop"})
+        self.assertEqual(hooks["SessionStart"][0]["matcher"], "resume|compact")
         commands: list[str] = []
         for groups in hooks.values():
             for group in groups:
@@ -79,7 +82,7 @@ class PackageStructureTests(unittest.TestCase):
 
     def test_custom_agents_parse_and_cover_every_role(self) -> None:
         files = sorted((REPO_ROOT / "codex" / "agents").glob("*.toml"))
-        self.assertEqual(len(files), 8)
+        self.assertEqual(len(files), 10)
         names: set[str] = set()
         for path in files:
             with path.open("rb") as handle:
@@ -88,7 +91,10 @@ class PackageStructureTests(unittest.TestCase):
                 self.assertTrue(data.get(field), (path, field))
             self.assertTrue(path.stem.startswith("pave_init_"))
             self.assertIn(data.get("sandbox_mode"), {"read-only", "workspace-write"})
-            self.assertIn("PAVE_PLUGIN_ROOT", data["developer_instructions"])
+            root_key = "ORCHESTRATE_ROOT" if data["name"] in {
+                "pave-init:orchestrate-worker", "pave-init:adversarial-investigator"
+            } else "PAVE_PLUGIN_ROOT"
+            self.assertIn(root_key, data["developer_instructions"])
             self.assertIn("complete role contract", data["developer_instructions"])
             self.assertNotIn("run-setup.md", data["developer_instructions"])
             self.assertNotIn("read `<root>/agents/", data["developer_instructions"])
@@ -146,10 +152,10 @@ class PackageStructureTests(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(schema["properties"]["version"]["const"], 1)
         role_sources = sorted((REPO_ROOT / "sources" / "roles").glob("*.md.tmpl"))
-        self.assertEqual(len(role_sources), 8)
+        self.assertEqual(len(role_sources), 10)
         self.assertEqual(
             set(schema["properties"]["skills"]["required"]),
-            {"pave-init", "pave-evolve"},
+            {"pave-init", "pave-evolve", "orchestrate"},
         )
         self.assertEqual(
             {path.name for path in (REPO_ROOT / "sources" / "bindings").glob("*.toml")},
@@ -303,7 +309,7 @@ class InstallerTests(unittest.TestCase):
 
             target = project / ".codex" / "agents"
             files = sorted(target.glob("pave_init_*.toml"))
-            self.assertEqual(len(files), 8)
+            self.assertEqual(len(files), 10)
             modified = files[0]
             original = modified.read_text(encoding="utf-8")
             modified.write_text(original + "\n# local change\n", encoding="utf-8")
