@@ -2877,6 +2877,6 @@ entries:
     cycle 1 PASS at 78a28077 after 3 rounds; 8 digests read from disk in all.
   written_by: unverified
   patch: history/v18.patch
-  commit: null
+  commit: 2d607d070f3843c7e832ec47bbf349c2d79234ed
   derived_from: null
   run_id: null
