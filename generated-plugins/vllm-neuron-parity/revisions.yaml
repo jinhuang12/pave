@@ -2880,3 +2880,259 @@ entries:
   commit: 2d607d070f3843c7e832ec47bbf349c2d79234ed
   derived_from: null
   run_id: null
+- revision: 19
+  kind: graph
+  applied_at: '2026-10-20T22:47:42Z'
+  digest_before: sha256:98aa5b8253190ce86cfd8978ca6c8b8c9b62e2ae126d7eaf83c90feb233f19bb
+  digest_after: sha256:0ef0611dccc6aac9a5e23cd52ac1041e721c2da36b88b2b57ef4a3a4755e8e77
+  semantic_diff: 'Base: revision 18, digest sha256:98aa5b8253190ce86cfd8978ca6c8b8c9b62e2ae126d7eaf83c90feb233f19bb,
+    verified intact with pave-init 2.8.1 record_revision.py (19 revision_log entries)
+    on 2026-10-20 before drafting (host clock 21:35Z at the draft). The user''s word,
+    read by the lead at 21:21Z, verbatim: "queue 19 w/ 4 folds". This revision folds
+    three nodes into the node each one already fed, and declines the fourth fold with
+    the reason. Nothing new is added - no node, outcome, check, evidence definition,
+    role, state field or effect that revision 18 did not already carry; every rule
+    a folded node held survives as a step, an activity or an effect clause of the
+    surviving node, and the text that only restated the surviving node''s own rule
+    is cut. Counts (MEASURED by parsing both graphs): 21 nodes become 18; 68 edges
+    become 61; 68 outcomes become 61; 14 checks, 25 evidence definitions, 8 roles,
+    5 control nodes and 19 required state fields unchanged. Purpose, scope, principles,
+    roles, control_nodes, write_limits, state and completion are byte-equal. 14 of
+    the 18 nodes are byte-equal (every node but prepare_host, execute_attempt_loop,
+    measure_candidate and assemble_kickoff_contracts); 12 of 14 checks are byte-equal
+    (measurer_not_adjudicator''s question names one measurement node instead of two;
+    procedures_smoke_verified''s failure route moves to measure_candidate); 21 of
+    25 evidence definitions are byte-equal (four produced_by lists name the surviving
+    node). 54 of the 68 edges are byte-equal; 7 are removed, 1 is renamed and re-pointed,
+    6 change one endpoint or their check list. Lines: 2820 become 2738 (82 fewer),
+    169,922 bytes become 167,295; 20 hunks, 225 lines added against 307 removed; the
+    3100-line ceiling is untouched. Layer test (pave-spec 2.1, revision rule 9): nodes,
+    outcomes and edges are removed and one outcome moves between nodes, so graph meaning
+    moves and the kind is graph; no seat, model, effort or implementation changes.
+
+    WHY FOLD, AND THE TEST THAT DECIDED EACH ONE. The spec''s inverse one-agent test
+    (9.12) asks, for an edge A then B, whether one bounded goal holds both as activities
+    while it keeps the visible outcomes, the user''s authority, a required reviewer''s
+    separation, a recovery route that branches between A and B, an irreversible side-effect
+    boundary, and bounded-context feasibility. Three boundaries failed to earn their
+    keep: every outcome of the folded node landed in the same successor (recovery),
+    or the two nodes were one seat of one role with a loop between them that only
+    re-dispatched the same seat (measurement), or the folded node''s two outcomes
+    were a go or a return around the node it fed, the pattern revision 18 already
+    used for kernel reviews (route review). The fourth boundary kept its question
+    (fold 4 below). The warning sign is 13''s "ceremonial decomposition": every step
+    became a node because that looked more organized. Cost per run (ESTIMATE, nothing
+    added): fold 1 saves one seat dispatch and brief plus two edge traversals with
+    their outcome rows per host fault, zero on a run with no fault; fold 2 saves one
+    measurer dispatch and two traversals per campaign, and turns each procedure or
+    reference defect from a re-dispatch into an in-seat repair; fold 3 saves one node
+    traversal per run, the reviewer seat costing the same as before (one seat with
+    two or more requested targets, none with one). No fold adds a seat, a round or
+    a re-check.
+
+    FOLD 1 - recover_leased_host becomes prepare_host''s recovery mode. Before: a
+    host fault from the venv build (prepare_host.host_faulted) or from an attempt
+    (execute_attempt_loop.host_faulted) went to a separate implementer node whose
+    two outcomes, host_restored and host_unrecoverable, both went back to prepare_host.
+    After: prepare_host has three entry modes - full, recovery, probe-only - and the
+    attempt loop''s host_faulted enters it in recovery mode; a host-level build failure
+    inside the node enters recovery mode directly, so prepare_host.host_faulted is
+    gone (an outcome whose only edge led back to its own node). Kept, as the Recovery
+    paragraph and a recovery-mode activity: the allowance of one successful recovery
+    per host per campaign and the flap bound; one recovery per host at a time with
+    the shared-lease wait (release open job leases, wait for the owner''s record,
+    re-verify, take the owner''s result); identity re-verification before any state-changing
+    action, a mismatch refusing to act; drain, service restart then reboot; the boot-identifier
+    amendment through the queue tool before the host counts as restored; the post-recovery
+    probe transcript deciding restored, never the recoverer''s claim; the conditional
+    decision tier with probe-only mode as the catch; lease release on unrecoverable
+    and no_host_available when no replacement exists; never the compile cache as a
+    remedy, never the GPU baseline, never a host the lease does not name, never a
+    whole-host action while another campaign''s job lease is open, never provisioning.
+    Cut: the recovery node''s restatement of the identity rule (now a pointer to the
+    rule above it in the same purpose) and its separate out-of-scope list, merged.
+    prepare_host''s roles gain delegate_dispatcher because the recovery node carried
+    it and a role list is per node; the role definition is untouched. Removed edges:
+    venv_host_fault_to_recovery, restored_host_to_probe_only, unrecoverable_host_to_reacquisition;
+    attempt_host_fault_to_recovery now ends at prepare_host with its rationale; hardware_attempt_log''s
+    producers lose the folded node; execute_attempt_loop''s out-of-scope clause names
+    host preparation''s recovery mode. The boundary to execute_attempt_loop stays:
+    its KEEP question is the irreversible serving launch and the two different budgets
+    (venv recipe retries against the per-target count, serving attempts against the
+    same count under the bring-up ladder), and its recovery route branches - host_ready
+    goes forward, product_defect_found goes to scoping.
+
+    FOLD 2 - prepare_measurements becomes the first two steps of measure_candidate.
+    Before: one measurer seat built the procedures and captured the baseline (measurements_ready),
+    a second measurer seat ran them, and procedure_defect_found and reference_defect_found
+    re-dispatched the first seat. After: one measurer node, three steps in one seat
+    in a fixed order - procedures, baseline, runs - with the defect repair as a return
+    to the owning step inside the node. Kept verbatim or as a step: the comparator
+    set frozen in the design record and never chosen or altered by the measurer; smoke
+    verification end to end with the known-bad-input negative control; the read-only
+    GPU baseline capture with the skew record or the justified skip; revision entries
+    that version each implementation and name the comparisons a revision touches;
+    re-capture of only the comparisons whose procedure changed; a procedure defect
+    invalidating the reference captured with it and repaired first; the lead-run digest-equality
+    check on re-entry, now generalized to every re-entry (it was written for the candidate_serving
+    re-entries; the evidence_unstable and evidence_gap_found edges entered the runs
+    node directly, which the merged node now states once for all five routes); the
+    shared per-measurement repair budget at the layout reference''s section 4.4, unchanged
+    in magnitude, now covering the in-node repair as it covered the loop; the two
+    permissions kept separate - smoke writes scratch on leased hosts, the baseline
+    is read-only always, with the section 4.10 pointer; the five procedures and baseline
+    activities. Checks: comparators_preregistered stays on the candidate_serving edge,
+    which now ends at measure_candidate; procedures_smoke_verified moves from the
+    removed inner edge to the bundles_stable edge into adjudication, first in its
+    list, with its failure route at measure_candidate - its question asks whether
+    every smoke record precedes every measured run that cites its procedure revision,
+    an ordering that is on disk at the exit and was never decidable before the runs
+    existed; what reaches the adjudicator is gated exactly as before, and a measured
+    run before its smoke record is now also a forbidden effect of the node. measurer_not_adjudicator''s
+    producer set covers any agent at any step of the one node - the same set it covered
+    over two nodes. bundles_stable''s required evidence gains measurement_procedure_record
+    and baseline_reference_capture, so the evidence measurements_ready used to require
+    is required at the one exit that remains (stronger at that edge, never weaker).
+    procedure_unrealizable and baseline_unusable move to measure_candidate with their
+    edges to rederive_approach re-sourced; procedure_unrealizable loses its lost-serving
+    clause, which serving_exhausted now states for every step, both routes ending
+    at re-derivation as before. Outcome precedence: serving_exhausted, procedure_unrealizable,
+    baseline_unusable, declared_measurement_unproducible, bundles_stable. Removed
+    edges: measurements_ready_to_candidate_runs, procedure_defect_to_preparation,
+    reference_defect_to_preparation. measure_candidate''s allowed effects gain the
+    read-only baseline use the folded node had and its forbidden effects say read-only
+    always instead of no action, because the folded node''s capture step moved in;
+    the measurer role''s effects over the run are the same set as before. The boundary
+    to adjudicate_results stays: its KEEP question is measurer_not_adjudicator.
+
+    FOLD 3 - review_route_verdicts becomes the review step of assemble_kickoff_contracts.
+    Before: cost_routes_and_rank_backlog.backlog_ranked went to a reviewer node whose
+    verdicts_sound went on to the kickoff node and whose material_findings went back
+    to costing. After: the kickoff node has two steps, review then contracts; a retained
+    adversarial_reviewer seat, independent of the costing seat and retained across
+    the re-costing rounds (spec 9.4), reviews the gap-scan and route-analysis verdicts
+    against the same three inputs before gate 1 is presented; material_findings is
+    the kickoff node''s own outcome and still routes to costing; with one requested
+    target the lead records the review as satisfied with no seat, the outcome row
+    citing the costing record, and the user''s election is the review - the rule revision
+    18 carried, verbatim in substance. contracts_ready''s meaning now states the order:
+    the gate presented after the review record stood. The node''s roles gain adversarial_reviewer;
+    it consumes the delta report and the intake preflight record the review read and
+    produces adversarial_review_findings, which it no longer lists as consumed. Why
+    this is the revision-18 kernel-review pattern and not a weakening: the reviewer
+    is a separate seat inside the node that holds the gate it protects (spec 9.4,
+    review placed where the work it has not seen stays small), the artifact it reviews
+    is produced by another node and another role, and the lead''s one-target no-seat
+    rule was already prose in revision 18, so the structural guarantee for two or
+    more targets is now the same prose plus the outcome meaning. What passes gate
+    1 does not change: kickoff_contract_approved and scheduling_holds_recorded are
+    byte-equal, the contracts step text is byte-equal, the user sees the reviewed
+    backlog in the same order as before. Edges: backlog_to_route_review is renamed
+    backlog_to_kickoff and ends at the kickoff node; sound_verdicts_to_kickoff is
+    removed; route_findings_to_recosting is re-sourced from the kickoff node''s material_findings.
+    The boundary to cost_routes_and_rank_backlog stays: its KEEP questions are the
+    user''s authority at gate 1 and the reviewer''s independence from the costing
+    seat.
+
+    FOLD 4 - trace_target_delta into cost_routes_and_rank_backlog: NO CHANGE. PAVE
+    expresses fan-out only as an edge destination (pave-yaml 12.2: to: fan_out, for_each;
+    spec 5.5.2: the only legitimate way to reach several destinations; 9.6: parallel
+    work is not designed until its join is designed). trace_target_delta is instance_per
+    requested_targets - one parallel run per target, re-fanned per deficient_targets
+    - and cost_routes_and_rank_backlog is the one run-level join that judges every
+    report and ranks across targets. One node cannot be both the per-target runs and
+    their join; a fold would either serialize the trace inside one costing run, against
+    the user''s parallelism word of 19:09Z and spec 9.12''s "parts can and should
+    run in parallel", or make costing per target and lose the run-level ranking and
+    the rule that the seat judging a report is never the seat that traced it. The
+    brief allowed exactly this answer. User-only line 17 (the op inventory with its
+    kernel-gap list at target_traced) is therefore byte-equal.
+
+    REVISION-18 USER-ONLY LINES 1 TO 20, EACH PRESERVED (verified by the byte-equal
+    node list above): lines 1 and 15 live in calibrate_hardware and preconditions_to_calibration,
+    byte-equal; lines 2, 8 and 18 live in kickoff_contract_approved, byte-equal, and
+    in the contracts step of the kickoff node, carried verbatim; line 3, 11r, 12 and
+    13 live in design_campaign, review_campaign_design, adjudicate_results and the
+    principles, all byte-equal; lines 4r and 5 live in realize_increment and changeset_complete,
+    byte-equal; lines 6 and 9 live in adjudicate_results, byte-equal; lines 7, 14
+    and 20 live in review_pr_evidence, impl_commit_is_reviewed, prepare_pr and pr_evidence_package,
+    byte-equal; line 10 lives in the principles, byte-equal; line 16 (measure_candidate''s
+    served cap row write) is carried verbatim in the merged node''s allowed effects
+    and first activity; line 17 lives in trace_target_delta, byte-equal; line 19 lives
+    in scope_next_increment, byte-equal. No line is reworded, narrowed or moved behind
+    a weaker gate.
+
+    USER-ONLY-CHANGES CHECK: pending. Two readings, both recorded. Against the list
+    in pave-revisions.md rule 6 nothing is weakened. Root goal and acceptance - purpose
+    and completion byte-equal. Allowed and forbidden effects - two nodes gain the
+    effect clauses of the node folded into them (prepare_host the recovery actions
+    and lease amendment; measure_candidate the read-only baseline use) and lose none;
+    per role, over the run, the set of permitted and forbidden effects is the one
+    revision 18 approved, so no actor may do anything it could not do before, and
+    the forbidden list grows (a measured run before its smoke record; baseline read-only
+    always). External access - unchanged. Public interfaces - entrypoints and control
+    nodes byte-equal. Evidence and check strength - every check keeps its question''s
+    claim; one check moves to the one exit that remains and one outcome requires more
+    evidence than before; no check or required evidence is dropped. State authority
+    - state byte-equal. Budgets - the recovery allowance, the repair budget, the stop
+    limits and the re-trace bound are unchanged in magnitude. Against the plan''s
+    own rule 6 (SKILL.md, approval: when_needed) the lead applies without a user gate
+    only a proposal that adds no gate, changes no outcome or edge, and changes no
+    declared meaning; this one removes seven outcomes and eight edges, adds one edge,
+    changes six edges and rewrites five outcome meanings, so it went to the user as
+    one batch at the final digest; the user''s word is recorded verbatim in the approval
+    field. The three lines put to the user: (a) host recovery becomes a mode of host
+    preparation - the recovery node and its two outcomes are removed, the attempt
+    loop''s host fault enters host preparation directly, and the implementer seat
+    that holds the lease runs the recovery under the same identity, allowance and
+    shared-lease rules; (b) procedure building and the read-only baseline capture
+    become the first two steps of the measuring node, run by one measurer seat - the
+    preparation node and its ready outcome are removed, a procedure or reference defect
+    is repaired inside the node under the same budget, and the smoke check moves to
+    the exit edge into adjudication; (c) the route review becomes the first step of
+    the kickoff node, by a reviewer seat independent of the costing seat - the review
+    node is removed, material findings become the kickoff node''s outcome routed to
+    costing, and gate 1 is presented only after the review record stands.
+
+    USAGE EVIDENCE: none for revision 18 (applied 2026-10-20 21:04Z, no run). The
+    predecessor-run records (EVIDENCE_ARC.md, ASSESSMENT.md, GRAPH_MAP.md of 2026-10-20)
+    describe a run that did not traverse this graph, so no traversal or seat-outcome
+    counts exist for the folded nodes; this proposal rests on the graph''s own shape
+    under spec 9.12, 4.11 and 13, and says so instead of citing counts it does not
+    have. The predecessor records do show the direction: GRAPH_MAP lists review_route_verdicts
+    as a node that dispatches no seat with one target.
+
+    EVERY COPY (release layer, the lead''s separate step; MEASURED by grep, no hits
+    under hooks/, scripts/ or tests/ other than the count pin): skills/vllm-neuron-parity/SKILL.md
+    lines 91, 92, 94, 96, 153, 158 and 159 name the three folded nodes in the dispatch
+    table and the stage map - rename to the surviving node, move the one-target no-seat
+    note from stage 2 to stage 3, and list recovery mode under stage 7 - and line
+    355 (the P5 enforcement row) names prepare_measurements; README.md lines 193,
+    209, 315, 341, 352 and 375 draw and describe the removed nodes - redraw the three
+    edges and change the count phrases to 18 nodes and 61 edges; agents/adversarial-reviewer.md
+    line 64 - the route review entry becomes the kickoff node''s review step; agents/measurer.md
+    lines 26 and 88 - the prepare_measurements entry folds under measure_candidate
+    and the route-back sentence becomes the in-node repair - and lines 110 to 112,
+    where the precedence order names the two removed defect outcomes; agents/implementer.md
+    line 247 - the recovery entry folds under prepare_host as recovery mode; codex/agents/*.toml
+    mirror the agent files; references/artifact-layout.md lines 73, 75, 159, 160,
+    166, 184 and 305 - writer and reader names change to the surviving nodes, no path
+    changes; tests/test_workflow_pave.py EXPECTED becomes "18 nodes, 61 edges, 5 control
+    nodes" (it still pins 67 edges from revision 17, so it fails on revision 18 today);
+    the newest VERSION entry carries the counts. agents/investigator.md lines 43 and
+    64 and SKILL.md lines 90 and 167 name trace_target_delta and stand. revisions.yaml
+    and history/ are the record and are not copies.
+
+    OUT OF SCOPE, NOTED ONLY: the revision-18 residuals (adjudicate_results silent
+    on not-run performance bundles; the execution map under the design-record cap;
+    the kernel reviewer queue per capacity) and the delegate_dispatcher role.'
+  approval: Approve lines a, b, c and apply revision 19 at digest 0ef0611d (Recommended)
+  user_only_changes: approved
+  plan_evidence: verified
+  usage_evidence: none
+  review: PASS reviewer-r19 (update-reviewer) at digest 0ef0611d, 2 rounds
+  written_by: unverified
+  patch: history/v19.patch
+  commit: null
+  derived_from: null
+  run_id: null
