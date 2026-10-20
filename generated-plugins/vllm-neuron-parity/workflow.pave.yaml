@@ -41,24 +41,49 @@ pave:
     pre-registered before measurement; verdicts read stable artifacts, never first-sighting
     signals.
   - Adversarial review is material-findings-only and follows every high-stakes
-    artifact - route verdicts, campaign designs, each landed batch (the code review
-    before hardware), and the PR description. Measurement verdicts
-    are issued once, by an adjudicator independent of the measurer, and read by
-    the PR review before gate 3.
-  - CPU-first increments before any hardware attempt - item-level acceptance runs
-    in CPU mode; once a candidate has served, work on that tip goes to an idle Neuron
-    device over CPU emulation (the rule and its record at realize_increment), because
-    emulating a device is slow by construction and the device's numerics are the
-    question a CPU run cannot answer; before any serving attempt, the uncharged
-    bring-up ladder at execute_attempt_loop, because a many-rank charged launch is the
-    slowest way to find a defect a device-free or one-rank probe finds in minutes. No
-    attempt caps - two-tier stop limit instead (fingerprint no-identical-retry; halt
-    and re-derive at every 10 budget-counted hardware attempts per target; what counts
-    is the one rule at the hardware_attempt_counts state field).
+    artifact - route verdicts, campaign designs, each landed kernel-class increment
+    (read beside its oracle and ratio records by a reviewer the doer answers
+    directly, inside the realizing node), and the whole campaign changeset with its
+    PR description before gate 3. Glue increments get no per-item review, because
+    the costly, hard-to-reverse defect class is a kernel built to the wrong form or
+    cost, and the whole-changeset read before the PR catches the rest. Measurement
+    verdicts are issued once, by an adjudicator independent of the measurer, and
+    read by the PR review before gate 3.
+  - Cost before code, device from the first kernel - every hot op of a served phase
+    at the declared shapes - every hot op on the design's execution map, whatever
+    its substrate - an authored or vendored kernel, a torch or
+    compiler-lowered op, a collective, data movement - carries a cost row before any
+    kernel is written (bytes moved, instructions on the engine that binds, descriptor
+    and serial-chain counts, the predicted time under the served utilization cap, and
+    the roofline ratio that predicts), each value either measured - citing a row of
+    the run's hardware calibration record whose lowering and access pattern match
+    the op's, or a device anchor measured the same way - or derived with its
+    arithmetic shown, because a cost estimated without a device-measured rate is the
+    miss class that builds kernels only to close them. The roofline is the op's minimum
+    work - the bytes it must move and the instructions it must issue - at the binding
+    engine's calibrated rate under the served cap, never the chosen form's own work,
+    because a form's floor excuses the form. The bar is a roofline ratio of 1.5
+    unless the kickoff contract names another with its reason; an op over the bar
+    carries a written hardware reason that cites the measured rows showing its
+    binding engine at its floor under the served cap, or the design is re-derived,
+    not built. A
+    kernel-class increment is accepted on two values the world produces - it matches
+    its fp64 oracle in the class it declared over the registered regimes, and its
+    ratio measured kernel-alone on a device meets the bar or the written reason -
+    never on a CPU-mode transcript alone, because the device's cost and numerics are
+    the two questions a CPU run cannot answer. Glue increments keep CPU-mode
+    acceptance, and once a candidate has served, work on that tip goes to an idle
+    device over CPU emulation (the rule and its record at realize_increment). Before
+    any serving attempt, the uncharged bring-up ladder at execute_attempt_loop,
+    because a many-rank charged launch is the slowest way to find a defect a
+    device-free or one-rank probe finds in minutes. No attempt caps - two-tier stop
+    limit instead (fingerprint no-identical-retry; halt and re-derive at every 10
+    budget-counted hardware attempts per target; what counts is the one rule at the
+    hardware_attempt_counts state field).
   - Kernel-substrate rule - new kernel-class functionality not already provided
     by the Neuron NKI library is implemented in NKI, never as torch-level fallback
     (torch stays legitimate for orchestration and glue); substrate is a per-increment
-    design declaration checked at the design and batch review gates (split
+    design declaration checked at the design gate and the whole-campaign review (split
     enforcement level - mechanical substrate-fidelity check for items declared kernel-class;
     reviewed level for the classification itself, since no mechanical scan can
     tell kernel-class torch from legitimate glue).
@@ -98,8 +123,9 @@ pave:
       purpose: Design and build campaign candidates in isolated worktrees, run
         hardware attempts under lease, and write the PR description.
     measurer:
-      purpose: Execute pre-registered measurement procedures against the GPU baseline
-        and write stable evidence artifacts; never adjudicates.
+      purpose: Execute the hardware calibration suite and pre-registered measurement
+        procedures against the GPU baseline, and write stable evidence artifacts;
+        never adjudicates.
     adjudicator:
       purpose: Issue gate verdicts from stable, pre-registered evidence and name
         the consequence; never the agent that measured.
@@ -114,8 +140,25 @@ pave:
     run_input_and_preflight_record:
       kind: observation
       produced_by: verify_run_preconditions
-      subject: frozen run inputs and preflight command transcripts
+      subject: frozen run inputs - the requested targets, each with the served shapes
+        (context lengths and concurrency levels) its criteria are stated at - and
+        preflight command transcripts
       artifact: artifacts/run/intake-preflight/
+    hardware_calibration_record:
+      kind: observation
+      produced_by:
+      - calibrate_hardware
+      - design_campaign
+      - measure_candidate
+      subject: measured cost rows for the pinned SDK per roster hardware class - the
+        fixed suite's rows (calibrate_hardware names the classes), the anchors a
+        design measures for a form that has no row, and the served utilization cap
+        per engine that measure_candidate reads from each served profile at the
+        declared shapes - each with its value, its source (suite, anchor or served
+        profile), its reproduction command, the pin and host class it was measured on,
+        and the run record of the job or served run
+        that produced it; carried from a prior run only while the pin is identical
+      artifact: artifacts/run/calibration/
     delta_report:
       kind: observation
       produced_by:
@@ -145,14 +188,17 @@ pave:
     campaign_design_record:
       kind: derivation
       produced_by: design_campaign
-      subject: increment plan, test layout, pre-registered comparator set, predicted
-        file surface, venv and lease plan, and for upgrade-route campaigns the
-        assembled regression matrix
+      subject: execution map per served phase, increment plan with a cost row and a
+        numerics plan per kernel-class increment, test layout, pre-registered
+        comparator set, predicted file surface,
+        venv and lease plan, and for upgrade-route campaigns the assembled regression
+        matrix
       artifact: artifacts/campaigns/<campaign>/design/
     implementation_changeset:
       kind: observation
       produced_by: scope_next_increment
-      subject: campaign branch diffs plus CPU-mode increment evidence
+      subject: campaign branch diffs plus increment evidence - CPU-mode records for
+        glue increments; oracle, ratio and review records for kernel-class ones
       artifact: artifacts/campaigns/<campaign>/increments/
     hardware_attempt_log:
       kind: observation
@@ -177,8 +223,9 @@ pave:
     measurement_artifacts:
       kind: observation
       produced_by: measure_candidate
-      subject: correctness and performance measurements against the GPU baseline; each
-        evidence bundle names the GPU-side vLLM version
+      subject: correctness and performance measurements against the GPU baseline and
+        the entitlement, with the served profile's per-op attribution at the declared
+        shapes; each evidence bundle names the GPU-side vLLM version
         and the known cross-version behavior differences (baseline-skew control)
       artifact: artifacts/campaigns/<campaign>/measurements/
     adjudication_verdict:
@@ -191,7 +238,7 @@ pave:
       produced_by:
       - review_route_verdicts
       - review_campaign_design
-      - review_increment_batch
+      - realize_increment
       - review_pr_evidence
       subject: material findings - each with its defect class and the surfaces
         it names - bookkeeping findings marked as such, or the recorded absence
@@ -200,10 +247,23 @@ pave:
     pr_evidence_package:
       kind: derivation
       produced_by: prepare_pr
-      subject: the PR description in the form the fork's maintainer reads - what
-        the change is, how it was tested (the whole-tree test command with its
-        counts and the acceptance measurement with its verdict, each linked once to
-        its record), and what stays open - never an index that links every claim
+      subject: the PR description in the form the fork's maintainer reads - the
+        section outline the layout reference fixes, in order - a short lead with the
+        mechanism and the paired headline result; the mechanism and what it does not
+        approximate; scope and activation (files touched, the conditions under which
+        the change is active, what stays unchanged, what the results do not cover);
+        the paired measurements - every performance number the candidate at its
+        measured revision against its comparator at a named commit or version (the
+        target base where it serves the configuration, the planner's entitlement and
+        the GPU reference where it does not) over the declared context lengths and
+        concurrency levels, with the protocol the registered procedure fixed (arms as
+        commits, hardware and parallelism, pairing order, warm-ups, repeats) and the
+        untargeted shapes stated as measured; the correctness and accuracy comparison
+        as counts, with its non-claims (what the probes do not prove); how it was
+        tested (the whole-tree test command with its counts, the acceptance
+        measurement with its verdict); reproduction commands per arm; the authorship
+        disclosure; and what stays open - each claim linked once to its record, every
+        cell read from a registered bundle, never an index that links every claim
       artifact: artifacts/campaigns/<campaign>/pr/
     closure_record:
       kind: observation
@@ -250,15 +310,18 @@ pave:
         the changeset is assembled - the selected work item or set with its
         implementation order, declared CPU-mode acceptance per item, findings
         answered, stuck and
-        gap identities, the open review batch with the lead's size call, the plan's
+        gap identities, the plan's
         revision-log line after landed-block collapse, and any join conflict of a concurrent-eligible
         set recorded as a scheduling defect
       artifact: artifacts/campaigns/<campaign>/increments/
     increment_evidence_records:
       kind: observation
       produced_by: realize_increment
-      subject: per-increment passing evidence or persisted investigation records
-        on stuck rounds
+      subject: per-increment passing evidence - the CPU-mode transcript for a glue
+        increment; for a kernel-class increment the oracle record over the registered
+        regimes, the kernel-alone ratio record read against its cost row, and the
+        kernel review's findings record - or persisted investigation records on stuck
+        rounds
       artifact: artifacts/campaigns/<campaign>/increments/
     measurement_procedure_record:
       kind: observation
@@ -284,11 +347,32 @@ pave:
       style: reviewed
       question: Does every campaign entering execution carry a complete kickoff
         contract (targets, routes, sources, thresholds - the correctness gate stated
-        as a served-output comparison against the reference (task accuracy for a model
-        port, the feature's observable output for a feature port) with its pass rule,
+        as a served-output comparison against the reference (for a model port a
+        ladder read in order, because a failed rung localizes the defect before the
+        next rung's cost is paid - coherent served generation on the reference's
+        prompt set, where token identity with the reference is never a rung, because
+        two stacks round differently and a correct port can break greedy parity; a
+        declared benchmark subset matching the reference within its bound; then the
+        full declared benchmarks matching the reference within theirs, each
+        benchmark bound stating how a score inside the reference's own noise reads (a
+        repeat count, an interval, or the user's word at adjudication), set by the
+        user here, because a bound with no noise form fails a correct port on a
+        run-to-run spread; the feature's observable output for a feature port) with
+        its pass rule,
         every intermediate-tensor tolerance registered as a diagnostic that selects no
         outcome, because two hardware stacks never agree bit for bit and a tensor gate
-        measures the stack, not the port - methods, models, hosts,
+        measures the stack, not the port; the performance gate stated for every served
+        phase of the configuration (first-token latency for prefill, inter-token
+        latency for decode) at the declared shapes - for the phase the campaign
+        targets, as a ratio to the entitlement the parallelism planner recorded at
+        costing, with the roofline bar the cost-before-code principle sets or a
+        written hardware reason, because a gate stated against the GPU baseline alone
+        accepts a port that leaves most of the device's floor unused; for every other
+        phase, as no regression against the target base within a stated bound, held
+        by compiled-program digest equality when the base's programs at that
+        configuration are on disk and unchanged, measured otherwise, because a change
+        in one phase reaches the others through shared graphs and carried state -
+        methods, models, hosts,
         test layout, spend notes, delegate/venv/weights/ GPU-baseline preflights,
         pinned-release-branch-present-on-fork and SDK-uniformity preflight, prior-run
         carry-over decisions, and for upgrade-route campaigns the upgrade base
@@ -367,7 +451,10 @@ pave:
         the acceptance registration records for that measurement, a pre-registered
         threshold actually evaluated - the value read, the threshold it was compared
         against, and the result of that comparison - together with the negative-control
-        result from the procedure's smoke record?
+        result from the procedure's smoke record - or, for a measurement a stopped
+        correctness ladder never ran, the record "not run after rung n failed" naming
+        the failed rung, which is the evaluated form for every later rung and every
+        performance procedure behind the ladder?
       evaluated_by: lead
       on_failure_route: measure_candidate
       rationale: An exit status is not an evaluation - a comparator exits zero with an
@@ -384,30 +471,16 @@ pave:
       on_failure_route: measure_candidate
     impl_commit_is_reviewed:
       style: mechanical
-      question: Does the campaign worktree's checked-out commit equal the tip commit
-        the newest batch_sound findings section names, or differ from it only by
-        commits
-        whose file sets are tests, controls, launchers, checkers, or bundles and no
-        product source - each named with its file set in the attempt log? The defect
-        this catches is unreviewed product source reaching hardware.
+      question: Does the campaign branch tip the closure will push equal the tip
+        commit the whole-campaign review's findings record names, and does the
+        measured revision every adjudicated bundle stamps equal that tip or differ
+        from it only by commits whose file sets are tests, controls, launchers,
+        checkers, or bundles and no product source - each named with its file set in
+        the attempt log? The defect this catches is unreviewed or unmeasured product
+        source reaching the PR; a failure re-enters the implementation loop, whose
+        exit re-serves, re-measures and re-reviews the tip.
       evaluated_by: lead
-      on_failure_route: review_increment_batch
-    batch_review_current:
-      style: mechanical
-      question: >-
-        Does every landed increment outside the currently open review batch carry a
-        batch-review findings section (one findings record per review node, a dated
-        section per round - layout reference 4.1) under artifacts/reviews/<campaign>/, and is the
-        open batch still below the size the lead declared for it in the round's
-        outcome row
-        (1 for a complex commit - a new kernel, runner, scheduler, or weight-loading
-        change - up to 3 when the batch is low complexity in aggregate - config, tests,
-        wiring, citation repairs; a fold item's commits are one landed unit whatever
-        their count, because they arrive together and nothing builds between them)? On the
-        plan_satisfied edge the open batch closes regardless of size, so any
-        unreviewed landed increment fails the check.
-      evaluated_by: lead
-      on_failure_route: review_increment_batch
+      on_failure_route: scope_next_increment
     preflight_record_complete:
       style: mechanical
       question: Does the preflight record carry a passing, transcript-backed entry
@@ -448,7 +521,10 @@ pave:
       question: Does the changeset artifact the plan_satisfied round assembled hold
         the git-produced branch diff against the target base recorded in
         campaign_target_pins, an evidence index in which every planned and repair
-        increment resolves to a passing CPU-mode record, an NxDI-import scan
+        increment resolves to its passing record - the CPU-mode record for a glue
+        increment; for a kernel-class increment the oracle record, the kernel-alone
+        ratio record within the bar or the design's written reason, and the kernel
+        review record with no standing material finding - an NxDI-import scan
         transcript over the diff with zero hits, a substrate-fidelity transcript
         in which every design-declared-NKI increment shows NKI usage, the run
         record of the declared test paths collected and run whole-tree on the tip -
@@ -511,6 +587,56 @@ pave:
           meaning: A user-owned input is absent (for example the pinned release
             branch is not on the fork); the remedy is user-owned - the run never
             substitutes one - and resumable state is preserved.
+    calibrate_hardware:
+      intent: execute
+      purpose: Put one hardware calibration record under the run before any route is
+        costed - for every roster hardware class a requested target's configuration
+        uses, the fixed suite's rows measured on the pinned SDK, each row with its
+        value, reproduction command and pin. The suite covers the cost classes a
+        design's rows cite - instruction floor per engine, DMA descriptor and
+        transpose cost, gather and scatter cost per element for each access pattern,
+        compare rate per engine, the throttle ramp and the utilization cap under a
+        sustained synthetic kernel_alone load, collective cost at the served rank
+        count; the row list is kept with the suite in the release layer, as the scan
+        word list is, and grows from the hazard items campaigns close with. The served
+        utilization cap is a second row of the cap class that measure_candidate appends
+        from each served profile, because a port has no served path at calibration;
+        every row names its source (suite, anchor, served profile), and a design cites
+        the served cap row when one exists and the suite's synthetic-load row until
+        then. Why
+        first - a cost row that cites no measured rate is a guess. Check tool - when a
+        record for the identical
+        pin and hardware class already exists (this run's, or a prior run's at the
+        layout reference's path), the lead verifies the pin equality and records
+        calibration_recorded with no seat and no device; otherwise the measurer runs
+        the suite under a kernel_alone job lease on one roster host of the class, with
+        no campaign lease, because the record belongs to the run. Out of scope -
+        costing anything, any candidate code, any serving launch.
+      roles:
+      - measurer
+      consumes:
+      - run_input_and_preflight_record
+      produces:
+      - hardware_calibration_record
+      allowed_effects:
+      - kernel_alone device runs on roster hosts under a job lease through the
+        hardware queue tool; writes under the run's calibration artifact directory.
+      forbidden_effects:
+      - Any write to the fork, a campaign branch, or a host beyond the job lease.
+      - Any serving launch.
+      outcomes:
+        calibration_recorded:
+          meaning: Every roster hardware class a requested target uses has a record
+            on the frozen pin with every suite row present - measured in this run, or
+            carried with its pin verified equal - decided by the record's rows and
+            their run records, never by the measurer's claim.
+          required_evidence:
+          - hardware_calibration_record
+        calibration_unproducible:
+          meaning: A hardware class a requested target uses has no record and the
+            suite cannot be measured on any host of the class - unreachable, faulted, or the suite
+            fails on the pin - with the evidence recorded; the run pauses, because
+            hardware and SDK remedies are user-owned.
     cost_routes_and_rank_backlog:
       intent: plan
       purpose: Two steps in one seat. First, decide the delta scan across the whole
@@ -518,10 +644,18 @@ pave:
         each report against the fixed costing-sufficiency rubric (satisfied by honest
         residual-gap recording, never by gap absence), drive at most one bounded
         re-trace per deficient target, and write the run-level delta index. Then,
-        for each requested target, cost route A backport at the pin (choosing between
-        sources A1 and A2) against route B pin upgrade (fallback, justified on cost,
-        exclusive-execution, regression-matrix gated), predict the touched-file
-        surface for conflict-aware scheduling, and rank the backlog. The seat that
+        for each requested target, run the parallelism planner on the target's
+        configuration at the served shapes the run input declares for it (frozen into
+        the kickoff later) and record its entitlement (first-token and inter-token
+        latency and memory per device - the floor every performance criterion is
+        stated against); cost route A backport at the pin (choosing between sources
+        A1 and A2) against route B pin upgrade (fallback, justified on cost,
+        exclusive-execution, regression-matrix gated) - per route the hot ops of its
+        served phases from the trace's op inventory, whatever their substrate, and
+        the roofline ratio the sum of their cost rows predicts
+        against the entitlement, citing calibration rows where they exist and naming
+        the ops that need an anchor at design - predict the touched-file surface for
+        conflict-aware scheduling, and rank the backlog. The seat that
         judges a report is never the seat of any trace_target_delta instance whose
         report it judges - the lead enforces the seat split at dispatch. With one
         requested target the coverage, rubric and index steps are the lead's own and
@@ -532,6 +666,7 @@ pave:
       consumes:
       - delta_report
       - run_input_and_preflight_record
+      - hardware_calibration_record
       - adversarial_review_findings
       produces:
       - delta_report
@@ -548,7 +683,8 @@ pave:
         treat the report as sufficient.
       - Write the run-level delta index binding per-target reports, verdicts, and
         residual gaps into one costing-consumable artifact.
-      - Cost each target's routes, predict its file surface, rank the backlog.
+      - Run the planner per target; cost each target's routes with their predicted
+        ratios, predict its file surface, rank the backlog.
       - Emit exactly one outcome under the declared precedence - costing_stalled
         wins when a named gap already survived one re-trace or review findings repeat
         with no new evidence; reports_insufficient wins while any deficient target's
@@ -562,8 +698,9 @@ pave:
       outcomes:
         backlog_ranked:
           meaning: Every requested target's report is present and rubric-sufficient,
-            the run-level index is written, and every target carries a costed route
-            verdict, a predicted touched-file surface, and a backlog rank with recorded
+            the run-level index is written, and every target carries its planner
+            entitlement, a costed route verdict with each route's predicted roofline
+            ratio, a predicted touched-file surface, and a backlog rank with recorded
             rationale.
           required_evidence:
           - delta_report
@@ -608,7 +745,7 @@ pave:
       intent: execute
       purpose: For each target the user elects from the reviewed backlog, assemble
         the complete kickoff contract - target, route, source, thresholds (in the
-        served-output form kickoff_contract_approved asks for), methods,
+        served-output and entitlement-ratio forms kickoff_contract_approved asks for), methods,
         models, hosts, test layout, spend notes, all per-campaign preflights,
         prior-run carry-over decisions, and for upgrade-route campaigns the upgrade
         base (feeding campaign_target_pins) and the regression-matrix criteria
@@ -647,7 +784,21 @@ pave:
         torch-level fallback where the run's kernel-substrate rule requires NKI
         builds the wrong thing, and so does the classification itself when wrong
         (an increment recorded non-kernel-class whose planned work is kernel-class
-        functionality). Every other finding - cite hygiene, counts and scans,
+        functionality). So are the execution map, cost table and numerics plans (the
+        cost-before-code principle) - a served phase with no map; a hot op on the map
+        with no row, whatever its substrate; at a shortfall re-entry, a component the
+        served profile attributed above the tolerance with no map row (a map gap, the
+        row the re-entry must add);
+        a row that cites no calibration or anchor row for a rate it uses, or cites a
+        row whose lowering or access pattern is not the op's; a predicted ratio over
+        the bar whose written reason cites no measured row showing the binding engine
+        at its floor; derived values with no arithmetic; a row naming no hazard where
+        the recorded hazard list holds one for its form; a kernel-class increment
+        whose numerics plan omits a registered regime class, the
+        dtype-per-stage table or the NaN containment note, or uses a refused form -
+        each builds or keeps a kernel the device will contradict; and so is a design
+        whose predicted sum misses the campaign's performance gate with no reason the
+        user can weigh. Every other finding - cite hygiene, counts and scans,
         wording, stale paths, record-only items, anything the consumer re-derives
         from persisted inputs - is bookkeeping. The reviewer records bookkeeping
         in the same findings record, marked as such with the surface it names;
@@ -667,9 +818,13 @@ pave:
         the lead reads the diff to confirm no unnamed block moved before briefing
         the seat and records that check in run state. A diff that
         touches blocks the brief did not name, or a whole-plan round, gets the whole
-        read. The challenger is retained across the rounds of one design entry
-        - a fresh seat opens with each new design entry, never per round (spec
-        section 9.4).
+        read. The challenger is retained across the rounds of one design entry - a
+        fresh seat opens with each new whole-plan design entry, never per round (spec
+        section 9.4); for a block-scoped re-entry naming kernel-class ops (a served
+        shortfall, a contradicted row) the challenger is the retained kernel reviewer
+        that read the op's kernel (any retained kernel reviewer when none did),
+        because a fresh seat per lever would pay a seat and the lead's relay each
+        time.
       roles:
       - adversarial_reviewer
       - lead
@@ -706,74 +861,6 @@ pave:
             is block-scoped at the design node (a brief naming the blocks, a
             block diff handed back), and the repaired design re-enters this same
             gate under the standing approval.
-    review_increment_batch:
-      intent: review
-      instance_per: approved_campaigns
-      purpose: >-
-        Adversarial, material-findings-only review of one batch of 1-3 landed increment
-        commits before the next scope round, so a defect is caught while its dependents
-        are still unbuilt. The lead composes the batch and records its size call in
-        the round's outcome row by the rule batch_review_current carries. A fresh
-        reviewer per batch,
-        independent of the realizer, reads the batch diff, its evidence records, and the
-        plan blocks or plan rows it claims to implement. Material means - the code does
-        not do what its block declares; the acceptance is hollow (it would pass on
-        wrong code); a claim of no behavior change is decided by an AST or token diff
-        of the touched functions, never by reading; a frozen or registered value moved
-        (P9); a kernel-class item rides a torch
-        substitute, or a non-kernel declaration hides kernel-class substance (the
-        kernel-substrate rule); an NxDI import on added lines (P4); an integration
-        defect against already-landed work; or process residue in shipped source or
-        tests - a plan block, ruling, campaign identifier or process word on an added
-        line or path, a test filed by the increment or round that wrote it instead of
-        the product module it tests, a test that asserts the run's own state (the
-        repository's history, a log line, a cache counter) instead of product
-        behavior, or a test that pins a digest of a file this repository authors (a
-        copy of external bytes keeps its digest) - material because the fork's
-        maintainer has to strip it, and the strip is a second PR. Every material
-        finding carries the
-        fingerprint triple (increment id + surface + defect class) the no-progress
-        detector keys on; the artifact-layout impl/review pair entry is the shape
-        authority. Narrow findings (cite hygiene, wording, evidence formatting in the
-        records) are recorded in the same file and route nowhere. The newest batch's
-        record is the changeset's code review before hardware - the lead's
-        changeset_complete scans and the whole-tree test record close that gate, and
-        no whole-changeset re-read follows. Read-only on the worktree and branch; no
-        host execution. Out of scope
-        - any code change, any edit to the
-        plan or the design record.
-      roles:
-      - adversarial_reviewer
-      consumes:
-      - increment_evidence_records
-      - increment_lap_record
-      - campaign_design_record
-      produces:
-      - adversarial_review_findings
-      forbidden_effects:
-      - Any write to the campaign worktree source tree or any branch.
-      - Any write to the increment plan, the design record, or run state.
-      - Host execution of any kind.
-      outcomes:
-        batch_sound:
-          meaning: No material finding stands over the batch; the findings record
-            names the batch's tip commit and the commits reviewed and records the
-            absence. Routes back to scoping.
-          required_evidence:
-          - adversarial_review_findings
-        material_findings:
-          meaning: Named material defects in the batch, each with its fingerprint
-            triple; routes to scoping, which mints the repair items that answer them.
-            Repair commits are reviewed in a later batch.
-          required_evidence:
-          - adversarial_review_findings
-        design_contradicted:
-          meaning: The batch implements its block faithfully and the block itself is
-            wrong against the reference or the repo - a plan defect, not a build
-            defect, recorded with the observing evidence. Implements the parent outcome
-            design_defect_found.
-          required_evidence:
-          - adversarial_review_findings
     rederive_approach:
       intent: plan
       instance_per: approved_campaigns
@@ -816,7 +903,20 @@ pave:
         measurement artifacts against the kickoff-declared thresholds - the correctness
         and performance gates for backport-route campaigns; for upgrade-route
         campaigns the kickoff-declared regression matrix instead - and name exactly
-        one consequence. The adjudicating agent never produced any artifact under
+        one consequence. A failed performance gate names which of its two routes holds
+        by one rule - the served profile's per-op attribution (the diagnostic the design
+        registered) is read against the design record's predicted rows as the
+        measurer re-rated them into the bundle under the served utilization cap row
+        - a mechanical step, each predicted time scaled by the ratio of the cap row
+        it was priced under to the served cap row - so the adjudicator reads
+        evaluated records only; any
+        attributed component measured over its prediction beyond the registered
+        tolerance, and any component or time class the profile attributes that no row
+        predicts (glue, a collective, unattributed time, rank skew) above that
+        tolerance, is a cost-model miss the design must re-derive
+        (performance_shortfall); a sum that misses with every attributed component
+        inside a row that predicted it was predicted as designed, and closes
+        (no_benefit). The adjudicating agent never produced any artifact under
         verdict, and reads only the evaluated-threshold records the bundles carry,
         never a first-sighting signal. No second review of the verdict follows - the
         PR review reads the verdict before gate 3. A verdict's prose is corrected only
@@ -839,20 +939,38 @@ pave:
           required_evidence:
           - adjudication_verdict
         correctness_shortfall:
-          meaning: Backport-route campaigns only - the correctness gate failed;
+          meaning: Backport-route campaigns only - the correctness gate failed, the
+            verdict naming the first failed rung of a model port's ladder;
             implementation resumes. Upgrade-route failures route through
             regression_failed instead.
           required_evidence:
           - adjudication_verdict
+        performance_shortfall:
+          meaning: Backport-route campaigns only - correct port, performance gate
+            failed, and at least one attributed component measured over its predicted
+            cost beyond the registered tolerance, or above the tolerance with no row
+            predicting it, each named with its measured and predicted values; the
+            design re-enters block-scoped for those components' cost rows. A second
+            shortfall on a component whose row was already re-derived once with no
+            new calibration or anchor row is design_blocked at design, not a third
+            row.
+          required_evidence:
+          - adjudication_verdict
         no_benefit:
           meaning: Backport-route campaigns only - correct port, performance gate
-            failed; routed to no-benefit close-out. Unreachable for upgrade-route
+            failed with every attributed component inside a row that predicted it and
+            nothing unrowed above the tolerance, so the design was right and the sum
+            still misses the criterion the user approved (an accepted predicted value
+            included); routed to no-benefit close-out. Unreachable for upgrade-route
             campaigns, whose failure outcome is regression_failed.
           required_evidence:
           - adjudication_verdict
         regression_failed:
-          meaning: An upgrade-route campaign's regression matrix failed; implementation
-            resumes on the regressed surfaces.
+          meaning: An upgrade-route campaign's regression matrix failed, or a
+            backport-route campaign regressed a served phase it did not target beyond
+            the kickoff's stated bound - a changeset defect, not a cost-model result,
+            so it outranks performance_shortfall and no_benefit when results co-hold;
+            implementation resumes on the regressed surfaces.
           required_evidence:
           - adjudication_verdict
         evidence_unstable:
@@ -862,14 +980,17 @@ pave:
       intent: execute
       instance_per: approved_campaigns
       purpose: Write one document - the PR description, contribution-checklist
-        complete, in the form the fork's maintainer reads - what the change is, how it
-        was tested (the whole-tree test command with its counts and the acceptance
-        measurement with its verdict, each linked once to its record), and what stays
-        open - for the campaign branch's clean diff against the
-        target base recorded in campaign_target_pins (the pinned release branch for
-        backport-route
-        campaigns; the kickoff-declared upgrade base for upgrade-route campaigns). No
-        evidence index and no separate evidence package - the records are the
+        complete, in the section form pr_evidence_package declares (the form the
+        fork's maintainer reads, one section per question a maintainer asks) - for
+        the campaign branch's clean diff against the target base recorded in
+        campaign_target_pins (the pinned release branch for backport-route campaigns;
+        the kickoff-declared upgrade base for upgrade-route campaigns). Every number
+        is read from a registered measurement's bundle and paired with its comparator
+        at a named commit or version, never a run made for the description; every
+        limit of the records is written where the claim stops (a shape not measured,
+        a count that is not a benchmark, a comparison that is not bit-equality),
+        because a reader who finds one unstated limit distrusts the stated results.
+        No evidence index and no separate evidence package - the records are the
         evidence and the description says what they show; an index that links every
         claim is the run's record rewritten for a reader who did not ask for it. Out
         of scope - opening the PR (a gate-3 closure action).
@@ -884,8 +1005,8 @@ pave:
       - pr_evidence_package
       outcomes:
         pr_package_ready:
-          meaning: The description is complete in that form and its test and
-            acceptance claims link to their records.
+          meaning: The description is complete in the declared form and its test,
+            acceptance and performance claims link to their records.
           required_evidence:
           - pr_evidence_package
         evidence_gap_found:
@@ -896,23 +1017,64 @@ pave:
     review_pr_evidence:
       intent: review
       instance_per: approved_campaigns
-      purpose: Adversarial, material-findings-only review of the PR description and
-        the records it links before anything is pushed for closure.
+      purpose: The one whole-campaign review - adversarial, material-findings-only -
+        of the campaign branch's clean diff against the target base together with the
+        PR description and the records it links, before anything is pushed for
+        closure. On the code, material means - an increment's code does not do what
+        its plan block declares; its acceptance is hollow (it would pass on wrong
+        code); a claim of no behavior change is decided by an AST or token diff of the
+        touched functions, never by reading; a frozen or registered value moved (P9);
+        a kernel-class item rides a torch substitute, or a non-kernel declaration
+        hides kernel-class substance (the kernel-substrate rule); an NxDI import on
+        added lines (P4); an integration defect across landed increments; or process
+        residue in shipped source or tests - a plan block, ruling, campaign identifier
+        or process word on an added line or path, a test filed by the increment or
+        round that wrote it instead of the product module it tests, a test that
+        asserts the run's own state (the repository's history, a log line, a cache
+        counter) instead of product behavior, or a test that pins a digest of a file
+        this repository authors (a copy of external bytes keeps its digest) - material
+        because the fork's maintainer has to strip it, and the strip is a second PR.
+        On the description, material means a missing section of the declared form, a
+        test or acceptance claim with no record behind it, a number with no paired
+        comparator at a named commit or version, a claim that reaches past what its
+        record measured with no limit stated beside it, or a verdict other than the
+        one the adjudicator recorded. Every material finding carries the fingerprint triple (increment id
+        + surface + defect class) the no-progress detector keys on; the
+        artifact-layout impl/review pair entry is the shape authority. Narrow findings
+        (cite hygiene, wording, evidence formatting in the records) are recorded in
+        the same file and route nowhere. One reviewer seat per campaign, independent
+        of every realizer, read-only on the worktree and branch, no host execution.
+        Out of scope - any code change, any edit to the plan or the design record.
       roles:
       - adversarial_reviewer
       consumes:
+      - implementation_changeset
       - pr_evidence_package
       - adjudication_verdict
       produces:
       - adversarial_review_findings
+      forbidden_effects:
+      - Any write to the campaign worktree source tree or any branch.
+      - Any write to the increment plan, the design record, or run state.
+      - Host execution of any kind.
       outcomes:
         pr_ready:
-          meaning: No material finding stands; the description may close through gate
-            3.
+          meaning: No material finding stands over the changeset or the description;
+            the findings record names the branch tip reviewed, and the campaign may
+            close through gate 3.
           required_evidence:
           - adversarial_review_findings
         material_findings:
-          meaning: Named material defects require repair of the description.
+          meaning: Named material defects in the description only; prepare_pr repairs
+            it.
+          required_evidence:
+          - adversarial_review_findings
+        code_findings:
+          meaning: Named material defects in the code, each with its fingerprint
+            triple; scoping mints the repair items that answer them, and the repaired
+            tip serves and measures again before it returns here.
+          required_evidence:
+          - adversarial_review_findings
     close_campaign:
       intent: execute
       instance_per: approved_campaigns
@@ -921,7 +1083,12 @@ pave:
         the branch and open the PR on the fork, record the no-benefit bundle with
         its upstream-issue draft, or record the blocked terminal - then apply
         the serialized single-writer updates to the scorecard, backlog, debt list,
-        and fingerprint file. Out of scope - merging the PR (human) and any write
+        and fingerprint file - the debt list taking, as release items, every hazard
+        the campaign measured - a rate that needed an anchor (a calibration row to
+        add), a regime that caught a defect (an oracle regime to keep), a form the
+        device contradicted (a form to refuse), a per-op cost miss (a cost class to
+        re-rate) - so the next run's suite, oracle and hazard lists start where this
+        one ended. Out of scope - merging the PR (human) and any write
         to a campaign branch during artifact updates.
       roles:
       - lead
@@ -1017,6 +1184,14 @@ pave:
       - Establish the plugin-side current state of the target at the frozen pin
         (present, partial, or absent), correcting any false premise in the target's
         framing with code citations before tracing further.
+      - For a model-port target, decompose the reference's full forward pass at the
+        served configuration the run input declares - every op class of each
+        component block, across every parallelism and scheduling form the target
+        serves (tensor, expert, sequence and context parallel forms, speculative
+        decoding, asynchronous scheduling) - and inventory each op against the
+        kernels the NKI library and the plugin carry at the pin as present, partial
+        or absent, because the gap list is what costing prices and design maps; a
+        feature-level trace alone hides the ops a port must build.
       - Trace source A1 (upstream GPU vLLM, local clone) - headline features via
         the PR-linked release-note chain to introducing commits; diffuse features
         via recorded git log grep/-S sweeps with queries, hit lists, and residual
@@ -1050,7 +1225,8 @@ pave:
           meaning: This target's delta report exists with every costing-required
             section - plugin-side state, A1 trace, A2 applicability and trace
             or dead-end, runner-entanglement verdict, externalized-subsystem flag,
-            doc-claim verification, residual gaps - each decisive claim carrying
+            the op inventory with its kernel-gap list for a model port, doc-claim
+            verification, residual gaps - each decisive claim carrying
             its command transcript. Sufficiency is satisfied by honest residual-gap
             recording, not by gap absence.
           required_evidence:
@@ -1069,16 +1245,69 @@ pave:
         re-checkable
         absence evidence. A re-entry never re-screens - the pin is frozen at intake,
         and the untried-lever question is design_blocked's own evidence. (2) Draft -
-        the CPU-first increment plan, test layout, venv plan,
+        the increment plan, test layout, venv plan,
         lease plan, and refined predicted file surface, all under the kickoff
         contract. Per increment the plan declares a stable id; the file surface it
-        touches; the CPU-mode acceptance command WITH its expected result (a tier-1
-        measurement against a declared threshold, never a bare exit check); test-layout
-        additions; the single-agent-context size check; and a substrate decision -
-        kernel-class (NKI required for kernel-class functionality the existing Neuron
-        NKI library does not already provide, with the NKI simulator path named as
-        its CPU-mode acceptance route) or an explicit non-kernel-class declaration,
-        each with rationale. Any touch of the patch-application entry point or the
+        touches; its acceptance command WITH its expected result (a tier-1 measurement
+        against a declared threshold, never a bare exit check) - CPU-mode for a glue
+        increment; test-layout additions held to load-bearing tests - a test is
+        written only where it fails on the defect class the increment's acceptance
+        names, a kernel-class increment's tests are at most its oracle's regime
+        entries, no increment exists to write tests, and a test the change breaks at
+        a moved seam is deleted and listed in the evidence record, never repaired to
+        pass, because a test that guards nothing costs every later increment its run
+        and its repair; the single-agent-context size check; and a
+        substrate decision - kernel-class (NKI required for kernel-class functionality
+        the existing Neuron NKI library does not already provide) or an explicit
+        non-kernel-class declaration, each with rationale. A kernel-class increment is
+        one hot op (a fused form counts as one). Before any code the design carries,
+        per served phase, an execution map - each component block's ops in execution
+        order with input and output shapes at the declared served shapes, derived
+        from the reference implementation and the trace's op inventory - and the
+        cost table the map is the subject list of, one row per hot op on the map,
+        whatever its
+        substrate - authored or vendored kernels, torch and compiler-lowered ops,
+        collectives, data movement - where a hot op is any op whose predicted
+        time at those shapes exceeds the one tolerance the design registers (below it
+        an op needs no row; beyond it a measured component is over its row); the map
+        fixes each op and its shapes, never the reference's form - the form is chosen
+        per row at the roofline, so a reference form that is slow on this hardware
+        is re-derived, not copied; an op a chosen form adds (a producer, a mask, a
+        layout change) is costed inside the row of the map op it serves, because a
+        form's own ops are where the misses hide that a profile finds only after
+        serving. A
+        row (the cost-before-code principle) - bytes moved, instructions
+        on the engine that binds, DMA descriptors, the engine mapping, serial-chain
+        length, the predicted time under the served utilization cap row when the
+        calibration record holds one and under the suite's synthetic-load cap row
+        until then, the op's minimum work at the binding engine's calibrated rate as its
+        roofline, and the predicted ratio - each value measured, citing a calibration
+        row whose lowering and access pattern match the op's (a row for another
+        pattern is no row), or derived with its arithmetic; a rate with no matching
+        row is anchored first - a kernel_alone run of the costed form under a job
+        lease, its row appended to the calibration record, re-run once on another
+        roster host of the class when a host fault ends it and left unmeasured with
+        the fault telemetry after a second - because the misses that build a kernel
+        only to close it are the uncalibrated ones; an op over the bar carries a
+        written hardware reason citing the measured rows that show its binding engine
+        at its floor under the served cap, or the design re-derives its form here;
+        each row names the recorded hazards its form avoids. Each kernel-class
+        increment carries a numerics plan - the correctness class it declares
+        (bit-equal, value-equal within a stated bound, or a stated precision class),
+        the fp64 oracle it is read against over the registered regime classes
+        (correlated inputs, repeated tokens, near-one gates, long carried state, an
+        all-NaN row - the list is kept with the oracle tooling and grows from closure
+        hazard items), the dtype per stage, a NaN containment note (which rows a NaN
+        input reaches), and the two refused forms - a mask applied by multiplication
+        to an operand that can hold a non-finite value, and an algebraic identity
+        trusted without a finite-precision bound - because each refused form passes
+        every generic input and fails only on the regimes the oracle names. The design's predicted
+        sum over its rows is read against the campaign's performance gate; a sum that
+        misses carries the reasons the user weighs at gate 2, and the user's
+        acceptance of a predicted value is a criterion change - a user decision in the
+        user's own words in the decision record, re-registered here as the criterion
+        the adjudicator reads (kickoff criteria change only by explicit user
+        decision) - so a predicted miss never closes as no_benefit by design. Any touch of the patch-application entry point or the
         ad hoc monkeypatches is a design decision recorded here, never implementer
         initiative. For upgrade-route campaigns only, assemble the regression matrix
         the acceptance gate reads - a stable row id, a model-by-feature cell, a
@@ -1090,12 +1319,30 @@ pave:
         kickoff-declared criterion adjudicable as written - verbatim thresholds or
         matrix rows with procedure references, per-procedure measurement-pitfall
         pre-emptions, and per-criterion check-tool liveness pairs (the value that must
-        appear evaluated, and a known-bad input the procedure must fail on). A
+        appear evaluated, and a known-bad input the procedure must fail on) - and,
+        for a model port, the performance table's cells (first-token latency,
+        inter-token latency and output tokens per second at each declared context
+        length and concurrency level), each with the comparator arm the PR pairs it
+        with and the protocol the description reports (arms as commits, hardware and
+        parallelism, pairing order, warm-ups, repeats), as declared measurements, so
+        the PR reports cells that were measured under a protocol that was registered
+        - and
+        register the served profile at the declared shapes with its per-op attribution
+        as the diagnostic that tells the performance gate's two failure routes apart
+        (adjudicate_results), with the one tolerance that bounds a hot op and a
+        measured component's excess over its row, and each kernel-class op's declared
+        correctness class, because a
+        change of class is the user's call and a registration change re-presents
+        gate 2; the predicted rows themselves stay in the design record, so a
+        re-derived row re-enters gate 2 under the standing approval and not as a
+        changed criterion. A
         criterion
         that cannot be registered adjudicably is surfaced, never reworded - kickoff-declared
         criteria change only by explicit user decision (P9). (4) Assemble - the
         campaign_design_record from the three outputs, then the completeness self-check
-        before the record reaches gate 2 - every increment carries its full contract;
+        before the record reaches gate 2 - every increment carries its full contract,
+        every hot op its cost row with every rate cited to a matching row, a
+        kernel-class increment its numerics plan;
         every criterion is adjudicable as written; the patch-decision and substrate
         registers are present with explicit none-declarations; the coverage trace
         maps every kickoff-declared deliverable and criterion to the increments
@@ -1109,7 +1356,8 @@ pave:
         this one node is run setup declared per node (spec section 2.1); a large
         campaign runs sequential seats so no seat exceeds its bounded context, and
         the investigator seat owns the screen. Re-entry - the brief names the parts
-        to touch and the finding, contradiction, or user decision each answers; an unchanged part
+        to touch and the finding, contradiction, adjudicated per-op cost miss, or user
+        decision each answers; an unchanged part
         is not re-authored, the round hands back a block diff, and a round that must
         touch a part the brief did not name stops and reports the cascade for a
         re-brief. Re-entry check tool - when the campaign_target_pins entry equals
@@ -1124,25 +1372,33 @@ pave:
         never hash-only verification. Superseded round material is deleted from the
         read path at each re-entry, the supersession recorded as one revision-log
         line; the current record carries the current design content only. Out of
-        scope - code changes, hardware contact, any measurement.
+        scope - code changes, any measurement of a candidate, hardware contact beyond
+        an anchor run.
       roles:
       - investigator
       - implementer
       consumes:
       - kickoff_contract_record
       - delta_report
+      - hardware_calibration_record
       - adversarial_review_findings
       - rederivation_record
+      - adjudication_verdict
       produces:
       - pin_feasibility_note
       - increment_plan_draft
       - regression_matrix_draft
       - acceptance_preregistration
       - campaign_design_record
+      - hardware_calibration_record
+      allowed_effects:
+      - kernel_alone anchor runs of a costed form that has no calibration row, under a
+        job lease through the hardware queue tool, each row appended to the
+        calibration record with its run record.
       forbidden_effects:
       - Code changes to the target repo.
-      - Hardware contact of any kind.
-      - Running any measurement or any matrix procedure.
+      - Hardware contact beyond an anchor run; any serving launch.
+      - Running any measurement of a candidate or any matrix procedure.
       outcomes:
         design_ready:
           meaning: Complete, self-checked design record assembled with its frozen
@@ -1165,15 +1421,20 @@ pave:
             which stop fired - the findings history shows the same material finding
             recurring with no untried lever; the plan or matrix breaches this node's
             bounded context even across sequential seats; a kickoff-declared cell
-            or criterion cannot be made adjudicable without changing it; or the
-            completeness self-check finds the same named gap recurring with no
+            or criterion cannot be made adjudicable without changing it; a hot op has
+            no costed form within the bar and no hardware reason the record can state,
+            or its row was re-derived once for a served shortfall and no new
+            calibration or anchor row exists, or the user declined its predicted miss
+            at gate 2 and no new row or form exists;
+            or the completeness self-check finds the same named gap recurring with no
             gap-closing artifact since the prior round. Routed to first-principles
             re-derivation with the evidence.
     scope_next_increment:
       intent: plan
       instance_per: approved_campaigns
       purpose: 'On every entry to implementation - fresh from the design gate,
-        or re-entry from a batch review, an attempt-loop product defect, a
+        or re-entry from a realized item, a whole-campaign code finding, a stale tip at
+        the close-out check, an attempt-loop product defect, a
         correctness shortfall verdict, or a regression verdict - reconcile four
         persisted inputs: the approved
         design''s increment plan, the adversarial findings history for this campaign,
@@ -1182,9 +1443,21 @@ pave:
         worktree and branch preconditions (worktree present, branch based on this
         campaign''s entry in campaign_target_pins, no protected base branch touched).
         Then emit exactly one of: the next pending work item - or a set of pending
-        items sized as one implementation by the same complexity call the batch review
-        uses (one item when any is complex - a new kernel, runner, scheduler, or
-        weight-loading change - up to three low-complexity items in aggregate)
+        items sized by one of two calls - the serial call (one item when any is
+        complex - a kernel-class increment outside a kernel set, or a runner,
+        scheduler, or weight-loading change - up to three low-complexity items in
+        aggregate), or the kernel call, the default whenever two or more kernel-class
+        increments are pending - every pending kernel-class increment whose op is
+        distinct and whose file-and-method surface is pairwise-disjoint from the
+        others'', recorded in order as one pull list with the review capacity (items
+        in flight per retained kernel reviewer, a run-setup value) in the round row;
+        as many items as the roster''s idle kernel_alone capacity at this round allows
+        (the queue tool''s remaining-capacity reading) run at once, one seat per item,
+        and a seat that reaches its verdict takes the next recorded item until none
+        remain, because each is one op with its own oracle, lease and review that
+        shares only the branch, a port''s kernels are its critical path, and
+        implementation time is the objective; the serial hand is the lead''s narrowing
+        when idle capacity is one -
         - as a recorded round entry naming each item''s design increment id, declared
         acceptance, and the findings it must answer, plus the set''s implementation
         order (a set whose items declare pairwise-disjoint file-and-method surfaces
@@ -1193,8 +1466,9 @@ pave:
         or the completion, defect, exhaustion, or no-progress verdict. On plan_satisfied
         the lead also assembles the implementation_changeset in the same round - the
         campaign branch diff against the target base recorded in campaign_target_pins,
-        the evidence index proving every planned and repair increment carries a passing
-        CPU-mode record, the transcript of a mechanical NxDI-import scan over the diff
+        the evidence index proving every planned and repair increment carries its
+        passing record (changeset_complete names each class''s), the transcript of a
+        mechanical NxDI-import scan over the diff
         (zero hits), the transcript of the mechanical substrate-fidelity check
         (every design-declared-NKI increment''s diff shows NKI usage), and the
         transcript of the process-vocabulary scan over the added lines and paths of
@@ -1204,7 +1478,9 @@ pave:
         tip (changeset_complete names its two zeros). A gap in any of the six is a
         coverage-gap work item minted in the same round record with its class (a)-(f),
         and the round re-enters. Work-item classes and their declared acceptance:
-        build or repair increments (the design''s CPU-mode command); coverage-gap
+        build or repair increments (the design''s CPU-mode command for a glue
+        increment; the oracle match, kernel-alone ratio and kernel review for a
+        kernel-class one); coverage-gap
         items (the recomputed gap check that found the gap - the missing increment''s
         own CPU-mode command for a record gap, the evidence-index coverage
         recomputation for a diff-work-uncovered gap, the import scan re-run for an
@@ -1229,8 +1505,18 @@ pave:
         tip; the acceptance is the folded tip''s diff against the pre-fold tip equal, as
         a set of added and removed lines, to the changeset''s diff against its own base
         (values git produces), plus the whole-tree CPU-mode test pass on the folded tip;
-        the changeset''s review is the batch review of its landed commits, as for every
-        increment, so no reviewer runs before the fold. The no-progress detector reads
+        the changeset''s review is the whole-campaign review before the PR, as for every
+        glue increment, so no reviewer runs before the fold; a maintainer-pass item,
+        minted once every planned and repair item has passed and the branch diff''s
+        digest differs from the newest pass record''s - the first pass reads the clean
+        diff, every later pass the diff since the newest pass record''s tip (the
+        whole-campaign review keeps the one full read), as the fork''s maintainer,
+        removing dead code, duplicated helpers, process
+        residue and tests beyond load-bearing, with no behavior change - its
+        acceptance the AST or token diff of the touched functions showing no behavior
+        change, the process-vocabulary scan at zero and the whole-tree pass on the
+        new tip, because a residue finding after serving costs a re-serve while a
+        pass before hardware costs one seat. The no-progress detector reads
         two input families and fires on either. (1) The findings history under
         artifacts/reviews/ - repeated identical material findings, keyed on exactly
         the finding fingerprint the reviewed sibling fixed (the artifact-layout
@@ -1265,9 +1551,9 @@ pave:
         - every round the lead decides mechanically from the persisted inputs with
         no seat: the landed set from the passing records, the gate table and milestone
         order from the plan, the ascending increment id within the released items,
-        the open batch with its size call, the two detector inputs, and the worktree
+        the two detector inputs, and the worktree
         precondition checks. A mechanical round writes its outcome row - the selected
-        block, the batch size call, the plan''s revision-log line - and no round
+        block, the plan''s revision-log line - and no round
         record; a round record is written when a seat ran, a gap or stuck item is
         named, or the changeset is assembled, and it carries the commands and outputs
         it derived from, never a bare conclusion. The implementer seat
@@ -1296,7 +1582,8 @@ pave:
       activities:
       - When a seat is dispatched, it is the one retained doer thread per campaign
         that answers this node and its stage-6 loop sibling (realize_increment)
-        for every item; replaced only when its context degrades the work.
+        for every glue item, replaced only when its context degrades the work; a
+        kernel set's items each get their own seat (realize_increment's default).
       - On plan_satisfied, assemble the six changeset components with the commands
         recorded in the round record; each is recomputable by a reviewer from the
         branch and the records.
@@ -1319,8 +1606,10 @@ pave:
             on disk, a derivation any reader can re-run from the same two inputs.
         plan_satisfied:
           meaning: Every increment in the approved plan, plus every repair item
-            derived from confirmed findings, carries a passing CPU-mode evidence
-            record on disk; nothing is pending, and the changeset artifact is assembled
+            derived from confirmed findings, carries its passing evidence record on
+            disk (CPU-mode for glue; oracle, ratio and review for kernel-class), the
+            maintainer-pass record names the branch diff's digest, nothing is
+            pending, and the changeset artifact is assembled
             in this round. Routes to hardware preparation under the edge's checks.
           required_evidence:
           - increment_evidence_records
@@ -1364,12 +1653,37 @@ pave:
         and one-file evidence record - in this campaign''s isolated worktree (one
         checkout per item for a concurrent-eligible set) on its campaign branch:
         make the code change the design names
-        for this increment, add or extend the tests the design''s test layout
-        declares for it (the fork''s small test overlay is the only in-repo net
-        - most increments author their net first), run the increment''s declared
-        CPU-mode acceptance (VLLM_NEURON_CPU_MODE=1) to a recorded command transcript,
+        for this increment, add or extend the load-bearing tests the design''s test
+        layout declares for it (the fork''s small test overlay is the only in-repo
+        net; a test the change breaks at a moved seam is deleted and listed in the
+        evidence record, as the design''s test rule says), run the increment''s declared
+        acceptance to a recorded command transcript - CPU-mode (VLLM_NEURON_CPU_MODE=1)
+        for a glue increment; for a kernel-class increment, first the fp64 oracle and
+        its regime inputs, built and recorded before the kernel, then the kernel to the
+        costed form, read on two values the world produces - the oracle match in the
+        declared class over every registered regime, and the ratio measured
+        kernel-alone on a device at the cost row''s shapes under a kernel_alone job
+        lease, read against the row''s roofline (the op''s minimum work at the
+        calibrated rate), within the bar or the design''s written reason - and then
+        its review:
+        a retained kernel reviewer (independent of this seat; one reviewer per review
+        capacity of items in flight, the capacity the kernel call''s round row
+        declares, so the review queue never outgrows the hands that build; each
+        retained across its own items'' rounds (spec section 9.4 per item), context
+        carried by the records and never by relay, replaced only when its context
+        degrades the work) reads the kernel diff beside the oracle, ratio and
+        cost-row records, and the
+        doer answers its findings directly, round by round, with no lead word between
+        them; the item passes when no material finding stands, and material here means
+        the whole-campaign review''s code classes (review_pr_evidence) plus a kernel
+        built to a form other than the costed one, an oracle run over fewer regimes
+        than registered, a ratio measured at other shapes or arms than the row''s, a
+        dtype stage outside the table, or a refused numerics form; a ratio that misses
+        the bar where the row predicted inside it is the design contradicted (the cost
+        row, not the code, is wrong) and takes that outcome -
         and write the increment''s one-file evidence record (command, exit status,
-        diff stat, commit hash). When the selected item is a coverage-gap item,
+        diff stat, commit hash; for a kernel-class increment the oracle, ratio and
+        review records beside it). When the selected item is a coverage-gap item,
         the work is to close the named gap and decide on the recomputed gap check
         that found it, as the round record declares - the missing increment''s own
         CPU-mode command, the evidence-index coverage recomputation, the import
@@ -1382,19 +1696,31 @@ pave:
         records so the changeset reads as one unit per plan increment, deciding
         on the recomputed one-unit coverage check the round record declares - same
         branch authority, no new code behavior. A set converges here - the node''s
-        outcome is recorded once every item of the set has reached its verdict,
+        outcome is recorded once every item of the set has reached its verdict (for
+        a kernel set, once its pull list is empty and every item has one),
         by the outcome precedence applied over the set (a recorded contradiction
         on any item outranks; then increment_stuck when any item lacks a passing
-        record, the passed items'' records standing and landing; then increment_passed);
-        whether a concurrent-eligible set is implemented by one hand in order or by
-        one hand per item at once is run setup, declared per node (spec section
-        2.1). Check tool for a set - by default the one retained doer thread
+        record, the passed items'' records standing and landing; then increment_passed).
+        Check tool for a glue set - by default the one retained doer thread
         implements the set in the recorded order, item by item, each item to its
         own commit and evidence record; a set marked concurrent-eligible may instead
         run one seat per item at once when the lead gives each item its own checkout
         and lands the items onto the campaign branch at the join in the recorded
         order, a conflict at the join being a scheduling defect recorded in the
-        round record that returns the set to the serial default. When the selected
+        round record that returns the set to the serial default; whether a glue set
+        runs one hand in order or one per item is run setup, declared per node (spec
+        section 2.1). A kernel set runs one seat per item at once by default, each
+        item in its own checkout (its surfaces are pairwise-disjoint by the kernel
+        call), a finishing seat taking the next item of the pull list with no scoping
+        round between, because
+        implementation time is the objective and a kernel waits on nothing but its
+        own oracle, lease and review; each item builds its oracle and compiles on CPU
+        while its kernel_alone lease is queued (a queued lease is waiting, not stuck,
+        until the grant request''s wall-clock cap expires; then the item records
+        increment_stuck with the queue record), the lease reserves only the device
+        slice its pre-registration pins so sibling kernels share a host''s pools, and
+        finished items queue to their retained kernel reviewer in finishing order.
+        When the selected
         item is a localization item, the work is to find where the served candidate''s
         computation departs from the reference - a diagnostic run (the class
         hardware_attempt_counts defines) reading state out through instrumentation
@@ -1404,8 +1730,12 @@ pave:
         work is to rebase the changeset onto the campaign tip in the worktree, resolve
         any conflict to the exact union of both sides, run the whole-tree CPU-mode pass,
         and land the commits as written (authors and messages kept, no squash) so the
-        batch review reads the commits the user wrote; the item''s acceptance is the one
-        its class declares at scope_next_increment. Device over emulation - the run goes to a
+        whole-campaign review reads the commits the user wrote; the item''s acceptance is the one
+        its class declares at scope_next_increment. When the selected item is a
+        maintainer-pass item, the work is the maintainer read of the diff its class
+        declares (the clean diff first, the delta since the newest pass record after)
+        and its commits, by the retained doer thread, the acceptance the one its
+        class declares. Device over emulation - the run goes to a
         Neuron device whenever the queue tool''s remaining-capacity reading at launch
         shows one idle for the job''s need, because emulating a device is slow by
         construction and the device''s numerics are the question; CPU-mode emulation
@@ -1423,18 +1753,23 @@ pave:
         '
       roles:
       - implementer
+      - adversarial_reviewer
       - delegate_dispatcher
       consumes:
       - increment_lap_record
       - campaign_design_record
+      - hardware_calibration_record
       produces:
       - increment_evidence_records
+      - adversarial_review_findings
       - hardware_attempt_log
       activities:
       - Locate the increment's file surface from the design record and read only
         the slices of the collision-heavy files it names.
-      - Implement the change; author or extend the declared tests.
-      - Run the declared CPU-mode acceptance command; capture the full transcript.
+      - Implement the change - for a kernel-class item the oracle first, then the
+        kernel to the costed form; author or extend the declared tests.
+      - Run the declared acceptance; capture the full transcript - for a kernel-class
+        item the oracle run, the kernel_alone ratio run, and the kernel review rounds.
       - On failure, investigate and repair within this increment, persisting the
         investigation record (checked, ruled out, found) as it grows.
       - Commit to the campaign branch and write the one-file increment evidence
@@ -1445,15 +1780,19 @@ pave:
       - CPU-mode execution on local or assigned hosts (never counted -
         hardware_attempt_counts); on a served tip only as the purpose's fallback, the
         launch reading in the record.
+      - For a kernel-class item - kernel_alone runs of its kernel (the ratio
+        measurement and the device execution the oracle is read on) under a job lease
+        taken through the hardware queue tool on a roster host of the target class;
+        recorded in the attempt log with the class, fingerprint, and transcript.
       - For a localization item only - a diagnostic run, the class
         hardware_attempt_counts defines, on the served device under a job lease taken
         through the hardware queue tool; recorded in the attempt log with its class,
         fingerprint, and transcript.
       - Guardrailed delegate dispatch.
       forbidden_effects:
-      - Opening a Neuron device for anything but that diagnostic run - a run that
-        compiles a new graph or decides the candidate's acceptance is a serving attempt
-        and belongs to execute_attempt_loop.
+      - Opening a Neuron device for anything but a kernel_alone run of this item or
+        that diagnostic run - a run that compiles a candidate graph or decides the
+        candidate's acceptance is a serving attempt and belongs to execute_attempt_loop.
       - Mutating protected base branches on fork or upstream.
       - NxDI-stack imports in ported code.
       - Clearing the shared Neuron compile cache.
@@ -1461,8 +1800,10 @@ pave:
       outcomes:
         increment_passed:
           meaning: Every item of the selected work item or set passed its declared
-            acceptance - the CPU-mode
-            command transcript and exit status for build and repair increments,
+            acceptance - the CPU-mode command transcript and exit status for glue
+            build and repair increments; for a kernel-class increment the oracle
+            match, the kernel-alone ratio within the bar or the written reason, and
+            the kernel review record with no standing material finding;
             the recomputed gap check that found the gap for coverage-gap items,
             the recomputed one-unit coverage check for repackaging items, or the
             compare tool's recorded entry point or no-departure finding for
@@ -1476,7 +1817,9 @@ pave:
         evidence_contradicts_design:
           meaning: The increment cannot be implemented as designed and the contradiction
             is recorded with the observing evidence (the designed seam, API, or
-            precondition does not hold in the worktree). Implements the parent outcome
+            precondition does not hold in the worktree; or a kernel built to the costed
+            form measures over the bar where its cost row predicted inside it - the
+            measured and predicted values recorded). Implements the parent outcome
             design_defect_found. Outranks both other outcomes when results co-hold
             - a concrete recorded contradiction beats a green transcript reached
             by deviating from the design (deviation is out of scope, so such a
@@ -1484,7 +1827,9 @@ pave:
             contradicted item.
         increment_stuck:
           meaning: Honest repair attempts on this increment are exhausted for
-            this dispatch without a passing acceptance; the persisted investigation
+            this dispatch without a passing acceptance, or a kernel-class item's
+            queued lease outlived its grant request's wall-clock cap; the persisted
+            investigation
             record carries what was checked, ruled out, and found, and the stuck
             increment's id persists in the round record so recurrence feeds the
             no-progress detector. Routes back to scoping, which re-selects with
@@ -1497,8 +1842,8 @@ pave:
       intent: execute
       instance_per: approved_campaigns
       purpose: Put one leased, identity-verified Neuron host with this campaign's
-        own venv under the campaign. Two entry modes. Full mode (from implementation
-        review, or after a host was given up) - lease, then venv. Probe-only mode
+        own venv under the campaign. Two entry modes. Full mode (from the plan's
+        completion, or after a host was given up) - lease, then venv. Probe-only mode
         (after a host recovery) - the lease stands, so run only the venv verification
         probes and never re-request a lease the campaign already holds. Lease -
         a lease reserves named non-shareable pools from the roster's declared
@@ -1519,7 +1864,15 @@ pave:
         job that takes no pool (for example a CPU-mode run that opens no device,
         writes no cache, and needs no core or memory pool) holds no job lease,
         because it takes nothing another job could lack; it runs under the
-        campaign lease on its own identity probe and attempt record. Before the
+        campaign lease on its own identity probe and attempt record. A kernel_alone
+        job (a calibration row, a design anchor, an increment's ratio run) holds a job
+        lease on any roster host of the target class and no campaign lease, because it
+        binds nothing to a host identity; its grant request carries the job's
+        pre-registration - the form or increment, the shapes and arms, the bar it is
+        read against, its wall-clock cap and the resources it pins - and the tool's
+        release record appends the host's fault telemetry for the job's devices since
+        the grant, so a fault is attributed by a record join and never by a seat's
+        reading. Before the
         campaign lease counts as held, re-verify the host's identity live over
         one-shot SSH against the roster's recorded identity markers (instance
         identifier, hostname, and a boot identifier when the host exposes one -
@@ -1730,8 +2083,8 @@ pave:
         product_defect_found:
           meaning: A bring-up rung or an attempt failed for a cause in product source, named in
             the fingerprint with its file set; scoping mints the repair item and the
-            loop re-enters through the repaired tip's batch review while the lease and
-            host stand. Yields to host_faulted when the failure is
+            loop re-enters on the repaired tip (a kernel-class repair carrying its
+            review) while the lease and host stand. Yields to host_faulted when the failure is
             host-caused.
       instance_per: approved_campaigns
     recover_leased_host:
@@ -1840,7 +2193,13 @@ pave:
         the revision (revision entries VERSION each implementation and NAME the
         comparisons a revision touches), and re-capture only the comparisons whose
         procedure changed. Re-entry with a reference-defect record - re-capture the
-        named comparison; unchanged captures stand. The two permissions below stay
+        named comparison; unchanged captures stand. Any other re-entry (a performance
+        shortfall, a code finding, a correctness shortfall re-serve) with the
+        acceptance registration, every procedure with its smoke record, and
+        the baseline captures digest-equal to the prior entry's - a lead-run check,
+        the lead recording the equality and measurements_ready with no seat, and only a
+        changed procedure re-smokes and re-captures its comparisons, because re-smoking
+        an unchanged procedure proves nothing new and costs a seat per lever. The two permissions below stay
         separate - smoke runs write scratch on leased Neuron hosts; the GPU baseline
         is read-only, always. Out of scope - any measured run against the candidate;
         any durable host-state mutation on the baseline, ever (the operational
@@ -1921,9 +2280,22 @@ pave:
         implements, and records per criterion the threshold that was evaluated with
         the value read and the result of the comparison, plus the negative-control
         result from that procedure's smoke record - an exit status is not an
-        evaluation. Completeness is checked against the kickoff-declared acceptance
+        evaluation. The served profile's per-op attribution at the declared shapes is
+        one declared measurement, and the utilization cap per engine it shows is
+        written as one row file per served profile under the hardware calibration
+        record (the layout reference fixes the shape, because campaigns measure
+        concurrently and a shared file would race); the measurer then re-rates the
+        design's predicted rows under that cap into the bundle - a mechanical step,
+        each predicted time scaled by the ratio of the cap row it was priced under to
+        the served cap row - so the adjudicator judges components against evaluated
+        records and never re-rates. Completeness is checked against the kickoff-declared acceptance
         procedures for this campaign's route, on a bundle read after its producer
-        exited and its mtime settled - never a first sighting. A bundle that is
+        exited and its mtime settled - never a first sighting. A no-regression
+        criterion for a served phase the campaign did not target is evaluated by
+        compiled-program digest equality against the target base when the base's
+        programs at that configuration are on disk - both digests in the bundle, no
+        run, because an unchanged program cannot regress - and by its declared
+        procedure when they are not or the digests differ. A bundle that is
         missing or incomplete is re-collected inside this node within the shared
         per-measurement
         repair budget - derived by counting defect-record files by path, magnitudes
@@ -1942,11 +2314,20 @@ pave:
       produces:
       - candidate_measurement_runs
       - measurement_artifacts
+      - hardware_calibration_record
       activities:
+      - Write the served utilization cap per engine from the served profile as one
+        row file per profile under the calibration record, with the profile's run
+        record; re-rate the design's predicted rows under it into the bundle.
       - Confirm the candidate serves per the attempt log; read and record the
         checked-out commit's git-issued revision identifier before the first measured
         run.
-      - Execute each declared measurement's fixed invocation; write raw outputs one
+      - Execute each declared measurement's fixed invocation - a correctness
+        ladder's rungs in registered order, stopping at the first failed rung and
+        writing each later rung and each performance procedure its own bundle with
+        the record "not run after rung n failed", so the bundles stay complete and the
+        verdict can name the rung, because a later rung costs a lease and tells
+        nothing the failed rung has not; write raw outputs one
         file per event, each stamped with the measured revision, invocation, and
         environment.
       - Write every defect finding (procedure, reference, or collection) as its own
@@ -1961,7 +2342,8 @@ pave:
         record the defect and complete forward; never route backward at a threshold.
       allowed_effects:
       - In-band SSH to this campaign's leased Neuron hosts.
-      - Writes under this campaign's measurements artifact directory only.
+      - Writes under this campaign's measurements artifact directory, and the served
+        cap row under the run's calibration artifact directory.
       forbidden_effects:
       - Choosing or altering comparators after measurement begins.
       - Any action on the GPU baseline.
@@ -1971,9 +2353,10 @@ pave:
       outcomes:
         bundles_stable:
           meaning: Every kickoff-declared measurement exists as a complete evidence
-            bundle carrying its evaluated-threshold
-            record and the measured revision from its run records. Taken last in
-            the precedence order.
+            bundle carrying its evaluated-threshold record - or, behind a failed ladder
+            rung, the "not run after rung n failed" record, which is complete for a
+            stopped rung - and the measured revision from its run records. Taken last
+            in the precedence order.
           required_evidence:
           - candidate_measurement_runs
           - measurement_artifacts
@@ -2000,16 +2383,25 @@ pave:
             evidence. Decides only when NO declared measurement retains repair
             budget.
   edges:
-  - id: preconditions_to_delta_scan
+  - id: preconditions_to_calibration
     from: verify_run_preconditions.preconditions_met
+    to: calibrate_hardware
+    checks:
+    - preflight_record_complete
+    rationale: The calibration record is the first device act of a run, before any
+      route is costed, because every cost row downstream cites it; on a pin that
+      already has a record the node is a lead-run check and costs nothing.
+  - id: calibration_to_delta_scan
+    from: calibrate_hardware.calibration_recorded
     to:
       fan_out: trace_target_delta
       for_each: requested_targets
-    checks:
-    - preflight_record_complete
     rationale: One tracer per requested target; a re-trace is the reports_insufficient
       row that named the target, so the one-re-trace bound is counted from the rows,
       never from a stored integer.
+  - id: calibration_unproducible_to_pause
+    from: calibrate_hardware.calibration_unproducible
+    to: run_paused
   - id: missing_inputs_to_pause
     from: verify_run_preconditions.inputs_missing
     to: run_paused
@@ -2105,12 +2497,11 @@ pave:
     from: scope_next_increment.plan_satisfied
     to: prepare_host
     checks:
-    - batch_review_current
     - changeset_complete
-    - impl_commit_is_reviewed
-    rationale: The batch reviews are the code review; the lead's changeset scans and the
-      whole-tree test record close the gate. A gap fails changeset_complete back into
-      scoping as a coverage-gap item with its class.
+    rationale: The kernel reviews inside realize_increment are the code review before
+      hardware; the lead's changeset scans, the kernel records and the whole-tree test
+      record close the gate. A gap fails changeset_complete back into scoping as a
+      coverage-gap item with its class.
   - id: design_defect_to_redesign
     from: scope_next_increment.plan_unrealizable_as_designed
     to: design_campaign
@@ -2128,8 +2519,6 @@ pave:
   - id: passed_to_next_scoping
     from: realize_increment.increment_passed
     to: scope_next_increment
-    checks:
-    - batch_review_current
   - id: stuck_to_rescoping
     from: realize_increment.increment_stuck
     to: scope_next_increment
@@ -2137,17 +2526,6 @@ pave:
       no-progress from the round history.
   - id: contradiction_to_redesign
     from: realize_increment.evidence_contradicts_design
-    to: design_campaign
-  - id: batch_sound_to_scoping
-    from: review_increment_batch.batch_sound
-    to: scope_next_increment
-  - id: batch_findings_to_repair
-    from: review_increment_batch.material_findings
-    to: scope_next_increment
-    rationale: Scoping mints repair items keyed on the finding triples, so the
-      no-progress detector sees them.
-  - id: batch_review_to_redesign
-    from: review_increment_batch.design_contradicted
     to: design_campaign
   - id: host_ready_to_attempts
     from: prepare_host.host_ready
@@ -2176,8 +2554,8 @@ pave:
   - id: attempt_defect_to_repair
     from: execute_attempt_loop.product_defect_found
     to: scope_next_increment
-    rationale: A product-source cause is a repair increment - CPU-mode acceptance,
-      then batch review - before the next serving launch.
+    rationale: A product-source cause is a repair increment with its declared
+      acceptance before the next serving launch.
   - id: restored_host_to_probe_only
     from: recover_leased_host.host_restored
     to: prepare_host
@@ -2234,6 +2612,13 @@ pave:
   - id: no_benefit_to_closeout
     from: adjudicate_results.no_benefit
     to: close_campaign
+  - id: perf_shortfall_to_redesign
+    from: adjudicate_results.performance_shortfall
+    to: design_campaign
+    rationale: An attributed component measured over its predicted cost, or served
+      time no row predicted, is a cost-model miss; the design re-enters block-scoped
+      for the named components' rows, never the whole plan, and the gate-2 approval
+      stands while no registered value moves.
   - id: regression_to_repair
     from: adjudicate_results.regression_failed
     to: scope_next_increment
@@ -2252,9 +2637,16 @@ pave:
   - id: reviewed_pr_to_closeout
     from: review_pr_evidence.pr_ready
     to: close_campaign
+    checks:
+    - impl_commit_is_reviewed
   - id: pr_findings_to_package_repair
     from: review_pr_evidence.material_findings
     to: prepare_pr
+  - id: pr_code_findings_to_repair
+    from: review_pr_evidence.code_findings
+    to: scope_next_increment
+    rationale: Scoping mints repair items keyed on the finding triples, so the
+      no-progress detector sees them; the repaired tip re-serves and re-measures.
   - id: revised_approach_to_redesign
     from: rederive_approach.revised_approach
     to: design_campaign
@@ -2397,14 +2789,17 @@ pave:
         meaning: Per-target count of budget-counted hardware attempts across every
           route that spends them (the attempt loop, the venv recipe); the tier-2 stop
           limit reads it at every 10 since the last re-derivation. The one count rule,
-          recomputable from the attempt records alone. Three run classes, each the
+          recomputable from the attempt records alone. Four run classes, each the
           job's declared purpose at launch and a field of its record, never a note
           added after the run - serving (a run that opens a Neuron device to make a
           candidate serve, or a venv build toward one), diagnostic (a device run that
           compiles no new graph on the device, serves no request and decides nothing
           about the candidate's acceptance - reading state out of a served tip's
           graphs, or loading one rank of a tip's compiled graph as a bring-up rung),
-          cpu_mode (opens no device). Only a serving attempt counts, and
+          kernel_alone (a device run that compiles and times one kernel or micro-form
+          in isolation - a calibration row, a design anchor, or an increment's ratio
+          measurement - serves no request and decides nothing beyond that increment's
+          own acceptance), cpu_mode (opens no device). Only a serving attempt counts, and
           not when a host fault ended it. A measurement run is measure_candidate's
           own record and never enters this count.
       campaign_states:

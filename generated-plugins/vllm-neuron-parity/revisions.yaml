@@ -1022,30 +1022,215 @@ entries:
   applied_at: '2026-09-17T14:31:26Z'
   digest_before: sha256:7f4f812122433fdf34e17f5f302ad48889d777369255b91e6eb4dbe2cb6f38c3
   digest_after: sha256:0d9de42c61ad4bdffa6d6f73c2bf184f6fda059946b1a34513062f392d3c145d
-  semantic_diff: 'Base: revision 12, digest sha256:7f4f812122433fdf34e17f5f302ad48889d777369255b91e6eb4dbe2cb6f38c3, verified intact with pave-init 2.6.2 record_revision.py (16 entries). Counts: 22 nodes unchanged; 68 -> 69 edges; 68 -> 69 outcomes; 17 checks (two with changed text: design_approved_by_user, comparators_preregistered), 24 evidence definitions, 5 control nodes unchanged; roles, state.required and write_limits equal, proved by parsing both graphs and comparing the skeletons field by field. 18 hunks, 105 added lines against 32 removed; 2336 lines become 2409. Two defects, one refactor, one recorded fact, and one rule in the user''s own words (round 3). Round-1 review (proposals/v13-graph-review-20260917T133101Z.md, REVISE, 1 HIGH and 8 LOW) was repaired in this same revision, every finding taken; round 2 PASS; round 3 adds section (8) on the user''s word (DECISIONS 1070).
+  semantic_diff: 'Base: revision 12, digest sha256:7f4f812122433fdf34e17f5f302ad48889d777369255b91e6eb4dbe2cb6f38c3,
+    verified intact with pave-init 2.6.2 record_revision.py (16 entries). Counts:
+    22 nodes unchanged; 68 -> 69 edges; 68 -> 69 outcomes; 17 checks (two with changed
+    text: design_approved_by_user, comparators_preregistered), 24 evidence definitions,
+    5 control nodes unchanged; roles, state.required and write_limits equal, proved
+    by parsing both graphs and comparing the skeletons field by field. 18 hunks, 105
+    added lines against 32 removed; 2336 lines become 2409. Two defects, one refactor,
+    one recorded fact, and one rule in the user''s own words (round 3). Round-1 review
+    (proposals/v13-graph-review-20260917T133101Z.md, REVISE, 1 HIGH and 8 LOW) was
+    repaired in this same revision, every finding taken; round 2 PASS; round 3 adds
+    section (8) on the user''s word (DECISIONS 1070).
 
-    (1) A DECLARED DOOR FOR A USER-CHANGED CRITERION (D2). New outcome scope_next_increment.criteria_changed_by_user, new edge user_criteria_change_to_redesign to design_campaign, precedence (0) at the scoping round, the user decisions since the standing gate-2 approval named as the round''s fourth persisted input, one clause at design_campaign''s re-entry brief, and one clause at the check design_approved_by_user: a criterion or registered value the user changed in their own recorded words is approved by that decision and the gate is not re-presented for it. Before: the entries into design_campaign were plan_unrealizable_as_designed, plan_exceeds_node, evidence_contradicts_design, design_contradicted, the two gate-2 repair edges and revised_approach; a user decision fit none, so the lead re-opened the design boundary by hand and reconciled it in prose (LEAD-LOG 1801, DECISIONS 1066). Why general: a correctness criterion is often shown wrong only by the first measurement of a served candidate (bit-exactness across accelerators is the field case), and P9 says the user''s word is the only thing that moves a frozen value, so the graph needs that word''s door in every run. Why an outcome and edge, not prose: revision rule 2 (prose that handles an undeclared route is an invented edge) and pave-spec 13, Invisible edge. Why not overload plan_unrealizable_as_designed: its meaning is a repo contradiction, and one outcome carrying two causes gives the design brief two readings (pave-spec 13, Ambiguous routing). Why no new check on the edge: the exit gate''s check design_approved_by_user already requires the user''s verbatim word, and a second check on the same claim before the same harm is the gate pave-spec 4.11 excludes. Cost per run: zero unless it fires; the lead reads a record it wrote, and the review node''s own re-entry rule decides the reviewer''s read scope (a whole read on a new design entry) - this revision adds no scope clause. P9 kept: the frozen text is untouched and the new criterion is a new registration. The door needed one more clause to work: comparators_preregistered asked for a registration timestamp "preceding every measurement artifact", which is false for any campaign that re-registers after its first measurement - the live run''s committed_at is 2026-09-17T13:20:39Z against measurement artifacts from 2026-09-16 - so the declared route would have sent its own success back to design or to a hand ruling at the next candidate_serving (the round-1 HIGH). The check now asks for a timestamp preceding every measurement artifact adjudicated against it: the property it protects (no registration written after the artifacts it judges) is unchanged, and the predicate is true for exactly the registrations that satisfy it.
+    (1) A DECLARED DOOR FOR A USER-CHANGED CRITERION (D2). New outcome scope_next_increment.criteria_changed_by_user,
+    new edge user_criteria_change_to_redesign to design_campaign, precedence (0) at
+    the scoping round, the user decisions since the standing gate-2 approval named
+    as the round''s fourth persisted input, one clause at design_campaign''s re-entry
+    brief, and one clause at the check design_approved_by_user: a criterion or registered
+    value the user changed in their own recorded words is approved by that decision
+    and the gate is not re-presented for it. Before: the entries into design_campaign
+    were plan_unrealizable_as_designed, plan_exceeds_node, evidence_contradicts_design,
+    design_contradicted, the two gate-2 repair edges and revised_approach; a user
+    decision fit none, so the lead re-opened the design boundary by hand and reconciled
+    it in prose (LEAD-LOG 1801, DECISIONS 1066). Why general: a correctness criterion
+    is often shown wrong only by the first measurement of a served candidate (bit-exactness
+    across accelerators is the field case), and P9 says the user''s word is the only
+    thing that moves a frozen value, so the graph needs that word''s door in every
+    run. Why an outcome and edge, not prose: revision rule 2 (prose that handles an
+    undeclared route is an invented edge) and pave-spec 13, Invisible edge. Why not
+    overload plan_unrealizable_as_designed: its meaning is a repo contradiction, and
+    one outcome carrying two causes gives the design brief two readings (pave-spec
+    13, Ambiguous routing). Why no new check on the edge: the exit gate''s check design_approved_by_user
+    already requires the user''s verbatim word, and a second check on the same claim
+    before the same harm is the gate pave-spec 4.11 excludes. Cost per run: zero unless
+    it fires; the lead reads a record it wrote, and the review node''s own re-entry
+    rule decides the reviewer''s read scope (a whole read on a new design entry) -
+    this revision adds no scope clause. P9 kept: the frozen text is untouched and
+    the new criterion is a new registration. The door needed one more clause to work:
+    comparators_preregistered asked for a registration timestamp "preceding every
+    measurement artifact", which is false for any campaign that re-registers after
+    its first measurement - the live run''s committed_at is 2026-09-17T13:20:39Z against
+    measurement artifacts from 2026-09-16 - so the declared route would have sent
+    its own success back to design or to a hand ruling at the next candidate_serving
+    (the round-1 HIGH). The check now asks for a timestamp preceding every measurement
+    artifact adjudicated against it: the property it protects (no registration written
+    after the artifacts it judges) is unchanged, and the predicate is true for exactly
+    the registrations that satisfy it.
 
-    (2) ONE COUNT RULE, WHERE THE COUNTER IS DECLARED (D1, the count). Before, the rule for what counts toward the tier-2 stop limit lived in three restatements - execute_attempt_loop''s purpose (6 lines), realize_increment''s CPU-mode allowed effect (1 clause), the principles (1 clause) - and the state field hardware_attempt_counts said "shared budget across all routes that spend hardware attempts", which the run read as every device run: the field holds 25 while the stop limit stands at 9 of 10 by hand (LEAD-LOG 1798), and six records (attempts 19 to 23 and the attempt-25 measurement job) carry a lead-typed attempt_count_note citing the class "charged to spend, not budget-counted" (LEAD-LOG 1649, 1695, 1712, 1780). After: the state field carries the one rule and the one definition of each run class - three classes, each the job''s declared purpose at launch and a field of its record: serving (opens a device to make a candidate serve, or a venv build toward one), diagnostic (reuses the compiled graphs of a tip the campaign already served, no new graph, decides nothing about the candidate''s acceptance, reads state out), cpu_mode (opens no device); only a serving attempt counts, and not when a host fault ended it; a measurement run is measure_candidate''s own record and never enters the count. execute_attempt_loop, realize_increment and the principles point at the field and define nothing twice. Not a weakening: the stop limit counts exactly what it counted in practice (serving attempts) and what its own outcome text already says ("completed without a serving candidate"); a run that compiles a new graph or decides the candidate''s acceptance is a serving attempt and counts whatever it is called, and the discriminator - the compile cache''s new-graph reading - is produced by the host, not typed by the doer (pave-spec 5.3.1). At re-pin the lead recomputes the stored value from the attempt records (revision rule 7''s reconciliation, as at revision 11): a one-time read - two records (attempts 22 and 23) carry budget_counted, the others classify by their kind text - and every record after the apply step carries the class field.
+    (2) ONE COUNT RULE, WHERE THE COUNTER IS DECLARED (D1, the count). Before, the
+    rule for what counts toward the tier-2 stop limit lived in three restatements
+    - execute_attempt_loop''s purpose (6 lines), realize_increment''s CPU-mode allowed
+    effect (1 clause), the principles (1 clause) - and the state field hardware_attempt_counts
+    said "shared budget across all routes that spend hardware attempts", which the
+    run read as every device run: the field holds 25 while the stop limit stands at
+    9 of 10 by hand (LEAD-LOG 1798), and six records (attempts 19 to 23 and the attempt-25
+    measurement job) carry a lead-typed attempt_count_note citing the class "charged
+    to spend, not budget-counted" (LEAD-LOG 1649, 1695, 1712, 1780). After: the state
+    field carries the one rule and the one definition of each run class - three classes,
+    each the job''s declared purpose at launch and a field of its record: serving
+    (opens a device to make a candidate serve, or a venv build toward one), diagnostic
+    (reuses the compiled graphs of a tip the campaign already served, no new graph,
+    decides nothing about the candidate''s acceptance, reads state out), cpu_mode
+    (opens no device); only a serving attempt counts, and not when a host fault ended
+    it; a measurement run is measure_candidate''s own record and never enters the
+    count. execute_attempt_loop, realize_increment and the principles point at the
+    field and define nothing twice. Not a weakening: the stop limit counts exactly
+    what it counted in practice (serving attempts) and what its own outcome text already
+    says ("completed without a serving candidate"); a run that compiles a new graph
+    or decides the candidate''s acceptance is a serving attempt and counts whatever
+    it is called, and the discriminator - the compile cache''s new-graph reading -
+    is produced by the host, not typed by the doer (pave-spec 5.3.1). At re-pin the
+    lead recomputes the stored value from the attempt records (revision rule 7''s
+    reconciliation, as at revision 11): a one-time read - two records (attempts 22
+    and 23) carry budget_counted, the others classify by their kind text - and every
+    record after the apply step carries the class field.
 
-    (3) A SERVED CANDIDATE IS LOCALIZED ON ITS DEVICE (D1, the instrument). New work-item class at scope_next_increment, the localization item: minted at a re-entry from a correctness-shortfall or regression verdict before any repair item unless a localization record already names that verdict''s entry point; its acceptance - defined there once - is the recorded entry point on the served device (a value the compare tool produces against the registered tolerance) or the recorded finding that no device-exposed state departs, on emulation only under the fallback of (8), and increment_passed lists it beside the other classes. realize_increment realizes it - one new allowed effect (a diagnostic run, the class the state field defines, on the served device under a job lease through the queue tool, recorded in the attempt log with class, fingerprint and transcript), one new forbidden effect (opening a device for anything but that run - a run that compiles a new graph or decides the candidate''s acceptance is a serving attempt and belongs to execute_attempt_loop), its out-of-scope line reads "serving attempts" where it said "hardware attempts", and hardware_attempt_log gains realize_increment as a producer. The scoping seat''s out-of-scope list gains "any probe", and its dispatch triggers gain the one this run used twice without a name (a repair item to derive from a localization record). The principle carries the why in one sentence: the device''s numerics are the question a CPU run cannot answer. Before: the shortfall re-entered a plan node whose purpose forbids any test run; the seat ran CPU simulator probes on the host anyway (job records scope-m4-depth and scope-m4-depth-sweep: 22-minute fp32 loads, two simulator crashes), the lead approved them as uncharged (LEAD-LOG 1800), and the device path with existing machinery was named only after the user asked why (DECISIONS 1068, LEAD-LOG 1803). Why here and not a new node or outcome: one agent does the localization and decides its definition of done from the compare tool''s rows (pave-spec 9.12); the work-item-class pattern already exists in this node; routing the diagnostic through execute_attempt_loop would cost two outcomes, two edges and the full stage-7 path per diagnostic. Safeguards kept: review before hardware - the device-side code is the served, reviewed tip by construction (no new graph); P8 - the run is fingerprinted; leases - through the queue tool as before; the P2 and P3 hooks bind every seat; a host fault under a diagnostic run is recorded on the item (increment_stuck) and recovered at the next hardware node entry, where every host fault of the campaign is already handled, with the queue tool releasing a closed job''s grant. Cost per run: zero unless a served candidate fails its gate; then one device run (load, warm-up, one request) in place of CPU probes at a fraction of the wall-clock.
+    (3) A SERVED CANDIDATE IS LOCALIZED ON ITS DEVICE (D1, the instrument). New work-item
+    class at scope_next_increment, the localization item: minted at a re-entry from
+    a correctness-shortfall or regression verdict before any repair item unless a
+    localization record already names that verdict''s entry point; its acceptance
+    - defined there once - is the recorded entry point on the served device (a value
+    the compare tool produces against the registered tolerance) or the recorded finding
+    that no device-exposed state departs, on emulation only under the fallback of
+    (8), and increment_passed lists it beside the other classes. realize_increment
+    realizes it - one new allowed effect (a diagnostic run, the class the state field
+    defines, on the served device under a job lease through the queue tool, recorded
+    in the attempt log with class, fingerprint and transcript), one new forbidden
+    effect (opening a device for anything but that run - a run that compiles a new
+    graph or decides the candidate''s acceptance is a serving attempt and belongs
+    to execute_attempt_loop), its out-of-scope line reads "serving attempts" where
+    it said "hardware attempts", and hardware_attempt_log gains realize_increment
+    as a producer. The scoping seat''s out-of-scope list gains "any probe", and its
+    dispatch triggers gain the one this run used twice without a name (a repair item
+    to derive from a localization record). The principle carries the why in one sentence:
+    the device''s numerics are the question a CPU run cannot answer. Before: the shortfall
+    re-entered a plan node whose purpose forbids any test run; the seat ran CPU simulator
+    probes on the host anyway (job records scope-m4-depth and scope-m4-depth-sweep:
+    22-minute fp32 loads, two simulator crashes), the lead approved them as uncharged
+    (LEAD-LOG 1800), and the device path with existing machinery was named only after
+    the user asked why (DECISIONS 1068, LEAD-LOG 1803). Why here and not a new node
+    or outcome: one agent does the localization and decides its definition of done
+    from the compare tool''s rows (pave-spec 9.12); the work-item-class pattern already
+    exists in this node; routing the diagnostic through execute_attempt_loop would
+    cost two outcomes, two edges and the full stage-7 path per diagnostic. Safeguards
+    kept: review before hardware - the device-side code is the served, reviewed tip
+    by construction (no new graph); P8 - the run is fingerprinted; leases - through
+    the queue tool as before; the P2 and P3 hooks bind every seat; a host fault under
+    a diagnostic run is recorded on the item (increment_stuck) and recovered at the
+    next hardware node entry, where every host fault of the campaign is already handled,
+    with the queue tool releasing a closed job''s grant. Cost per run: zero unless
+    a served candidate fails its gate; then one device run (load, warm-up, one request)
+    in place of CPU probes at a fraction of the wall-clock.
 
-    (4) CUTS. execute_attempt_loop purpose, 6 lines to 3; realize_increment''s CPU-mode effect, the budget clause to a pointer; the principles, the host-fault clause to a pointer (the host_faulted outcome and the state field carry it). Each of the diagnostic run, the localization acceptance and the device-over-emulation rule is defined once and pointed at from every other site. Net growth is the two declared structures, the localization class and the rule of (8).
+    (4) CUTS. execute_attempt_loop purpose, 6 lines to 3; realize_increment''s CPU-mode
+    effect, the budget clause to a pointer; the principles, the host-fault clause
+    to a pointer (the host_faulted outcome and the state field carry it). Each of
+    the diagnostic run, the localization acceptance and the device-over-emulation
+    rule is defined once and pointed at from every other site. Net growth is the two
+    declared structures, the localization class and the rule of (8).
 
-    (5) EVERY COPY (release layer, corrected in the release as at revisions 7 and 12; none is a graph file). skills/vllm-neuron-parity/SKILL.md:150 "No hardware before this stage closes" becomes "No serving attempt before this stage closes; a localization item''s diagnostic run on the served device is realize_increment''s", and the stage label "Implementation (CPU-first)" gains "device over emulation once served". SKILL.md:151 "Attempts are counted from attempt-record files" gains "by their class field". schemas/run-state.schema.json:152, the hardware_attempt_counts description, mirrors the new meaning. agents/implementer.md:129, the precedence list, gains criteria_changed_by_user first; :140, the CPU-mode acceptance sentence, gains the device-over-emulation pointer; :158 "hardware attempts" becomes "serving attempts"; :214-227, the count text, becomes a pointer to the state field plus the localization allowance; codex/agents/vllm_neuron_parity_implementer.toml is regenerated from it. README.md:166 and :653 "68 edges" become 69; :275, the mermaid, gains sni to design on criteria_changed_by_user. tests/test_workflow_pave.py:9 (the comment) and :26 (EXPECTED) become "22 nodes, 69 edges, 5 control nodes". references/artifact-layout.md 4.2 pair 4 pins the attempt record''s class field spelling (serving, diagnostic, cpu_mode), the launch reading field, and names the compare tool and the reference the localization record cites. Searched with fixed strings over the package, the pave-init skills and the Codex port: the removed sentences survive nowhere outside history/ and revisions.yaml.
+    (5) EVERY COPY (release layer, corrected in the release as at revisions 7 and
+    12; none is a graph file). skills/vllm-neuron-parity/SKILL.md:150 "No hardware
+    before this stage closes" becomes "No serving attempt before this stage closes;
+    a localization item''s diagnostic run on the served device is realize_increment''s",
+    and the stage label "Implementation (CPU-first)" gains "device over emulation
+    once served". SKILL.md:151 "Attempts are counted from attempt-record files" gains
+    "by their class field". schemas/run-state.schema.json:152, the hardware_attempt_counts
+    description, mirrors the new meaning. agents/implementer.md:129, the precedence
+    list, gains criteria_changed_by_user first; :140, the CPU-mode acceptance sentence,
+    gains the device-over-emulation pointer; :158 "hardware attempts" becomes "serving
+    attempts"; :214-227, the count text, becomes a pointer to the state field plus
+    the localization allowance; codex/agents/vllm_neuron_parity_implementer.toml is
+    regenerated from it. README.md:166 and :653 "68 edges" become 69; :275, the mermaid,
+    gains sni to design on criteria_changed_by_user. tests/test_workflow_pave.py:9
+    (the comment) and :26 (EXPECTED) become "22 nodes, 69 edges, 5 control nodes".
+    references/artifact-layout.md 4.2 pair 4 pins the attempt record''s class field
+    spelling (serving, diagnostic, cpu_mode), the launch reading field, and names
+    the compare tool and the reference the localization record cites. Searched with
+    fixed strings over the package, the pave-init skills and the Codex port: the removed
+    sentences survive nowhere outside history/ and revisions.yaml.
 
-    (6) USAGE EVIDENCE READ. No usage log exists (artifacts/run/usage-log.md is absent; the run has had no terminal close). Run state since cp-20260916T200139Z: 21 rows (indices 1577 to 1597) - prepare_measurements measurements_ready 4; measure_candidate bundles_stable 2, procedure_defect_found 1; adjudicate_results correctness_shortfall 2; scope_next_increment increment_selected 2, both with a seat dispatched for the judgment "where the error enters", a trigger the node did not name - this revision names it and moves the instrument; realize_increment increment_passed 3; review_implementation ready_for_hardware 3 of 3 and review_increment_batch batch_sound 3 of 3 in this window against 91 of 226 and 33 of 114 material over the run, so neither is a lead-run-implementation candidate; execute_attempt_loop candidate_serving 1. hardware_attempt_counts 21 to 25 on four device runs, one of them a serving attempt. The stall at LEAD-LOG 1791 (a seat announced work and idled five hours) is lead-side usage with no graph line. Write report (the read-only tool, window from the IDLE stamp 2026-09-16T20:28:33Z): 22 declared outcomes, 105,934,205 bytes, 4,815,191 bytes per outcome at drafting, down from 8,740,092; the reviewer''s re-run at 13:31Z read 24 outcomes and 106,475,871 bytes.
+    (6) USAGE EVIDENCE READ. No usage log exists (artifacts/run/usage-log.md is absent;
+    the run has had no terminal close). Run state since cp-20260916T200139Z: 21 rows
+    (indices 1577 to 1597) - prepare_measurements measurements_ready 4; measure_candidate
+    bundles_stable 2, procedure_defect_found 1; adjudicate_results correctness_shortfall
+    2; scope_next_increment increment_selected 2, both with a seat dispatched for
+    the judgment "where the error enters", a trigger the node did not name - this
+    revision names it and moves the instrument; realize_increment increment_passed
+    3; review_implementation ready_for_hardware 3 of 3 and review_increment_batch
+    batch_sound 3 of 3 in this window against 91 of 226 and 33 of 114 material over
+    the run, so neither is a lead-run-implementation candidate; execute_attempt_loop
+    candidate_serving 1. hardware_attempt_counts 21 to 25 on four device runs, one
+    of them a serving attempt. The stall at LEAD-LOG 1791 (a seat announced work and
+    idled five hours) is lead-side usage with no graph line. Write report (the read-only
+    tool, window from the IDLE stamp 2026-09-16T20:28:33Z): 22 declared outcomes,
+    105,934,205 bytes, 4,815,191 bytes per outcome at drafting, down from 8,740,092;
+    the reviewer''s re-run at 13:31Z read 24 outcomes and 106,475,871 bytes.
 
-    (7) D3, RECORDED, NO CHANGE. record_revision.py verify in pave-init 2.5.1 to 2.6.1 refuses this root''s revision 2 kind run_setup; 2.6.2 passes. The schema is the tool''s, not the graph''s.
+    (7) D3, RECORDED, NO CHANGE. record_revision.py verify in pave-init 2.5.1 to 2.6.1
+    refuses this root''s revision 2 kind run_setup; 2.6.2 passes. The schema is the
+    tool''s, not the graph''s.
 
-    (8) DEVICE OVER EMULATION (D4, the user''s word - DECISIONS 1070, round 3). Before: the round-2 draft named cpu_mode as a class and put localization "on the served device first", but stated no preference between an idle device and CPU emulation, and no record of the choice; the user''s rule was "use neuron devices if not in use over cpu to avoid lengthy cpu emulation". After, one rule at realize_increment''s purpose: on a tip the campaign has served, a run that reproduces or localizes a device result goes to a Neuron device whenever the queue tool''s remaining-capacity reading at launch (the status command''s remaining field for the roster host) shows one idle for the job''s need; CPU-mode emulation of that tip is the fallback when the reading shows none, or the instrument for a question the device cannot expose, the reason recorded; every run record on a served tip carries the reading (hardware_attempt_log''s subject); CPU mode stays the home of item-level acceptance (the principle, which points at the rule). A CPU-mode run that reproduces or localizes a device result while its reading shows an idle device is work not done as designed - its result is not a pass and its record is the finding the next scoping round reads: the existing increment_stuck door, no new outcome or edge. The localization acceptance at scope_next_increment admits an emulation result only when the run record''s reading shows no idle device. Where the choice is made, and why there: at launch, by the doer, from a tool-produced value (pave-spec 5.3.1) - not at item selection, because a reading taken at the scoping round is stale by the time the seat launches, and not as a lap-record field, which would be a second copy of the run record''s field. Why general: emulating a device is slow by construction, so every campaign with a served tip and an idle device faces the same choice; the rule names no host, model or count. Not a weakening: the device run is the diagnostic class of (2) and (3) with every safeguard those sections keep; the fallback opens no device. Cost per run: one status read before each run on a served tip. Field evidence: 22-minute simulator loads per probe, MoE-route crashes at r5, r8 and r11, a segfault at layer 10 in the r12 sweep, about three hours of CPU probing replaced by one device run (LEAD-LOG 1797 to 1807; 1803 the device-first ruling; DECISIONS 1068).
+    (8) DEVICE OVER EMULATION (D4, the user''s word - DECISIONS 1070, round 3). Before:
+    the round-2 draft named cpu_mode as a class and put localization "on the served
+    device first", but stated no preference between an idle device and CPU emulation,
+    and no record of the choice; the user''s rule was "use neuron devices if not in
+    use over cpu to avoid lengthy cpu emulation". After, one rule at realize_increment''s
+    purpose: on a tip the campaign has served, a run that reproduces or localizes
+    a device result goes to a Neuron device whenever the queue tool''s remaining-capacity
+    reading at launch (the status command''s remaining field for the roster host)
+    shows one idle for the job''s need; CPU-mode emulation of that tip is the fallback
+    when the reading shows none, or the instrument for a question the device cannot
+    expose, the reason recorded; every run record on a served tip carries the reading
+    (hardware_attempt_log''s subject); CPU mode stays the home of item-level acceptance
+    (the principle, which points at the rule). A CPU-mode run that reproduces or localizes
+    a device result while its reading shows an idle device is work not done as designed
+    - its result is not a pass and its record is the finding the next scoping round
+    reads: the existing increment_stuck door, no new outcome or edge. The localization
+    acceptance at scope_next_increment admits an emulation result only when the run
+    record''s reading shows no idle device. Where the choice is made, and why there:
+    at launch, by the doer, from a tool-produced value (pave-spec 5.3.1) - not at
+    item selection, because a reading taken at the scoping round is stale by the time
+    the seat launches, and not as a lap-record field, which would be a second copy
+    of the run record''s field. Why general: emulating a device is slow by construction,
+    so every campaign with a served tip and an idle device faces the same choice;
+    the rule names no host, model or count. Not a weakening: the device run is the
+    diagnostic class of (2) and (3) with every safeguard those sections keep; the
+    fallback opens no device. Cost per run: one status read before each run on a served
+    tip. Field evidence: 22-minute simulator loads per probe, MoE-route crashes at
+    r5, r8 and r11, a segfault at layer 10 in the r12 sweep, about three hours of
+    CPU probing replaced by one device run (LEAD-LOG 1797 to 1807; 1803 the device-first
+    ruling; DECISIONS 1068).
 
-    Layer test (pave-spec 2.1): a new outcome and edge, an allowed and a forbidden effect, two checks'' meaning, an evidence producer and subject, and a state field''s meaning - kind graph; no seat, model, effort or write limit moves. User-only changes touched (revision rule 6): allowed and forbidden effects at realize_increment, a new outcome and edge, the declared meaning of design_approved_by_user, comparators_preregistered and hardware_attempt_counts - pending the user''s word. No digest of a mutable file anywhere (pave-spec 9.14.3). No hook checkpoint was open at drafting (sidecar IDLE, checkpoint_id null); the request is the user''s, DECISIONS 1068 and 1070. Drafted from the live graph at revision 12 by pave-init:workflow-updater (teammate updater-audit-r13), clock read 2026-09-17T13:08Z; repaired after round 1 (propose clock read 13:40:17Z); extended at round 3 for DECISIONS 1070.'
+    Layer test (pave-spec 2.1): a new outcome and edge, an allowed and a forbidden
+    effect, two checks'' meaning, an evidence producer and subject, and a state field''s
+    meaning - kind graph; no seat, model, effort or write limit moves. User-only changes
+    touched (revision rule 6): allowed and forbidden effects at realize_increment,
+    a new outcome and edge, the declared meaning of design_approved_by_user, comparators_preregistered
+    and hardware_attempt_counts - pending the user''s word. No digest of a mutable
+    file anywhere (pave-spec 9.14.3). No hook checkpoint was open at drafting (sidecar
+    IDLE, checkpoint_id null); the request is the user''s, DECISIONS 1068 and 1070.
+    Drafted from the live graph at revision 12 by pave-init:workflow-updater (teammate
+    updater-audit-r13), clock read 2026-09-17T13:08Z; repaired after round 1 (propose
+    clock read 13:40:17Z); extended at round 3 for DECISIONS 1070.'
   approval: approve 13
   user_only_changes: approved
   plan_evidence: verified
   usage_evidence: field
-  review: 'PASS (update-reviewer-r13, round 3 of 3: REVISE, PASS, PASS after the user''s device-first extension, DECISIONS §1070)'
+  review: "PASS (update-reviewer-r13, round 3 of 3: REVISE, PASS, PASS after the user's\
+    \ device-first extension, DECISIONS \xA71070)"
   written_by: workflow-updater
   patch: history/v13.patch
   commit: null
@@ -1056,30 +1241,210 @@ entries:
   applied_at: '2026-09-19T02:41:37Z'
   digest_before: sha256:0d9de42c61ad4bdffa6d6f73c2bf184f6fda059946b1a34513062f392d3c145d
   digest_after: sha256:de9eb66d16967fa6a6adbf625d9c78117464cd236cfac9b95b1afc4e498a8c41
-  semantic_diff: 'Base: revision 13, digest sha256:0d9de42c61ad4bdffa6d6f73c2bf184f6fda059946b1a34513062f392d3c145d, verified intact with pave-init 2.6.2 record_revision.py (17 entries). Counts: 22 nodes, 69 edges, 69 outcomes, 17 checks (one with changed text: batch_review_current), 24 evidence definitions, 5 control nodes - all unchanged; roles, node roles, consumes and produces, required_evidence, allowed and forbidden effect lists, state.required and write_limits equal, proved by parsing both graphs and comparing the skeletons field by field. 7 hunks, 33 added lines against 12 removed; 2409 lines become 2430 (ceiling 3100). No new node, outcome, edge, check, seat, model, effort or write limit. Three defects fixed by text at the nodes that own them, one refactor, four defects recorded with no change and the reason. Round-1 review (proposals/v14-graph-review-20260919T021821Z.md, PASS with 4 LOW) repaired in this same revision, every finding taken.
+  semantic_diff: 'Base: revision 13, digest sha256:0d9de42c61ad4bdffa6d6f73c2bf184f6fda059946b1a34513062f392d3c145d,
+    verified intact with pave-init 2.6.2 record_revision.py (17 entries). Counts:
+    22 nodes, 69 edges, 69 outcomes, 17 checks (one with changed text: batch_review_current),
+    24 evidence definitions, 5 control nodes - all unchanged; roles, node roles, consumes
+    and produces, required_evidence, allowed and forbidden effect lists, state.required
+    and write_limits equal, proved by parsing both graphs and comparing the skeletons
+    field by field. 7 hunks, 33 added lines against 12 removed; 2409 lines become
+    2430 (ceiling 3100). No new node, outcome, edge, check, seat, model, effort or
+    write limit. Three defects fixed by text at the nodes that own them, one refactor,
+    four defects recorded with no change and the reason. Round-1 review (proposals/v14-graph-review-20260919T021821Z.md,
+    PASS with 4 LOW) repaired in this same revision, every finding taken.
 
-    (1) A DECLARED DOOR FOR THE USER''S OWN CHANGESET (D3). New work-item class at scope_next_increment, the fold item: minted at the round that first reads a user decision, in the user''s own words, that a changeset the campaign did not design (the user''s own branch or pull request against the campaign branch) lands on the campaign branch; selected ahead of plan items because every later item builds on the tip; its acceptance, defined there once, is the folded tip''s diff against the pre-fold tip equal as a set of added and removed lines to the changeset''s diff against its own base (values git produces, pave-spec 5.3.1) plus the whole-tree CPU-mode test pass on the folded tip; its review is the batch review of its landed commits, as for every increment. realize_increment realizes it (rebase onto the tip, conflicts resolved to the exact union, whole-tree pass, commits landed as written so the reviewer reads what the user wrote) and increment_passed lists its acceptance beside the other classes. batch_review_current counts a fold item''s commits as one landed unit whatever their count, because they arrive together and nothing builds between them - the size call exists to catch a defect before dependents build on it, and a fold has none inside it; review_increment_batch''s purpose points at that rule and states nothing twice. Before: the graph had no route for code the campaign did not design. PR 6 got a fresh adversarial reviewer before any landing, a rebase seat dispatched at prepare_pr (a node that assembles the fork PR package and never touches the branch), and a fold by the lead (LEAD-LOG 1964 to 1970, DECISIONS 1075); PR 7 is on the same hand-made path now (LEAD-LOG 2032: a reviewer seat at realize_increment, a node whose roles carry no reviewer). The landing path has no declared name for anything but a plan item - the lead still plans landing rows under record_changeset, a node revision 11 removed (LEAD-LOG 1852, 1861). Why general: a user who develops on the fork beside the campaign will hand it changesets, and every such changeset moves the tip every later item and every measurement stands on, so the graph needs one door for it in every run. Why a work-item class and not a node or outcome: one implementer does the rebase and decides done from two git line sets (pave-spec 9.12); the class pattern exists at this node (revision 13 added the localization item the same way); a node would cost an outcome, an edge and a seat per fold. Why no pre-fold reviewer: the batch review is the declared review of every landed commit before the next scope round, and a second review of the same commits before the same harm is the gate pave-spec 4.11 excludes; the material findings of the PR 6 review (F4, F5) are exactly what material_findings routes to scoping as repair items, which is where they went by hand as debts. Authority kept: the scope line "Merging PRs (human)" stands - the class text says the merge decision stays the user''s and the campaign only lands commits on its own branch, a write realize_increment''s allowed effects already grant; the user''s recorded word is the trigger, so the campaign never pulls foreign code on its own. Cost per run: zero unless the user folds; then the two traversals every increment already pays (realize, batch review) in place of three hand-made seats.
+    (1) A DECLARED DOOR FOR THE USER''S OWN CHANGESET (D3). New work-item class at
+    scope_next_increment, the fold item: minted at the round that first reads a user
+    decision, in the user''s own words, that a changeset the campaign did not design
+    (the user''s own branch or pull request against the campaign branch) lands on
+    the campaign branch; selected ahead of plan items because every later item builds
+    on the tip; its acceptance, defined there once, is the folded tip''s diff against
+    the pre-fold tip equal as a set of added and removed lines to the changeset''s
+    diff against its own base (values git produces, pave-spec 5.3.1) plus the whole-tree
+    CPU-mode test pass on the folded tip; its review is the batch review of its landed
+    commits, as for every increment. realize_increment realizes it (rebase onto the
+    tip, conflicts resolved to the exact union, whole-tree pass, commits landed as
+    written so the reviewer reads what the user wrote) and increment_passed lists
+    its acceptance beside the other classes. batch_review_current counts a fold item''s
+    commits as one landed unit whatever their count, because they arrive together
+    and nothing builds between them - the size call exists to catch a defect before
+    dependents build on it, and a fold has none inside it; review_increment_batch''s
+    purpose points at that rule and states nothing twice. Before: the graph had no
+    route for code the campaign did not design. PR 6 got a fresh adversarial reviewer
+    before any landing, a rebase seat dispatched at prepare_pr (a node that assembles
+    the fork PR package and never touches the branch), and a fold by the lead (LEAD-LOG
+    1964 to 1970, DECISIONS 1075); PR 7 is on the same hand-made path now (LEAD-LOG
+    2032: a reviewer seat at realize_increment, a node whose roles carry no reviewer).
+    The landing path has no declared name for anything but a plan item - the lead
+    still plans landing rows under record_changeset, a node revision 11 removed (LEAD-LOG
+    1852, 1861). Why general: a user who develops on the fork beside the campaign
+    will hand it changesets, and every such changeset moves the tip every later item
+    and every measurement stands on, so the graph needs one door for it in every run.
+    Why a work-item class and not a node or outcome: one implementer does the rebase
+    and decides done from two git line sets (pave-spec 9.12); the class pattern exists
+    at this node (revision 13 added the localization item the same way); a node would
+    cost an outcome, an edge and a seat per fold. Why no pre-fold reviewer: the batch
+    review is the declared review of every landed commit before the next scope round,
+    and a second review of the same commits before the same harm is the gate pave-spec
+    4.11 excludes; the material findings of the PR 6 review (F4, F5) are exactly what
+    material_findings routes to scoping as repair items, which is where they went
+    by hand as debts. Authority kept: the scope line "Merging PRs (human)" stands
+    - the class text says the merge decision stays the user''s and the campaign only
+    lands commits on its own branch, a write realize_increment''s allowed effects
+    already grant; the user''s recorded word is the trigger, so the campaign never
+    pulls foreign code on its own. Cost per run: zero unless the user folds; then
+    the two traversals every increment already pays (realize, batch review) in place
+    of three hand-made seats.
 
-    (2) A LOST RUN IS A DEFECT OF THE PROCEDURE''S FORM (D1). measure_candidate''s procedure_defect_found now reads: a run exposes a defective implementation of a frozen comparator - it measured the wrong property, or its runner could not carry a run to its record while the host and the candidate stood (a transport bound to the workstation''s session, a staging step); routed back to measurement preparation, where the smoke run covers the repaired form. Before: "a procedure that measured the wrong property", so attempt 29 - the M4 measure leg killed by the workstation''s network loss through a foreground ssh pipe, host healthy, candidate serving, no number produced (LEAD-LOG 2008, defect class BU) - fit no declared outcome and the lead booked the nearest one with the mismatch recorded (run-state row 1623). After: the same route, now declared. Why this widening and not a new outcome: a procedure is its runner too (prepare_measurements smoke-verifies the set the runner belongs to), the repair the defect needs is a procedure revision through the same door, and a lost run with no procedure defect does not exist - a host fault is the node''s lost-serving path and serving_exhausted, and a workstation fault that reaches the host only through a runner that depends on the workstation is, by that fact, the runner''s defect. One clause, no edge. Cost per run: zero. Recorded outcomes: row 1623 took this edge under the old text; the new text admits it exactly, so no applied item''s acceptance or route changes and the run continues on the successor with no catch-up duty (revision rule 7).
+    (2) A LOST RUN IS A DEFECT OF THE PROCEDURE''S FORM (D1). measure_candidate''s
+    procedure_defect_found now reads: a run exposes a defective implementation of
+    a frozen comparator - it measured the wrong property, or its runner could not
+    carry a run to its record while the host and the candidate stood (a transport
+    bound to the workstation''s session, a staging step); routed back to measurement
+    preparation, where the smoke run covers the repaired form. Before: "a procedure
+    that measured the wrong property", so attempt 29 - the M4 measure leg killed by
+    the workstation''s network loss through a foreground ssh pipe, host healthy, candidate
+    serving, no number produced (LEAD-LOG 2008, defect class BU) - fit no declared
+    outcome and the lead booked the nearest one with the mismatch recorded (run-state
+    row 1623). After: the same route, now declared. Why this widening and not a new
+    outcome: a procedure is its runner too (prepare_measurements smoke-verifies the
+    set the runner belongs to), the repair the defect needs is a procedure revision
+    through the same door, and a lost run with no procedure defect does not exist
+    - a host fault is the node''s lost-serving path and serving_exhausted, and a workstation
+    fault that reaches the host only through a runner that depends on the workstation
+    is, by that fact, the runner''s defect. One clause, no edge. Cost per run: zero.
+    Recorded outcomes: row 1623 took this edge under the old text; the new text admits
+    it exactly, so no applied item''s acceptance or route changes and the run continues
+    on the successor with no catch-up duty (revision rule 7).
 
-    (3) ONE CAMPAIGN, ONE CAMPAIGN LEASE (D4). prepare_host''s lease rule gains one clause: a campaign lease asked for by a campaign that already holds one on that host is refused with the standing lease''s reference, so one campaign never holds two. Before: the rule already said never re-request a lease the campaign holds (probe-only mode) and the queue tool did not check - a lane seat wrote a second campaign-kind grant for the one campaign (LEAD-LOG 1958, "Stray lease"), status then showed two, and a release by campaign would have released both. Enforcement level (pave-spec 9.14.1): mechanical, at the one writer of lease records, because the violation is a tool call a seat makes by omitting --job, is precisely detectable from the open leases the tool already reads under its lock, and the reminder rung (the existing prose) failed once; not stronger than needed - a refusal that names the standing lease costs the caller nothing and strands nothing. Release layer: hardware_queue.py cmd_grant refuses when --job is absent and an open campaign lease for that campaign names that host (status refused, the lease_id, exit 2) plus one test in tests/test_hardware_queue.py. Cost per run: zero.
+    (3) ONE CAMPAIGN, ONE CAMPAIGN LEASE (D4). prepare_host''s lease rule gains one
+    clause: a campaign lease asked for by a campaign that already holds one on that
+    host is refused with the standing lease''s reference, so one campaign never holds
+    two. Before: the rule already said never re-request a lease the campaign holds
+    (probe-only mode) and the queue tool did not check - a lane seat wrote a second
+    campaign-kind grant for the one campaign (LEAD-LOG 1958, "Stray lease"), status
+    then showed two, and a release by campaign would have released both. Enforcement
+    level (pave-spec 9.14.1): mechanical, at the one writer of lease records, because
+    the violation is a tool call a seat makes by omitting --job, is precisely detectable
+    from the open leases the tool already reads under its lock, and the reminder rung
+    (the existing prose) failed once; not stronger than needed - a refusal that names
+    the standing lease costs the caller nothing and strands nothing. Release layer:
+    hardware_queue.py cmd_grant refuses when --job is absent and an open campaign
+    lease for that campaign names that host (status refused, the lease_id, exit 2)
+    plus one test in tests/test_hardware_queue.py. Cost per run: zero.
 
-    (4) CUT. review_increment_batch''s purpose restated the batch size rule in full (3 lines: 1 for a complex commit, up to 3 when low complexity); it now points at batch_review_current, which was already the mechanical authority and gains the low-complexity examples the node alone carried (config, tests, wiring, citation repairs) and the fold-unit count, so the rule lives once. Net growth: 21 lines - the fold class, defined once at scope_next_increment and pointed at from realize_increment, increment_passed and the batch size rule, and two clauses.
+    (4) CUT. review_increment_batch''s purpose restated the batch size rule in full
+    (3 lines: 1 for a complex commit, up to 3 when low complexity); it now points
+    at batch_review_current, which was already the mechanical authority and gains
+    the low-complexity examples the node alone carried (config, tests, wiring, citation
+    repairs) and the fold-unit count, so the rule lives once. Net growth: 21 lines
+    - the fold class, defined once at scope_next_increment and pointed at from realize_increment,
+    increment_passed and the batch size rule, and two clauses.
 
-    (5) NO CHANGE, WITH THE EVIDENCE (D2, D5, the second half of D1, D6). D2, queue priority: the incident (LEAD-LOG 2003 to 2006) was one running 64-core CPU job under an open lease; the measurement asked for the whole host and waited 8 minutes until that job''s own release. No admission rule pre-empts a running lease, so a priority or reservation rule would have changed nothing here; the one thing the tool does not do - admit waiting requests in order, so a later short grant cannot slip ahead of a waiting whole-host request - was needed zero times in the incident, because the lane asked for no new lease. An admit-in-request-order rule earns its place when the lease records show a grant slipping ahead of a waiting one; none does, so this revision adds nothing and names the reading the next audit takes. D5, the measurement instance closed without an outcome (LEAD-LOG 1989): the instance for attempt 28 was opened before its entry edge fired (LEAD-LOG 1985 re-noded the measurer seat to measure_candidate at 14:23Z; measurements_ready_to_candidate_runs follows candidate_serving, and the attempt failed on its first request at 14:34Z), so it had no outcome to close by; measure_candidate is one instance per campaign (instance_per), and a second one per attempt is a lead routing act against the graph as written, not a gap in it. The M4 instance that stayed open through the breaker and the redesign is the declared shape: it closed by procedure_defect_found (row 1623) and re-entered through measurements_ready (row 1624). D1, second half (LEAD-LOG 2028): a diagnostic bundle complete while the gating bundle does not exist is working state inside the open instance; the bundle file is its record (measurement_artifacts, one file per event) and bundles_stable reads every declared bundle at once; an outcome for "some bundles done" would route nowhere and is the re-check pave-spec 4.11 excludes. D6, the write-report tool gaps (audit-findings.md, the instrument-gaps section): items 1, 2, 4, 5, 7 and 9 to 14 are the tool''s and the hook''s (pave-init''s run_write_report.py; the plugin''s hooks.json --memory-dir flag and stop-guard.sh), not graph lines; they go on the release list in (8) as tool work, and the graph is unchanged by them.
+    (5) NO CHANGE, WITH THE EVIDENCE (D2, D5, the second half of D1, D6). D2, queue
+    priority: the incident (LEAD-LOG 2003 to 2006) was one running 64-core CPU job
+    under an open lease; the measurement asked for the whole host and waited 8 minutes
+    until that job''s own release. No admission rule pre-empts a running lease, so
+    a priority or reservation rule would have changed nothing here; the one thing
+    the tool does not do - admit waiting requests in order, so a later short grant
+    cannot slip ahead of a waiting whole-host request - was needed zero times in the
+    incident, because the lane asked for no new lease. An admit-in-request-order rule
+    earns its place when the lease records show a grant slipping ahead of a waiting
+    one; none does, so this revision adds nothing and names the reading the next audit
+    takes. D5, the measurement instance closed without an outcome (LEAD-LOG 1989):
+    the instance for attempt 28 was opened before its entry edge fired (LEAD-LOG 1985
+    re-noded the measurer seat to measure_candidate at 14:23Z; measurements_ready_to_candidate_runs
+    follows candidate_serving, and the attempt failed on its first request at 14:34Z),
+    so it had no outcome to close by; measure_candidate is one instance per campaign
+    (instance_per), and a second one per attempt is a lead routing act against the
+    graph as written, not a gap in it. The M4 instance that stayed open through the
+    breaker and the redesign is the declared shape: it closed by procedure_defect_found
+    (row 1623) and re-entered through measurements_ready (row 1624). D1, second half
+    (LEAD-LOG 2028): a diagnostic bundle complete while the gating bundle does not
+    exist is working state inside the open instance; the bundle file is its record
+    (measurement_artifacts, one file per event) and bundles_stable reads every declared
+    bundle at once; an outcome for "some bundles done" would route nowhere and is
+    the re-check pave-spec 4.11 excludes. D6, the write-report tool gaps (audit-findings.md,
+    the instrument-gaps section): items 1, 2, 4, 5, 7 and 9 to 14 are the tool''s
+    and the hook''s (pave-init''s run_write_report.py; the plugin''s hooks.json --memory-dir
+    flag and stop-guard.sh), not graph lines; they go on the release list in (8) as
+    tool work, and the graph is unchanged by them.
 
-    (6) USAGE EVIDENCE READ. No usage log exists (the run has had no terminal close). Run state since revision 13 applied at 2026-09-17T14:31:26Z (rows 1603 to 1625, 0-based, 23 rows): realize_increment increment_passed 4; scope_next_increment increment_selected 4; review_increment_batch batch_sound 4 of 4 and review_implementation ready_for_hardware 1 of 1 (33 of 114 and 91 of 226 material over the run, per the revision 13 read - neither is a lead-run-implementation candidate); prepare_host host_ready 1; execute_attempt_loop candidate_serving 1 and breaker_tripped 1; rederive_approach revised_approach 1; design_campaign design_ready 1; review_campaign_design design_sound 1; prepare_measurements measurements_ready 3; measure_candidate procedure_defect_found 1. Of these, rows 1613 to 1625 (13) fall after the last audit checkpoint''s read (cp-20260918T065305Z read rows 1599 to 1612). hardware_attempt_counts 20 to 21 (attempt 28, serving, charged; attempt 29, measurement, uncounted). Off-graph seats in the window: the PR 6 reviewer and rebase seats (section 1 routes them), and 18 reviewer seats per launcher or procedure revision that the audit record (cp-20260918T065305Z, act 1) names as lead-invented and the lead answers as the user''s own serving-pair gate (DECISIONS 1059) - no graph line asks for them and this revision adds none. Last write report: 36 declared outcomes, 212,271,796 bytes, 5,896,439 bytes per outcome, down 1.5-fold.
+    (6) USAGE EVIDENCE READ. No usage log exists (the run has had no terminal close).
+    Run state since revision 13 applied at 2026-09-17T14:31:26Z (rows 1603 to 1625,
+    0-based, 23 rows): realize_increment increment_passed 4; scope_next_increment
+    increment_selected 4; review_increment_batch batch_sound 4 of 4 and review_implementation
+    ready_for_hardware 1 of 1 (33 of 114 and 91 of 226 material over the run, per
+    the revision 13 read - neither is a lead-run-implementation candidate); prepare_host
+    host_ready 1; execute_attempt_loop candidate_serving 1 and breaker_tripped 1;
+    rederive_approach revised_approach 1; design_campaign design_ready 1; review_campaign_design
+    design_sound 1; prepare_measurements measurements_ready 3; measure_candidate procedure_defect_found
+    1. Of these, rows 1613 to 1625 (13) fall after the last audit checkpoint''s read
+    (cp-20260918T065305Z read rows 1599 to 1612). hardware_attempt_counts 20 to 21
+    (attempt 28, serving, charged; attempt 29, measurement, uncounted). Off-graph
+    seats in the window: the PR 6 reviewer and rebase seats (section 1 routes them),
+    and 18 reviewer seats per launcher or procedure revision that the audit record
+    (cp-20260918T065305Z, act 1) names as lead-invented and the lead answers as the
+    user''s own serving-pair gate (DECISIONS 1059) - no graph line asks for them and
+    this revision adds none. Last write report: 36 declared outcomes, 212,271,796
+    bytes, 5,896,439 bytes per outcome, down 1.5-fold.
 
-    (7) EVERY COPY. The three wordings this revision changes (the batch size restatement, "measured the wrong property", the lock clause) survive only in the package''s shipped graph copy at revision 12 (replaced by the live graph at the release), VERSION''s 1.5.8 changelog line and hardware_queue.py''s docstring (both about job grants and true as written; the docstring gains one line for the campaign refusal), and pave-init''s planning-record draft (history). The Codex port carries no copy of these lines; its implementer and reviewer agents regenerate from agents/*.md.
+    (7) EVERY COPY. The three wordings this revision changes (the batch size restatement,
+    "measured the wrong property", the lock clause) survive only in the package''s
+    shipped graph copy at revision 12 (replaced by the live graph at the release),
+    VERSION''s 1.5.8 changelog line and hardware_queue.py''s docstring (both about
+    job grants and true as written; the docstring gains one line for the campaign
+    refusal), and pave-init''s planning-record draft (history). The Codex port carries
+    no copy of these lines; its implementer and reviewer agents regenerate from agents/*.md.
 
-    (8) RELEASE 1.5.9 MUST CARRY (D7). For revision 13 (LEAD-LOG 1952; revision 13 section 5): skills/vllm-neuron-parity/SKILL.md:150 ("No hardware before this stage closes" becomes the serving-attempt sentence with the localization allowance; the stage label gains "device over emulation once served") and :151 ("counted from attempt-record files by their class field"); schemas/run-state.schema.json:152 (hardware_attempt_counts description mirrors the state field''s one rule and three classes); agents/implementer.md:129 (criteria_changed_by_user first in the precedence), :140 (device-over-emulation pointer), :158 ("serving attempts"), :214-227 (the count text becomes a pointer plus the localization allowance); codex/agents/vllm_neuron_parity_implementer.toml regenerated; README.md:166 and :653 ("68 edges" becomes 69), :275 (the mermaid gains sni to design on criteria_changed_by_user); tests/test_workflow_pave.py:9 and :26 (EXPECTED "22 nodes, 69 edges, 5 control nodes"); references/artifact-layout.md 4.2 pair 4 (class spelling serving, diagnostic, cpu_mode; the launch reading field; the compare tool and reference the localization record cites); agents/measurer.md (the scratch root pointer the audit record asks for); the recurring-form rule the audit record names for the lead skill. For revision 14: SKILL.md:150 (two clauses - a changeset the campaign did not design lands only as a fold item on the user''s recorded word: realize, then batch review; no reviewer before the fold, no seat at prepare_pr; and the batch size sentence "Every 1-3 landed commits form a batch" gains the fold-unit count - a fold item''s commits are one unit whatever their count) and :151 (the tool refuses a second campaign lease); agents/implementer.md:147 (a fold item rebases the user''s changeset onto the tip to the exact union and lands it as written) and :166 (the refusal); agents/adversarial-reviewer.md:84 (a fold item''s commits are one batch whatever their count); the two Codex agents regenerated; scripts/hardware_queue.py cmd_grant and its docstring plus one test; the package''s workflow.pave.yaml, revisions.yaml, history/v13.patch and history/v14.patch copied from the evolution root after the apply step; the VERSION 1.5.9 entry. Counts stay 22 nodes, 69 edges, 5 control nodes, so tests and README need no count change for 14. Tool work carried, not graph: the write-report gaps in (5).
+    (8) RELEASE 1.5.9 MUST CARRY (D7). For revision 13 (LEAD-LOG 1952; revision 13
+    section 5): skills/vllm-neuron-parity/SKILL.md:150 ("No hardware before this stage
+    closes" becomes the serving-attempt sentence with the localization allowance;
+    the stage label gains "device over emulation once served") and :151 ("counted
+    from attempt-record files by their class field"); schemas/run-state.schema.json:152
+    (hardware_attempt_counts description mirrors the state field''s one rule and three
+    classes); agents/implementer.md:129 (criteria_changed_by_user first in the precedence),
+    :140 (device-over-emulation pointer), :158 ("serving attempts"), :214-227 (the
+    count text becomes a pointer plus the localization allowance); codex/agents/vllm_neuron_parity_implementer.toml
+    regenerated; README.md:166 and :653 ("68 edges" becomes 69), :275 (the mermaid
+    gains sni to design on criteria_changed_by_user); tests/test_workflow_pave.py:9
+    and :26 (EXPECTED "22 nodes, 69 edges, 5 control nodes"); references/artifact-layout.md
+    4.2 pair 4 (class spelling serving, diagnostic, cpu_mode; the launch reading field;
+    the compare tool and reference the localization record cites); agents/measurer.md
+    (the scratch root pointer the audit record asks for); the recurring-form rule
+    the audit record names for the lead skill. For revision 14: SKILL.md:150 (two
+    clauses - a changeset the campaign did not design lands only as a fold item on
+    the user''s recorded word: realize, then batch review; no reviewer before the
+    fold, no seat at prepare_pr; and the batch size sentence "Every 1-3 landed commits
+    form a batch" gains the fold-unit count - a fold item''s commits are one unit
+    whatever their count) and :151 (the tool refuses a second campaign lease); agents/implementer.md:147
+    (a fold item rebases the user''s changeset onto the tip to the exact union and
+    lands it as written) and :166 (the refusal); agents/adversarial-reviewer.md:84
+    (a fold item''s commits are one batch whatever their count); the two Codex agents
+    regenerated; scripts/hardware_queue.py cmd_grant and its docstring plus one test;
+    the package''s workflow.pave.yaml, revisions.yaml, history/v13.patch and history/v14.patch
+    copied from the evolution root after the apply step; the VERSION 1.5.9 entry.
+    Counts stay 22 nodes, 69 edges, 5 control nodes, so tests and README need no count
+    change for 14. Tool work carried, not graph: the write-report gaps in (5).
 
-    Layer test (pave-spec 2.1): one work-item class with its acceptance, one outcome''s meaning, one check''s question, one lease rule clause - kind graph; no seat, model, effort or write limit moves. User-only changes touched (revision rule 6): check strength - batch_review_current''s question changes and the lease rule gains a mechanical refusal (stronger, never weaker) - and the declared meaning of procedure_defect_found (an outcome''s interface); pending the user''s word. The user approved release 1.5.9 in advance (DECISIONS 1079, "yes 1.5.9 too"); the lead records that as the approval at apply. Allowed and forbidden effects: equal, proved by parse. No digest of a mutable file anywhere (pave-spec 9.14.3). No hook checkpoint was open at drafting; the request is the user''s. Drafted from the live graph at revision 13 by pave-init:workflow-updater (teammate updater-r14), clock read 2026-09-19T01:56Z; repaired after round 1 (clock read 2026-09-19T02:28Z).'
+    Layer test (pave-spec 2.1): one work-item class with its acceptance, one outcome''s
+    meaning, one check''s question, one lease rule clause - kind graph; no seat, model,
+    effort or write limit moves. User-only changes touched (revision rule 6): check
+    strength - batch_review_current''s question changes and the lease rule gains a
+    mechanical refusal (stronger, never weaker) - and the declared meaning of procedure_defect_found
+    (an outcome''s interface); pending the user''s word. The user approved release
+    1.5.9 in advance (DECISIONS 1079, "yes 1.5.9 too"); the lead records that as the
+    approval at apply. Allowed and forbidden effects: equal, proved by parse. No digest
+    of a mutable file anywhere (pave-spec 9.14.3). No hook checkpoint was open at
+    drafting; the request is the user''s. Drafted from the live graph at revision
+    13 by pave-init:workflow-updater (teammate updater-r14), clock read 2026-09-19T01:56Z;
+    repaired after round 1 (clock read 2026-09-19T02:28Z).'
   approval: yes 1.5.9 too
   user_only_changes: approved
   plan_evidence: verified
   usage_evidence: field
-  review: 'PASS (update-reviewer-r14, round 2 of 3: PASS with 4 LOW, PASS; DECISIONS §1079)'
+  review: "PASS (update-reviewer-r14, round 2 of 3: PASS with 4 LOW, PASS; DECISIONS\
+    \ \xA71079)"
   written_by: workflow-updater
   patch: history/v14.patch
   commit: null
@@ -1555,7 +1920,6 @@ entries:
   commit: null
   derived_from: null
   run_id: null
-
 - revision: 17
   kind: graph
   applied_at: '2026-09-22T22:01:21Z'
@@ -1749,6 +2113,770 @@ entries:
     pave-init:workflow-updater seat workflow-updater-r17)
   written_by: unverified
   patch: history/v17.patch
+  commit: null
+  derived_from: null
+  run_id: null
+- revision: 18
+  kind: graph
+  applied_at: '2026-10-20T21:04:32Z'
+  digest_before: sha256:89e7cfb928edf4a05b53df0824eea3f29c19ff1641216732e4056ccd5b3440cc
+  digest_after: sha256:98aa5b8253190ce86cfd8978ca6c8b8c9b62e2ae126d7eaf83c90feb233f19bb
+  semantic_diff: "Base: revision 17, digest sha256:89e7cfb928edf4a05b53df0824eea3f29c19ff1641216732e4056ccd5b3440cc,\
+    \ verified intact with pave-init 2.8.1 record_revision.py (18 revision_log entries)\
+    \ at 2026-10-20T15:29:35Z. Round 1 repaired at 2026-10-20T17:0xZ against reviewer-r18's\
+    \ final list of record (1 BLOCKING, 7 HIGH, 9 LOW, with the replay record REPLAY.md\
+    \ folded in - six of its eight HIGH adopted, one downgraded, one split, four items\
+    \ rejected); round 2 folded at 2026-10-20T17:1xZ after the reviewer confirmed\
+    \ all seven HIGH fixed from disk and listed 11 LOW; the round sections below map\
+    \ every item to its repair or its rejection. Round 3 at 2026-10-20T18:4xZ folds\
+    \ the user's seven-step port workflow, asked for at the apply gate (change 8);\
+    \ round 3b at 19:0xZ folds the lead's follow-ups - the 18:33Z stamp, the torch\
+    \ and squeeze rulings, the PR description form; round 3c at 19:4xZ repairs reviewer-r18's\
+    \ merged list (six HIGH, two LOW, the second replay record folded in) and the\
+    \ user's parallelism word of 19:09Z; round 3d at 19:5xZ takes the reviewer's R9\
+    \ and the lead's rulings on lines 11 and 20. Lines 1 to 16 stand approved, except\
+    \ that lines 4 and 11 are reworded here and re-presented, and with lines 17 to\
+    \ 20 they are approved by the third answer below, at this digest. Counts: 21 nodes\
+    \ (calibrate_hardware in, review_increment_batch out), 68 edges (67: four removed,\
+    \ five added), 68 outcomes (67: three removed, four added), 14 checks (15: batch_review_current\
+    \ removed), 25 evidence definitions (24: hardware_calibration_record added), 8\
+    \ roles, 5 control nodes, 19 required state fields. write_limits, scope, entrypoints\
+    \ and purpose byte-equal; roles differ in one clause (the measurer's purpose names\
+    \ the calibration suite, L4); state differs in one meaning sentence (hardware_attempt_counts\
+    \ names a fourth run class, kernel_alone). Skeleton compared field by field by\
+    \ parsing both graphs; the skeleton sites that change and nothing else: adjudicate_results\
+    \ gains outcome performance_shortfall; review_pr_evidence gains outcome code_findings\
+    \ and consumes implementation_changeset; realize_increment gains the adversarial_reviewer\
+    \ role, consumes hardware_calibration_record and produces adversarial_review_findings;\
+    \ design_campaign consumes hardware_calibration_record and adjudication_verdict\
+    \ and produces hardware_calibration_record (anchor rows); cost_routes_and_rank_backlog\
+    \ consumes hardware_calibration_record; measure_candidate produces hardware_calibration_record\
+    \ (the served cap row); adversarial_review_findings is produced by realize_increment\
+    \ in place of review_increment_batch; edges plan_satisfied_to_hardware (checks:\
+    \ changeset_complete only), passed_to_next_scoping (no check), reviewed_pr_to_closeout\
+    \ (check impl_commit_is_reviewed); check impl_commit_is_reviewed routes failure\
+    \ to scope_next_increment. Prose sites: principles 3, 4 and 5; the measurer role;\
+    \ the questions of kickoff_contract_approved, changeset_complete, impl_commit_is_reviewed\
+    \ and acceptance_threshold_evaluated; the subjects of run_input_and_preflight_record,\
+    \ campaign_design_record, implementation_changeset, increment_evidence_records,\
+    \ increment_lap_record, measurement_artifacts and hardware_calibration_record;\
+    \ the purposes, activities, effects and outcome meanings of design_campaign, scope_next_increment,\
+    \ realize_increment, adjudicate_results, review_pr_evidence, review_campaign_design,\
+    \ assemble_kickoff_contracts, cost_routes_and_rank_backlog, prepare_measurements,\
+    \ measure_candidate, prepare_host, execute_attempt_loop, close_campaign, trace_target_delta\
+    \ and prepare_pr; the subject of pr_evidence_package; the rationales of attempt_defect_to_repair,\
+    \ plan_satisfied_to_hardware and perf_shortfall_to_redesign. Line balance: 65\
+    \ hunks, 647 lines added against 252 removed; 2425 lines become 2820 and 138,895\
+    \ bytes become 169,922 (ceiling 3100 lines, not raised; 280 lines of headroom\
+    \ remain). Layer test (pave-spec 2.1, revision rule 9): a node, five edges, four\
+    \ outcomes, one check and one evidence definition are added or removed, three\
+    \ check questions change what passes, two nodes' acceptance definitions change,\
+    \ one check's failure route moves, one role's purpose gains a clause, and one\
+    \ outcome's reach widens (regression_failed for backport-route campaigns) - graph\
+    \ meaning moves, so kind graph. Round 3 adds no node, edge, outcome, check or\
+    \ evidence definition; it changes one check question (kickoff_contract_approved),\
+    \ two outcome meanings (target_traced, plan_satisfied) and one review's material\
+    \ list; round 3b changes one artifact's declared form and the PR review's description\
+    \ material; round 3c changes two check questions' accepted form (the not-run record),\
+    \ one outcome meaning (increment_stuck), the kernel set's default hand and convergence\
+    \ and the kernel review's seat rule; round 3d changes prose only; so the kind\
+    \ holds. The seat rules the graph states (one seat per kernel item by default,\
+    \ one retained kernel reviewer per review capacity, which existing reviewer seat\
+    \ reads a block-scoped design re-entry) are rules, as the graph's prose stated\
+    \ the serial default before; the numbers they take - the review capacity, the\
+    \ hands a host can run - are run-setup values the round row declares (spec section\
+    \ 2.1), and the calibration suite, the oracle tooling, the planner and the lease\
+    \ tools are named by duty and tool class, their scripts being release work. Source:\
+    \ the reflection record of the kernel-floor campaign that followed the port (ASSESSMENT.md\
+    \ at 144 lines with its sections 4 and 5, EVIDENCE_ARC.md at 511 lines with sections\
+    \ H and I, and GRAPH_MAP.md, all 2026-10-20): defects F1 to F7, kept practices\
+    \ W1 to W10, principles P1 to P13, and the user's fifteen requirements of the\
+    \ same day (ASSESSMENT section 8); the replay record REPLAY.md (md5 9e2e7e89,\
+    \ verdict REVISE, eight HIGH findings) as reviewer-r18's round-1 final list folded\
+    \ it; for change 8 the user's words of record (USER_WORDS_20261020.md, 51 lines,\
+    \ md5 2de3d13f - the seven steps, the apply-gate choice, the 18:37Z rulings, the\
+    \ 18:49Z PR word, the 19:09Z parallelism word, and the run's standing rulings),\
+    \ the PR form reference (PR_REFERENCE_54951.md, 454 lines, md5 14c43888), and\
+    \ the second replay record (REPLAY2.md, 137 lines, md5 99cafb82, verdict REVISE,\
+    \ six HIGH on the fold) as reviewer-r18's merged list adopted it. No rule-8 usage\
+    \ record exists on this host - the port run's usage log lives on the host that\
+    \ ran it, and the campaign that produced the evidence was an ad hoc orchestration,\
+    \ not a parity-graph run - so no seat has a recorded paid decision to weigh; the\
+    \ batch review's record is taken from the revision log instead (change 4). The\
+    \ revision-15 test decided every sentence: does it ever change an outcome? Each\
+    \ change below names the outcome it moves, its price per run, and whether it is\
+    \ a user-only change. The defect in one line: the graph judged performance once,\
+    \ after the candidate served, with no cost model, no calibration and no per-op\
+    \ bar, so a port that worked and was slow passed every gate and its miss closed\
+    \ as no_benefit with no edge back to design (F1, F2, F6; GRAPH_MAP 0 and 5); numerics\
+    \ surfaced in the served path because no correctness class or regime was declared\
+    \ before code (F3); the review cadence put a fresh seat on every one to three\
+    \ commits with the lead in the message path (F4).\nChange 1 - calibration is the\
+    \ first device act. New node calibrate_hardware (measurer; consumes run_input_and_preflight_record;\
+    \ produces hardware_calibration_record at artifacts/run/calibration/; outcomes\
+    \ calibration_recorded, calibration_unproducible), new evidence hardware_calibration_record\
+    \ (observation), edges preconditions_to_calibration (check preflight_record_complete),\
+    \ calibration_to_delta_scan (the fan-out the old preconditions_to_delta_scan carried)\
+    \ and calibration_unproducible_to_pause; preconditions_to_delta_scan removed.\
+    \ The suite is fixed and runs on the pinned toolchain for every roster hardware\
+    \ class a requested target uses: instruction floors, data-movement cost per element\
+    \ for each access pattern, per-engine rates for the operations kernels lean on,\
+    \ the throttle ramp and the utilization cap under a sustained synthetic kernel_alone\
+    \ load, collective cost at the served rank count. A port has no served path at\
+    \ calibration, so the served cap is a second row of the cap class that measure_candidate\
+    \ appends from each served profile (change 5); every row names its source (suite,\
+    \ anchor, served profile), and a design cites the served row when one exists and\
+    \ the synthetic-load row until then. The measurer role's purpose names the suite\
+    \ (L4). The record is keyed by the toolchain pin; when a record for the identical\
+    \ pin exists the node is a lead-run check and costs nothing. calibration_unproducible\
+    \ pauses the run because every cost row downstream depends on it; the pause reaches\
+    \ only hardware classes a requested target uses. Evidence: F2 - 13 cost-model\
+    \ misses over 2x, and the record's pattern (ESTIMATE, EVIDENCE_ARC 233) that the\
+    \ misses above 7x were costed with no device anchor; P2; W7; reviewer HIGH-3 (replay\
+    \ 4 - the cap had no producer and a first run would have paused). Outcome moved:\
+    \ cost_routes_and_rank_backlog and design_campaign consume the record, so a cost\
+    \ row cites a measured row or needs an anchor (change 3). Why general: the suite\
+    \ names cost classes (instruction, byte moved, element gathered or scattered per\
+    \ access pattern, compare, collective, cap under load), never a kernel. Price\
+    \ per run: one device session at run start, once per toolchain pin. User-only:\
+    \ yes - a new node with two outcomes, and the delta scan's entry edge moves behind\
+    \ it.\nChange 2 - gate 1 costs routes against entitlement (cost_routes_and_rank_backlog,\
+    \ assemble_kickoff_contracts, check kickoff_contract_approved, run_input_and_preflight_record).\
+    \ The served shapes per requested target are a frozen run input - the evidence\
+    \ subject names them (L6) - and costing reads them; the kickoff carries them later.\
+    \ The investigator runs the parallelism planner for each route at those shapes\
+    \ and writes the route's predicted roofline ratio against the planner's entitlement\
+    \ over the hot ops of its served phases, whatever their substrate; backlog_ranked\
+    \ means ranked by that ratio and the gap it closes. The kickoff contract carries\
+    \ a performance criterion for every served phase of the configuration - the targeted\
+    \ phase as a ratio to entitlement with the bar or a written hardware reason, every\
+    \ other phase as no regression against the target base within a stated bound -\
+    \ and kickoff_contract_approved fails a contract that lacks either. At measurement\
+    \ (measure_candidate) an untargeted phase's criterion is evaluated by compiled-program\
+    \ digest equality against the base when the base's programs at that configuration\
+    \ are on disk, both digests in the bundle and nothing run, and by its procedure\
+    \ otherwise; a regression there selects regression_failed, now reachable for backport-route\
+    \ campaigns and outranking the two cost-model outcomes, because an untargeted\
+    \ phase's regression is a changeset defect. Evidence: F1; F6 - no served baseline\
+    \ until day 6 and no ranking until day 8; P1; P6; P12 with EVIDENCE_ARC H.4 -\
+    \ 11 of 26 phase-targeted commits touched the other phase's files, one knob changed\
+    \ every graph, and a value defect surfaced in the other phase's output; the user's\
+    \ decision \"planner required at gate 1\" and requirement 15; reviewer L6 (the\
+    \ kickoff does not exist at costing). Outcome moved: kickoff_contract_approved;\
+    \ a route whose predicted sum misses entitlement is re-derived at costing instead\
+    \ of built; regression_failed for an untargeted phase. Why general: entitlement,\
+    \ ratio and program-digest equality hold for any architecture and any pair of\
+    \ phases; the planner is a tool class named by duty. Price per run: one planner\
+    \ run per route at costing, minutes of CPU; per untargeted phase one digest comparison\
+    \ when the base's programs are on disk, else one more measurement in the lease\
+    \ already held. User-only: yes - a check gains two failing conditions and an outcome's\
+    \ reach widens.\nChange 3 - design before code (design_campaign, review_campaign_design,\
+    \ check changeset_complete, principle 4). Before any code the design carries a\
+    \ cost table with one row per hot op of each served phase at the declared shapes\
+    \ - every op on the phase's execution map (change 8, step 3a; before round 3 the\
+    \ subject list was \"every component the served profile will attribute\", which\
+    \ exists only after serving), whatever its substrate (authored or vendored kernels,\
+    \ torch and compiler-lowered ops, collectives, data movement) - a hot op being\
+    \ any component whose predicted time exceeds the one tolerance the design registers,\
+    \ the same tolerance adjudication reads a measured component against (HIGH-1);\
+    \ an op a chosen form adds (a producer, a mask, a layout change) is costed inside\
+    \ the row of the map op it serves, because a form's own ops are where a profile\
+    \ finds the misses after serving, and at a shortfall re-entry a component the\
+    \ served profile attributed above the tolerance with no map row is a map gap,\
+    \ material at the design review until the re-entry adds its row (round 3c, R7b;\
+    \ the lead's ruling on line 11). Approved line 11 said \"every hot op the served\
+    \ profile will attribute\"; the map is now the enumeration before any profile\
+    \ exists, so line 11 is reworded and re-presented (R7c). A row carries bytes moved,\
+    \ instructions, descriptors, engine mapping, serial chain length, the predicted\
+    \ time under the served cap row (or under the suite's synthetic-load cap row before\
+    \ the first served profile), the op's minimum work at the binding engine's calibrated\
+    \ rate as its roofline (HIGH-2), and the predicted ratio; every value is a cited\
+    \ calibration row whose lowering and access pattern match the op's (a row for\
+    \ another pattern is no row) or is derived from one with its arithmetic. A rate\
+    \ with no matching row needs a device anchor first - a kernel_alone run under\
+    \ a job lease, its row appended to the calibration record, re-run once on another\
+    \ roster host when a host fault ends it and left unmeasured with the telemetry\
+    \ after a second - which is why design_campaign now produces that evidence and\
+    \ its allowed effects name anchor runs while its forbidden effects still refuse\
+    \ any other hardware contact and any serving launch. An op over the bar carries\
+    \ a written hardware reason that cites the measured rows showing its binding engine\
+    \ at its floor under the served cap (L8), or the design is re-derived; each row\
+    \ names the recorded hazards its form avoids, and a row naming none where the\
+    \ hazard list holds one for its form is a material finding at the design review\
+    \ (round 2, LOW-3). Each kernel-class increment carries a numerics plan - the\
+    \ correctness class per op, the oracle regimes (correlated inputs, repeated tokens,\
+    \ near-one gates, long carried state, an all-NaN row), the dtype per stage, the\
+    \ NaN containment note, and the two refused forms by name: a mask applied by multiplication\
+    \ to an operand that can hold a non-finite value (L7), and trusted exact algebra,\
+    \ with the reason each fails; the replay's extension of the plan to vendored kernels\
+    \ is INFERENCE and stays out, per the reviewer. The registration carries each\
+    \ kernel-class op's declared correctness class, so a class change re-presents\
+    \ gate 2 (HIGH-4). The predicted sum is compared with the gate; design_blocked\
+    \ gains three stops - an op that cannot reach the bar with no written reason,\
+    \ a row re-derived once for a served shortfall with no new calibration or anchor\
+    \ row, and a predicted miss the user declined at gate 2 with no new row or form;\
+    \ the user's acceptance of a predicted miss at gate 2 is a criterion change -\
+    \ a user decision in the user's own words in the decision record, the record's\
+    \ one producer, re-registered at design as the criterion the adjudicator reads\
+    \ - so a predicted miss never closes as no_benefit by design (HIGH-5; round 2\
+    \ LOW-5 moved it off the kickoff contract, which has one producer). Predicted\
+    \ rows stay in the design record so a re-derived row never re-asks gate 2. review_campaign_design's\
+    \ material list: a hot op with no row, a row citing no or a non-matching calibration\
+    \ row, a reason citing no floor row, derived values with no arithmetic, a missing\
+    \ regime class or table or note, a refused form, a predicted sum that misses with\
+    \ no reason. Principle 4 replaces \"CPU-first\" with \"cost before code, device\
+    \ from the first kernel\" and defines the roofline and the written reason; a kernel-class\
+    \ increment is accepted by oracle match plus kernel_alone ratio read against the\
+    \ row's roofline; glue stays CPU-mode; the bring-up ladder and the stop limit\
+    \ are kept word for word. The bar is stated once: 1.5 unless the kickoff contract\
+    \ names another with its reason. Evidence: F1, F2, F3; P3, P4; reviewer HIGH-1,\
+    \ HIGH-2, HIGH-4, HIGH-5, L7, L8 (replay findings 1, 3, 5, 6 and case 5); the\
+    \ replay table below. Outcome moved: design_blocked, review_campaign_design.material_findings,\
+    \ design_approved_by_user (a class change re-presents the gate), and the kernel\
+    \ acceptance of change 4 derives from the row. Why general: a cost row is a form;\
+    \ \"every component the profile attributes\" names no substrate; the regimes are\
+    \ failure classes of carried state and gating that any sequence-model kernel meets.\
+    \ Price per run: one cost row per hot op and one oracle per kernel-class op before\
+    \ code; an anchor run only when the suite has no matching row. User-only: yes\
+    \ - design_campaign gains a hardware effect, design_blocked gains three stop conditions,\
+    \ the registration gains the correctness class, and the user's acceptance at gate\
+    \ 2 becomes the criterion.\nChange 4 - kernel review fused into realize_increment;\
+    \ the batch review goes (review_increment_batch with batch_sound, material_findings\
+    \ and design_contradicted, edges batch_sound_to_scoping, batch_findings_to_repair,\
+    \ batch_review_to_redesign and check batch_review_current removed; realize_increment\
+    \ gains the adversarial_reviewer role, consumes hardware_calibration_record and\
+    \ produces adversarial_review_findings; scope_next_increment sizes the set by\
+    \ one complexity call and indexes evidence per class; principles 3 and 5). A kernel-class\
+    \ increment is one hot op (a fused form counts as one). It passes when the kernel\
+    \ matches the oracle in its declared class over the regimes and its kernel_alone\
+    \ ratio, read against the row's roofline, meets the row's prediction or the bar.\
+    \ Seats as the graph states them (HIGH-6): a whole-plan design entry opens a fresh\
+    \ challenger, retained across that entry's rounds (spec 9.4, kept); the campaign's\
+    \ retained kernel reviewers - one per review capacity of items in flight, the\
+    \ capacity a run-setup value in the kernel call's round row, each retained across\
+    \ its own items' rounds - read the landed kernels in direct rounds with the implementer\
+    \ and also the block-scoped design re-entries that name kernel-class ops (a served\
+    \ shortfall, a contradicted row), the reviewer that read the op first, because\
+    \ a fresh seat per lever would pay a seat and the lead's relay each time, and\
+    \ one reviewer for every kernel in flight would be the queue that serializes the\
+    \ set (round 3c, R2c; approved line 4 reworded and re-presented); the whole-campaign\
+    \ review (change 6) is one seat independent of every realizer; the lead rules\
+    \ on crossed orders only. A ratio miss where the row predicted inside is evidence_contradicts_design.\
+    \ Glue-class increments get no per-item review: the whole-campaign review and\
+    \ gate 3 catch them. Evidence: F4 - a fresh reviewer per one to three commits,\
+    \ 101 crossed-order lines, 22 respawns, and 4 of the 11 named incidents with a\
+    \ lead message in the path (EVIDENCE_ARC 265-277, items 6, 7, 8, 11; L2); W4;\
+    \ P11; the user's decision to cut the reviewer round per step and keep the direct\
+    \ worker-reviewer channel. Safeguard test (L1), from the revision log: the batch\
+    \ review found 30 material findings over 130 rows after per-increment passes (revisions.yaml\
+    \ 1184-1185), 33 of 114 material over the run (1037), and the AST-or-token-diff\
+    \ technique caught false \"refactor only\" claims in the batch reviews that produced\
+    \ 92 material findings (1327); revision 1's reason for a per-batch read stands\
+    \ at 56-58 - a graph that reviews a whole campaign once at its end cannot catch\
+    \ a defect while it is still one commit deep. So this cut is priced, not free.\
+    \ What keeps the safeguard's earned part: the AST-or-token-diff technique moves\
+    \ whole into the kernel review and the whole-campaign review; for kernels, where\
+    \ the costly and hard-to-reverse defect lives (a kernel built to the wrong form\
+    \ or cost), the per-item review stays and reads more (oracle, ratio, cost row);\
+    \ for glue, a defect one commit deep is caught at gate 3's measurement or the\
+    \ whole-campaign read and repaired on the branch before anything is pushed, so\
+    \ the harm is reversible before the next gate. Outcome moved: increment_passed\
+    \ (kernel-class acceptance), evidence_contradicts_design, changeset_complete's\
+    \ per-class index. Price per run: saves one fresh reviewer seat per batch and\
+    \ per block-scoped kernel re-entry plus the lead's relay; adds no seat - the reviewer\
+    \ role exists. User-only: yes - a node and three outcomes removed, acceptance\
+    \ changed; line 4's wording moves in round 3c (reviewers sized to the kernels\
+    \ in flight) and is re-presented.\nChange 5 - gate 3 separates a performance shortfall\
+    \ from no benefit (adjudicate_results gains performance_shortfall; no_benefit\
+    \ narrows; new edge perf_shortfall_to_redesign to design_campaign, which now consumes\
+    \ adjudication_verdict; measure_candidate produces hardware_calibration_record).\
+    \ The served profile's per-op attribution is compared with the design record's\
+    \ predicted rows as the measurer re-rated them into the bundle under the served\
+    \ utilization cap row - a mechanical step, each predicted time scaled by the ratio\
+    \ of the cap row it was priced under to the served cap row, so the adjudicator\
+    \ reads evaluated records only and never re-rates (round 2, LOW-2); the cap row\
+    \ is one file per served profile, because campaigns measure concurrently (LOW-7)\
+    \ - under the one registered tolerance; an attributed component over its row,\
+    \ or served time above the tolerance that no row predicts (glue, a collective,\
+    \ unattributed time, rank skew), is performance_shortfall and re-enters design\
+    \ for those components' rows; no_benefit is the residual - every attributed component\
+    \ carries a row and sits inside it, and the sum still misses the criterion the\
+    \ user approved (HIGH-1 ii). A second shortfall on a component whose row was re-derived\
+    \ once with no new row is design_blocked, so the loop is bounded by rows, not\
+    \ by a counter. The served cap row is the carry prediction: a kernel-alone gain\
+    \ is predicted served from the binding engine under that cap before any served\
+    \ lease. Evidence: F1 - a miss closed as no benefit; F5 - three served leases\
+    \ showed no carry; W1; W8; P5; P6; reviewer HIGH-1 (replay 2: EVIDENCE_ARC 223\
+    \ collectives at 5.7x their floor, 154 and 202 the SP collective lever as the\
+    \ second-largest step, 144 a torch scatter producer at 57 percent of attention\
+    \ - none had a row or a route); HIGH-3 (replay 4). Outcome moved: no_benefit splits\
+    \ and narrows to the residual; design_campaign gains a re-entry; design_blocked\
+    \ bounds the loop. Why general: per-op attribution against predicted rows and\
+    \ a cap read from the served profile name no architecture. Price per run: one\
+    \ served profile capture per served measurement, inside the measurement lease\
+    \ already held, plus one calibration row written from it. User-only: yes - a new\
+    \ outcome and a narrowed one, the new outcome reaching unrowed served time, and\
+    \ measure_candidate's allowed effects widen by one write (the served cap row under\
+    \ the run's calibration directory, line 16).\nChange 6 - one whole-campaign review\
+    \ before the PR (review_pr_evidence consumes implementation_changeset and reads\
+    \ the forbidden-effects list; gains code_findings; new edge pr_code_findings_to_repair\
+    \ to scope_next_increment; impl_commit_is_reviewed re-anchored on reviewed_pr_to_closeout\
+    \ against the whole-campaign review's tip and the measured revision, its failure\
+    \ routed to scope_next_increment because a stale or unmeasured tip needs the implementation\
+    \ loop's exit - re-serve, re-measure, re-review - and not the review alone). Evidence:\
+    \ the user's decision \"one whole-campaign review before the PR\"; P11; the reviewer's\
+    \ residual note that the check's old failure route reached a reviewer that cannot\
+    \ re-measure. Placement stated for attack: before the PR rather than at plan_satisfied,\
+    \ because the user's words say before the PR and a code finding re-enters the\
+    \ serve-and-measure loop that already exists through scope_next_increment; the\
+    \ price is a possible second served measurement when a code finding lands late.\
+    \ Outcome moved: code_findings; impl_commit_is_reviewed fails the close-out when\
+    \ the reviewed tip is not the measured revision. Price per run: the one PR review\
+    \ already in the graph, with wider material. User-only: yes - a new outcome, a\
+    \ check moved to a later edge, and that check's failure route.\nChange 7 - lease\
+    \ and record plumbing (prepare_host, prepare_measurements, execute_attempt_loop,\
+    \ close_campaign, state meaning). A kernel_alone job lease carries its pre-registration\
+    \ in the grant request; fault telemetry read from the lease start is appended\
+    \ to the release record by a record join, never by a seat's reading; hardware_attempt_counts\
+    \ names the fourth run class; product_defect_found names the design row it contradicts;\
+    \ prepare_measurements on any re-entry (a performance shortfall, a code finding,\
+    \ a correctness shortfall re-serve) with the acceptance registration, every procedure's\
+    \ smoke record and the baseline captures digest-equal to the prior entry's is\
+    \ a lead-run check that records measurements_ready with no seat, re-smoking only\
+    \ a changed procedure (HIGH-7; round 2 LOW-4 widened it from the performance loop\
+    \ to every re-entry, because each pays the same seat); close_campaign's debt list\
+    \ takes hazard release items in four buckets - a rate that needed an anchor, a\
+    \ regime that caught a defect, a form the device contradicted, a per-op cost miss\
+    \ - so the next run's suite, oracle and hazard lists start where this one ended;\
+    \ the replay's fifth bucket for device behaviour fits the third, per the reviewer.\
+    \ Evidence: W2, W3, W10; P7, P8, P10; F7; reviewer HIGH-7 (prepare_measurements\
+    \ at full strength on every re-serve - about one seat per lever over 17 levers).\
+    \ Outcome moved: none new - meanings on existing outcomes, and measurements_ready\
+    \ reachable by a lead-run check. Price per run: zero beyond the lease filing already\
+    \ required; saves one measurement-preparation seat per unchanged re-entry. User-only:\
+    \ the kernel_alone effect on realize_increment and design_campaign, listed under\
+    \ changes 3 and 4.\nChange 8 - the user's seven-step port workflow, folded at\
+    \ the apply gate (the words are quoted in the approval field; the user chose \"\
+    Fold my 7 steps into 18 first\"). Each step against the graph, then what moved.\n\
+    \  Step 1 (a Neuron-native NKI port with every GPU feature) - covered: the parity\n\
+    \  scorecard is feature x model, the kernel-substrate principle requires NKI for\n\
+    \  kernel-class functionality, and change 3 costs every hot op whatever its\n\
+    \  substrate. \"No torch\" is not widened to a ban - the user ruled at 18:37Z\
+    \ \"Cost\n  every hot op; torch glue allowed if its cost row is inside the bar\n\
+    \  (Recommended)\", so the kernel-substrate principle (kernel-class work in NKI)\n\
+    \  plus change 3 (every hot op costed, any substrate) is the whole rule; a hot\
+    \ torch\n  op gets a row and a measured ratio, glue inside the bar stays. Resolved,\
+    \ not a\n  pending line.\n  Step 2 (feature set, static op decomposition of the\
+    \ full forward pass, gaps\n  against existing kernels) - added at trace_target_delta:\
+    \ one activity decomposes\n  a model port's forward pass at the declared served\
+    \ configuration into every op\n  class per component block across every parallelism\
+    \ and scheduling form the\n  target serves, and inventories each op against the\
+    \ NKI library and the plugin at\n  the pin (present, partial, absent); target_traced\
+    \ requires the inventory;\n  cost_routes_and_rank_backlog prices the hot ops from\
+    \ it. Outcome moved:\n  target_traced, backlog_ranked. Price: one read inside\
+    \ the trace seat already\n  paid. Why general: op classes and form classes, no\
+    \ op is named.\n  Step 3a (shape-level execution order per component block, derived\
+    \ from the GPU\n  reference) - added at design_campaign: per served phase an execution\
+    \ map (each\n  block's ops in execution order with input and output shapes at\
+    \ the declared\n  shapes, from the reference and the inventory) is the cost table's\
+    \ subject list;\n  principle 4, the design record subject and the design review's\
+    \ material list\n  name it (a phase with no map is material). Outcome moved:\n\
+    \  review_campaign_design.material_findings, design_ready's completeness. Price:\n\
+    \  zero seats - the same design seat writes it before the rows. The first-principles\n\
+    \  rule is one clause at the map: the map fixes the op and its shapes, never the\n\
+    \  reference's form; the form is chosen per row at the roofline.\n  Step 3b (re-design\
+    \ each kernel for the hardware) - covered by changes 1, 3 and 4\n  (calibrated\
+    \ rows, the roofline as the op's minimum work, oracle regimes, the\n  kernel gate).\n\
+    \  Step 3c (massively parallel kernel work on partitioned device pools with CPU\n\
+    \  alongside; the user's word of 19:09Z, \"ya heavy emphasis on the parallelize\
+    \ as\n  much as possible to reduce impl time\") - the existing mechanism is extended,\n\
+    \  not duplicated. The graph already had concurrent-eligible sets\n  (pairwise-disjoint\
+    \ surfaces, one checkout per item, a join conflict as a\n  scheduling defect,\
+    \ the set precedence that lands passed siblings when one is\n  stuck) and kernel_alone\
+    \ job leases on any roster host; the device-over-emulation\n  rule governs the\
+    \ served tip only. What kept kernels serial (REPLAY2 finding 2,\n  reviewer R2):\
+    \ the complexity call put every kernel-class increment alone in its\n  set, the\
+    \ default hand was one doer thread item by item, the set waited for its\n  slowest\
+    \ item, and one kernel reviewer read every kernel. Now, at\n  scope_next_increment,\
+    \ the kernel call is the default whenever two or more\n  kernel-class increments\
+    \ are pending: every pending kernel-class increment with a\n  distinct op and\
+    \ a pairwise-disjoint surface is recorded in order as one pull\n  list; as many\
+    \ as the roster's idle kernel_alone capacity allows run at once, one\n  seat per\
+    \ item, and a seat that reaches its verdict takes the next recorded item\n  with\
+    \ no scoping round between, so freed device capacity never idles behind the\n\
+    \  slowest kernel; the serial hand\n  is the lead's narrowing when idle capacity\
+    \ is one. At realize_increment the\n  kernel set's default hand is one seat per\
+    \ item (the glue set keeps the serial\n  default and its rule-9 run-setup choice),\
+    \ the set converges when the pull list\n  is empty and every item has a verdict,\
+    \ each item's kernel_alone lease pins only\n  the device slice its pre-registration\
+    \ names so sibling kernels share a host's\n  pools, each item builds its oracle\
+    \ and compiles on CPU while its lease is\n  queued, and a queued lease that outlives\
+    \ its grant request's wall-clock cap\n  records increment_stuck with the queue\
+    \ record (R8 - the wait had no exit). The\n  review: one retained kernel reviewer\
+    \ per review capacity of items in flight,\n  the capacity a run-setup value in\
+    \ the kernel call's round row, each retained\n  across its own items' rounds (spec\
+    \ 9.4 per item), context carried by the\n  records and never by relay; a design\
+    \ re-entry on a kernel op goes to the\n  reviewer that read it. The host's quiet\
+    \ rule for CPU work beside a device job\n  stays run setup. Declared routes: a\
+    \ pool unavailable - the queue holds the\n  lease until the cap, then increment_stuck;\
+    \ a write-surface collision - the\n  existing join-conflict scheduling defect\
+    \ returns the set to serial; a kernel\n  failing while siblings pass - the existing\
+    \ set precedence. No new outcome, edge\n  or effect; increment_stuck's meaning\
+    \ widens by the queue case. Price per run:\n  one seat and one kernel_alone lease\
+    \ per kernel in flight plus one reviewer\n  seat per review capacity, against\
+    \ the wall-clock of the serial chain - for a\n  port whose kernels are its critical\
+    \ path the implementation time falls by\n  about the number of hands (EVIDENCE_ARC\
+    \ H and the lever table - the run's\n  throughput came from per-family pools),\
+    \ and implementation time is the\n  objective the user names. User-only: the reviewer\
+    \ rule rewords approved line 4,\n  re-presented; the default hand moves no gate,\
+    \ outcome, edge or effect.\n  Step 3d (few load-bearing tests, no test busywork)\
+    \ - added at design_campaign's\n  test-layout clause and realize_increment: a\
+    \ test is written only where it fails\n  on the defect class the increment's acceptance\
+    \ names; a kernel-class increment's\n  tests are at most its oracle's regime entries;\
+    \ no increment exists to write\n  tests; a test the change breaks at a moved seam\
+    \ is deleted and listed in the\n  evidence record, never repaired to pass. The\
+    \ \"most increments author their net\n  first\" clause is cut. Evidence: the user's\
+    \ words at step 3 and the standing\n  ruling of 2026-10-09 in this run (no test-only\
+    \ rounds; seam-broken tests deleted\n  and listed). Outcome moved: none - acceptance\
+    \ stays the declared command, the\n  oracle and the ratio. Not user-only.\n  Step\
+    \ 4 (coherent output, then a benchmark subset, then full benchmarks matching\n\
+    \  the GPU variant) - added as the form of a model port's correctness gate at\n\
+    \  kickoff_contract_approved: a ladder read in order (coherent served generation\
+    \ on\n  the reference's prompt set - token identity with the reference is never\
+    \ a rung,\n  because two stacks round differently and a correct port can break\
+    \ greedy parity\n  (R5); a declared benchmark subset within its bound; the full\
+    \ declared\n  benchmarks within theirs - each benchmark bound stating how a score\
+    \ inside the\n  reference's own noise reads: a repeat count, an interval, or the\
+    \ user's word at\n  adjudication, set by the user at gate 1, never derived from\
+    \ the reference's\n  spread, which would move the user's acceptance into a formula\
+    \ (R6)), each rung\n  a registered procedure; measure_candidate runs the rungs\
+    \ in registered order,\n  stops at the first failed rung, and writes each later\
+    \ rung and each performance\n  procedure its own bundle with the record \"not\
+    \ run after rung n failed\";\n  bundles_stable and acceptance_threshold_evaluated\
+    \ accept that record as the\n  evaluated form, so the verdict reaches correctness_shortfall\
+    \ naming the rung\n  instead of dead-ending in re-collection and declared_measurement_unproducible\n\
+    \  (R1 - the round-3 text had no route for a stopped ladder). Outcome moved:\n\
+    \  kickoff_contract_approved gains a failing condition; correctness_shortfall's\n\
+    \  meaning; two checks' accepted form. Price: zero extra leases - the rungs are\n\
+    \  the procedures already declared, ordered; a failed rung saves the later rungs'\n\
+    \  leases and the performance leases. User-only: yes, line 18, reworded in round\n\
+    \  3c (rung 1 and the noise form).\n  Step 5 (optimize to the floor until no more\
+    \ juice) - covered by change 5's\n  shortfall loop, bounded by the bar or a written\
+    \ reason citing floor rows and by\n  design_blocked on a re-derived row with no\
+    \ new row; the user ruled at 18:37Z\n  \"Bar 1.5x or a written hardware reason\
+    \ citing measured rows (Recommended)\", so\n  the unbounded reading is not adopted.\
+    \ Headroom left above the bar is not a loop\n  - a later squeeze is a new target,\
+    \ ranked through the backlog close_campaign\n  updates and elected at a new kickoff,\
+    \ which the graph already provides; no\n  clause added.\n  Step 6 (simplify, clean\
+    \ up, maintainer point of view, minimal tests) - added as a\n  maintainer-pass\
+    \ work item at scope_next_increment, minted once every planned and\n  repair item\
+    \ has passed and the branch diff's digest differs from the newest pass\n  record's:\
+    \ the first pass reads the clean diff, every later pass the diff since\n  the\
+    \ newest pass record's tip (R3 - a port's clean diff runs to hundreds of\n  files,\
+    \ and a full re-read per lever would cost about one full read per lever;\n  the\
+    \ whole-campaign review keeps the one full read), as the fork's maintainer\n \
+    \ (dead code, duplicated helpers, process residue, tests beyond load-bearing)\n\
+    \  with no behavior change, accepted on the AST or token diff of the touched\n\
+    \  functions, the process-vocabulary scan at zero and the whole-tree pass;\n \
+    \ plan_satisfied requires the record; realize_increment names the item. Placement\n\
+    \  before hardware, because a residue finding after serving costs a re-serve and\n\
+    \  re-measure while a pass before costs one seat; re-minted after performance\n\
+    \  levers change the diff. Outcome moved: plan_satisfied. Price: one full\n  retained-doer\
+    \ read, then one delta read per changed diff. User-only: yes, line\n  19.\n  Step\
+    \ 7 (PR with a performance table and accuracy results matching the GPU\n  variant;\
+    \ at 18:49Z the user named the form - \"PR desc should look like this\",\n  vLLM\
+    \ PR 54951, saved as PR_REFERENCE_54951.md) - the form is generalized from\n \
+    \ that PR's outline and stated once, at pr_evidence_package's subject: a lead\
+    \ with\n  the mechanism and the paired headline result; mechanism and what it\
+    \ does not\n  approximate; scope and activation; the paired measurements - every\
+    \ number the\n  candidate at its measured revision against its comparator at a\
+    \ named commit or\n  version (the target base where it serves the configuration,\
+    \ the planner's\n  entitlement and the GPU reference where it does not) over the\
+    \ declared context\n  lengths and concurrency levels, with the registered procedure's\
+    \ protocol (arms\n  as commits, hardware and parallelism, pairing order, warm-ups,\
+    \ repeats);\n  correctness and accuracy as counts with their non-claims; how it\
+    \ was tested;\n  reproduction per arm; the authorship disclosure; what stays open.\
+    \ prepare_pr\n  now points at that subject instead of restating the list (the\
+    \ duplicated\n  how-tested clause is cut) and carries the non-claim rule - every\
+    \ limit of the\n  records written where the claim stops, because one unstated\
+    \ limit discredits\n  the stated results. review_pr_evidence's description material\
+    \ gains a number\n  with no paired comparator and a claim that reaches past its\
+    \ record with no\n  limit beside it, and \"a missing part\" becomes a missing\
+    \ section of the declared\n  form. design_campaign's register step declares the\
+    \ table's cells with their\n  comparator arms as measurements; the run input's\
+    \ served shapes name context\n  lengths and concurrency levels. The section outline\
+    \ itself is release-layer\n  (the layout reference, EVERY COPY), so a PR form\
+    \ change is a document edit,\n  not a graph edit. Outcome moved: pr_ready - a\
+    \ description missing a declared\n  section or an unpaired number is material.\
+    \ Price: the cells and their\n  comparator arms are measured inside the served\
+    \ measurement lease already held;\n  the declared shapes bound their count. User-only:\
+    \ the user's own words of\n  18:49Z set the form, so the line is a confirmation,\
+    \ not a new approval; it is\n  listed as line 20 because pr_package_ready's meaning\
+    \ changed and one line\n  removes the question (the reviewer's reading, the lead's\
+    \ ruling). The register\n  step names the pairing order, warm-ups and repeats\
+    \ of each performance\n  comparison beside its comparator arm, so the protocol\
+    \ the description reports\n  is a registered field and not a writer's invention\
+    \ (round 3d, R9).\nUser-only lines from round 3: (17) the trace's op inventory\
+    \ and the design's execution map are required artifacts (target_traced and the\
+    \ design review change what passes); (18) a model port's correctness gate is the\
+    \ ladder and kickoff_contract_approved fails a contract without it; (19) plan_satisfied\
+    \ requires a maintainer-pass record over the current branch diff before hardware;\
+    \ (20) the PR description takes the section form the user named, and pr_package_ready\
+    \ reads it.\nRound 1, item by item (reviewer-r18's final list; the replay numbers\
+    \ in brackets):\n  BLOCKING-1, approval record - held pending; the approval field\
+    \ quotes the user's\n  seven-line answer at digest cfc44617 and lists lines 8\
+    \ to 15 as awaiting; the lead\n  asks once at this digest.\n  HIGH-1 [replay 1,\
+    \ 2], hot op bound to substrate - change 3 (rows for every\n  component the profile\
+    \ attributes, one registered tolerance defines a hot op;\n  numerics plan stays\
+    \ per kernel-class increment), change 2 (costing over hot ops of\n  any substrate),\
+    \ change 5 (unrowed time above tolerance is performance_shortfall;\n  no_benefit\
+    \ is the residual), reviewer material list.\n  HIGH-2 [3], roofline undefined\
+    \ - principle 4 and change 3 (the op's minimum work,\n  bytes and instructions,\
+    \ at the binding engine's calibrated rate; the ratio at\n  realize_increment is\
+    \ read against it).\n  HIGH-3 [4], served cap had no producer - change 1 (suite\
+    \ row = ramp and cap under\n  synthetic kernel_alone load; measure_candidate appends\
+    \ the served cap row; rows\n  name their source; a design cites the served row\
+    \ when one exists), change 5.\n  HIGH-4 [5], correctness class not registered\
+    \ - change 3 (each kernel-class op's\n  class is registered; a change re-presents\
+    \ gate 2).\n  HIGH-5 [6], accepted predicted miss dead-ends - change 3 (acceptance\
+    \ is a\n  criterion change in the user's words, a decision-record entry re-registered\
+    \ as the\n  criterion; a declined miss with no new row or form is design_blocked).\n\
+    \  HIGH-6 [7], fresh gate-2 seat per design entry - change 4 (the reviewer's one\n\
+    \  clause: block-scoped kernel re-entries go to the retained kernel reviewer;\
+    \ a\n  whole-plan entry keeps its fresh seat under spec 9.4; the changelog says\
+    \ what the\n  graph says).\n  HIGH-7, prepare_measurements at full strength per\
+    \ re-serve - change 7 (lead-run\n  check on digest-equal registration, smoke records\
+    \ and baseline captures;\n  measurements_ready with no seat).\n  L1 safeguard\
+    \ price - change 4 cites revisions.yaml 1184-1185, 1037, 1327 and 56-58.\n  L2\
+    \ verbs - change 4 reads 4 of 11; change 1 marks the 7x pattern ESTIMATE; the\
+    \ two\n  field sentences are deleted from calibrate_hardware and design_campaign,\
+    \ the general\n  reasons beside them stand (net shrink).\n  L3 EVERY COPY - the\
+    \ additions are in the list below.\n  L4 measurer role - one clause names the\
+    \ calibration suite.\n  L5 stale wording - principle 5 reads \"the design gate\
+    \ and the whole-campaign\n  review\"; design_campaign reads \"the increment plan\"\
+    .\n  L6 costing shapes - run_input_and_preflight_record names the served shapes\
+    \ per\n  requested target; costing reads them; the kickoff carries them.\n  L7\
+    \ mask-by-multiply - narrowed to an operand that can hold a non-finite value.\n\
+    \  L8 written reason - cites the measured rows it rests on, at principle 4,\n\
+    \  design_campaign and the reviewer's material list.\n  L9 replay table - corrected\
+    \ below to the replay's score before repair, then re-run\n  against the repaired\
+    \ text.\n  Rejected by the reviewer, followed here: the replay's fifth debt bucket\
+    \ (device\n  behaviour fits bucket 3) is reverted; no delegate_dispatcher role\
+    \ for the planner;\n  the vendored-kernel numerics extension (INFERENCE) is reverted;\
+    \ the \"oracle on\n  CPU before any lease\" nuance is dropped from the replay\
+    \ row.\n  Residual, no action required by the reviewer, taken because each cost\
+    \ no new node,\n  edge or outcome: the perf_shortfall loop is bounded by design_blocked\
+    \ on a\n  re-derived row with no new row; a design anchor whose host faults is\
+    \ re-run once on\n  another roster host and then left unmeasured with the telemetry;\
+    \ a stale or\n  unmeasured tip at the close-out check routes to scope_next_increment;\
+    \ the\n  calibration pause reaches only hardware classes a requested target uses.\n\
+    \nRound 2, item by item (reviewer-r18's 11 LOW on digest 469f2df5; all seven HIGH\
+    \ confirmed fixed, none reopened):\n  LOW-1 one bound, two names - already one\
+    \ value since round 1 (HIGH-1 repair): the\n  one tolerance the design registers\
+    \ defines a hot op at design_campaign and bounds\n  a measured component's excess\
+    \ at the register step and at adjudicate_results; no\n  \"attribution threshold\"\
+    \ wording remains.\n  LOW-2 re-rating actor - the measurer re-rates the predicted\
+    \ rows into the bundle\n  (mechanical, the scale stated once at adjudicate_results\
+    \ and once at\n  measure_candidate); the adjudicator reads evaluated records only.\n\
+    \  LOW-3 hazard citation unchecked - \"a row naming no hazard where the recorded\n\
+    \  hazard list holds one for its form\" joins review_campaign_design's material\
+    \ list.\n  LOW-4 prepare_measurements - the lead-run check covers any re-entry\
+    \ with\n  registration, smoke records and baseline captures digest-equal, not\
+    \ only the\n  performance loop.\n  LOW-5 accepted miss recorded to the kickoff\
+    \ - now a user decision in the decision\n  record, re-registered as the criterion\
+    \ the adjudicator reads; the kickoff contract\n  keeps its one producer.\n  LOW-6\
+    \ user-only line 16 - measure_candidate's write under the run's calibration\n\
+    \  directory; added to the approval list and to change 5.\n  LOW-7 one row file\
+    \ per served profile - stated at measure_candidate's purpose and\n  activity;\
+    \ the layout reference fixes the shape (EVERY COPY).\n  LOW-8 run-input shapes\
+    \ - done in round 1 (L6).\n  LOW-9 field prose - the two field sentences went\
+    \ in round 1 (L2); the principle-4\n  clause \"the misses that hid longest sat\
+    \ in ops nobody had called a kernel\" is cut\n  now; the semantic-diff numbers\
+    \ read 4 of 11 and ESTIMATE.\n  LOW-10 safeguard price - done in round 1 (L1).\n\
+    \  LOW-11 measurer role - done in round 1 (L4): the purpose names the calibration\n\
+    \  suite; the served cap row is the product of one declared measurement procedure,\n\
+    \  so the GPU-baseline clause already covers it.\n\nRound 3c, item by item (reviewer-r18's\
+    \ merged list on digest 26c41d61, six HIGH and two LOW, with REPLAY2's findings\
+    \ adopted into it; R4 was already closed by round 3b):\n  R1 HIGH, a failed ladder\
+    \ rung dead-ends - measure_candidate writes each later\n  rung and each performance\
+    \ procedure its own bundle with the record \"not run\n  after rung n failed\"\
+    ; bundles_stable and acceptance_threshold_evaluated accept\n  that record; correctness_shortfall\
+    \ names the rung (step 4).\n  R2 HIGH, kernel sets serial by default, amended\
+    \ by the user's 19:09Z word -\n  (a) one seat per kernel item at once is the kernel\
+    \ set's default hand, the\n  glue set keeps the serial default; (b) the kernel\
+    \ call records a pull list,\n  capacity-many run at once, a finishing seat takes\
+    \ the next item, the set\n  converges when the list is empty; (c) one retained\
+    \ kernel reviewer per review\n  capacity of items in flight, each retained across\
+    \ its items' rounds, the\n  design re-entry going to the reviewer that read the\
+    \ op; line 4 reworded and\n  re-presented; SKILL.md row 157 and the scoping dispatch\
+    \ line are in EVERY COPY\n  (step 3c).\n  R3 HIGH, the maintainer pass re-read\
+    \ the whole clean diff - first pass whole,\n  later passes the delta since the\
+    \ newest pass record's tip; the whole-campaign\n  review keeps the one full read\
+    \ (step 6).\n  R4 HIGH, PR form of record - closed in round 3b: the section form\
+    \ is stated\n  once at pr_evidence_package's subject (the graph, because pr_package_ready\
+    \ and\n  the review's material test read \"the declared form\", and a form declared\
+    \ only\n  in a release document would let the graph's acceptance depend on a file\
+    \ the\n  graph does not carry), with the layout reference carrying the same outline\
+    \ as\n  the release copy; prepare_pr and review_pr_evidence point at it (step\
+    \ 7).\n  Stated for attack: the reviewer asked for pointer-only in the graph.\n\
+    \  R5 HIGH, rung 1 readable as token match - rung 1 is coherent served\n  generation\
+    \ on the reference's prompt set; token identity is never a rung\n  (step 4; line\
+    \ 18 reworded).\n  R7 HIGH, approved line 11 drifted and form-added ops had no\
+    \ row - (a)\n  principle 4 reads \"every hot op on the design's execution map\"\
+    \ (absorbs the\n  round-1 LOW on principle 4); (b) an op a chosen form adds is\
+    \ costed inside its\n  map op's row, and a profile-attributed component above\
+    \ the tolerance with no\n  map row is a map gap, material at the design review\
+    \ on a shortfall re-entry;\n  (c) line 11 reworded and re-presented beside 17\
+    \ to 20, the changelog aligned\n  (change 3).\n  R6 LOW, benchmark rungs had no\
+    \ noise form - each benchmark bound states how a\n  score inside the reference's\
+    \ noise reads (a repeat count, an interval, or the\n  user's word at adjudication),\
+    \ set by the user at gate 1 (step 4).\n  R8 LOW, a queued kernel_alone lease had\
+    \ no exit - the wait carries the grant\n  request's wall-clock cap; on expiry\
+    \ the item records increment_stuck with the\n  queue record; increment_stuck's\
+    \ meaning names the case (step 3c).\n  R9 LOW (round 3d, found on 3b), \"pairing\
+    \ order\" had no field - the register\n  step names each performance comparison's\
+    \ pairing order, warm-ups and repeats\n  beside its comparator arm, so the protocol\
+    \ the PR subject reports is\n  registered (step 7).\n  Not adopted, per the reviewer:\
+    \ a rung bound derived from the reference's\n  run-to-run spread (downgraded to\
+    \ R6); \"no rule for which call applies\" (the\n  scoping text states both calls,\
+    \ and now the default).\n\nReplay on paper, score before repair (the replay record's\
+    \ own): CAUGHT 3 (cases 1, 2, 4), CAUGHT WITH HINDSIGHT 2 (cases 5, 6), MISSED\
+    \ 1 (case 3). Then each case re-run against the repaired text:\n  1, 512 serial\
+    \ gathers at half a chunk - CAUGHT before and after; the repair adds\n  the floor's\
+    \ definition (the op's minimum work) and the rule that a written reason\n  cites\
+    \ the floor rows, so neither limit the replay named remains.\n  2, fp32 doubling\
+    \ inverse NaN at long context - CAUGHT before and after; the refused\n  form (an\
+    \ algebraic identity trusted without a finite-precision bound) and the\n  regimes\
+    \ \"correlated inputs\" and \"long carried state\" fail the kernel against its\n\
+    \  fp64 oracle at realize_increment, before any serving lease; unchanged by the\
+    \ repair.\n  3, torch scatter mask producer at 6 ms per call - MISSED before (a\
+    \ torch op had no\n  row and the reviewer tested kernel-class rows only); CAUGHT\
+    \ after - a component the\n  served profile would attribute above the registered\
+    \ tolerance carries a row,\n  whatever its substrate, priced from the scatter\
+    \ cost per element row, and a row's\n  absence is a material finding at review_campaign_design.\n\
+    \  4, GpSimd compare 7 to 14x slower than estimated - CAUGHT before and after\
+    \ by the\n  per-engine compare rate row.\n  5, block-shared producer 13.5x over\
+    \ estimate - WITH HINDSIGHT before (a designer\n  could cite the DMA gather row\
+    \ for a compiler gather); CAUGHT after - a cited row\n  must match the op's lowering\
+    \ and access pattern, so the compiler gather has no row\n  and needs an anchor\
+    \ run before costing.\n  6, kernel-alone gain that did not carry to serving -\
+    \ WITH HINDSIGHT before (the cap\n  row had no producer); CAUGHT after - the suite's\
+    \ synthetic-load cap row prices the\n  first design, the served profile's cap\
+    \ row supersedes it, and adjudicate_results\n  re-rates every row under the served\
+    \ cap before judging.\nAfter repair each case is caught by a cost class, a regime\
+    \ class, a rate row or the cap row; none needs a kernel recipe.\nCeremony priced\
+    \ per run. Added: one calibration session per toolchain pin; one planner run per\
+    \ route; one cost row per hot op and one oracle per kernel-class op; one anchor\
+    \ run per uncalibrated class; one profile capture and one cap row per served measurement;\
+    \ one program-digest comparison per untargeted phase, or its measurement when\
+    \ the base's programs are not on disk; one inventory read inside the trace seat;\
+    \ the execution map inside the design seat; one seat and one kernel_alone lease\
+    \ per kernel in flight and one retained kernel reviewer per review capacity; one\
+    \ full maintainer read, then one delta read per changed diff; the performance\
+    \ table's cells inside the served measurement lease; the not-run records of a\
+    \ stopped ladder (files, no runs). Removed: one fresh reviewer seat per batch\
+    \ and per block-scoped kernel re-entry with the lead relay; the batch re-check\
+    \ at the scoping edge; one measurement-preparation seat per unchanged re-entry;\
+    \ the serial wait between kernels and the idle of freed device capacity behind\
+    \ a set's slowest kernel; every ladder rung and performance procedure after a\
+    \ failed rung.\nNO CHANGE, each attackable: P9 (dominant variant at once) - the\
+    \ graph already closes one op per block-scoped re-entry, a sentence would be a\
+    \ patch. P12 (phase split) - the per-phase criterion and the unchanged-phase digest\
+    \ rule land (change 2); shared files by registered region is already the graph's\
+    \ pairwise-disjoint file-and-method surface rule at scope_next_increment and the\
+    \ predicted touched-file surface at costing; upstream-phase-first triage is an\
+    \ investigation order for the implementer and investigator contracts; a bounded\
+    \ landing delay has no subject in a run whose campaign branch reaches the fork\
+    \ only through its own PR. P13 (peer coordination) - a verdict naming its configuration\
+    \ is already every bundle's invocation, configuration and environment stamp at\
+    \ measure_candidate; a single-lead graph has no peer edge, so note discipline\
+    \ is prose for the release layer. A hazard catalogue as a fifth cross-run artifact\
+    \ - not added; hazards enter the debt list as release items and feed the suite,\
+    \ oracle and hazard lists, so the \"four cross-run artifacts\" wording stays true.\
+    \ Lease tool scripts, the calibration suite script and the oracle tooling - release\
+    \ work, named by duty. The bar number appears once. rederive_approach's roles\
+    \ against SKILL line 95 - older than this revision, noted for the release step,\
+    \ not touched here. No ceiling raised.\nEVERY COPY (release layer; propose copies\
+    \ graph files only, so the apply step records these as follow-ups): skills/vllm-neuron-parity/SKILL.md\
+    \ - dispatch row 94 (review_increment_batch) becomes the calibrate_hardware row\
+    \ and the retained kernel reviewer at realize_increment, stage row 157 (\"CPU-first\"\
+    , batch review, fresh reviewer, impl_commit_is_reviewed) is rewritten to oracle-first,\
+    \ kernel_alone ratio, retained kernel reviewer, check at the PR edge, row 354\
+    \ drops the batch re-check, one stage row for calibration after preflight; 385\
+    \ of 500 lines, stays under. agents/adversarial-reviewer.md lines 30, 35, 50,\
+    \ 86-119 (120 is blank), 143, 199 (per batch, fresh seat per batch, fresh seat\
+    \ per design entry) become the seat rule change 4 states, line 111 the check's\
+    \ new anchor and route; ceiling 240. agents/implementer.md 31 (CPU-first plan),\
+    \ 34 and 46 (CPU-mode acceptance; the simulator route stays for glue), 97 (design_blocked\
+    \ stop list gains the three stops), 146, 313, 359 (batch review), 214 and 229\
+    \ (the --class list gains kernel_alone) - at 380 of 380, the batch paragraphs\
+    \ go first. agents/adjudicator.md 46 (no_benefit) gains performance_shortfall\
+    \ with the unrowed-time rule, reading the measurer's re-rated rows, and the widened\
+    \ regression_failed; ceiling 150. agents/measurer.md gains the calibration suite\
+    \ with its synthetic-load cap row, the served profile with its cap row file and\
+    \ the mechanical re-rating of predicted rows into the bundle, and the digest-equality\
+    \ evaluation of untargeted phases; ceiling 190. agents/investigator.md 91 (costing\
+    \ reads the run input's served shapes and runs the planner) and the cost table\
+    \ over every hot op; ceiling 200. codex/agents/*.toml - twin of each. references/artifact-layout.md\
+    \ 129, 257, 265, 374 (batch records) become kernel review records, 148, 155, 171\
+    \ (class spelling) gain kernel_alone, plus the artifacts/run/calibration/ layout\
+    \ with the row source field and one row file per served profile - at 440 of 440,\
+    \ trim first. references/measurement-pitfalls.md gains the served-carry prediction\
+    \ under the cap row and per-op attribution. references/toolchain.md names the\
+    \ calibration suite with its row list and the oracle tooling with its regime list\
+    \ (both new release deliverables, scripts under scripts/, each with a ceiling\
+    \ pinned in tests/test_document_ceilings.py), and the hazard list every design's\
+    \ rows cite (a new reference, ceiling pinned). README.md 110-120 - the delegate\
+    \ list gains the parallelism planner as a declared delegate and the sentence \"\
+    the delta scan through gate 1 needs none of them\" is corrected, because costing\
+    \ now runs the planner; 166 and 658 count phrases become 68 edges; the stage-6\
+    \ mermaid (262-310) drops the batch edges and adds calibrate_hardware; the adjudication\
+    \ mermaid at 387 gains perf_shortfall_to_redesign; lines 559, 587 and 635 follow;\
+    \ 688 of 700. VERSION newest entry \"21 nodes, 68 edges\". tests/test_workflow_pave.py\
+    \ lines 9 and 26: EXPECTED = \"21 nodes, 68 edges, 5 control nodes\". skills/vllm-neuron-parity/hooks/stop-guard.sh\
+    \ 632 and tests/test_hooks.sh 634 (\"batch review\") become the whole-campaign\
+    \ review wording. scripts/hardware_queue.py JOB_CLASSES (23, 29, 41, 179, 264),\
+    \ scripts/measure_artifact.py 24, 124, schemas/run-state.schema.json 150 (\"serving,\
+    \ diagnostic, cpu_mode\") and tests/test_hardware_queue.py 83-84 (class strings)\
+    \ gain kernel_alone. hooks/dispatch_advisory.py names design_campaign and scope_next_increment\
+    \ only - unchanged. tests/test_document_ceilings.py - no existing ceiling raised;\
+    \ the new reference and tooling documents get pinned ceilings. Round 3 additions:\
+    \ agents/investigator.md - the trace's op inventory activity, the execution map\
+    \ before the cost rows, the performance table's cells at the register step; agents/implementer.md\
+    \ - the load-bearing tests rule, the kernel set (own checkout, CPU oracle while\
+    \ the lease is queued, queue to the retained reviewer) and the maintainer-pass\
+    \ item; agents/measurer.md - ladder rungs in order, table cells; agents/adjudicator.md\
+    \ - correctness_shortfall names the rung; codex/agents/*.toml twins; skills/vllm-neuron-parity/SKILL.md\
+    \ - stage row 157 (\"serial on the retained thread by default, one seat per item\
+    \ only when each has its own checkout\") becomes the kernel set's default of one\
+    \ seat per item from a pull list with reviewers sized to the items in flight,\
+    \ glue serial by default, the kernel call in the scoping row and the maintainer\
+    \ pass before hardware; references/artifact-layout.md - the inventory section\
+    \ of the delta report, the execution map in the design record, the maintainer-pass\
+    \ record, and the PR description's section outline in order (generalized from\
+    \ PR_REFERENCE_54951.md: lead, mechanism, scope and activation, paired measurements\
+    \ with protocol, correctness and accuracy with non-claims, how tested, reproduction\
+    \ per arm, authorship disclosure, what stays open) - at 440 of 440, trim first;\
+    \ agents/implementer.md and agents/adversarial-reviewer.md - the PR form and its\
+    \ description material list; references/measurement-pitfalls.md - the paired-arm\
+    \ protocol (named commits, pairing order, warm-ups, repeats); README.md - the\
+    \ stage list maps the user's seven steps. Round 3c additions: agents/measurer.md\
+    \ - the not-run record behind a failed rung, rung 1 as coherent generation; agents/adjudicator.md\
+    \ - the not-run record is the evaluated form, correctness_shortfall names the\
+    \ rung; agents/implementer.md - the pull list, one seat per kernel item, the queue\
+    \ cap exit, the delta maintainer read; agents/adversarial-reviewer.md - retained\
+    \ kernel reviewers per review capacity, the design re-entry to the reviewer that\
+    \ read the op; codex twins of each; references/artifact-layout.md - the not-run\
+    \ bundle record and the pull-list round row."
+  approval: Approve lines 4r, 11r, 17-20 and apply revision 18 at digest 98aa5b82
+    (Recommended)
+  user_only_changes: approved
+  plan_evidence: verified
+  usage_evidence: none
+  review: PASS - reviewer-r18 (update-reviewer), digest 98aa5b82, cycle 2 round 4;
+    cycle 1 PASS at 78a28077 after 3 rounds; 8 digests read from disk in all.
+  written_by: unverified
+  patch: history/v18.patch
   commit: null
   derived_from: null
   run_id: null
