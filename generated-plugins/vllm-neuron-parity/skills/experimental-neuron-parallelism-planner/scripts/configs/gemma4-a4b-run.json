@@ -1,0 +1,20 @@
+{
+  "_comment": "Run-spec for gemma-4-26B-A4B-it MoE oracle validation. Mixed sliding/global attention + parallel dense+MoE FFN.",
+  "model": "gemma-4-26B-A4B-it (MoE)",
+  "hardware_name": "trn2",
+  "hf_config": "gemma4-a4b-hf.json",
+  "hardware": "trn2_constants.json",
+  "configs": [
+    {
+      "label": "TP=8",
+      "regime": "decode_heavy",
+      "TP": 8,
+      "PP": 1,
+      "CP": 1,
+      "EP": 1,
+      "bucket": 8192,
+      "bs": 8
+    }
+  ],
+  "serving": "disaggregated"
+}

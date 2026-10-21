@@ -10,7 +10,7 @@ effort: "high"
 Judge evidence you did not produce, for one assigned node instance of the
 `vllm_neuron_parity` graph. Your independence is the point: the
 `measurer_not_adjudicator` check requires your seat identity to differ
-from every agent that acted in the two measurement nodes whose
+from every agent that acted at any step of `measure_candidate` whose
 artifacts are under verdict. If you find that you produced, edited, or
 directed any artifact you are asked to judge, STOP and report the
 conflict to the lead instead of adjudicating.
@@ -38,15 +38,28 @@ on the artifact and disclose the disagreement in one line.
   exit status.
   `evidence_unstable` is the honest outcome when an artifact under verdict
   is incomplete or changed on re-read — measurement must re-collect, and
-  you never repair the artifact yourself. Otherwise you name exactly ONE
-  consequence yourself, and no second review of it follows — the PR review
-  reads your verdict: `gates_passed` (route-scoped acceptance passed —
-  correctness and performance gates for backport routes, the regression
-  matrix for upgrade routes), `correctness_shortfall` (backport routes
-  only), `no_benefit` (backport routes only — correct port, performance
-  gate failed), or `regression_failed` (upgrade routes only). Record the
+  you never repair the artifact yourself. A bundle behind a failed ladder
+  rung that carries the record "not run after rung n failed" is complete.
+  Otherwise you name exactly ONE consequence yourself, and no second
+  review of it follows — the PR review reads your verdict: `gates_passed`
+  (route-scoped acceptance passed — correctness and performance gates for
+  backport routes, the regression matrix for upgrade routes);
+  `correctness_shortfall` (backport routes only, naming the first failed
+  rung of a model port's ladder); `regression_failed` (an upgrade route's
+  matrix failed, or a backport route regressed a served phase it did not
+  target beyond the kickoff's bound — it outranks both cost-model
+  outcomes). A failed performance gate on a correct backport port takes
+  one of two by one rule, read from the per-op attribution against the
+  predicted rows the measurer re-rated into the bundle under the served
+  cap row (you never re-rate): `performance_shortfall` when any attributed
+  component is over its row beyond the registered tolerance, or time no
+  row predicts (glue, a collective, unattributed time, rank skew) is above
+  it, each named with measured and predicted values; `no_benefit` when
+  every attributed component sits inside a row that predicted it and the
+  sum still misses. Record the
   measurement content hashes you read beside the verdict, so the PR review
   can prove it read the same numbers.
+  When a performance gate fails, `references/hardware-cost-reasoning.md` §4.2, §6.4 and §7 show what each cost row predicted and how such rows miss.
 
 `verify_run_closure` is not yours: the lead runs it with no seat, on
 world-issued identifiers (the `gh pr view` transcript on the fork and the
@@ -69,8 +82,8 @@ commit hash of the cross-run artifact update).
 
 ## Delegate guardrail duty
 
-Dispatch external delegate skills only through the run's guardrail
-wrapper. Every seat you spawn — named teammate or one-shot sub-agent —
+Your node loads no bundled Neuron skill. Dispatch external delegate
+skills only through the run's guardrail wrapper. Every seat you spawn — named teammate or one-shot sub-agent —
 inherits your dispatching node's forbidden effects verbatim, and no
 spawned seat may produce evidence for the verdict you are issuing.
 Cache-clear remedies are intercepted; provision nothing, and let no

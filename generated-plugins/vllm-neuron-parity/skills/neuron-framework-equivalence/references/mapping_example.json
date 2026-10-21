@@ -1,0 +1,350 @@
+{
+    "mapping_size": 31,
+    "component_mapping": [
+        [
+            [
+                "model.model"
+            ],
+            [
+                "model.language_model.model"
+            ]
+        ],
+        [
+            [
+                "model.model.embed_tokens"
+            ],
+            [
+                "model.language_model.model.embed_tokens"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}"
+            ],
+            [
+                "model.language_model.model.layers.{i}"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.self_attn"
+            ],
+            [
+                "model.language_model.model.layers.{i}.self_attn"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.self_attn.qk_norm"
+            ],
+            [
+                "model.language_model.model.layers.{i}.self_attn.q_norm",
+                "model.language_model.model.layers.{i}.self_attn.k_norm"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.self_attn.q_proj",
+                "model.model.layers.{i}.self_attn.k_proj",
+                "model.model.layers.{i}.self_attn.v_proj"
+            ],
+            [
+                "model.language_model.model.layers.{i}.self_attn.qkv_proj"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.self_attn.o_proj"
+            ],
+            [
+                "model.language_model.model.layers.{i}.self_attn.o_proj"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}"
+            ],
+            [
+                "model.language_model.model.layers.{j}"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.self_attn"
+            ],
+            [
+                "model.language_model.model.layers.{j}.self_attn"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.self_attn.q_proj",
+                "model.model.layers.{j}.self_attn.k_proj",
+                "model.model.layers.{j}.self_attn.v_proj"
+            ],
+            [
+                "model.language_model.model.layers.{j}.self_attn.qkv_proj"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.self_attn.o_proj"
+            ],
+            [
+                "model.language_model.model.layers.{j}.self_attn.o_proj"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.feed_forward"
+            ],
+            [
+                "model.language_model.model.layers.{i}.feed_forward"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.feed_forward.router"
+            ],
+            [
+                "model.language_model.model.layers.{i}.feed_forward.router"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.feed_forward.shared_expert"
+            ],
+            [
+                "model.language_model.model.layers.{i}.feed_forward.shared_expert"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.feed_forward.shared_expert.gate_proj",
+                "model.model.layers.{i}.feed_forward.shared_expert.up_proj"
+            ],
+            [
+                "model.language_model.model.layers.{i}.feed_forward.shared_expert.gate_up_proj"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.feed_forward.shared_expert.down_proj"
+            ],
+            [
+                "model.language_model.model.layers.{i}.feed_forward.shared_expert.down_proj"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.feed_forward.shared_expert.activation_fn"
+            ],
+            [
+                "model.language_model.model.layers.{i}.feed_forward.shared_expert.act_fn"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.feed_forward.experts"
+            ],
+            [
+                "model.language_model.model.layers.{i}.feed_forward.experts"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.feed_forward"
+            ],
+            [
+                "model.language_model.model.layers.{j}.feed_forward"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.feed_forward.router"
+            ],
+            [
+                "model.language_model.model.layers.{j}.feed_forward.router"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.feed_forward.shared_expert"
+            ],
+            [
+                "model.language_model.model.layers.{j}.feed_forward.shared_expert"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.feed_forward.shared_expert.gate_proj",
+                "model.model.layers.{j}.feed_forward.shared_expert.up_proj"
+            ],
+            [
+                "model.language_model.model.layers.{j}.feed_forward.shared_expert.gate_up_proj"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.feed_forward.shared_expert.down_proj"
+            ],
+            [
+                "model.language_model.model.layers.{j}.feed_forward.shared_expert.down_proj"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.feed_forward.shared_expert.activation_fn"
+            ],
+            [
+                "model.language_model.model.layers.{j}.feed_forward.shared_expert.act_fn"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.feed_forward.experts"
+            ],
+            [
+                "model.language_model.model.layers.{j}.feed_forward.experts"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.input_layernorm"
+            ],
+            [
+                "model.language_model.model.layers.{i}.input_layernorm"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{i}.post_attention_layernorm"
+            ],
+            [
+                "model.language_model.model.layers.{i}.post_attention_layernorm"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.input_layernorm"
+            ],
+            [
+                "model.language_model.model.layers.{j}.input_layernorm"
+            ]
+        ],
+        [
+            [
+                "model.model.layers.{j}.post_attention_layernorm"
+            ],
+            [
+                "model.language_model.model.layers.{j}.post_attention_layernorm"
+            ]
+        ],
+        [
+            [
+                "model.model.norm"
+            ],
+            [
+                "model.language_model.model.norm"
+            ]
+        ],
+        [
+            [
+                "model.lm_head"
+            ],
+            [
+                "model.language_model.lm_head"
+            ]
+        ]
+    ],
+    "variables": {
+        "i": [
+            "0",
+            "1",
+            "2",
+            "4",
+            "5",
+            "6",
+            "8",
+            "9",
+            "10",
+            "12",
+            "13",
+            "14",
+            "16",
+            "17",
+            "18",
+            "20",
+            "21",
+            "22",
+            "24",
+            "25",
+            "26",
+            "28",
+            "29",
+            "30",
+            "32",
+            "33",
+            "34",
+            "36",
+            "37",
+            "38",
+            "40",
+            "41",
+            "42",
+            "44",
+            "45",
+            "46"
+        ],
+        "j": [
+            "3",
+            "7",
+            "11",
+            "15",
+            "19",
+            "23",
+            "27",
+            "31",
+            "35",
+            "39",
+            "43",
+            "47"
+        ]
+    },
+    "reasoning": {
+        "HF": {
+            "model.model.layers.{i}.feed_forward.experts.act_fn": "SiLUActivation - In HF's Llama4TextExperts, this is an explicit activation function stored as self.act_fn. In vLLM's SharedFusedMoE, the expert computation is handled by a fused kernel that doesn't expose individual activation functions as separate submodules. The activation is applied within the fused MoE forward pass.",
+            "model.model.layers.{j}.feed_forward.experts.act_fn": "SiLUActivation - Same as above for layers without qk_norm. The activation is fused into the kernel operations.",
+            "model.model.rotary_emb": "Llama4TextRotaryEmbedding - In HF, this is a single shared module at model.model.rotary_emb used across all layers. In vLLM, each attention layer has its own RotaryEmbeddingWrapper instance for performance optimization. This represents an architectural difference: HF uses a shared module approach while vLLM creates per-layer instances."
+        },
+        "vLLM": {
+            "model": "Llama4ForConditionalGeneration - This is vLLM's multimodal wrapper containing vision_model, multi_modal_projector, and language_model. The HF model is text-only (Llama4ForCausalLM), so there's no equivalent multimodal top-level wrapper. The HF model corresponds to vLLM's model.language_model sub-component.",
+            "model.vision_model": "Llama4VisionModel - Complete vision processing pipeline with patch embedding, layernorms, encoder layers, and vision adapter. This entire vision model has no counterpart in the text-only HF model.",
+            "model.vision_model.patch_embedding": "Llama4UnfoldConvolution with Unfold and ColumnParallelLinear - Vision-specific component for converting image patches to embeddings. No equivalent in text-only HF model.",
+            "model.vision_model.patch_embedding.unfold": "Unfold - Part of vision patch embedding. No HF equivalent.",
+            "model.vision_model.patch_embedding.linear": "ColumnParallelLinear - Part of vision patch embedding. No HF equivalent.",
+            "model.vision_model.layernorm_pre": "LayerNorm - Pre-encoder vision normalization. No HF equivalent.",
+            "model.vision_model.layernorm_post": "LayerNorm - Post-encoder vision normalization. No HF equivalent.",
+            "model.vision_model.model": "Llama4VisionEncoder - Vision encoder container. No HF equivalent.",
+            "model.vision_model.model.layers (0..33)": "Llama4VisionEncoderLayer - 34 vision encoder layers with Llama4VisionAttention (containing MultiHeadAttention, QKVParallelLinear, RowParallelLinear, RotaryEmbeddingWrapper), Llama4VisionMLP (fc1, fc2, GELU), and LayerNorms. No HF equivalent.",
+            "model.vision_model.vision_adapter": "Llama4VisionPixelShuffleMLP - Vision feature adapter with Llama4VisionMLP (fc1, fc2, GELU). No HF equivalent.",
+            "model.multi_modal_projector": "Llama4MultiModalProjector - Projects vision features to text embedding space via linear_1 (ColumnParallelLinear). No equivalent in text-only HF model.",
+            "model.language_model": "Llama4ForCausalLM - This is vLLM's language model wrapper nested under the multimodal root. In HF, the Llama4ForCausalLM is at the root level (model). The internal components are mapped individually.",
+            "model.language_model.model.layers.{i}.self_attn.rotary_emb": "RotaryEmbeddingWrapper - vLLM creates per-layer RotaryEmbeddingWrapper instances for optimization. HF uses a single shared model.model.rotary_emb for all layers. This is an architectural difference in organization.",
+            "model.language_model.model.layers.{i}.self_attn.attn": "ChunkedLocalAttention - vLLM-specific optimized attention kernel for layers with qk_norm. In HF, attention is computed inline within Llama4TextAttention.forward(), not as a separate submodule. vLLM extracts attention into dedicated kernel modules for performance.",
+            "model.language_model.model.layers.{j}.self_attn.rotary_emb": "RotaryEmbeddingWrapper - Same as above for layers without qk_norm.",
+            "model.language_model.model.layers.{j}.self_attn.attn": "Attention - Different optimized attention kernel (standard vs ChunkedLocal) for layers without qk_norm. HF computes attention inline.",
+            "model.language_model.model.layers.{i}.feed_forward.experts.quant_method": "UnquantizedFusedMoEMethod - vLLM quantization configuration object for SharedFusedMoE. This represents vLLM-specific infrastructure for supporting various quantization methods and is not exposed in HF's architecture.",
+            "model.language_model.model.layers.{i}.feed_forward.experts._shared_experts": "LlamaMLP - Auxiliary structure within vLLM's SharedFusedMoE. Based on the source code, when use_overlapped=True, this _shared_experts module is used for compute-communication overlap optimization. The SharedFusedMoE forward() can compute shared expert results overlapped with all2all dispatch. HF only has feed_forward.shared_expert at the parent level without this optimization structure.",
+            "model.language_model.model.layers.{i}.feed_forward.experts._shared_experts.gate_up_proj": "MergedColumnParallelLinear - Part of auxiliary _shared_experts for overlap optimization.",
+            "model.language_model.model.layers.{i}.feed_forward.experts._shared_experts.down_proj": "RowParallelLinear - Part of auxiliary _shared_experts for overlap optimization.",
+            "model.language_model.model.layers.{i}.feed_forward.experts._shared_experts.act_fn": "SiluAndMul - Part of auxiliary _shared_experts for overlap optimization.",
+            "model.language_model.model.layers.{j}.feed_forward.experts.quant_method": "UnquantizedFusedMoEMethod - Same as above for layers without qk_norm.",
+            "model.language_model.model.layers.{j}.feed_forward.experts._shared_experts": "LlamaMLP - Same as above for layers without qk_norm.",
+            "model.language_model.model.layers.{j}.feed_forward.experts._shared_experts.gate_up_proj": "MergedColumnParallelLinear - Part of auxiliary _shared_experts for layers without qk_norm.",
+            "model.language_model.model.layers.{j}.feed_forward.experts._shared_experts.down_proj": "RowParallelLinear - Part of auxiliary _shared_experts for layers without qk_norm.",
+            "model.language_model.model.layers.{j}.feed_forward.experts._shared_experts.act_fn": "SiluAndMul - Part of auxiliary _shared_experts for layers without qk_norm.",
+            "model.language_model.logits_processor": "LogitsProcessor - vLLM-specific module for inference-time logit processing (temperature, top-p/top-k, repetition penalty, etc.). In HF, logit processing is handled by generation utilities (GenerationMixin, LogitsProcessorList) rather than as a model component. This represents an architectural difference in how inference-time operations are organized."
+        }
+    }
+}

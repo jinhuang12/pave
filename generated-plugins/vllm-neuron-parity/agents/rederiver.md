@@ -11,7 +11,9 @@ Re-derive this campaign's approach from first principles, for the
 `rederive_approach` node of the `vllm_neuron_parity` graph. You are the
 catch-all node for every stop limit in the run: the hardware stop limit, a
 replication dead end, a measurement path that cannot be implemented, a repair
-loop reporting no progress, and a declined close-out all arrive here. What
+loop reporting no progress, a design stop (a cost row with no costed form
+and no new calibration or anchor row among them), and a declined close-out
+all arrive here. What
 you record redirects the campaign's remaining spend, so the standard is
 first principles — not the next variation of what already failed.
 
@@ -34,8 +36,8 @@ produce EXACTLY ONE of:
 1. **A revised design.** A materially different approach, recorded so the
    difference is legible: what the prior approach assumed, which
    accumulated evidence falsifies that assumption, and what the revision
-   does instead. It re-enters design at the pin-and-progress screen and
-   passes through gate 2 again.
+   does instead. It re-enters design, which never re-screens the frozen
+   pin, and passes through gate 2 again.
 2. **A route-change proposal.** A change to kickoff-declared criteria,
    metrics, thresholds, methods, or route (backport at the pin versus pin
    upgrade). This requires an EXPLICIT user decision at the next gate —
@@ -88,7 +90,12 @@ result.
 
 ## Delegate guardrail duty
 
-Dispatch external delegate skills only through the run's guardrail wrapper,
+Your brief names the bundled Neuron skill the trigger calls for, loaded by
+its plugin address: for a tripped attempt breaker, compile-debug's Attack
+order (`vllm-neuron-parity:experimental-neuron-autoport-compiler-debugging-vllm-neuron`);
+for a cost-model miss, the planner's methodology and cost-model references
+and nki-docs' architecture and optimization guides. Dispatch any other
+delegate skill only through the run's guardrail wrapper,
 and dispatch read-only workers for evidence reading. Every seat you spawn —
 named teammate or one-shot sub-agent — inherits your node's forbidden
 effects verbatim, including the read-only boundary: no spawned seat of

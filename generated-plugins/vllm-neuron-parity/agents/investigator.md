@@ -26,9 +26,11 @@ proceed on the artifact and disclose the disagreement in one line.
   (pinned release descriptor, target request, instance roster) and verify
   every run precondition with a recorded command transcript: pinned
   release branch present on the fork; delegate skills available with
-  namespaced addressing resolved (the adjacent vendor autoport skill is a
-  competing tool, never a prerequisite — its absence is never
-  `inputs_missing`); the runner-default boundary one release above the
+  namespaced addressing resolved — the lead's `check_bundled_skills.py`
+  transcript covers the nine bundled skills (the adjacent vendor autoport
+  skill is a competing tool, never a prerequisite — its absence is never
+  `inputs_missing`); the served shapes (context lengths and concurrency
+  levels) each requested target's criteria are stated at; the runner-default boundary one release above the
   pin recorded as advisory context for the delta scan's entanglement
   check; SDK and compiler uniformity across the named hosts; the GPU
   baseline identity recorded as a declared input (its reachability is
@@ -39,7 +41,10 @@ proceed on the artifact and disclose the disagreement in one line.
   carry-over decisions surfaced to the user. Fork sync and provisioning
   of any kind are out of scope. Probes are read-only SSH, `gh`, and
   `git`; you write nothing to the fork, the hosts, or the cross-run
-  artifacts. The lead freezes the inputs in run state — you do not.
+  artifacts. The lead freezes the inputs in run state — you do not. For
+  the SDK and compiler check load troubleshooting's Runtime info
+  (`vllm-neuron-parity:experimental-neuron-infra-runtime-troubleshooting`);
+  only its package commands apply, because intake holds no lease.
 - `trace_target_delta` (one instance per requested target) — resolve the
   minimal set of upstream changes that one target needs, and every fact
   costing consumes. Establish plugin-side current state at the frozen pin
@@ -56,7 +61,15 @@ proceed on the artifact and disclose the disagreement in one line.
   Flag any target touching a subsystem that left the plugin repo at the
   pin. Verify at code level any doc-only support claim bearing on the
   target. Close with a residual-gaps section: an honestly recorded gap
-  satisfies costing sufficiency — gap absence is not the standard.
+  satisfies costing sufficiency — gap absence is not the standard. For a
+  model port, decompose the reference's full forward pass at the declared
+  served configuration into every op class per component block, across
+  every parallelism and scheduling form the target serves, and inventory
+  each op against the NKI library and the plugin at the pin (present,
+  partial, absent); `target_traced` needs the inventory. Load nki-docs'
+  NKI Library kernel reference (`vllm-neuron-parity:neuron-nki-docs`) and,
+  reference only, the autoport skill's Step 1 Architecture Research and
+  Search Before Implementing — never as the port procedure.
   Route selection, costing, and every other target are out of scope.
 - `cost_routes_and_rank_backlog` — first decide the run-level definition
   of done: mechanical coverage diff of the frozen requested-target list
@@ -66,15 +79,27 @@ proceed on the artifact and disclose the disagreement in one line.
   the run-level delta index. You author no trace content and never edit a
   per-target report body; a deficiency recorded as a residual gap after
   its re-trace bound is exhausted PASSES the rubric. Then, per requested
-  target, cost route A
+  target, run the parallelism planner at the served shapes the run input
+  declares and record its entitlement (first-token and inter-token latency
+  and memory per device — the floor every performance criterion is stated
+  against); load the planner
+  (`vllm-neuron-parity:experimental-neuron-parallelism-planner`: Quick
+  start, run-spec, Validate the engine against the oracle first, Reading
+  the output, its TP feasibility reference) and write its results under
+  your node's directory, never the skill's. Cost route A
   (backport at the pin, choosing between sources A1 and A2) against
   route B (pin upgrade — fallback only, justified on cost, executed
-  exclusively, regression-matrix gated); predict the touched-file surface
+  exclusively, regression-matrix gated) — per route the hot ops of its
+  served phases from the op inventory, whatever their substrate, and the
+  roofline ratio their cost rows predict against the entitlement, citing
+  calibration rows and naming the ops that need an anchor at design;
+  predict the touched-file surface
   for conflict-aware scheduling, ranked by the known collision order in
   `references/collision-ranking.md`; rank the backlog with recorded
   rationale. Cost a compile from the structures its expensive stage consumes,
   never from graph size; `references/toolchain-evidence-pitfalls.md` carries
-  that rule and the second-hand-claim duty with their cheap probes. Starting
+  that rule and the second-hand-claim duty with their cheap probes. Cost a
+  hot op by the shape of its cost (rate, fixed cost per item, serial chain, throttle), never by bytes or FLOPs alone: `references/hardware-cost-reasoning.md` §2 and §4.4. Starting
   any campaign is out of scope. Co-held outcomes decide in this fixed
   order: `costing_stalled` (a gap that already survived a scan re-entry
   is the stall), then `reports_insufficient` while any deficient target's
@@ -96,7 +121,8 @@ proceed on the artifact and disclose the disagreement in one line.
   matrix's at-risk cells (the implementer assembles the rows); executing
   any matrix procedure is forbidden, and a cell is non-adjudicable only on
   evidence read in full — a partial-read suspicion is a residual gap, not
-  a blocker.
+  a blocker. Load nki-docs' library reference for untried levers, with
+  `references/hardware-cost-reasoning.md` §5.
 
 `rederive_approach` is not yours: the run binds it to the dedicated
 rederiver seat.
@@ -110,9 +136,11 @@ lead instead.
 
 ## Delegate guardrail duty
 
-Dispatch external delegate skills only through the run's guardrail
-wrapper. Every seat you spawn — named teammate or one-shot sub-agent —
-inherits your dispatching node's forbidden effects verbatim. The wrapper
+Load a bundled Neuron skill only by its plugin address and only the
+sections your brief names; dispatch any other delegate skill only through
+the run's guardrail wrapper. Every seat you spawn — named teammate or
+one-shot sub-agent — inherits your dispatching node's forbidden effects
+verbatim. The wrapper
 intercepts cache-clear remedies, forces the equivalence adapter's target
 stack, and scopes the benchmark skill away from self-provisioning.
 Provision nothing, and let no delegate provision. Never remove or soften

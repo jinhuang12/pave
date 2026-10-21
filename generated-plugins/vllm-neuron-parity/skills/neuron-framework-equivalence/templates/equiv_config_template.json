@@ -1,0 +1,40 @@
+{
+    "_comment": "Equivalence framework config — update all paths before use.",
+
+    "target_stack": "nxdi",
+    "_target_stack_options": "nxdi | vllm_neuron (auto-detected from imports if omitted)",
+
+    "model_name": "{MODEL_NAME}",
+    "model_path": "{HF_MODEL_PATH}",
+    "compiled_model_path": "{COMPILED_MODEL_PATH}",
+    "model_class": "{PORT_MODELING_FILE}:{PORT_CAUSAL_CLASS}",
+    "config_class": "{PORT_MODELING_FILE}:{PORT_CONFIG_CLASS}",
+    "port_inner_class": "{PORT_MODELING_FILE}:{PORT_INNER_CLASS}",
+    "tests_dir": "{EXP_DIR}/tests",
+    "tp_degree": 2,
+    "num_tokens_to_check": 64,
+
+    "test_parameters": [
+        {
+            "batch_size": 1,
+            "seq_len": 128,
+            "ttft_threshold": 100.0,
+            "throughput_threshold": 10.0
+        }
+    ],
+
+    "thresholds": {
+        "tau_r": 1.2,
+        "delta_kl": 0.1,
+        "delta_kl_max": 1.0,
+        "theta_cosine": 0.95,
+        "rho_tail": 0.05,
+        "token_match_threshold": 0.30
+    },
+
+    "prompts": [
+        "The capital of France is",
+        "Water freezes at",
+        "The speed of light is approximately"
+    ]
+}

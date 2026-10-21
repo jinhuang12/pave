@@ -1,0 +1,75 @@
+{
+  "_doc": "Gemma4-31B bf16 APC-OFF + chunked-prefill-OFF ablation on p5.48xlarge (8×H100). Replicates the 2026-07-09 bf16 tpot-detail run's serving config EXCEPT the two scheduler-level optimizations that vLLM-Neuron doesn't support on Gemma4 yet are flipped OFF: --no-enable-prefix-caching AND --no-enable-chunked-prefill. Everything else stays exactly matched (image v0.20.0-cu130-ubuntu2404, fp8 KV, CUDA graphs on-by-omission — Neuron NEFFs are the graph-capture equivalent so BOTH stay on-graph, --compilation-config fuse_allreduce_rms+eliminate_noops on dp==1, --language-model-only, --generation-config vllm, random dataset with random_range_ratio 0.0, num_prompts=1280 warmups=512 at conc=256). Purpose: strict matched-config-to-Neuron-feature-set comparison, isolating the scheduler-optimization contribution to Gemma4's July 9 headline numbers.",
+  "sweep_name": "gemma4_31b_bf16_apc_off",
+  "image": "vllm/vllm-openai:v0.20.0-cu130-ubuntu2404",
+  "gpu_count": 8,
+
+  "models": [
+    {
+      "key": "gemma4_31b",
+      "hf_id": "google/gemma-4-31B-it",
+      "moe": false,
+      "compilation_config_dp1": {
+        "pass_config": {
+          "fuse_allreduce_rms": true,
+          "eliminate_noops": true
+        }
+      },
+      "_compilation_note": "Matches the 2026-07-09 baseline's dp==1 compilation flags exactly. The dp>1 cells (tp4_dp2, tp2_dp4, tp1_dp8) omit the flag — the earlier run did the same because fuse_allreduce_rms hangs at DP>1 on Gemma4 v0.20.0."
+    }
+  ],
+
+  "regimes": [
+    {
+      "name": "bf16_noapc_nochunked",
+      "prec": "bf16",
+      "kv_cache_dtype": "fp8",
+      "_doc": "bf16 weights, fp8 KV cache, no spec, APC OFF, chunked prefill OFF. The two scheduler-level optimizations vLLM-Neuron currently lacks on Gemma4. Identical to the 2026-07-09 baseline's bf16 regime on every other dimension."
+    }
+  ],
+
+  "shapes": [
+    { "isl": 1024, "osl": 512 }
+  ],
+
+  "shardings": [
+    { "tp": 8, "dp": 1 },
+    { "tp": 4, "dp": 2 },
+    { "tp": 2, "dp": 4 },
+    { "tp": 1, "dp": 8 }
+  ],
+  "_shardings": "Full TP×DP sweep to match the baseline. No EP (Gemma4-31B is dense).",
+
+  "concurrencies": [256],
+  "_concurrencies": "Conc=256 only per user request. This is the single concurrency the ablation targets.",
+
+  "workload": {
+    "dataset": "random",
+    "random_range_ratio": 0.0,
+    "ignore_eos": true,
+    "num_prompts_per_conc": 5,
+    "min_prompts": 50,
+    "warmups_per_conc": 2,
+    "min_warmups": 20
+  },
+  "_workload": "Random with random_range_ratio 0.0 (exact 1024/512 shapes) matches the baseline byte-for-byte. num_prompts = 256*5 = 1280, warmups = 256*2 = 512 — same as the baseline at conc=256. Intentionally NOT sharegpt: matched-config with a prior sharegpt-free baseline is the whole point of this ablation.",
+
+  "server": {
+    "enable_prefix_caching": false,
+    "enable_chunked_prefill": false,
+    "kv_cache_dtype": "fp8",
+    "gpu_memory_utilization": 0.9,
+    "max_num_seqs": 512,
+    "max_num_batched_tokens": 8192,
+    "extra_flags": [
+      "--language-model-only",
+      "--generation-config", "vllm"
+    ]
+  },
+  "_server": "enable_prefix_caching=false AND enable_chunked_prefill=false are the TWO flips vs baseline — the scheduler-level optimizations vLLM-Neuron currently lacks on Gemma4. Harness emits --no-enable-prefix-caching (explicit) and omits --enable-chunked-prefill (i.e. leaves vLLM at its non-chunked default). CUDA graphs stay on-by-omission because vLLM-Neuron's execution model IS graph-capture (AOT-compiled NEFFs) — disabling graphs would misrepresent both platforms. dp==1 compilation flags (fuse_allreduce_rms+eliminate_noops) also stay on for tp8, matching the baseline. max_num_seqs=512 and max_num_batched_tokens=8192 pinned to match the baseline (harness default would have derived ~2048 for isl=1024). --language-model-only + --generation-config vllm carried via extra_flags. --kv-cache-dtype fp8, --trust-remote-code, --no-enable-log-requests, --seed 0 all come from sweep_bench.py's defaults or the regime.kv_cache_dtype override.",
+
+  "docker_env": {},
+  "bench_timeout_s": 3600,
+  "fail_threshold": 0.05,
+  "save_detailed": true
+}

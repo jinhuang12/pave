@@ -11,36 +11,27 @@ restates no shape.
 ```
 artifacts/
   cross-run/                      # COMMITTED to git (survives runs)
-    parity-scorecard.yaml
-    backlog.yaml
-    debt-ledger.yaml
+    parity-scorecard.yaml, backlog.yaml, debt-ledger.yaml
     failure-fingerprints.yaml     # absent file = legitimate empty set
   run/                            # this run only
-    run-state.json                # lead-only; shape authority is
-                                  #   schemas/run-state.schema.json
-    usage-log.md               # lead-only; one section per run close
-                                  #   (revision rule 8)
+    run-state.json                # lead-only; schemas/run-state.schema.json
+    usage-log.md                  # lead-only; one section per run close
     intake-preflight/
+    calibration/                  # hardware calibration record (§4.9)
     hardware-queue/               # per-host lock files of the queue tool
     delta/
-      <target-id>/report.md       # + per-target event files (grants,
-                                  #   re-trace events, verdicts)
-      index/current/              # run-level delta index (only read path;
-                                  #   superseded content is deleted in place)
+      <target-id>/report.md       # + per-target event files (grants, verdicts)
+      index/current/              # run-level delta index (only read path)
     backlog/
     closure/
   campaigns/<campaign>/
     kickoff/
-    approvals/DECISIONS.md          # one file per campaign; each user
-                                    #   decision is one dated section (§2)
+    approvals/DECISIONS.md        # one dated section per user decision (§2)
     design/
-      current/                    # design-round artifacts of the LIVE round;
-                                  # superseded round artifacts are deleted at
-                                  # re-entry (no archive dirs - history is
-                                  # the record's revision log + run state)
+      current/                    # LIVE round only; superseded artifacts are
+                                  #   deleted at re-entry (§3)
     increments/
-    attempts/                     # attempt, fingerprint, recovery
-                                  #   records - one file/event
+    attempts/                     # attempt, fingerprint, recovery records
       leases/                     # lease events, queue tool only
     measurements/
       procedures/
@@ -50,8 +41,7 @@ artifacts/
     rederivations/
     pr/
     closure/
-  reviews/<campaign>/             # reviewer stream + gate-2 objection
-                                  #   mirror - reviewer-owned names
+  reviews/<campaign>/             # reviewer stream + gate-2 objection mirror
 ```
 
 ## 2. Write ownership
@@ -63,22 +53,22 @@ it is a count bug. Run state (`run/run-state.json`) is lead-only.
 |---|---|
 | cross-run/* | lead only, serialized, at campaign closure (intake reads) |
 | run/intake-preflight/ | verify_run_preconditions |
+| run/calibration/ | calibrate_hardware (suite rows); design_campaign (anchor rows); measure_candidate (served cap rows) — one file per row event, append-only |
 | run/delta/<target>/ | that target's trace_target_delta instance (report landing paths: §4.7) |
 | run/delta/index/, run/backlog/ | cost_routes_and_rank_backlog |
 | run/hardware-queue/ | the hardware queue tool (per-host lock files only) |
 | run/closure/ | verify_run_closure (the lead) |
 | campaigns/*/kickoff, approvals | assemble_kickoff_contracts; gate records by review_campaign_design and close_campaign; write-once per decision (§3) |
 | campaigns/*/design/ | design_campaign (each step its own artifact; the assemble step writes the record and deletes superseded artifacts); the lead's bookkeeping edits (§3) |
-| campaigns/*/increments/ | scope_next_increment (round records), realize_increment (evidence records), the lead (changeset, on the plan_satisfied round) |
-| campaigns/*/attempts/ | prepare_host, execute_attempt_loop, recover_leased_host (attempt, fingerprint, recovery records) |
+| campaigns/*/increments/ | scope_next_increment (round records), realize_increment (evidence, oracle, ratio and maintainer-pass records), the lead (changeset, on the plan_satisfied round) |
+| campaigns/*/attempts/ | prepare_host (recovery records in its recovery mode), execute_attempt_loop (attempt and fingerprint records) |
 | campaigns/*/attempts/leases/ | the hardware queue tool alone, invoked by the seat that needs the grant; one file per event, append-only |
-| campaigns/*/measurements/procedures, baseline | prepare_measurements |
-| campaigns/*/measurements/runs, bundles | measure_candidate (run, defect, and bundle records; defect records live under runs/) |
+| campaigns/*/measurements/ | measure_candidate (procedure, baseline, run, defect, and bundle records; defect records live under runs/) |
 | campaigns/*/verdicts/ | adjudicate_results |
 | campaigns/*/rederivations/ | rederive_approach |
 | campaigns/*/pr/ | prepare_pr |
 | campaigns/*/closure/ | close_campaign |
-| reviews/<campaign>/ | the adversarial reviewer seat only |
+| reviews/<campaign>/ | the adversarial reviewer seats only (route review, design review, kernel reviews, whole-campaign review) |
 | `<revision-folder>/audit-findings.md` | the `pave-init:workflow-updater` seat, edited in place, plus the `pave-init:update-reviewer` seat's one `review:` line (§4.14) |
 | `<run-state>.audit-checkpoint.json`, `<run-state>.write-log*.jsonl`, `<run-state>.audit-write-report-*.txt` | the hooks only (the stop guard and the PreToolUse router); the lead is denied (§4.14) |
 
@@ -126,8 +116,9 @@ their detector keys on, or the pair's fingerprint triple (§4.2 pair 1).
 
 ### 4.2 The SEVEN producer/consumer pairs
 
-1. **impl/review**: review_increment_batch emits findings records in the
-   §4.1 shape; every material finding also carries the fingerprint triple
+1. **impl/review**: the retained kernel reviewers (realize_increment) and
+   the whole-campaign review (review_pr_evidence) emit findings records in
+   the §4.1 shape; every material finding also carries the fingerprint triple
    **(increment id + surface + defect class)**, coarser than fields 1-2 so
    round-over-round comparison stays a string match when labels or
    locations are re-minted. scope_next_increment's no-progress detector
@@ -137,15 +128,21 @@ their detector keys on, or the pair's fingerprint triple (§4.2 pair 1).
    passing repair is read as repetition on purpose.
 2. **adjudicate/pr-review**: adjudication_verdict shape;
    review_pr_evidence keys on fields 1-3 + 5 when it checks the verdict.
-3. **prepare/pr-review**: PR description sections — What changed; How tested
-   (test command + counts, acceptance measurement + verdict, each linked once
-   to its record); Known open items; campaign-specific sections optional;
-   findings-record fields 1-4.
+3. **prepare/pr-review**: PR description sections, in order
+   (`pr_evidence_package`): a short lead with the mechanism and the paired
+   headline result; the mechanism and what it does not approximate; scope
+   and activation; the paired measurements over the declared context
+   lengths and concurrency levels, with the registered protocol (arms as
+   commits, hardware and parallelism, pairing order, warm-ups, repeats);
+   correctness and accuracy as counts, with their non-claims; how tested
+   (whole-tree test command + counts, acceptance measurement + verdict);
+   reproduction per arm; the authorship disclosure; what stays open. Each
+   claim links once to its record; findings-record fields 1-4.
 4. **repo fingerprint file + this-run attempt-log**, split by horizon:
    `cross-run/failure-fingerprints.yaml` = prior runs, lead-merged at
    closure; `attempts/` = this run. Guards the identical-retry forbidden
-   effect. An attempt record carries `class` — `serving`, `diagnostic`, or
-   `cpu_mode`, the job's declared purpose at launch, never a note added
+   effect. An attempt record carries `class` — `serving`, `diagnostic`,
+   `kernel_alone`, or `cpu_mode`, the job's declared purpose at launch, never a note added
    after the run — and, on a served tip, `launch_reading`, the queue tool's
    remaining-capacity reading at launch; only `serving` enters
    `hardware_attempt_counts`. A record's measurement outcome (served or
@@ -156,20 +153,22 @@ their detector keys on, or the pair's fingerprint triple (§4.2 pair 1).
    it ran (path and revision) and the reference it compared against.
    Failure case: a format mismatch between the two readers silently
    disables the tier-1 gate.
-5. **recovery-record shape**: writer recover_leased_host; readers
-   recover_leased_host (allowance derivation — never a stored counter)
-   and prepare_host (roster filtering, c10). Failure case: two
+5. **recovery-record shape**: writer prepare_host in recovery mode;
+   reader prepare_host (allowance derivation — never a stored counter —
+   and roster filtering in full mode). Failure case: two
    readers deriving allowance state differently re-lease a
    once-recovered host, voiding the flap bound.
 6. **lease-record shape**: writer `scripts/hardware_queue.py` only (per-host
    lock, one file per event: campaign lease, job lease, release, amendment);
-   readers prepare_host, execute_attempt_loop, recover_leased_host, lead. A
+   readers prepare_host, execute_attempt_loop, lead. A
    campaign lease carries host, markers verified, markers unavailable, deltas
    explained, grant reference, and event ordering so record-before-report is
    checkable; the boot identifier arrives as an amendment event applying to
    every campaign lease on the host; a job lease carries the job, its class (`serving`,
-   `diagnostic`, `cpu_mode`), on a serving job its tip, its client leg and
-   its bring-up record, the pools and amounts reserved, grant time, and its
+   `diagnostic`, `kernel_alone`, `cpu_mode`), on a serving job its tip, its client leg and
+   its bring-up record, on a `kernel_alone` job (no campaign lease) its
+   pre-registration (form or increment, shapes and arms, the bar, wall-clock
+   cap, pinned resources), the pools and amounts reserved, grant time, and its
    release; remaining capacity is
    derived from open job leases, never stored. Failure case: divergent
    normalization confirms a lease the recovery pre-check later rejects.
@@ -180,8 +179,8 @@ their detector keys on, or the pair's fingerprint triple (§4.2 pair 1).
    budget key); the NEW-relative-to-prior file-list field (§4.4); the
    invalidated-comparison enumeration (re-capture scope); the defect
    each revision entry repairs. Writer: measure_candidate (its defect
-   records live under runs/). Readers:
-   prepare_measurements re-entry targeting; the tier-1 novelty
+   records live under runs/). Readers: its procedures and baseline steps'
+   repair targeting; the tier-1 novelty
    predicate; the bundle step's unfiltered count. Failure case: divergent
    derivation splits or merges re-entry scopes.
 
@@ -210,10 +209,9 @@ the detector on exactly the rounds it must catch.
 - d7 exemption: the commitment-absent gap (registration artifact present,
   lead run-state commitment entry missing) is outside the key space.
 
-Failure case: dropping either qualifier makes the test never fire
-(any-new-artifact reading) or false-fire on converging work; the retained
-item-scoped qualifier narrows the false fire to one operator-visible
-re-derivation round, which beats a loop that fires never.
+Failure case: dropping either qualifier makes the test never fire or
+false-fire on converging work; a false fire costs one visible
+re-derivation round, which beats a loop that never fires.
 
 ### 4.4 Shared repair budget
 
@@ -254,15 +252,16 @@ nothing. Rationale and measured cases: `references/measurement-pitfalls.md`,
 
 ### 4.6 Evidence index
 
-Element set pinned here; consumers are review_increment_batch, the
-coverage-gap check, and prepare_pr: every planned increment resolves to
-a passing evidence record; the index binds increment id -> evidence
-file(s) -> acceptance command + exit code.
+Element set pinned here; consumers are the kernel and whole-campaign
+reviews, the coverage-gap check, and prepare_pr: every planned increment
+resolves to a passing evidence record; the index binds increment id ->
+evidence file(s) -> acceptance command + exit code (glue: the CPU-mode
+record; kernel-class: the oracle, ratio, and kernel review records).
 - **Exit-code discipline** (every transcript, run-wide): the verbatim
   command line, raw output, and numeric exit code; a missing exit code
   makes the transcript non-evidence.
 - **"Ported code" / "added-modified lines"** (one definition for the NxDI
-  and process-vocabulary scans, review_increment_batch, the re-run check): the
+  and process-vocabulary scans, the reviews, the re-run check): the
   added and modified lines of the campaign branch diff against the
   pinned base — never whole files, never upstream context lines.
 - **Scan-completeness discipline** (every scan, run-wide): a reported
@@ -296,14 +295,38 @@ the revision it executed, so smoke-before-run is checkable record-side: a
 run record citing revision N is valid only against a passing smoke record
 for revision N.
 
+### 4.9 Run-shape records
+
+- **Calibration record** (`run/calibration/`): one file per row event —
+  hardware class, pin (SDK and compiler), cost class, access pattern or
+  lowering, value, reproduction command, and source (`suite`, `anchor`, or
+  `served_profile`). A served profile writes one row file per profile with
+  its run record, so concurrent campaigns never share a file.
+- **Op inventory** (the delta report's inventory section): per component
+  block, each op class at the declared served configuration, its parallel
+  and scheduling forms, and its state against the NKI library and the
+  plugin at the pin (present, partial, absent).
+- **Execution map** (the design record, per served phase): each block's
+  ops in execution order with input and output shapes at the declared
+  shapes; the cost table's rows key on its op ids.
+- **Kernel-call round row**: the pull list in order (item ids), the review
+  capacity, and the idle `kernel_alone` capacity read at the round.
+- **Maintainer-pass record** (`increments/`): the diff read (clean diff,
+  or the delta since the newest pass record's tip), the branch-diff digest,
+  the AST or token diff showing no behavior change, the process-vocabulary
+  scan, and the whole-tree pass on the new tip.
+- **Not-run bundle record**: behind a failed ladder rung, each later rung
+  and performance procedure's bundle holds "not run after rung n failed",
+  naming the rung and its bundle; it is complete for adjudication.
+
 ### 4.10 Durable host state
 
 Defined once: durable host state = mutations that outlive the session —
 persistent writes INCLUDING CACHE WRITES, restarts, reboots, resets. The
 lifecycle of a serving process launched for capture or smoke (start,
 stop, in-memory state, process-scoped scratch removed at teardown) is
-not a durable mutation. Cited by prepare_measurements' read-only
-prohibition on the baseline.
+not a durable mutation. Cited by measure_candidate's read-only
+baseline step.
 
 **Boundary ruling**: a cache write performed BY the capture-launched
 serving process is still a durable mutation when it lands in a
@@ -371,7 +394,7 @@ shrinking, never by an archive:
   self-test, or control are working state: one current revision, edited
   in place, the superseded copy deleted in the same round, never renamed
   `-rN`. `write-for-reader.sh` names an over-cap file, header, or
-  round-suffixed name at the write; the batch review records
+  round-suffixed name at the write; the whole-campaign review records
   `measure_artifact.py --tree` and `--classify`; the repair is a trim
   round.
 

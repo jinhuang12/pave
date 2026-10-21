@@ -147,7 +147,7 @@
     },
     "hardware_attempt_counts": {
       "type": "object",
-      "description": "Per-target count of budget-counted hardware attempts across every route that spends them, keyed by target; the tier-2 stop limit reads it at every 10 since the last re-derivation. One count rule, recomputable from the attempt records alone: every run record names its class at launch (serving, diagnostic, cpu_mode), only a serving attempt counts, never one a host fault ended, and a measurement run never enters it.",
+      "description": "Per-target count of budget-counted hardware attempts across every route that spends them, keyed by target; the tier-2 stop limit reads it at every 10 since the last re-derivation. One count rule, recomputable from the attempt records alone: every run record names its class at launch (serving, diagnostic, kernel_alone, cpu_mode), only a serving attempt counts, never one a host fault ended, and a measurement run never enters it.",
       "additionalProperties": {"type": "integer", "minimum": 0}
     },
     "hardware_lease_record": {

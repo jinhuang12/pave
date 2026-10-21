@@ -629,7 +629,8 @@ print("  Emit only a declared outcome and traverse only a declared edge (P12); p
 print("  Write every fact routing depends on to run state now; you are its single writer (P10).")
 print("  Retire every idle seat now.")
 print("  Restate every codename in your last reply in plain words.")
-print("  Send landed work no review has seen to a batch review before the next round builds on it.")
+print("  Send landed work no review has seen to its review: a kernel item to its kernel reviewer,"
+      " the branch to the whole-campaign review before the PR.")
 print("The next %d stops pass before this fires again." % (int(stop_every) - 1))
 PYEOF
 )" || exit 0

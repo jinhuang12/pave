@@ -1,0 +1,12 @@
+# Python deps for build_deliverables.py + build_cost_deliverables.py.
+# These run LOCALLY (on the Mac / orchestrator), NOT on the GPU box, after
+# `aws s3 sync` pulls the results tree down. setup.sh does not install them
+# because setup.sh runs on the GPU box.
+#
+# Install once locally: `pip install -r requirements-deliverables.txt`
+# (a plain venv, no Brazil).
+
+pandas>=2.0        # tidy result.json -> DataFrame, per-shape/per-regime tables
+matplotlib>=3.7    # Pareto plots, cost-frontier plots, coverage/histogram plots
+tabulate>=0.9      # pandas.DataFrame.to_markdown() backend for the .md tables
+numpy>=1.24        # transitive via pandas, listed explicitly for clarity

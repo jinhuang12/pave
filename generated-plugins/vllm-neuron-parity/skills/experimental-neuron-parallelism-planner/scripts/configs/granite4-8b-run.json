@@ -1,0 +1,64 @@
+{
+  "_comment": "Run-spec for Granite-4.1-8B oracle validation. Dense GQA model (32 query heads, 8 KV heads, head_dim 128, tied embeddings, 40 layers, full attention only). Points at the pristine HF config.json (granite4-8b-hf.json, unmodified) + trn2 constants. TP <= 32 (32 query heads); KV does not shard past 8 KV heads. No mixed attention, no MoE, no MLA.",
+  "model": "granite-4.1-8B (dense)",
+  "hardware_name": "trn2",
+  "hf_config": "granite4-8b-hf.json",
+  "hardware": "trn2_constants.json",
+  "configs": [
+    {
+      "label": "TP=8",
+      "regime": "decode_heavy",
+      "TP": 8,
+      "PP": 1,
+      "CP": 1,
+      "bucket": 8192,
+      "bs": 8
+    },
+    {
+      "label": "TP=16",
+      "regime": "decode_heavy",
+      "TP": 16,
+      "PP": 1,
+      "CP": 1,
+      "bucket": 8192,
+      "bs": 16
+    },
+    {
+      "label": "TP=32",
+      "regime": "decode_heavy",
+      "TP": 32,
+      "PP": 1,
+      "CP": 1,
+      "bucket": 8192,
+      "bs": 16
+    },
+    {
+      "label": "TP=32 CP=2",
+      "regime": "decode_heavy",
+      "TP": 32,
+      "PP": 1,
+      "CP": 2,
+      "bucket": 65536,
+      "bs": 2
+    },
+    {
+      "label": "TP=16",
+      "regime": "prefill_heavy",
+      "TP": 16,
+      "PP": 1,
+      "CP": 1,
+      "bucket": 8192,
+      "bs": 8
+    },
+    {
+      "label": "TP=32",
+      "regime": "prefill_heavy",
+      "TP": 32,
+      "PP": 1,
+      "CP": 1,
+      "bucket": 8192,
+      "bs": 16
+    }
+  ],
+  "serving": "disaggregated"
+}

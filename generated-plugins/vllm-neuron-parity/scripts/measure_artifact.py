@@ -21,11 +21,11 @@ adds the delta against another copy. `--json` prints the full record.
 
 `--classify` reads source files (.py, .sh) and splits their lines into
 code, comment, docstring, and blank, plus the leading header block — the
-batch review records these for a changeset's added files (section 4.12,
+whole-campaign review records these for a changeset's added files (section 4.12,
 increments row). `--tree` walks one working-state directory such as
 `increments/` and reports its files, bytes, round-suffixed names (-rN),
 superseded revisions (N below the stem's max), and header lines; `--since`
-limits it to files modified on or after a date, for "since the last batch".
+limits it to files modified on or after a date, for "since the last review".
 
 Stdlib only.
 """
@@ -121,7 +121,7 @@ def header_lines(path: str | Path) -> int:
     """Lines of the leading shebang, comment, blank, and docstring block before code.
 
     Same rule the write-for-reader hook applies to increments/ writes, so a
-    seat, the hook, and the batch review count a header the same way.
+    seat, the hook, and the reviews count a header the same way.
     """
     ext = Path(path).suffix.lower()
     count = 0

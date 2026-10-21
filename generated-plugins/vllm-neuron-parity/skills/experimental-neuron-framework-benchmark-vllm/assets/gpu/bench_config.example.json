@@ -1,0 +1,96 @@
+{
+  "_comment": "User-supplied benchmark config, consumed by sweep_bench.py (the InferencePerfAnalyzer-driven pytest sweep). Everything here is gathered from the user's request. Copy to bench_config.json and edit. See SKILL.md 'Gathering the config'.",
+
+  "gpu_count": 8,
+  "_gpu_count": "physical GPUs on the node (e.g. 8 for p5.48xlarge / g6e.48xlarge). Every sharding's tp*dp MUST equal gpu_count so each run occupies the whole box (fair per-instance comparison).",
+
+  "image": "vllm/vllm-openai:v0.20.0-cu130-ubuntu2404",
+  "_image": "ONE image for ALL regimes (engine-matched comparison). docker transport: pulled by setup.sh. kaizen transport: the BAKED image (IPA+pytest pre-installed) — pass it as KAIZEN_IMAGE in the workload command; this field is then informational.",
+
+  "docker_env": {},
+  "_docker_env": "extra env for the vLLM server container, docker transport ONLY (e.g. {\"TORCH_CUDA_ARCH_LIST\":\"10.0\"} for Blackwell, or a FlashInfer-MoE toggle). Under the kaizen transport, set env in the workload command instead (the pod IS the server). Read by IPA's server_handle_pool as this module's DOCKER_ENV.",
+
+  "models": [
+    {
+      "key": "olmo2",
+      "hf_id": "allenai/OLMo-2-0425-1B",
+      "_hf_id_by_regime_example": {
+        "fp8": "<point the fp8 regimes at a pre-quantized FP8 checkpoint, e.g. neuralmagic/…-FP8>",
+        "fp8_spec": "<same FP8 checkpoint>"
+      }
+    }
+  ],
+  "_models": "models to benchmark. key = short label (output-dir prefix), hf_id = exact HF id (the BASE, usually bf16, checkpoint). Optional per-model overrides: 'shardings' / 'concurrencies' (e.g. a big model that only fits at high TP — SEE 'Sizing for large / MoE models' in SKILL.md and PRUNE non-fitting shardings up front; a sharding that OOMs on server start is skipped but still costs a start attempt), 'regimes' (list of regime NAMES to restrict this model to — e.g. skip fp8 regimes for a model with no quantized checkpoint), 'hf_id_by_regime' ({regime_name: checkpoint} to point a regime at a pre-quantized HF checkpoint), 'moe' (true → adds --enable-expert-parallel; REQUIRED for MoE models like Mixtral / Qwen3-235B / gpt-oss), and 'rope_scaling' ({...} → --rope-scaling for shapes whose max-model-len exceeds the model's native context window; needed e.g. to run a 32K shape on a model with a smaller native window). NOTE: shardings are keyed per-MODEL not per-regime — if the fitting shardings differ by precision (bf16 fits fewer TP than fp8), express each precision as its OWN model entry (same hf_id / an fp8 hf_id, restricted via 'regimes' + its own 'shardings').",
+
+  "regimes": [
+    { "name": "bf16", "prec": "bf16" },
+    { "name": "fp8",  "prec": "fp8", "kv_cache_dtype": "fp8",
+      "_hint": "FP8 weights via a pre-quantized checkpoint (set models[].hf_id_by_regime.fp8) OR online quant (add \"quantization\": \"fp8\"); kv_cache_dtype fp8 = FP8 KV. Weights, KV, and attention-backend are INDEPENDENT — record which actually engaged." },
+    { "name": "bf16_spec", "prec": "bf16",
+      "speculative": { "method": "ngram", "num_speculative_tokens": 4, "prompt_lookup_max": 4 } },
+    { "name": "fp8_spec", "prec": "fp8", "kv_cache_dtype": "fp8",
+      "speculative": { "method": "ngram", "num_speculative_tokens": 4, "prompt_lookup_max": 4 } }
+  ],
+  "_regimes": "the REGIME axis: precision/quantization x speculative-decoding, swept in ONE run. name = label (becomes regime_key in the deliverables); prec = precision label for grouping (bf16/fp8/awq/…); optional per-regime kv_cache_dtype, quantization (online weight quant), speculative (passed verbatim as vLLM --speculative-config; e.g. {\"method\":\"eagle\",\"model\":\"<draft hf id>\",\"num_speculative_tokens\":3}), extra_flags. ALL regimes run on the SAME 'image' above, so spec-vs-nospec and quant-vs-bf16 are ENGINE-MATCHED (the fix for the classic 'spec ran on a different vLLM build' pitfall). Omit this whole block for a single bf16 no-spec regime. QUANTIZED WEIGHTS are usually a checkpoint swap: set models[].hf_id_by_regime.<name> to a pre-quantized HF checkpoint (vLLM auto-detects the method — no flag needed).",
+
+  "shapes": [
+    { "isl": 512,   "osl": 1 },
+    { "isl": 2048,  "osl": 128 },
+    { "isl": 4096,  "osl": 256 },
+    { "isl": 8192,  "osl": 256 },
+    { "isl": 32768, "osl": 256 }
+  ],
+  "_shapes": "input/output token shapes per request (one sweep per shape). DEFAULTS reflect PRODUCTION Bedrock request shapes (see references/profiling-targets.md): ISL primary 2K-8K with a 512 short point and a 32K long-context point (fern/coffee); OSL mode ~128 (256 for the higher-OSL models) plus OSL=1 for the classify/short-answer path (mulberry OSL is bimodal with a ~442M-req spike at 2-3 tokens). For a specific model, center on its median ISL/OSL from profiling-targets.md. Keep IDENTICAL to the Neuron run for a valid comparison; use exact shapes (random_range_ratio 0) so both platforms see the same lengths.",
+
+  "shardings": [
+    { "tp": 8, "dp": 1 },
+    { "tp": 4, "dp": 2 },
+    { "tp": 2, "dp": 4 },
+    { "tp": 1, "dp": 8 },
+    { "tp": 8, "dp": 1, "ep": true },
+    { "tp": 4, "dp": 2, "ep": true }
+  ],
+  "_shardings": "tensor x data parallel configs. Each tp*dp MUST equal gpu_count. Optional 'ep' (expert-parallel) per-sharding: 'ep':true emits --enable-expert-parallel (shard MoE experts across all ranks); 'ep':false disables it. When 'ep' is omitted, falls back to the model's 'moe' flag — dense models omit it, MoE models get EP on every sharding by default. Sweep ep on/off at the SAME tp/dp to isolate EP's effect on fit + throughput.",
+
+  "concurrencies": [1, 8, 16, 24, 32, 48, 64],
+  "_concurrencies": "the concurrency sweep. DEFAULTS center on PRODUCTION per-replica slot counts (16/24/32 across the generation fleet; coffee peaks ~64) rather than a generic geometric grid — real serving runs AT the configured slot count, so profile there, not idle. Still overshoots the busiest configured slots by a doubling to BRACKET the saturation knee; cells past real capacity hit the failure guard and SKIP (cheap). Per-shape overrides via concs_by_shape.",
+
+  "concs_by_shape": {
+    "32768,256": [1, 8, 16, 24, 32]
+  },
+  "_concs_by_shape": "optional per-shape concurrency override keyed 'isl,osl'. Long-context shapes fit fewer concurrent requests (less KV headroom), so cap them lower. Shapes not listed here use the global 'concurrencies'.",
+
+  "targets": {
+    "ttft_p50_ms_by_isl": { "2048": 500, "8192": 800, "32768": 1400, "65536": 1400 },
+    "tpot_p50_ms": 13
+  },
+  "_targets": "PASS/FAIL latency bars from production (references/profiling-targets.md). ttft_p50_ms_by_isl: TTFT is prefill-bound so the bar scales with input length — keys are ISL thresholds, a cell's bar is the smallest key >= its ISL (short prompts ~500ms, 32K+ ~1.4s). tpot_p50_ms: TPOT is ~input-independent, one bar (~13 ms/tok = ~75 tok/s; fleet sits 9-15). build_deliverables.py flags each usable cell PASS/FAIL vs these (median TTFT/TPOT). Omit this block to skip pass/fail gating.",
+
+  "workload": {
+    "dataset": "sharegpt",
+    "dataset_path": "/scratch/sharegpt.json",
+    "seq_len": 4096,
+    "random_range_ratio": 0.8,
+    "num_prompts_per_conc": 5,
+    "min_prompts": 50,
+    "warmups_per_conc": 2,
+    "min_warmups": 20,
+    "temperature": 0,
+    "ignore_eos": true
+  },
+  "_workload": "dataset = sharegpt|random. DEFAULT: 'sharegpt' — natural-language prompts from ShareGPT-V3. This is the closest thing to production traffic the bench harness has, and it's the correct default because: (a) speculative-decoding acceptance rates depend heavily on prompt distribution (structured/natural text drafts well; random tokens don't), so `random` silently understates any spec-decode regime's value (per the DSpark paper's own results, chat prompts give τ≈3.5 vs random-token acceptance being closer to 1); (b) APC (prefix caching) has near-zero hit rate on random and a real hit rate on shared conversational context; (c) native-production TTFT/TPOT distributions match customer traffic, not synthetic. Use 'random' with 'random_range_ratio 0.0' ONLY when you specifically need EXACTLY-controlled ISL/OSL for a strict matched-config GPU-vs-Neuron comparison (fixed shapes; nothing else varies) — and even then, only as a second pass alongside the primary sharegpt run. num_prompts = max(conc*num_prompts_per_conc, min_prompts) and num_warmups = max(conc*warmups_per_conc, min_warmups) — the FLOORS (50/20) keep even conc=1 at steady state past CUDA-graph capture. Optional 'range_ratio_by_shape' ({\"isl,osl\": ratio}) overrides the jitter per-shape — use it to set 0.0 on a long shape that would otherwise jitter past the model's context window while keeping 0.8 elsewhere (applies to `random` only). Under sharegpt, seq_len sizes max-model-len and 'shapes' only tags output dirs. max-model-len is sized from the JITTERED isl (isl*(1+ratio)+osl+buffer) under `random`, so a shape's jitter can't overflow its own window — but it still can't exceed the model's native context (use rope_scaling then; see SKILL.md 'Sizing').",
+
+  "server": {
+    "gpu_memory_utilization": 0.9,
+    "kv_cache_dtype": "auto",
+    "enable_prefix_caching": true,
+    "enable_chunked_prefill": true,
+    "max_num_seqs": 256,
+    "max_num_batched_tokens": "auto",
+    "extra_flags": []
+  },
+  "_server": "vllm serve tuning held constant across the sweep. NATIVE-PRODUCTION defaults (E2E config doc): APC (enable_prefix_caching) and chunked prefill ON — what real deployments run; max_num_seqs 256 (vLLM default); max_num_batched_tokens 'auto' = max(2*max_isl, 8192) capped at 16384 (prefill of the largest ISL lands in one scheduler step, identical step size across models). kv_cache_dtype / extra_flags are DEFAULTS a regime can override (regimes[].kv_cache_dtype / .extra_flags). For a strict matched-config run vs a Neuron server lacking chunked prefill, set enable_chunked_prefill false (and see SKILL.md 'Config philosophy').",
+
+  "fail_threshold": 0.05,
+  "_fail_threshold": "cells whose failed-request fraction exceeds this are SKIPPED (saturation / KV exhaustion is not a clean data point). result.json is still written and synced; the guard only excludes the cell from clean results."
+}

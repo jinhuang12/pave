@@ -631,7 +631,7 @@ report "stop: silent audit without a revision folder (no AUDIT text, no sidecar)
 ok=0; printf '%s' "$ERR" | grep -q "Retire every idle seat now" \
   && printf '%s' "$ERR" | grep -q "single writer (P10)" \
   && printf '%s' "$ERR" | grep -q "declared edge (P12)" \
-  && printf '%s' "$ERR" | grep -q "batch review" \
+  && printf '%s' "$ERR" | grep -q "whole-campaign review" \
   && printf '%s' "$ERR" | grep -q "plain words" && ok=1
 report "stop: reminders are present as imperatives" "$ok" "err=$ERR"
 

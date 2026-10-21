@@ -8,6 +8,8 @@ Rules for every seat that turns an observation into evidence, the measurer above
 
 **Rule:** Before any benefit measurement, write down the full comparator set and the decision rule. Always include the unchanged baseline at the exact matched config (same server args, same battery, same seed). The agent that measures a number does not adjudicate it. When a serving-config (DP×TP) choice affects fairness, expect an interior-optimum TP for collective-bound models — do not assume max-TP.
 
+**Rule (paired arms):** Register every performance comparison as paired arms at named commits or versions, with the hardware and parallelism, the pairing order, the warm-ups and the repeats, and run it as registered; the PR reports that protocol beside each pair, so an arm measured outside it is not a pair.
+
 **Evidence:** P-EAGLE campaign `run-state.json` entries 51–53 and `benchmark/benefit.md` §8.5 (campaign history).
 
 ## Prove the check tool before its verdict counts
@@ -149,5 +151,7 @@ Rules for every seat that turns an observation into evidence, the measurer above
 **Trap:** The profile-analysis delegate says its own methodology is not fully validated for framework-compiled NEFFs; its hard-gate section records replay-derived times undercutting live times, aggregation errors, and one fabricated subagent analysis.
 
 **Rule:** Take device time from the live `nc_exec_running` system trace, never from an isolated replay. Recompute overlap-merged and cross-rank numbers independently of any delegate's summary. Do not accept a root-cause or bottleneck claim without the primary profile artifact behind it, and do not diagnose from a single metric.
+
+**Rule (served carry):** A kernel-alone gain carries to the served path only on the engine that binds under the served cap. Before a served run, re-rate the predicted rows under the served cap row, engine by engine; after it, read the profile's per-op attribution against those re-rated rows, never against the kernel-alone figure. `references/hardware-cost-reasoning.md` §6.5 has the measured case.
 
 **Evidence:** `experimental-neuron-framework-profile-analysis-vllm-neuron` skill, `SKILL.md` (experimental banner, verification discipline, `references/fabricated-analysis-case-study.md`); `neuron-nki-profile-querying` skill, `SKILL.md`.

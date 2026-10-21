@@ -33,14 +33,28 @@ CEILINGS: dict[str, int] = {
     "README.md": 700,
     "workflow.pave.yaml": 3100,
     "skills/vllm-neuron-parity/SKILL.md": 500,
-    "references/artifact-layout.md": 440,
+    # The nine bundled Neuron skills (release 1.8.0): ceiling = the bundle-stage
+    # line count rounded up to the next multiple of 10, so a re-sync that grows
+    # a vendored copy fails here until its ceiling moves with a VERSION reason.
+    # Three counts moved with the release's conflict fixes and still fit.
+    "skills/experimental-neuron-parallelism-planner/SKILL.md": 280,  # 278 -> 280 after fix 5
+    "skills/neuron-nki-writing/SKILL.md": 460,  # 459
+    "skills/neuron-nki-docs/SKILL.md": 200,  # 195
+    "skills/neuron-nki-debugging/SKILL.md": 310,  # 303
+    "skills/experimental-neuron-autoport-compiler-debugging-vllm-neuron/SKILL.md": 190,  # 187 -> 189 after fix 1
+    "skills/neuron-framework-autoport-vllm-neuron/SKILL.md": 600,  # 591
+    "skills/neuron-framework-equivalence/SKILL.md": 280,  # 271 -> 272 after fix 4
+    "skills/experimental-neuron-framework-benchmark-vllm/SKILL.md": 630,  # 627
+    "skills/experimental-neuron-infra-runtime-troubleshooting/SKILL.md": 80,  # 73
+    "references/artifact-layout.md": 470,
     "references/collision-ranking.md": 50,
+    "references/hardware-cost-reasoning.md": 400,
     "references/measurement-pitfalls.md": 160,
     "references/patch-mechanism-inventory.md": 70,
     "references/toolchain-evidence-pitfalls.md": 270,
     "agents/adjudicator.md": 150,
     "agents/adversarial-reviewer.md": 240,
-    "agents/implementer.md": 380,
+    "agents/implementer.md": 450,
     "agents/investigator.md": 200,
     "agents/measurer.md": 190,
     "agents/rederiver.md": 165,

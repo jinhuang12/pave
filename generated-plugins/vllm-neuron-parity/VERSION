@@ -1,4 +1,152 @@
-version: 1.7.0
+version: 1.8.0
+
+## 1.8.0 — 2026-10-21
+
+Graph revisions 18 and 19 reach every release-layer copy, the hardware-cost
+reference lands, and nine Neuron skills ship inside the plugin. The release
+does not change the graph, `revisions.yaml` or `history/`: both revisions
+were applied before it, and the package graph is revision 19 at digest
+0ef0611d. Counts: 18 nodes, 61 edges, 14 checks (from 21, 67 and 15 at
+1.7.0); 25 evidence definitions (from 24); 5 control nodes unchanged; the
+graph grows from 2425 to 2738 lines.
+
+Revision 18 (`history/v18.patch`, kind graph, approval "Approve lines 4r,
+11r, 17-20 and apply revision 18 at digest 98aa5b82 (Recommended)"): the
+user's seven-step port workflow becomes the graph. It adds
+`calibrate_hardware` (the measurer's fixed suite, the first device act),
+the execution map, per-op cost table and numerics plan in the design
+record, the kernel call with retained kernel reviewers, the correctness
+ladder, the maintainer-pass item, the `performance_shortfall` outcome, and
+one whole-campaign review at `review_pr_evidence` with a `code_findings`
+outcome. It removes `review_increment_batch` and its check
+`batch_review_current`. After it the graph held 21 nodes with 68 edges and
+14 checks.
+
+Revision 19 (`history/v19.patch`, kind graph, approval "Approve lines a,
+b, c and apply revision 19 at digest 0ef0611d (Recommended)"): three nodes
+fold into the node each one fed, and nothing is added.
+`review_route_verdicts` becomes the review step of
+`assemble_kickoff_contracts`; `recover_leased_host` becomes `prepare_host`'s
+recovery mode; `prepare_measurements` becomes the procedures and baseline
+steps of `measure_candidate`. The fourth proposed fold (`trace_target_delta`
+into costing) is declined: a per-target fan-out and its join cannot be one
+node.
+
+What changes for a run:
+- Calibration comes first. Before any route is costed, the measurer runs
+  the fixed suite under a `kernel_alone` job lease, or the lead reuses a
+  record for the identical pin and hardware class with no seat.
+- Costing runs the parallelism planner at the served shapes, and each route
+  carries the roofline ratio its hot ops predict.
+- The design record carries, per served phase, an execution map and a cost
+  table with one row per hot op, each rate cited to a calibration row. Each
+  kernel-class increment carries a numerics plan.
+- A kernel-class item builds its fp64 oracle first, then the kernel. It
+  passes on the oracle match over every registered regime plus the
+  kernel-alone ratio against its row's roofline, and a retained kernel
+  reviewer reads it. Two or more pending kernel items run as the kernel
+  call: one seat per item, in parallel up to the idle `kernel_alone`
+  capacity. Glue items pass on their CPU-mode command. A maintainer-pass
+  item reads the diff once every item has passed.
+- The queue tool takes a fourth job class, `kernel_alone`. It holds a job
+  lease and no campaign lease.
+- Measurement is one measurer seat with three steps: procedures, baseline,
+  runs. A re-entry whose registration, smoke records and baseline are
+  digest-equal starts at the runs. A model port's correctness ladder stops
+  at the first failed rung, and each later rung gets a "not run" bundle.
+  The served profile writes a cap row, and the measurer re-rates the
+  predicted rows under it.
+- Adjudication adds `performance_shortfall`: an attributed component over
+  its re-rated row sends the design back for those rows.
+  `regression_failed` outranks both cost outcomes.
+- The whole-campaign review replaces the per-batch review. Its
+  `code_findings` re-enters scoping, its `material_findings` returns to
+  `prepare_pr`, and `impl_commit_is_reviewed` rides the edge into gate 3.
+- Host recovery is `prepare_host`'s recovery mode. The route review is the
+  kickoff node's first step, with no seat when one target is requested.
+
+Release layer: `skills/vllm-neuron-parity/SKILL.md` (dispatch table with
+the calibration, kernel-call and kernel-reviewer rows; the bundled-skills
+section; the stage table with rows 1b Calibration and 6b Kernel call and a
+bundled-skills column; the P4, P5 and P9 rows; the compatibility line),
+`README.md` (counts, the seven-step table, the stage diagrams, the role
+table, the bundled skills), all six agent contracts and their Codex copies,
+`references/artifact-layout.md` (the calibration directory, the
+`kernel_alone` class, §4.9 run-shape records),
+`references/measurement-pitfalls.md` (paired arms, served carry). Code:
+`scripts/hardware_queue.py` accepts `--class kernel_alone` (`--campaign`
+names the record directory, `calibration` for the run's suite), the
+run-state schema's class list follows, the stop guard and
+`scripts/measure_artifact.py` name the whole-campaign review, and
+`tests/test_workflow_pave.py` expects the revision 19 counts. The
+marketplace entry's description now says the nine Neuron skills ship inside
+the plugin, and its version reads 1.8.0.
+
+Hardware-cost reference: `references/hardware-cost-reasoning.md` (383
+lines, ceiling 400) lands as drafted, on the user's word "no just land as
+is". Pointer lines name its sections in the SKILL domain-knowledge line,
+SKILL stage rows 4, 6 and 8, the served-carry rule in
+`references/measurement-pitfalls.md`, and the investigator, implementer,
+measurer and adjudicator contracts with their Codex copies. Iteration 1, three prompts, one run per arm, same
+model: 16 of 18 assertions pass with the reference and 14 of 18 without it
+(MEASURED). Both arms read this host's campaign records, so the baseline
+was not blind. Known items, recorded and not fixed:
+- The §5 GpSimd row states the per-item 1.6-2.7x miss without the
+  per-element 7-14x base.
+- The served-carry forecast is a rule, not a step.
+- No step names the form that serves today before costing against a
+  comparator.
+- The legend's labels rule does not say "lists included".
+
+Bundled Neuron skills, on the user's words "ya bundle", "Bundle all nine,
+I own the call" and "Fix them in the plugin copies at release": nine skills
+ship under `skills/` beside the lead skill, names unchanged. A seat loads
+each as `vllm-neuron-parity:<name>`, and the SKILL rows and agent contracts
+name the skill and sections each node loads. The autoport skill is
+reference only, a competing tool. `scripts/check_bundled_skills.py` checks
+every bundled file against `skills_md5.txt` at run start. A missing or
+changed file is `inputs_missing`, except under the autoport skill, whose
+absence the graph says is never `inputs_missing`. The five conflict fixes
+in the plugin copies, one line each:
+1. compile-debug: `scripts/wipe_poisoned_cache.sh` and "wipe first" are gone; a poisoned cache is left for a fresh root, the shared cache is never cleared (P2), a kill uses only an own pid.
+2. nki-debugging: the `NEURON_RT_VISIBLE_CORES=0` pin and the other plugin's settings-file read are gone; cores come from the lease, the venv from `NKI_VENV_PATH` or the brief.
+3. autoport: the reactive compile-cache clear is gone; `~/tmp/vllm_autoport` becomes the node's artifact directory (artifact-layout §3); sibling-skill paths become plugin skill names.
+4. equivalence: the `/mnt/3rd_party` path becomes the `NEUROBOROS_SRC` input in its SKILL.md; an off-pin vLLM or vllm-neuron line prints a compatibility note and proceeds, not an exit.
+5. planner: `sweep_results.json` goes to `PARALLELISM_PLANNER_OUTDIR`, else the current directory, never the skill directory; `python3.12` becomes `python3`, with torch and pytest stated.
+Six of the nine carry `release_category: internal` in their
+`NEURON_METADATA.md`: planner, compile-debug, autoport, equivalence,
+benchmark and troubleshooting. Those files stay as they are. The user owns
+the call to ship them.
+
+Ceilings (`tests/test_document_ceilings.py`, line counts MEASURED):
+- `agents/implementer.md` 380 -> 450, at 444 lines. Revision 18 puts the
+  cost table, execution map, numerics plan and kernel-item flow into this
+  one contract, and revision 19 moves host recovery into it as a mode. The
+  recovery section and the restated rules were cut first.
+- `references/artifact-layout.md` 440 -> 470, at 463 lines. Revision 18
+  declares the calibration directory and six run-shape records (§4.9). The
+  tree comments and §4.3 were condensed first.
+- New: `references/hardware-cost-reasoning.md` 400, and the nine bundled
+  SKILL.md files at their bundle-stage count rounded up to the next ten.
+  Three counts moved with the fixes and still fit: planner 278 -> 280,
+  compile-debug 187 -> 189, equivalence 271 -> 272.
+
+Not in this release:
+- Revision 18 names four release deliverables by duty that this release
+  does not build: the calibration suite script with its row list, the
+  oracle tooling with its regime list, `references/toolchain.md` that names
+  both, and the hazard-list reference. The contracts name them by duty.
+- The queue tool does not carry a `kernel_alone` pre-registration in the
+  grant request and does not join fault telemetry into the release record.
+  Both stay contract text.
+- `rederive_approach`'s graph roles (investigator, lead) against the
+  rederiver binding stay as they are. The README states the binding. A
+  graph revision owns any change.
+Suite (MEASURED): `python3 -m unittest discover -s tests -t .` runs 107
+tests, OK with 1 skipped; the new one-line `tests/__init__.py` lets that
+command import the start directory. `tests/test_hooks.sh` passes 96 checks
+with 0 failures. `scripts/check_bundled_skills.py .` reads 9 skills and 303
+files, exit 0.
 
 ## 1.7.0 — 2026-09-22
 

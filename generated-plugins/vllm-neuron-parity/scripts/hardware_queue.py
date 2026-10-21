@@ -20,13 +20,17 @@ released by the tool on its next invocation (reason "reaped"). --roster is the
 run state file (its instance_roster list, frozen by the lead at intake) or a
 JSON {"hosts": {<host>: {"pools": {...}}}}. The lead writes no lease record.
 
-Every job lease record names its class: serving, diagnostic, or cpu_mode. A job
-grant without --class is a request defect. A SERVING job grant must also name
+Every job lease record names its class: serving, diagnostic, kernel_alone, or
+cpu_mode. A job grant without --class is a request defect. A SERVING job grant must also name
 the tip it launches (--tip), the client leg that will drive its requests
 (--client), and the attempt-log file that records the tip's tier-0 bring-up
 rungs (--bring-up-record, which must already exist), because a server held with
 no client, or launched past a defect a cheaper probe finds, is charged time that
-measures nothing. A diagnostic or cpu_mode job needs only its class.
+measures nothing. A diagnostic, kernel_alone or cpu_mode job needs only its
+class. A kernel_alone job (a calibration row, a design anchor, an increment's
+ratio run) needs no campaign lease on the host; --campaign still names the
+record directory - the campaign it serves, or "calibration" for the run's
+calibration suite.
 
 A known pool class (neuron_devices, compile_memory_gib, cpu_cores,
 compile_cache_write_slot) the roster does not size is indivisible: a job that
@@ -38,7 +42,7 @@ reservation, a missing class, an underspecified serving request, a second
 campaign lease, nothing to release); 3 wait (capacity exists but is busy).
 
   grant   --root R --roster ROSTER --host H --campaign C
-          [--job J --class {serving,diagnostic,cpu_mode} --pool NAME=AMOUNT ...
+          [--job J --class {serving,diagnostic,kernel_alone,cpu_mode} --pool NAME=AMOUNT ...
            [--tip COMMIT --client TEXT --bring-up-record PATH]
            [--job-record PATH] [--wait SECONDS]]
           [--markers-verified a,b] [--markers-unavailable c] [--deltas-explained TEXT]
@@ -176,7 +180,7 @@ def parse_pools(items: list[str]) -> dict:
 
 
 KNOWN_POOLS = ("neuron_devices", "compile_memory_gib", "cpu_cores", "compile_cache_write_slot")
-JOB_CLASSES = ("serving", "diagnostic", "cpu_mode")
+JOB_CLASSES = ("serving", "diagnostic", "kernel_alone", "cpu_mode")
 CHARGED_TIME = ("a server held with no client, or launched past a defect a cheaper probe "
                 "finds, is charged time that measures nothing")
 
@@ -261,7 +265,8 @@ def cmd_grant(args) -> int:
         return emit({"status": "granted", "kind": "campaign", "lease_id": lease_id, "record": str(p)}, 0)
     if args.job_class is None:
         return emit({"status": "defect", "reason": "every job lease record names its class; "
-                     "pass --class serving, --class diagnostic or --class cpu_mode"}, 2)
+                     "pass --class serving, --class diagnostic, --class kernel_alone "
+                     "or --class cpu_mode"}, 2)
     if args.job_class == "serving":
         gaps = serving_gaps(args)
         if gaps:

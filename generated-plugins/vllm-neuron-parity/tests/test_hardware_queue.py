@@ -81,7 +81,7 @@ class HardwareQueueTests(unittest.TestCase):
                 "--host", "h1", "--campaign", "A", "--job", "j1", "--pool", "compile_memory_gib=1"]
         rc, out = run(*args)
         self.assertEqual(rc, 2, out); self.assertIn("--class serving", out["reason"])
-        for job_class in ("diagnostic", "cpu_mode"):     # these need only their class
+        for job_class in ("diagnostic", "kernel_alone", "cpu_mode"):     # these need only their class
             rc, out = self.grant("A", f"j-{job_class}", "compile_memory_gib=1", job_class=job_class)
             self.assertEqual(rc, 0, out)
 

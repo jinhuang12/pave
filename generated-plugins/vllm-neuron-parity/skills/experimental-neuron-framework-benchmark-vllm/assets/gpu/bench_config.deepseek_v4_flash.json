@@ -1,0 +1,102 @@
+{
+  "_doc": "DeepSeek-V4-Flash (284B/13B MoE) benchmark config — p5.48xlarge (8×H100). DSPARK-ONLY REGIME (nospec was completed on v0.24.0 in the 2026-07-09 run; those 106 cells stay in S3, this sweep only fills in dspark). EP swept as on/off per sharding. CP omitted (no supported sparse-MLA CP path on sm_90). FP4 experts run via dequant on Hopper (native on Blackwell); headline numbers are a lower bound vs B200/B300.",
+  "caveats": {
+    "regime": {
+      "spec": "Speculative decoding via DSpark (k=7, greedy) on vLLM main-branch nightly-95ed0feaa (2026-07-10), REQUIRED because method='dspark' landed post-v0.24.0. The 2026-07-09 nospec cells here were measured on v0.24.0 — DIFFERENT engine. Report spec-vs-nospec as absolute numbers + acceptance (per-cell image is in each run_manifest.json), not a clean speedup. Also: this bench uses `--dataset random` with `random_range_ratio=0`, which is a floor case for spec decode — DSpark's paper reports acceptance-length τ≈3.5-6 on natural-language benchmarks, this bench observed τ≈1.3 (random tokens give the predictive drafter little to draft). Real production speedup will be substantially higher than what shows here."
+    },
+    "instance": {
+      "p5": "DSV4-Flash's FP4 expert kernels run via dequant on Hopper (native FP4 math is Blackwell / sm_100 only), so all headline throughput here is a LOWER BOUND on what B200/B300 would deliver at the same op-point."
+    }
+  },
+  "sweep_name": "deepseek_v4_flash",
+  "image": "vllm/vllm-openai:nightly-95ed0feaa5cd7fb16d72c53ce04950aaf07c4698",
+  "_image_note": "Pinned main-branch nightly (2026-07-10). REQUIRED for the dspark regime: method='dspark' landed via PR #46995 (2026-07-01) + #47093 (2026-07-02), which is AFTER v0.24.0's release (2026-06-29) — on v0.24.0 SpeculativeConfig rejects it at engine-config validation ('container exited before becoming healthy'). Verified at this SHA: config/speculative.py has Literal['dspark'] + dspark model files present. CROSS-ENGINE CAVEAT: the 106 nospec cells from the 2026-07-09 run were measured on v0.24.0; dspark cells run on this nightly. Per-cell provenance is in each run_manifest.json ('image' field). Report spec-vs-nospec as absolute numbers + acceptance, not a clean speedup (same caveat pattern as the Gemma study's 0.20.0/0.22.1 split).",
+  "gpu_count": 8,
+
+  "models": [
+    {
+      "key": "dsv4_flash",
+      "hf_id": "deepseek-ai/DeepSeek-V4-Flash",
+      "moe": true,
+      "hf_id_by_regime": {
+        "dspark": "deepseek-ai/DeepSeek-V4-Flash-DSpark"
+      },
+      "safetensors_prefetch": true,
+      "_safetensors_prefetch_note": "REQUIRED on ext4 (this DLAMI's /scratch): the default lazy-mmap load strategy deadlocked all 8 workers in random-read safe_open for 28+ min with 0% GPU util. Prefetch flag (per vLLM issue #40988) loads shards into page cache first, then workers read sequentially — took 40s per rank. Not usually needed on NFS (vLLM auto-detects and prefetches there); ext4 auto-detect said 'local, use lazy', and lazy hung.",
+      "_rope_scaling_note": "Intentionally NOT set: the HF checkpoint's own config.json bakes the identical YaRN rope_scaling (verified 2026-07-10). vLLM main-branch nightly (post-6d29d80) removed the `--rope-scaling` CLI arg, so passing it explicitly is (a) redundant and (b) fatal on the nightly. Restore this ONLY if a future model doesn't bake rope_scaling into its own config."
+    }
+  ],
+
+  "regimes": [
+    {
+      "name": "dspark",
+      "prec": "fp8fp4",
+      "speculative": {
+        "method": "dspark",
+        "num_speculative_tokens": 7,
+        "draft_sample_method": "greedy"
+      },
+      "_doc": "DSpark speculative decoding k=7 greedy. INTENTIONAL k=7 (NOT the mistake SKILL.md line 129 warns against): 7 is DSpark's TRAINING block size (the '_block7' checkpoint), and this run is deliberately the training-block-size baseline per SKILL.md option 3 ('label the sweep as training-block-size baseline, not deployment-tuned'). It is NOT trying to reproduce the paper's headline speedup — that needs the paper's deployment γ=5, which would be a SEPARATE deployment-tuned pass. Do NOT silently change this to 5; that would change what the run measures. Uses the -DSpark checkpoint (hf_id_by_regime). This is the ONLY regime in this run — nospec was completed on v0.24.0 in the 2026-07-09 run; those 106 cells live in S3 under dsv4_flash__nospec/ and dsv4_flash__nospec_ep/ and are combined with these dspark results at deliverables time (cross-engine footnote)."
+    }
+  ],
+
+  "shapes": [
+    { "isl": 1024,   "osl": 256 },
+    { "isl": 8192,   "osl": 1024 },
+    { "isl": 32768,  "osl": 512 },
+    { "isl": 131072, "osl": 1024 }
+  ],
+
+  "shardings": [
+    { "tp": 8, "dp": 1, "ep": false },
+    { "tp": 8, "dp": 1, "ep": true },
+    { "tp": 4, "dp": 2, "ep": false },
+    { "tp": 4, "dp": 2, "ep": true },
+    { "tp": 2, "dp": 4, "ep": true }
+  ],
+  "_shardings": "tp1_dp8 excluded (145GB won't fit 80GB/GPU even with EP). tp2_dp4 without EP likely OOMs (36GB/GPU weight + 256 unsharded experts); the per-cell OOM guard will skip it. tp2_dp4 ep:true listed because EP distributes experts across 8 ranks.",
+
+  "concurrencies": [1, 8, 16, 32, 64, 128],
+  "concs_by_shape": {
+    "32768,512":   [1, 4, 8, 16, 32],
+    "131072,1024": [1, 2, 4, 8, 16]
+  },
+
+  "workload": {
+    "dataset": "random",
+    "random_range_ratio": 0.0,
+    "ignore_eos": true,
+    "num_prompts_per_conc": 5,
+    "min_prompts": 50,
+    "warmups_per_conc": 2,
+    "min_warmups": 20
+  },
+  "_workload": "random_range_ratio 0.0 (exact lengths) for the Gemma-comparable grid — same rationale as the Gemma study. DSV4's YaRN handles the context extension; exact lengths keep prompt-length controlled across cells.",
+
+  "server": {
+    "enable_prefix_caching": true,
+    "enable_chunked_prefill": true,
+    "kv_cache_dtype": "fp8",
+    "gpu_memory_utilization": 0.9,
+    "max_num_seqs": 256,
+    "block_size": 256,
+    "extra_flags": [
+      "--language-model-only",
+      "--tokenizer-mode", "deepseek_v4",
+      "--tool-call-parser", "deepseek_v4",
+      "--enable-auto-tool-choice",
+      "--reasoning-parser", "deepseek_v4",
+      "--max-cudagraph-capture-size", "128",
+      "--compilation-config", "{\"cudagraph_mode\":\"FULL_AND_PIECEWISE\",\"custom_ops\":[\"all\"]}"
+    ]
+  },
+  "_server": "block_size=256 per the DSpark recipe (matches V4's CSA block stride). --language-model-only disables multimodal (text-only bench, same as Gemma). kv_cache_dtype fp8 fixed across all regimes per user spec. tokenizer/tool/reasoning parser flags + cudagraph compilation config from the vLLM DSV4 recipe — cudagraph size 128 matches our conc ceiling; watch for a throughput cliff at conc=128 vs conc=64 (indicates conc=128 fell out of the captured graph). NOTE: --safetensors-load-strategy prefetch is emitted by the harness (see models[0].safetensors_prefetch), NOT here — it needs to be per-model, not universal.",
+
+  "docker_env": {},
+  "_docker_env": "HF_TOKEN auto-forwarded by sweep_bench.py from the host env. Add VLLM_PLUGINS or CUDA env vars here if needed.",
+
+  "bench_timeout_s": 10800,
+  "fail_threshold": 0.05,
+  "save_detailed": true,
+  "_save_detailed": "Capture per-request ITLs for 10%-trimmed-mean TPOT and latency distribution analysis."
+}
