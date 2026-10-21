@@ -1,6 +1,19 @@
 {
   "description": "PAVE Init long-run alignment and planning-layout hooks for Codex CLI.",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${PLUGIN_ROOT}/skills/orchestrate/hooks/goal_restate.sh\" codex",
+            "timeout": 10,
+            "additionalContextLimit": 5000
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Bash|Write|Edit",

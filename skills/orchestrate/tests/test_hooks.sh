@@ -162,10 +162,10 @@ run_hook "$RESTATE_HOOK" "$(compact r1)"
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && has_out '"hookEventName": "SessionStart"' \
   && has_out '"additionalContext"' && has_out "$OPEN_LOG" && ok=1
 report "restate: compact emits additionalContext naming the log" "$ok" "rc=$RC out=$OUT"
-ok=0; has_out "status" && has_out "ListAgents" && has_out "open subtask" && has_out "CLOSE" \
+ok=0; has_out "status" && has_out "live agents" && has_out "open subtask" && has_out "CLOSE" \
   && has_out "goal" && has_out "ou orchestrate, you do not implement" \
   && has_out "orchestrate_log.py" && has_out "\[orchestrate goal_restate\]" && ok=1
-report "restate: text asks for goal, status, ListAgents, open subtasks, fewest steps to CLOSE" "$ok" "out=$OUT"
+report "restate: text asks for goal, status, live agents, open subtasks, fewest steps to CLOSE" "$ok" "out=$OUT"
 ok=0; printf '%s' "$OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["hookSpecificOutput"]["hookEventName"]=="SessionStart"; assert d["hookSpecificOutput"]["additionalContext"]' 2>/dev/null && ok=1
 report "restate: output is one valid JSON object" "$ok" "out=$OUT"
 ok=0; open_is "worker-3" && ok=1

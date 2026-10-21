@@ -51,7 +51,7 @@ def field(key):
     value = payload.get(key)
     return "" if value is None else str(value).replace("\r", " ").replace("\n", " ")
 lines = ["OK", field("session_id"), "1" if payload.get("stop_hook_active") else "0",
-         field("agent_id"), field("agent_type"), field("hook_event_name"), field("source")]
+         field("agent_id"), field("agent_type"), field("hook_event_name"), field("source"), field("cwd")]
 print("\n".join(lines))
 ' 2>/dev/null || true)"
   [ "$(printf '%s\n' "$fields" | sed -n 1p)" = "OK" ] || exit 0
@@ -61,6 +61,7 @@ print("\n".join(lines))
   AGENT_TYPE="$(printf '%s\n' "$fields" | sed -n 5p)"   # parsed for completeness; never a seat signal alone
   HOOK_EVENT="$(printf '%s\n' "$fields" | sed -n 6p)"
   HOOK_SOURCE="$(printf '%s\n' "$fields" | sed -n 7p)"
+  HOOK_CWD="$(printf '%s\n' "$fields" | sed -n 8p)"
 }
 
 # find_owned_run -- set RUN_LOG to the open run this session owns and return
@@ -73,11 +74,12 @@ print("\n".join(lines))
 # name, owns no run either (it is spliced into file names).
 find_owned_run() {
   RUN_LOG=""
+  RUN_ROOT=""
   [ -z "${AGENT_ID:-}" ] || return 1
   case "${SESSION_ID:-}" in ''|*[!A-Za-z0-9._-]*) return 1 ;; esac
   # Quoted iteration: root paths may contain spaces.
   local root marker candidate
-  for root in "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
+  for root in "${HOOK_CWD:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
     [ -n "$root" ] || continue
     marker="$root/.orchestrate/active-$SESSION_ID"
     [ -f "$marker" ] || continue
@@ -85,6 +87,7 @@ find_owned_run() {
     [ -n "$candidate" ] && [ -f "$candidate" ] && [ -r "$candidate" ] || continue
     log_is_closed "$candidate" && continue
     RUN_LOG="$candidate"
+    RUN_ROOT="$root"
     return 0
   done
   return 1

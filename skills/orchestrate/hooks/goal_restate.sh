@@ -6,8 +6,8 @@
 # most likely to have lost the goal and the state of its subtasks, and to
 # start inventing state or doing worker tasks itself. This hook asks the lead
 # to rebuild both from the run log before acting: the goal from the log's
-# header, the subtasks from the log script's `status` and the live roster from
-# ListAgents, each open subtask and what it waits on, and the fewest steps to
+# header, the subtasks from the log script's `status` and the live agent
+# roster, each open subtask and what it waits on, and the fewest steps to
 # CLOSE. It names the subtasks the log shows open (open state is derived in
 # file order, so a fix-round PLAN reopens its worker) but never injects the
 # goal text -- the log wins over any hook. Never throttled: each rebuild is
@@ -35,9 +35,28 @@ find_owned_run || exit 0
 LOG_SCRIPT="$(cd "$HOOK_DIR/.." && pwd)/scripts/orchestrate_log.py"
 OPEN="$(log_open_subtasks "$RUN_LOG" | paste -sd ' ' - | sed 's/ /, /g')"
 
+# The Codex registration supplies its runtime; direct calls can detect it from
+# the owning session. Matching the payload avoids inherited session variables.
+RUNTIME="${1:-auto}"
+if [ "$RUNTIME" = auto ]; then
+  RUNTIME=claude
+  if [ -n "${CODEX_THREAD_ID:-}" ] && [ "$SESSION_ID" = "$CODEX_THREAD_ID" ]; then
+    RUNTIME=codex
+  fi
+fi
+case "$RUNTIME" in
+  claude) ROSTER=ListAgents ;;
+  codex) ROSTER=list_agents ;;
+  *) exit 0 ;;
+esac
+STATUS_COMMAND="$("$ORCH_PY" -c '
+import shlex, sys
+print(" ".join(shlex.quote(s) for s in [sys.executable, sys.argv[1], "--runtime", sys.argv[2], "status", "--cwd", sys.argv[3]]))
+' "$LOG_SCRIPT" "$RUNTIME" "$RUN_ROOT" 2>/dev/null)" || exit 0
+
 TEXT="$TAG Your context was just rebuilt ($HOOK_SOURCE). This session owns an open orchestrate run; its log is $RUN_LOG and the file wins over memory. Before acting, in a few lines:
 (1) the goal, as written on the log's goal: line;
-(2) run \`$ORCH_PY \"$LOG_SCRIPT\" status\` and ListAgents;
+(2) run \`$STATUS_COMMAND\` and \`$ROSTER\` to list live agents;
 (3) each open subtask, and what it waits on (Open in the log now: ${OPEN:-none});
 (4) the fewest steps from here to CLOSE.
 You orchestrate, you do not implement."

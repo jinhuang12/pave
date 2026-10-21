@@ -2,7 +2,8 @@
 """Append-only run log for the orchestrate skill (spec section 4.1); standard library only.
 
 Only the orchestrator calls it. The log is <cwd>/.orchestrate/<UTC stamp>.md; the marker
-<cwd>/.orchestrate/active-$CLAUDE_CODE_SESSION_ID holds its absolute path.
+<cwd>/.orchestrate/active-<session id> holds its absolute path. Select the runtime
+explicitly when both CLAUDE_CODE_SESSION_ID and CODEX_THREAD_ID are present.
 Subcommands: init, append, status, adopt. Exit 0 ok, 1 refused or invalid input, 2 usage.
 """
 
@@ -12,6 +13,7 @@ import argparse
 import datetime as dt
 import os
 import re
+import shlex
 import sys
 import time
 from pathlib import Path
@@ -21,6 +23,8 @@ STOPS = ("accepted", "closed_unaccepted", "blocked", "incomplete", "exhausted")
 LINE = re.compile(r"^- \d\d:\d\d (\S+) (\S+) ?(.*)$")
 RESPAWN = re.compile(r"(\S+) -> (\S+)")
 SCRIPT = os.path.abspath(__file__)
+COMMAND = f"python3 {shlex.quote(SCRIPT)}"
+SESSION_KEYS = {"claude": "CLAUDE_CODE_SESSION_ID", "codex": "CODEX_THREAD_ID"}
 
 
 def fail(msg, code=1):
@@ -68,7 +72,7 @@ def write(path, text, mode="a"):
 def cmd_init(args, home, marker):
     if current := open_run(marker):
         fail(f"this session already has an open run: {current}\n"
-             f'close it with: python3 {SCRIPT} append CLOSE <actor> "incomplete | <reason>"')
+             f'close it with: {COMMAND} append CLOSE <actor> "incomplete | <reason>"')
     plans = [event_line("PLAN", *(p.split(None, 1) + ["", ""])[:2]) for p in args.plan]
     home.mkdir(parents=True, exist_ok=True)
     write(home / ".gitignore", "*\n", "w")
@@ -101,7 +105,7 @@ def cmd_append(args, home, marker):
     write(log, "".join(lines))
     if rows[-1][0] == "CLOSE":
         marker.unlink()
-        print("run closed; release every teammate ListAgents still lists")
+        print("run closed; release live team agents using the skill's runtime contract")
 
 
 def cmd_status(args, home, marker):
@@ -109,7 +113,7 @@ def cmd_status(args, home, marker):
         owned = {m.read_text(encoding="utf-8").strip() for m in home.glob("active-*") if m.is_file()}
         orphans = [p for p in sorted(home.glob("*.md")) if str(p) not in owned and not is_closed(p)]
         for path in orphans:
-            print(f"no run for this session; adopt with: python3 {SCRIPT} adopt {path}")
+            print(f"no run for this session; adopt with: {COMMAND} adopt {shlex.quote(str(path))}")
         sys.exit(1) if orphans else fail("no open run for this session")
     lines = read_lines(log)
     # In file order: PLAN opens w, RESPAWN closes old and opens new, DONE closes w.
@@ -146,8 +150,26 @@ def cmd_adopt(args, home, marker):
     print(log)
 
 
+def session_identity(runtime):
+    """Choose one runtime's session without crossing a nested process boundary."""
+    if runtime == "auto":
+        present = [name for name, key in SESSION_KEYS.items() if os.environ.get(key, "").strip()]
+        if len(present) != 1:
+            fail("set CLAUDE_CODE_SESSION_ID or CODEX_THREAD_ID; use --runtime claude|codex when both are set", 2)
+        runtime = present[0]
+    key = SESSION_KEYS[runtime]
+    sid = os.environ.get(key, "").strip()
+    if not sid:
+        fail(f"{key} is not set; run this from a {runtime} session", 2)
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", sid):
+        fail(f"{key} is not a safe session id", 2)
+    return runtime, sid
+
+
 def main(argv=None):
+    global COMMAND
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--runtime", choices=("auto", "claude", "codex"), default="auto")
     sub = parser.add_subparsers(dest="cmd", required=True)
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--cwd", default=os.getcwd(), help="project directory (default: current)")
@@ -162,8 +184,8 @@ def main(argv=None):
     sub.add_parser("status", parents=[common], help="goal, one line per subtask, last line")
     sub.add_parser("adopt", parents=[common], help="point this session's marker at LOG").add_argument("log")
     args = parser.parse_args(argv)
-    if not (sid := os.environ.get("CLAUDE_CODE_SESSION_ID", "").strip()):
-        fail("CLAUDE_CODE_SESSION_ID is not set; run this from a Claude Code Bash tool call", 2)
+    runtime, sid = session_identity(args.runtime)
+    COMMAND = f"python3 {shlex.quote(SCRIPT)} --runtime {runtime}"
     home = Path(args.cwd).resolve() / ".orchestrate"
     {"init": cmd_init, "append": cmd_append, "status": cmd_status, "adopt": cmd_adopt}[args.cmd](
         args, home, home / f"active-{sid}")

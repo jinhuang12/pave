@@ -52,10 +52,16 @@ import measure_artifact as ma  # noqa: E402
 # reviewer template each gain one clause of the same change.
 # 2026-10-05: interview-and-fitness names the plugin's orchestrate skill as the simpler
 # not_fit option for a one-session fan-out of independent subtasks.
+# 2026-10-09 (2.8.2): research-delegate also names adversarial-investigator as
+# an allowed dispatcher; its original instructions are otherwise preserved.
+# 2026-10-15 (2.8.3): the pass-finality fragment (wording-only asks ride inside a
+# PASS; a PASS is final) is included by the two gate reviewers; reviewer-core item 3
+# gains the equal-weight clause; the pave-init gate and pave-evolve step 2 each gain
+# one sentence of the lead side.
 CEILINGS = {
-    "skills/pave-init/SKILL.md": (267, 38471),
+    "skills/pave-init/SKILL.md": (267, 38741),
     "skills/pave-init/README.md": (451, 26261),
-    "skills/pave-evolve/SKILL.md": (65, 8508),
+    "skills/pave-evolve/SKILL.md": (65, 8686),
     "skills/pave-init/references/approval-briefs.md": (72, 9498),
     "skills/pave-init/references/lead-hooks.md": (479, 47886),
     "skills/pave-init/references/pave-composition.md": (186, 10792),
@@ -68,14 +74,15 @@ CEILINGS = {
     "skills/pave-init/orchestration/explore-and-plan.md": (176, 18351),
     "skills/pave-init/orchestration/interview-and-fitness.md": (131, 7073),
     "skills/pave-init/orchestration/review-and-build.md": (134, 14386),
-    "sources/fragments/reviewer-core.md": (21, 3261),
+    "sources/fragments/reviewer-core.md": (21, 3382),
+    "sources/fragments/pass-finality.md": (5, 928),
     "sources/roles/forward-tester.md.tmpl": (21, 1783),
     "sources/roles/node-planner.md.tmpl": (72, 12795),
-    "sources/roles/pave-material-reviewer.md.tmpl": (91, 15867),
-    "sources/roles/research-delegate.md.tmpl": (58, 2422),
+    "sources/roles/pave-material-reviewer.md.tmpl": (93, 15913),
+    "sources/roles/research-delegate.md.tmpl": (58, 2450),
     "sources/roles/skill-builder.md.tmpl": (44, 4703),
     "sources/roles/system-explorer.md.tmpl": (23, 1510),
-    "sources/roles/update-reviewer.md.tmpl": (65, 8735),
+    "sources/roles/update-reviewer.md.tmpl": (67, 8781),
     "sources/roles/workflow-updater.md.tmpl": (77, 11056),
 }
 

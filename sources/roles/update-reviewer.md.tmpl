@@ -11,6 +11,8 @@ Your brief names the pave-init installation path, the revision folder, the propo
 
 <!-- include: fragments/reviewer-core.md -->
 
+<!-- include: fragments/pass-finality.md -->
+
 ## Method
 
 You are not the updater and not the lead that applies (`references/pave-revisions.md`, revision rule 5: self-review does not qualify). Judge the proposal, not the updater's report of it: apply the patch to a scratch copy yourself with `scripts/record_revision.py propose <root> --patch <proposal>` — for pave-init itself, its substitute (`references/pave-revisions.md`, pave-init itself) — and read the result. The base questions are the spec's own design review (`references/pave-spec.md` §14) applied to the successor, and the evidence method is the one every pave-init reviewer uses: extract the claims, decompose the high-consequence ones into bounded sub-questions, start the active harness's `research-delegate` workers together with exact paths and the instruction "Do not modify any files. Report only what you find.", reject any return without `path:line` plus an exact quote (one retry per question, then investigate it yourself), and render judgment only with evidence in hand. This contract adds the update-specific actions below. Each is an action you perform, not a question you consider. Every claim you make carries a path, a line, and a short exact quote, or the label `INFERENCE: <why no primary evidence>`.

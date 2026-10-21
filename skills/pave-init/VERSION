@@ -1,4 +1,4 @@
-version: 2.8.0
+version: 2.8.3
 
 ## How changelog entries are written
 
@@ -17,6 +17,24 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.8.3 (2026-10-15)
+
+- Changed — Reviewers and workers no longer spend rounds on wording. A wording-only ask (doc text, comments, titles, table rows, commit-message wording, formatting, with no change to a value, identifier, gate, test, dependency, or command) rides inside a PASS as a note, never as REVISE. A PASS is final: the worker or lead applies the attached notes and ships, nothing is resent, and the orchestrator never routes a note as a new round. Workers treat any LOW a reviewer still emits as a note.
+  - One shared fragment, `sources/fragments/pass-finality.md`, is included by all three reviewer roles; the worker role, the DA spawn prompt, the orchestrate lead, the pave-init gates, and pave-evolve step 2 carry the matching lead and worker side. `reviewer-core.md` item 3 now says an immaterial round weighs as a missed blocker, measured in wasted repair tokens. Source: the user's standing reviewer feedback, 2026-09-24 to 2026-10-15. Ceilings in `tests/test_doc_budget.py` rise by the added sentences.
+- Changed — An `accepted` orchestrate close no longer waits for the user's go. When the run was one step of a larger task and the next step is reversible and touches nothing live, the lead starts it and says what started; it asks first only before an irreversible or production-facing step.
+  - One sentence in `sources/orchestrate/SKILL.md.tmpl` Step 7. Source: the user's feedback of 2026-08-29 and 2026-09-29 on being asked for a go after every passed step.
+
+### 2.8.2 (2026-10-09)
+
+- New — `$pave-init:orchestrate` is available in Codex after explicit custom-agent installation. Workers use `gpt-6.1-sol` and shared reviewers use `gpt-6-astra`, both at `xhigh`. Direct review messages wake idle agents, and the lead stays active to handle their results.
+- Improved — Claude Code and Codex skills, roles, and references now come from one shared source. Each platform receives its own tool calls, model settings, paths, and skill names. The original Claude agent and reference instructions are preserved.
+- Fixed — Run logs select the correct session when both platform session variables are present. The resume and compaction reminder prints a runnable status command, uses the configured Python interpreter and owning project directory, and names the correct agent-list tool.
+- Updated — Installation checks, hook documentation, and the design spec cover both platforms. Codex checks the installed roles and native references before dispatch; its plugin registers the session-owned orchestrate reminder.
+
+### 2.8.1 (2026-10-07)
+
+- Improved — `/pave-init:orchestrate` Step 1 now states the decomposition rule once, with its reason: split the goal so every subtask is externally verifiable by both its worker and its DA, because without a check the worker can run and the DA can re-run, "looks done" is the only signal and the lead becomes the verification loop. The goal, one-agent, and acceptance fields were already there; the rule above them is what Anthropic's "give Claude a way to verify its work" guidance asks for.
 
 ### 2.8.0 (2026-10-05)
 

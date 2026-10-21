@@ -18,10 +18,150 @@
       "type": "object",
       "required": [
         "pave-init",
-        "pave-evolve"
+        "pave-evolve",
+        "orchestrate"
       ],
       "additionalProperties": false,
       "properties": {
+        "orchestrate": {
+          "type": "object",
+          "required": [
+            "template",
+            "output",
+            "slots",
+            "references"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "template": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            },
+            "slots": {
+              "type": "object",
+              "required": [
+                "FRONTMATTER",
+                "PEER_MESSAGES",
+                "RESOURCE_PATHS",
+                "LOG_COMMAND",
+                "ISOLATION",
+                "TEAM_MODELS",
+                "PREFLIGHT",
+                "SPAWN_RUNTIME",
+                "SPAWN_ORDER",
+                "SPAWN_ADDRESSES",
+                "SPAWN_EXAMPLE",
+                "MONITOR_DELIVERY",
+                "PROVIDER_FAILURE",
+                "SHUTDOWN",
+                "LIST_AGENTS",
+                "NEW_SESSION",
+                "HOOK_CONTRACT",
+                "RUNTIME_ANTIPATTERNS",
+                "MODEL_REFERENCE",
+                "PREFLIGHT_REFERENCE",
+                "SKILL_EXAMPLES"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "FRONTMATTER": {
+                  "type": "string"
+                },
+                "PEER_MESSAGES": {
+                  "type": "string"
+                },
+                "RESOURCE_PATHS": {
+                  "type": "string"
+                },
+                "LOG_COMMAND": {
+                  "type": "string"
+                },
+                "ISOLATION": {
+                  "type": "string"
+                },
+                "TEAM_MODELS": {
+                  "type": "string"
+                },
+                "PREFLIGHT": {
+                  "type": "string"
+                },
+                "SPAWN_RUNTIME": {
+                  "type": "string"
+                },
+                "SPAWN_ORDER": {
+                  "type": "string"
+                },
+                "SPAWN_ADDRESSES": {
+                  "type": "string"
+                },
+                "SPAWN_EXAMPLE": {
+                  "type": "string"
+                },
+                "MONITOR_DELIVERY": {
+                  "type": "string"
+                },
+                "PROVIDER_FAILURE": {
+                  "type": "string"
+                },
+                "SHUTDOWN": {
+                  "type": "string"
+                },
+                "LIST_AGENTS": {
+                  "type": "string"
+                },
+                "NEW_SESSION": {
+                  "type": "string"
+                },
+                "HOOK_CONTRACT": {
+                  "type": "string"
+                },
+                "RUNTIME_ANTIPATTERNS": {
+                  "type": "string"
+                },
+                "MODEL_REFERENCE": {
+                  "type": "string"
+                },
+                "PREFLIGHT_REFERENCE": {
+                  "type": "string"
+                },
+                "SKILL_EXAMPLES": {
+                  "type": "string"
+                }
+              }
+            },
+            "references": {
+              "type": "object",
+              "required": [
+                "protocol",
+                "subtask",
+                "model-seats"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "protocol": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "subtask": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "model-seats": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
         "pave-init": {
           "type": "object",
           "required": [
