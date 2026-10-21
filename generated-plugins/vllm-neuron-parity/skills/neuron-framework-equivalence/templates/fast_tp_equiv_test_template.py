@@ -23,8 +23,8 @@ import traceback
 import torch
 import torch.multiprocessing as mp
 
+# Adjust these paths for your container layout
 sys.path.insert(0, "/root/data-for-equiv-check")
-sys.path.insert(0, os.environ["NEUROBOROS_SRC"])  # SKILL.md input NEUROBOROS_SRC
 
 # --- Tiny model config (adapt to your architecture) ---
 TINY_CONFIG = dict(

@@ -93,8 +93,14 @@ result.
 Your brief names the bundled Neuron skill the trigger calls for, loaded by
 its plugin address: for a tripped attempt breaker, compile-debug's Attack
 order (`vllm-neuron-parity:experimental-neuron-autoport-compiler-debugging-vllm-neuron`);
-for a cost-model miss, the planner's methodology and cost-model references
-and nki-docs' architecture and optimization guides. Dispatch any other
+for a cost-model miss, the planner's methodology and cost-model references,
+nki-docs' architecture and optimization guides, compiler-artifacts' Decision
+tree (`vllm-neuron-parity:experimental-neuron-perf-compiler-artifact-debugging`:
+a valid graph that runs but misses its row), profile-analysis' Known
+dead-ends and Collective-bound workloads, and, by path under
+`<plugin-root>/skills/experimental-neuron-framework-optimization/references/`,
+never its SKILL.md, `KERNEL_OPTIMIZATION_LESSONS.md` Part G and
+`FRAMEWORK_MODEL_OPTIMIZATION_LESSONS.md` Part H as lever catalogs. Dispatch any other
 delegate skill only through the run's guardrail wrapper,
 and dispatch read-only workers for evidence reading. Every seat you spawn —
 named teammate or one-shot sub-agent — inherits your node's forbidden

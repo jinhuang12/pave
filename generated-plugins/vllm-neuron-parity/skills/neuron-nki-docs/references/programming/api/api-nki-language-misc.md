@@ -1,92 +1,13 @@
-# NKI Language - Miscellaneous
+# nki.language — Miscellaneous
 
 > **Module**: nki.language
-> **Total Functions**: 18
+> **Functions**: 18
 
 ## Overview
 
-Other language functions.
+Miscellaneous instructions.
 
 ## Functions
-
-### nki.language.device_print {#nki-language-device_print}
-
-# nki.language.device_print
-
-nki.language.device_print
-
-nki.language.device_print(*print_prefix*, *tensor*)[[source]](../../../_modules/nki/language.html#device_print)
-Print a message with a string `print_prefix` followed by the value of a tile `tensor`.
-
-By default, using this function will not result in your tensors being printed out. When running your kernel,
-you need to define the environment variable `NEURON_RT_DEBUG_OUTPUT_DIR` and point it to a directory that will
-store the tensor data grouped by prefix each time the device_print instruction is executed.
-
-The structure of the directory will be `<print_prefix>/core_<logical core id>/<iteration>/...`.
-
-Listing 12 Example usage
-
-```python
-import nki.isa as nisa
-import nki.language as nl
-
-def my_nki_kernel(input_tensor):
-    a_tile = sbuf.view(input_tensor.dtype, input_tensor.shape)
-    nisa.dma_copy(a_tile, input_tensor)
-    nl.device_print("a_tile", a_tile)
-
-    ...
-```
-
-
-> **Note**
->
-> Warning
-> 
-> 
-> This feature is only available when using the NxD Inference library.
-
-Parameters:
-
-* **print_prefix** ([*str*](https://docs.python.org/3/library/stdtypes.html#str)) – prefix of the print message. This string is evaluated at trace time and must be a constant expression.
-
-* **tensor** – tensor to print out. Can be in SBUF or HBM.
-
-Returns:
-None
-
----
-
-### nki.language.ds {#nki-language-ds}
-
-# nki.language.ds
-
-nki.language.ds
-
-nki.language.ds(*start*, *size*)[[source]](../../../_modules/nki/language.html#ds)
-Construct a dynamic slice for simple tensor indexing.
-
-
-```python
-import nki.language as nl
-import nki.isa as nisa
-...
-
-
-
-@nki.jit
-def example_kernel(in_tensor):
-  out_tensor = nl.ndarray(in_tensor.shape, dtype=in_tensor.dtype,
-                          buffer=nl.shared_hbm)
-  for i in range(in_tensor.shape[1] // 512):
-    tile = nl.ndarray((128, 512), dtype=in_tensor.dtype, buffer=nl.sbuf)
-    nisa.dma_copy(dst=tile, src=in_tensor[:, (i * 512):((i + 1) * 512)])
-    # Same as above but use ds (dynamic slice) instead of the native
-    # slice syntax
-    nisa.dma_copy(dst=tile, src=in_tensor[:, nl.ds(i * 512, 512)])
-```
-
----
 
 ### nki.language.all {#nki-language-all}
 
@@ -99,7 +20,7 @@ language.all(x, axis, dtype=None)
 
 Whether all elements along the specified axis (or axes) evaluate to True.
 
-((Similar to numpy.all))
+((Similar to [numpy.all](https://numpy.org/doc/stable/reference/generated/numpy.all.html)))
 
 > **Warning:**
 >
@@ -110,7 +31,7 @@ Whether all elements along the specified axis (or axes) evaluate to True.
 - **axis** — int or tuple/list of ints. The axis (or axes) along which to operate;
     must be free dimensions, not partition dimension (0); can only be the
     last contiguous dim(s) of the tile: [1], [1,2], [1,2,3], [1,2,3,4].
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 **Returns:** a tile with the logical AND reduction along the provided axis.
 
 ---
@@ -126,7 +47,7 @@ language.broadcast_to(x, shape, dtype=None)
 
 Broadcast a tile to a new shape following numpy broadcasting rules.
 
-((Similar to numpy.broadcast_to))
+((Similar to [numpy.broadcast_to](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_to.html)))
 
 > **Warning:**
 >
@@ -139,7 +60,7 @@ If `x.shape` is already the same as `shape`, returns `x` unchanged
 - **x** — the source tile in SBUF or PSUM.
 - **shape** — the target shape. Must have the same rank as `x`.
     Each dimension must either match or be broadcast from size 1.
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 **Returns:** a tile with the target shape containing broadcast values from `x`.
 
 ---
@@ -163,7 +84,7 @@ Randomly zeroes some of the elements of the input tile given a probability rate.
 - **x** — a tile.
 - **rate** — the probability of zeroing each element. Can be a scalar constant
     or a tile of shape `(x.shape[0], 1)` for per-partition drop probabilities.
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 **Returns:** a tile with randomly zeroed elements of `x`.
 
 ---
@@ -179,7 +100,7 @@ language.expand_dims(x, axis)
 
 Expand the shape of a tile.
 
-((Similar to numpy.expand_dims))
+((Similar to [numpy.expand_dims](https://numpy.org/doc/stable/reference/generated/numpy.expand_dims.html)))
 
 > **Warning:**
 >
@@ -250,7 +171,7 @@ language.max(x, axis, dtype=None, keepdims=False)
 
 Maximum of elements along the specified axis (or axes) of the input.
 
-((Similar to numpy.max))
+((Similar to [numpy.max](https://numpy.org/doc/stable/reference/generated/numpy.max.html)))
 
 > **Warning:**
 >
@@ -261,7 +182,7 @@ Maximum of elements along the specified axis (or axes) of the input.
 - **axis** — int or tuple/list of ints. The axis (or axes) along which to operate;
     must be free dimensions, not partition dimension (0); can only be the
     last contiguous dim(s) of the tile: [1], [1,2], [1,2,3], [1,2,3,4].
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 - **keepdims** — if True, the reduced axes are kept as size-one dimensions.
 **Returns:** a tile with the maximum along the provided axis.
 
@@ -278,7 +199,7 @@ language.mean(x, axis, dtype=None, keepdims=False)
 
 Arithmetic mean along the specified axis (or axes) of the input.
 
-((Similar to numpy.mean))
+((Similar to [numpy.mean](https://numpy.org/doc/stable/reference/generated/numpy.mean.html)))
 
 > **Warning:**
 >
@@ -286,11 +207,14 @@ Arithmetic mean along the specified axis (or axes) of the input.
 >
 
 - **x** — a tile.
-- **axis** — int or tuple/list of ints. The axis (or axes) along which to operate;
-    must be free dimensions, not partition dimension (0); can only be the
-    last contiguous dim(s) of the tile: [1], [1,2], [1,2,3], [1,2,3,4].
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
-- **keepdims** — if True, the reduced axes are kept as size-one dimensions.
+- **axis** — int or tuple/list of ints. Free dimensions can only be the last
+    contiguous dim(s) of the tile: [1], [1,2], [1,2,3], [1,2,3,4]. The partition
+    dimension (0) is also supported on its own, reducing across partitions; it
+    cannot be mixed with free dimensions in one call.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **keepdims** — if True, the reduced axes are kept as size-one dimensions. It
+    has no effect for `axis=0`: dimension 0 is structurally the partition
+    dimension of a tile, so it is always retained as size one rather than dropped.
 **Returns:** a tile with the average of elements along the provided axis. Float32
     intermediate values are used for the computation.
 
@@ -307,7 +231,7 @@ language.min(x, axis, dtype=None, keepdims=False)
 
 Minimum of elements along the specified axis (or axes) of the input.
 
-((Similar to numpy.min))
+((Similar to [numpy.min](https://numpy.org/doc/stable/reference/generated/numpy.min.html)))
 
 > **Warning:**
 >
@@ -318,7 +242,7 @@ Minimum of elements along the specified axis (or axes) of the input.
 - **axis** — int or tuple/list of ints. The axis (or axes) along which to operate;
     must be free dimensions, not partition dimension (0); can only be the
     last contiguous dim(s) of the tile: [1], [1,2], [1,2,3], [1,2,3,4].
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 - **keepdims** — if True, the reduced axes are kept as size-one dimensions.
 **Returns:** a tile with the minimum along the provided axis.
 
@@ -335,7 +259,7 @@ language.prod(x, axis, dtype=None, keepdims=False)
 
 Product of elements along the specified axis (or axes) of the input.
 
-((Similar to numpy.prod))
+((Similar to [numpy.prod](https://numpy.org/doc/stable/reference/generated/numpy.prod.html)))
 
 > **Warning:**
 >
@@ -346,9 +270,82 @@ Product of elements along the specified axis (or axes) of the input.
 - **axis** — int or tuple/list of ints. The axis (or axes) along which to operate;
     must be free dimensions, not partition dimension (0); can only be the
     last contiguous dim(s) of the tile: [1], [1,2], [1,2,3], [1,2,3,4].
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 - **keepdims** — if True, the reduced axes are kept as size-one dimensions.
 **Returns:** a tile with the product along the provided axis.
+
+---
+
+### nki.language.profiler_region_close {#nki-language-profiler_region_close}
+
+`nki.language.profiler_region_close()`
+
+**Signature:**
+```python
+language.profiler_region_close()
+```
+
+Mark the end of the most recently opened annotation region.
+
+Must be paired with a preceding :py`profiler_region_open` call.
+Failing to close a region will result in a compilation error.
+
+---
+
+### nki.language.profiler_region_open {#nki-language-profiler_region_open}
+
+`nki.language.profiler_region_open(label, color)`
+
+**Engine:** DMA Engine
+
+**Signature:**
+```python
+language.profiler_region_open(label, color='')
+```
+
+Mark the start of a named annotation region.
+
+Annotates all instructions between :py`profiler_region_open` and
+:py`profiler_region_close` with the given label. These annotations
+appear in Neuron Explorer as named regions on the execution timeline.
+
+This API has no execution time cost — it only adds debug metadata during
+compilation.
+
+All instructions within a profiler region are associated with that region,
+even if the compiler instruction scheduler reorders them to execute before
+an instruction that appears in program order prior to
+`profiler_region_open()`. The start of a region in the timeline is set
+to the execution time of the first instruction associated with the region,
+and therefore may cover instructions that were not associated with the
+region.
+
+Nested regions are supported: opening a region inside another region
+associates instructions with both the inner and outer labels.
+
+Opening a region without closing it is a compilation error.
+
+- **label** — name of the annotation region. Must not contain `,`, `@`,
+    `#`, or `|` characters.
+- **color** — optional CSS color string (e.g., `"#4CAF50"`) for the region
+    in Neuron Explorer.
+
+Examples:
+
+```python
+import nki.language as nl
+
+# nki.language.profiler_region_open -- annotate regions for Neuron Explorer
+nl.profiler_region_open("load_phase", color="#4CAF50")
+tile = nl.ndarray((128, 128), dtype=nl.float16, buffer=nl.sbuf)
+nisa.dma_copy(tile, a[0:128, 0:128])
+nl.profiler_region_close()
+
+nl.profiler_region_open("compute_phase", color="#2196F3")
+dst = nl.ndarray((128, 128), dtype=nl.float16, buffer=nl.sbuf)
+nisa.tensor_tensor(dst, tile, tile, op=nl.add)
+nl.profiler_region_close()
+```
 
 ---
 
@@ -373,7 +370,7 @@ Apply Root Mean Square Layer Normalization.
 - **axis** — axis along which to compute the root mean square (rms) value.
 - **n** — total number of values to calculate rms.
 - **epsilon** — epsilon value used by rms calculation to avoid divide-by-zero.
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 - **compute_dtype** — (optional) dtype for the internal computation.
 **Returns:** `x / RMS(x) * w`
 
@@ -401,24 +398,16 @@ language.softmax(x, axis=-1, dtype=None)
 
 Softmax activation function on the input, element-wise.
 
-((Similar to torch.nn.functional.softmax))
+((Similar to [torch.nn.functional.softmax](https://pytorch.org/docs/stable/generated/torch.nn.functional.softmax.html)))
 
 > **Warning:**
 >
 > This API is experimental and may change in future releases.
 >
 
-Args:
-    x: A tile.
-    axis: int or tuple/list of ints. The axis (or axes) along which to operate;
-        must be free dimensions, not partition dimension (0); can only be the
-        last contiguous dim(s) of the tile: [1], [1,2], [1,2,3], [1,2,3,4]
-    dtype: (optional) data type to cast the output type to; if not specified,
-        it will default to be the same as the data type of the input tile.
-
 - **x** — a tile.
 - **axis** — int or tuple/list of ints. The axis (or axes) along which to operate; must be free dimensions, not partition dimension (0); can only be the last contiguous dim(s) of the tile: `[1], [1,2], [1,2,3], [1,2,3,4]`
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 **Returns:** a tile that has softmax of `x`.
 
 Examples:
@@ -444,7 +433,7 @@ language.sum(x, axis, dtype=None, keepdims=False)
 
 Sum of elements along the specified axis (or axes) of the input.
 
-((Similar to numpy.sum))
+((Similar to [numpy.sum](https://numpy.org/doc/stable/reference/generated/numpy.sum.html)))
 
 > **Warning:**
 >
@@ -455,7 +444,7 @@ Sum of elements along the specified axis (or axes) of the input.
 - **axis** — int or tuple/list of ints. The axis (or axes) along which to operate;
     must be free dimensions, not partition dimension (0); can only be the
     last contiguous dim(s) of the tile: [1], [1,2], [1,2,3], [1,2,3,4].
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 - **keepdims** — if True, the reduced axes are kept as size-one dimensions.
 **Returns:** a tile with the sum along the provided axis.
 
@@ -478,7 +467,7 @@ Transposes a 2D tile between its partition and free dimension.
 >
 
 - **x** — 2D input tile.
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 **Returns:** a tile that has the values of the input tile with its partition and free
     dimensions swapped.
 
@@ -509,7 +498,7 @@ language.var(x, axis, dtype=None, keepdims=False)
 
 Variance along the specified axis (or axes) of the input.
 
-((Similar to numpy.var))
+((Similar to [numpy.var](https://numpy.org/doc/stable/reference/generated/numpy.var.html)))
 
 > **Warning:**
 >
@@ -520,7 +509,7 @@ Variance along the specified axis (or axes) of the input.
 - **axis** — int or tuple/list of ints. The axis (or axes) along which to operate;
     must be free dimensions, not partition dimension (0); can only be the
     last contiguous dim(s) of the tile: [1], [1,2], [1,2,3], [1,2,3,4].
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 - **keepdims** — currently ignored; result always has keepdims=True shape.
 **Returns:** a tile with the variance of the elements along the provided axis.
 
@@ -537,7 +526,7 @@ language.where(condition, x, y, dtype=None)
 
 Return elements chosen from x or y depending on condition.
 
-((Similar to numpy.where))
+((Similar to [numpy.where](https://numpy.org/doc/stable/reference/generated/numpy.where.html)))
 
 > **Warning:**
 >
@@ -547,7 +536,7 @@ Return elements chosen from x or y depending on condition.
 - **condition** — condition tile with float values (1.0 for True, 0.0 for False).
 - **x** — tensor from which to take elements where condition is True.
 - **y** — tensor from which to take elements where condition is False.
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 **Returns:** tensor with elements from x or y based on condition.
 
 Examples:
@@ -593,7 +582,7 @@ language.zeros_like(x, dtype=None, buffer=None, name='')
 
 Create a new tensor of zeros with the same shape and type as a given tensor.
 
-((Similar to numpy.zeros_like))
+((Similar to [numpy.zeros_like](https://numpy.org/doc/stable/reference/generated/numpy.zeros_like.html)))
 
 > **Warning:**
 >
@@ -603,7 +592,8 @@ Create a new tensor of zeros with the same shape and type as a given tensor.
 - **x** — the tensor.
 - **dtype** — the data type of the tensor.
 - **buffer** — the specific buffer (ie, sbuf, psum, hbm), defaults to sbuf.
-- **name** — the name of the tensor, used in scheduling .
+- **name** — the name of the tensor, used in scheduling.
 **Returns:** a new `NkiTensor` of zeros with the same shape as `x`.
 
 ---
+

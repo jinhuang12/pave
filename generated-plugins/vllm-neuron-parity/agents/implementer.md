@@ -106,8 +106,15 @@ on the artifact and disclose the disagreement in one line.
     registration completes before measurement begins, and the lead commits
     it on the `design_ready` edge. Load equivalence
     (`vllm-neuron-parity:neuron-framework-equivalence`: R-Ratio, Verdict,
-    its version pin) and the benchmark skill's What this measures and
-    metrics reference.
+    its version pin), the benchmark skill's What this measures and
+    metrics reference, serve-profiling's Method 1 (register the profiler
+    launch config the serving launch carries, and whether the profiled
+    launch is its own arm or the one the performance arms run on: its
+    compile-time debug env changes the programs' digest) and
+    profile-analysis's Report Template and Performance Bounds (per NEFF).
+    A re-entry from `performance_shortfall` reads, by path under the
+    optimization skill's `references/`, `OPTIMIZATION_BOOK.md` §5 and
+    `KERNEL_OPTIMIZATION_LESSONS.md` Part G as a lever catalog.
   - Assemble step — assemble the record from the step outputs (point at
     artifacts, never inline bulk content) and run the completeness
     self-check before it reaches gate 2: full per-increment contracts
@@ -213,9 +220,14 @@ on the artifact and disclose the disagreement in one line.
   (`evidence_contradicts_design`) outranks a pass reached by deviation and
   outranks `increment_stuck`. Writes outside the campaign worktree and
   branch, serving attempts, and any change to kickoff- or design-declared
-  acceptance criteria are out of scope. Load nki-writing whole, nki-docs,
-  nki-debugging (Standard Debugging Workflow, Error Resolution) and
-  compile-debug (the cardinal rule, Attack order).
+  acceptance criteria are out of scope. A kernel-class item loads nki-writing
+  whole, nki-docs, nki-debugging (Standard Debugging Workflow, Error
+  Resolution), compile-debug (the cardinal rule, Attack order), nki-profiling
+  (Complete Profiling Workflow), nki-profile-query (Step-by-Step Workflow,
+  Profile Analysis: the kernel-alone ratio is a profile read) and, by path
+  under the optimization skill's `references/`,
+  `KERNEL_OPTIMIZATION_LESSONS.md` Parts D and E. A glue item loads
+  compile-debug (the cardinal rule, Attack order) only.
 
 ## Hardware nodes
 
@@ -325,8 +337,10 @@ on the artifact and disclose the disagreement in one line.
   waiter that gave up and not the component that failed. Adjudicating the
   candidate's quality is out of scope; recovery is `prepare_host`'s mode.
   Load compile-debug (the cardinal rule, Attack order, Two localization
-  techniques) and troubleshooting (Compilation failures, Distributed
-  training hangs).
+  techniques), troubleshooting (Compilation failures, Distributed
+  training hangs) and serve-profiling (Traps & recovery, Monitoring and
+  hangs). The serving launch carries the profiler config the design
+  registered.
 
 ## Closure nodes
 
@@ -350,12 +364,13 @@ on the artifact and disclose the disagreement in one line.
 
 Load a bundled Neuron skill only by its plugin address
 (`vllm-neuron-parity:<name>`; the lead skill's stage map gives the short
-names) and only the sections your brief names. Every seat you spawn —
-named teammate or one-shot sub-agent — inherits your dispatching node's
-forbidden effects verbatim. Device work under any skill runs on the cores
-and pools your job lease names, never a skill's default core, and you kill
-only by your own pid. A cache-clear remedy is never followed (P2); the
-equivalence skill runs with `--target-stack vllm_neuron`; the benchmark
+names) and only the sections your brief names. The one exception is the
+optimization skill: read its lessons files by path, never its SKILL.md, a
+competing campaign controller. Every seat you spawn — named teammate or
+one-shot sub-agent — inherits your dispatching node's forbidden effects
+verbatim. Device work under any skill runs on the cores and pools your job
+lease names, never a skill's default core, and you kill only by your own
+pid. The equivalence skill runs with `--target-stack vllm_neuron`; the benchmark
 skill serves already-standing hosts only, so its provisioning and
 submission sections never apply. Provision nothing, and let no delegate
 provision. Never remove or soften the benchmark skill's provisioning STOP

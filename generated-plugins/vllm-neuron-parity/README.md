@@ -42,7 +42,7 @@ The plugin is the directory containing this README. It runs on either
 harness.
 
 **Claude Code.** Add the marketplace that lists this package and install
-it; the six role agents (`agents/*.md`), the nine bundled Neuron skills
+it; the six role agents (`agents/*.md`), the fifteen bundled Neuron skills
 (`skills/`) and the twelve hooks (`hooks/hooks.json`) register with the
 plugin, and `/hooks` lists the hooks:
 
@@ -110,17 +110,18 @@ validation (`scripts/validate_run_state.py`) uses `jsonschema` when present.
 Without it, the dependency-free validator checks every schema keyword this
 package declares.
 
-Campaign seats load nine Neuron skills that ship under `skills/` and are
+Campaign seats load fifteen Neuron skills that ship under `skills/` and are
 addressed as `vllm-neuron-parity:<name>`: the parallelism planner, NKI kernel
-writing, NKI documentation, NKI device debugging, compiler bring-up debugging,
+writing, NKI documentation, NKI device debugging, NKI kernel profiling and
+profile querying, compiler bring-up debugging, compiler-artifact debugging,
 the vLLM-Neuron autoport skill (reference only, never the port procedure),
-framework equivalence, the serving benchmark (whose provisioning STOP gate P6
-protects), and runtime troubleshooting. The lead skill's stage map names the
+framework equivalence, served-profile capture and analysis, the serving
+benchmark (whose provisioning STOP gate P6 protects), framework optimization
+(reference only, a competing workflow), and runtime troubleshooting. The lead skill's stage map names the
 sections each node loads, and intake runs `scripts/check_bundled_skills.py`
 against `skills_md5.txt`. Costing runs the planner, so the delta scan through
 gate 1 needs it. Each skill's own requirements are in the manifest's
-`compatibility` field. No bundled skill covers served-profile capture; a
-campaign whose needed skill is unavailable pauses and reports rather than
+`compatibility` field. A campaign whose needed skill is unavailable pauses and reports rather than
 substituting.
 
 A successor revision of this plugin's graph depends on the pave-init plugin
@@ -452,7 +453,7 @@ vllm-neuron-parity/
       stop-guard.sh                    # blocks at most 1 stop in 3 while a run is active (lead-session-gated); its audit check blocks one of those stops when an audit checkpoint comes due
       write-for-reader.sh              # reminds any actor to write documents for the reader (advisory, throttled); names an over-cap document, and under increments/ an over-cap file, header, or -rN retry copy
       goal-restate.sh                  # SessionStart resume|compact + SubagentStart: goal and fewest steps before acting
-  skills/<nine Neuron skills>/         # bundled skills the seats load (stage map in SKILL.md)
+  skills/<fifteen Neuron skills>/      # bundled skills the seats load (stage map in SKILL.md)
   skills_md5.txt                       # md5 list of every bundled skill file
   agents/*.md                          # role contracts registered on Claude Code
   workflow.pave.yaml                   # immutable packaged graph seed (the newest revision; its revision number is revisions.yaml's, not this README's)
@@ -683,5 +684,5 @@ Nothing registers silently.
 - `references/hardware-cost-reasoning.md` — how a cost row is built from
   calibrated rates, how a served profile is read, and when a kernel gain
   carries to the served path.
-- `skills/<name>/` with `skills_md5.txt` — the nine bundled Neuron skills;
-  their release status and the five fixes are in `VERSION`.
+- `skills/<name>/` with `skills_md5.txt` — the fifteen bundled Neuron skills;
+  their release status and the conflict fixes are in `VERSION`.

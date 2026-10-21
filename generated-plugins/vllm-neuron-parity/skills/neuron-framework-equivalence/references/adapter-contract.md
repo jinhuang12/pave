@@ -20,7 +20,7 @@ Set up distributed process groups for CPU-mode testing. Called once before `crea
 | Stack | Implementation |
 |---|---|
 | NxDI | `torch.distributed.init_process_group("gloo")` + `neuronx_distributed.parallel_state.initialize_model_parallel(tp)` |
-| vLLM-Neuron (0.24.0) | `torch.distributed.init_process_group("gloo")` + `vllm_neuron.parallel.neuron_parallel_state.initialize_neuron_parallel_state(tp_global_ranks=..., local_rank=0)` — delegates `VllmConfig`/`set_current_vllm_config`/`initialize_model_parallel`. Do NOT call vLLM's `init_distributed_environment` first (pre-creates `_WORLD`). |
+| vLLM-Neuron (0.29.0) | `torch.distributed.init_process_group("gloo")` + `vllm_neuron.parallel.neuron_parallel_state.initialize_neuron_parallel_state(tp_global_ranks=..., local_rank=0)` — delegates `VllmConfig`/`set_current_vllm_config`/`initialize_model_parallel`. Do NOT call vLLM's `init_distributed_environment` first (pre-creates `_WORLD`). |
 
 ### `create_model(target_module_file, target_class_name, target_config_name, hf_model_path)`
 
@@ -55,7 +55,7 @@ Run inference on actual Neuron hardware. Returns list of `{"text": ..., "tokens"
 
 | Stack | Implementation |
 |---|---|
-| NxDI | `DirectModelCompiler` + `HuggingFaceGenerationAdapter` via `model_validation` |
+| NxDI | `HuggingFaceGenerationAdapter` + compiled-model loading via `scripts/nxdi_compiled_loader.py` |
 | vLLM-Neuron | `vllm.LLM(model=id, tensor_parallel_size=tp)` + `SamplingParams(temperature=0.0)` |
 
 ## Environment Check (`check_environment()`)
@@ -65,7 +65,7 @@ Optional, no-op by default. `get_adapter()` calls it right after constructing th
 | Stack | Implementation |
 |---|---|
 | NxDI | inherits no-op default |
-| vLLM-Neuron | verifies `vllm_neuron` is importable and that both `vllm` (`PINNED_VLLM_VERSION`) and the `vllm-neuron` plugin (`PINNED_VLLM_NEURON_VERSION`) are on the pinned `0.24` line; raises `EnvironmentError` when `vllm_neuron` is not importable, prints a compatibility note when a version is off the line |
+| vLLM-Neuron | verifies `vllm_neuron` is importable and that both `vllm` (`PINNED_VLLM_VERSION`) and the `vllm-neuron` plugin (`PINNED_VLLM_NEURON_VERSION`) are on the pinned `0.29` line; raises `EnvironmentError` when `vllm_neuron` is not importable, prints a compatibility note when a version is off the line |
 
 Pass `check_environment=False` to `get_adapter()` only for pure introspection that exercises no stack APIs.
 
@@ -78,7 +78,7 @@ If `target_stack` is not specified, the registry reads the target modeling file'
 
 ## Optional Diagnostic Methods
 
-Beyond the 5 core methods, adapters may implement diagnostic methods that leverage stack-specific debugging tools. These raise `NotImplementedError` by default in the base class. Currently only `VLLMNeuronAdapter` implements them (via the `accuracy_debugger` module from `private-vllm-neuron`).
+Beyond the 5 core methods, adapters may implement diagnostic methods that leverage stack-specific debugging tools. These raise `NotImplementedError` by default in the base class. Currently only `VLLMNeuronAdapter` implements them (via the `accuracy_debugger` module from `vllm-neuron`).
 
 ### `run_accuracy_analysis(model_id, tp_size, eval_fn, thresholds, ...)`
 
@@ -97,7 +97,9 @@ Per-token logit validation on compiled device model. Wraps `LogitValPlugin` from
 
 - Compares device logits against FP32 baseline and dtype reference per token
 - Returns `{prompts, plugin_results, report_path}`
-- Used by: Stage 1 (when `--logit-validation` flag is set)
+- Used by: **Stage 5** — but not through this wrapper. `run_teacher_forced_comparison.py`
+  imports `LogitValPlugin` and calls `run_prompt_analysis()` directly. This adapter method
+  currently has no caller.
 
 ### `run_kv_cache_analysis(model_id, tp_size, prompts, output_length, ...)`
 

@@ -74,9 +74,36 @@ PRICE_PER_HR = {
     "b300": 142.416,           # 8x B300 (p6-b300.48xlarge)
     "g6e.12xlarge": 10.493,    # 4x L40S
     "g6e.48xlarge": 30.131,    # 8x L40S
+    # trn2.48xlarge (16x Trainium2). NOTE: this is the CAPACITY-BLOCK public rate
+    # ($35.7608/instance-hr, us-east-2, confirmed 2026-07-29 via aws.amazon.com/ec2/
+    # capacityblocks/pricing) — the plain on-demand list rate was not reliably
+    # published at snapshot time (instances.vantage.sh returned an obviously-corrupt
+    # $0.125). The milestone doc's cost basis is "public list price"; if/when a plain
+    # on-demand trn2 rate is published, REPLACE this and drop the capacity-block note.
+    # Milestone % (throughput-at-equal-interactivity) is price-INDEPENDENT and unaffected.
+    "trn2": 35.7608,           # 16x Trainium2 (trn2.48xlarge) — capacity-block list, see note
+    "trn2.48xlarge": 35.7608,  # alias: Neuron runs record the full instance-type string
+    "p5.48xlarge": 55.040,     # alias: GPU runs record the full instance-type string (8x H100)
+    "p5en.48xlarge": 63.296,   # alias (8x H200)
+    # p5e.48xlarge (8x H200 141GB). SAME CAVEAT AS trn2, and stronger: the AWS public
+    # price list has NO on-demand rate for p5e in any commercial region (the pricing API
+    # returns a single us-east-2 record at $0.0000, confirmed 2026-08-09) — p5e is
+    # effectively capacity-block-only. The rate below is the REAL price paid for a p5e
+    # block: $714.01 for the 2026-08-09T20:37Z->2026-08-10T11:30Z window (14.883 h) =
+    # $47.974/instance-hour. Defensible, but a CAPACITY-BLOCK rate — not on-demand list,
+    # so it is not apples-to-apples with the p5/p5en on-demand rates above (blocks are
+    # prepaid/non-refundable and cheaper per hour). It IS apples-to-apples with the trn2
+    # rate above, which is also a capacity-block rate — so a p5e-vs-trn2 tokens/$ chart
+    # is block-vs-block and internally consistent. For a strict on-demand 8x H200
+    # denominator, use p5en ($63.296) and say which basis you used.
+    "p5e": 47.974,
+    "p5e.48xlarge": 47.974,    # alias
 }
 GPU_LABEL = {"p5": "H100", "p5en": "H200", "b200": "B200", "b300": "B300",
-             "g6e.12xlarge": "L40S", "g6e.48xlarge": "L40S"}
+             "g6e.12xlarge": "L40S", "g6e.48xlarge": "L40S",
+             "trn2": "Trn2", "trn2.48xlarge": "Trn2",
+             "p5e": "H200", "p5e.48xlarge": "H200",
+             "p5.48xlarge": "H100", "p5en.48xlarge": "H200"}
 
 # Model label for plot/table titles (set from --model-name or derived from run_id).
 MODEL_NAME = "Model"

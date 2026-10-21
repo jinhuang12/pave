@@ -27,7 +27,7 @@ proceed on the artifact and disclose the disagreement in one line.
   every run precondition with a recorded command transcript: pinned
   release branch present on the fork; delegate skills available with
   namespaced addressing resolved — the lead's `check_bundled_skills.py`
-  transcript covers the nine bundled skills (the adjacent vendor autoport
+  transcript covers the fifteen bundled skills (the adjacent vendor autoport
   skill is a competing tool, never a prerequisite — its absence is never
   `inputs_missing`); the served shapes (context lengths and concurrency
   levels) each requested target's criteria are stated at; the runner-default boundary one release above the
@@ -83,7 +83,7 @@ proceed on the artifact and disclose the disagreement in one line.
   declares and record its entitlement (first-token and inter-token latency
   and memory per device — the floor every performance criterion is stated
   against); load the planner
-  (`vllm-neuron-parity:experimental-neuron-parallelism-planner`: Quick
+  (`vllm-neuron-parity:neuron-parallelism-planner`: Quick
   start, run-spec, Validate the engine against the oracle first, Reading
   the output, its TP feasibility reference) and write its results under
   your node's directory, never the skill's. Cost route A

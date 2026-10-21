@@ -34,7 +34,7 @@ import re
 import sys
 
 BUNDLED_SKILLS = (
-    "experimental-neuron-parallelism-planner",
+    "neuron-parallelism-planner",
     "neuron-nki-writing",
     "neuron-nki-docs",
     "neuron-nki-debugging",
@@ -43,6 +43,12 @@ BUNDLED_SKILLS = (
     "neuron-framework-equivalence",
     "experimental-neuron-framework-benchmark-vllm",
     "experimental-neuron-infra-runtime-troubleshooting",
+    "experimental-neuron-perf-compiler-artifact-debugging",
+    "neuron-nki-profiling",
+    "neuron-nki-profile-querying",
+    "neuron-framework-profiling-vllm-neuron",
+    "neuron-framework-profile-analysis-vllm-neuron",
+    "experimental-neuron-framework-optimization",
 )
 
 # md5sum output: 32 hex digits, a space, then " " (text) or "*" (binary), then the path.

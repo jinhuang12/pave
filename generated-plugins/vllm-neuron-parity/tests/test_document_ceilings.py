@@ -33,19 +33,25 @@ CEILINGS: dict[str, int] = {
     "README.md": 700,
     "workflow.pave.yaml": 3100,
     "skills/vllm-neuron-parity/SKILL.md": 500,
-    # The nine bundled Neuron skills (release 1.8.0): ceiling = the bundle-stage
+    # The fifteen bundled Neuron skills (release 1.9.0): ceiling = the bundle-stage
     # line count rounded up to the next multiple of 10, so a re-sync that grows
     # a vendored copy fails here until its ceiling moves with a VERSION reason.
-    # Three counts moved with the release's conflict fixes and still fit.
-    "skills/experimental-neuron-parallelism-planner/SKILL.md": 280,  # 278 -> 280 after fix 5
-    "skills/neuron-nki-writing/SKILL.md": 460,  # 459
-    "skills/neuron-nki-docs/SKILL.md": 200,  # 195
+    # 1.9.0 re-synced the nine 1.8.0 copies to the source repo, so six of them grew.
+    "skills/neuron-parallelism-planner/SKILL.md": 340,  # 335 (was the experimental planner, 280)
+    "skills/neuron-nki-writing/SKILL.md": 500,  # 500 (460 at 1.8.0)
+    "skills/neuron-nki-docs/SKILL.md": 210,  # 202 (200 at 1.8.0)
     "skills/neuron-nki-debugging/SKILL.md": 310,  # 303
-    "skills/experimental-neuron-autoport-compiler-debugging-vllm-neuron/SKILL.md": 190,  # 187 -> 189 after fix 1
-    "skills/neuron-framework-autoport-vllm-neuron/SKILL.md": 600,  # 591
-    "skills/neuron-framework-equivalence/SKILL.md": 280,  # 271 -> 272 after fix 4
-    "skills/experimental-neuron-framework-benchmark-vllm/SKILL.md": 630,  # 627
+    "skills/experimental-neuron-autoport-compiler-debugging-vllm-neuron/SKILL.md": 190,  # 189
+    "skills/neuron-framework-autoport-vllm-neuron/SKILL.md": 970,  # 961 (600 at 1.8.0)
+    "skills/neuron-framework-equivalence/SKILL.md": 390,  # 383 (280 at 1.8.0)
+    "skills/experimental-neuron-framework-benchmark-vllm/SKILL.md": 1000,  # 999 (630 at 1.8.0)
     "skills/experimental-neuron-infra-runtime-troubleshooting/SKILL.md": 80,  # 73
+    "skills/experimental-neuron-perf-compiler-artifact-debugging/SKILL.md": 220,  # 216
+    "skills/neuron-nki-profiling/SKILL.md": 370,  # 364
+    "skills/neuron-nki-profile-querying/SKILL.md": 460,  # 455
+    "skills/neuron-framework-profiling-vllm-neuron/SKILL.md": 490,  # 485
+    "skills/neuron-framework-profile-analysis-vllm-neuron/SKILL.md": 800,  # 799
+    "skills/experimental-neuron-framework-optimization/SKILL.md": 370,  # 362
     "references/artifact-layout.md": 470,
     "references/collision-ranking.md": 50,
     "references/hardware-cost-reasoning.md": 400,
@@ -54,9 +60,9 @@ CEILINGS: dict[str, int] = {
     "references/toolchain-evidence-pitfalls.md": 270,
     "agents/adjudicator.md": 150,
     "agents/adversarial-reviewer.md": 240,
-    "agents/implementer.md": 450,
+    "agents/implementer.md": 460,
     "agents/investigator.md": 200,
-    "agents/measurer.md": 190,
+    "agents/measurer.md": 200,
     "agents/rederiver.md": 165,
 }
 

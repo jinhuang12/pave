@@ -1,91 +1,35 @@
-# NKI Language - Array Creation
+# nki.language — Tensor Creation
 
 > **Module**: nki.language
-> **Total Functions**: 2
+> **Functions**: 10
 
 ## Overview
 
-Functions for creating and initializing arrays and tensors.
+Tensor Creation instructions.
 
 ## Functions
 
-### nki.language.ndarray {#nki-language-ndarray}
+### nki.language.device_print {#nki-language-device_print}
 
-# nki.language.ndarray
-
-nki.language.ndarray
-
-nki.language.ndarray(*shape*, *dtype*, *buffer=nl.sbuf*, *name=''*, *address=None*)[[source]](../../../_modules/nki/language.html#ndarray)
-Create a new tensor of given shape and dtype on the specified buffer.
-
-((Similar to [numpy.ndarray](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html)))
-
-Parameters:
-
-* **shape** – the shape of the tensor.
-
-* **dtype** – the data type of the tensor (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information).
-
-* **buffer** – the specific buffer (ie, [sbuf](nki.language.sbuf.md), [psum](nki.language.psum.md), [hbm](nki.language.hbm.md)), defaults to [sbuf](nki.language.sbuf.md). String buffer names are no longer accepted in NKI 0.3.0.
-
-* **name** – the name of the tensor.
-
-* **address** – (optional) explicit memory placement as `(partition_offset, free_offset)` tuple. New in NKI 0.3.0.
-
-Returns:
-a new tensor allocated on the buffer.
-
----
-
-### nki.language.zeros {#nki-language-zeros}
-
-# nki.language.zeros
-
-nki.language.zeros
-
-nki.language.zeros(*shape*, *dtype*, *buffer=nl.sbuf*, *name=''*)[[source]](../../../_modules/nki/language.html#zeros)
-Create a new tensor of given shape and dtype on the specified buffer, filled with zeros.
-
-((Similar to [numpy.zeros](https://numpy.org/doc/stable/reference/generated/numpy.zeros.html)))
-
-Parameters:
-
-* **shape** – the shape of the tensor.
-
-* **dtype** – the data type of the tensor (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information).
-
-* **buffer** – the specific buffer (ie, [sbuf](nki.language.sbuf.md), [psum](nki.language.psum.md), [hbm](nki.language.hbm.md)), defaults to [sbuf](nki.language.sbuf.md).
-
-* **name** – the name of the tensor.
-
-Returns:
-a new tensor allocated on the buffer.
-
----
-
-### nki.language.empty_like {#nki-language-empty_like}
-
-`nki.language.empty_like(x, dtype, buffer, name)`
+`nki.language.device_print(print_prefix, tensor)`
 
 **Signature:**
 ```python
-language.empty_like(x, dtype=None, buffer=None, name='')
+language.device_print(print_prefix, tensor)
 ```
 
-Create a new tensor with the same shape and type as a given tensor.
+Print a message with a string prefix followed by the value of a tile.
 
-((Similar to numpy.empty_like))
+During kernel execution on hardware, the Neuron Runtime (NRT) exports device-printed tensors
+via the NRT debug stream API. By default, setting the environment variable
+`NEURON_RT_DEBUG_OUTPUT_DIR` to a directory path enables the default stream consumer,
+which dumps tensor data to that directory. The output is organized as:
+`<output_dir>/<print_prefix>/core_<logical_core_id>/<iteration>/`.
 
-> **Warning:**
->
-> This API is experimental and may change in future releases.
->
+In CPU simulation, this prints immediately to stdout.
 
-- **x** — the tensor.
-- **dtype** — the data type of the tensor (default: same as `x`).
-- **buffer** — the specific buffer (ie, sbuf, psum, hbm), (default: same as `x`).
-- **name** — the name of the tensor, used in scheduling .
-**Returns:** a new `NkiTensor` with the same shape and type as `x`.
+- **print_prefix** — prefix of the print message. Evaluated at trace time; must be a constant string.
+- **tensor** — tensor to print out. Can be in SBUF or HBM.
 
 ---
 
@@ -113,7 +57,7 @@ to select from the free dimension of data.
 - **data** — input tensor to gather from.
 - **indices** — indices to gather.
 - **axis** — axis along which to gather.
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 **Returns:** gathered tensor.
 
 Examples:
@@ -147,7 +91,7 @@ Load a tensor from device memory (HBM) into on-chip memory (SBUF).
 >
 
 - **src** — HBM tensor to load the data from.
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 **Returns:** a new tile on SBUF with values from `src`.
 
 ---
@@ -169,8 +113,30 @@ Load a tensor from device memory (HBM) and 2D-transpose the data before storing 
 >
 
 - **src** — HBM tensor to load the data from.
-- **dtype** — (optional) data type to cast the output type to (see nki-dtype for more information); if not specified, it will default to be the same as the data type of the input tile.
+- **dtype** — (optional) data type to cast the output type to (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information); if not specified, it will default to be the same as the data type of the input tile.
 **Returns:** a new tile on SBUF with values from `src` 2D-transposed.
+
+---
+
+### nki.language.ndarray {#nki-language-ndarray}
+
+`nki.language.ndarray(shape, dtype, buffer, name, address)`
+
+**Signature:**
+```python
+language.ndarray(shape, dtype, buffer=sbuf, name='', address=None)
+```
+
+Create a new tensor of given shape and dtype on the specified buffer.
+
+- **shape** — the shape of the tensor.
+- **dtype** — the data type of the tensor.
+- **buffer** — the specific buffer (ie, sbuf, psum, hbm), defaults to sbuf.
+- **name** — the name of the tensor, used in scheduling.
+- **address** — optional memory address. For SBUF/PSUM this is a 2-tuple
+    `(partition_offset, free_offset)`; for HBM it is a 1-tuple
+    `(free_offset,)`.
+**Returns:** a new `NkiTensor` allocated on the buffer.
 
 ---
 
@@ -185,7 +151,7 @@ language.ones(shape, dtype, buffer=sbuf, name='')
 
 Create a new tensor of given shape and dtype on the specified buffer, filled with ones.
 
-((Similar to numpy.ones))
+((Similar to [numpy.ones](https://numpy.org/doc/stable/reference/generated/numpy.ones.html)))
 
 > **Warning:**
 >
@@ -195,7 +161,7 @@ Create a new tensor of given shape and dtype on the specified buffer, filled wit
 - **shape** — the shape of the tensor.
 - **dtype** — the data type of the tensor.
 - **buffer** — the specific buffer (ie, sbuf, psum, hbm), defaults to sbuf.
-- **name** — the name of the tensor, used in scheduling .
+- **name** — the name of the tensor, used in scheduling.
 **Returns:** a new `NkiTensor` allocated on the buffer.
 
 ---
@@ -219,9 +185,9 @@ Values are sampled from a uniform distribution between 0 and 1.
 >
 
 - **shape** — the shape of the tensor.
-- **dtype** — the data type of the tensor (see nki-dtype for more information).
+- **dtype** — the data type of the tensor (see [Supported Data Types](nki.api.shared.md#nki-dtype) for more information).
 - **buffer** — the specific buffer (ie, sbuf, psum, hbm), defaults to sbuf.
-- **name** — the name of the tensor, used in scheduling .
+- **name** — the name of the tensor, used in scheduling.
 **Returns:** a new `NkiTensor` allocated on the buffer with random values.
 
 Examples:
@@ -283,3 +249,30 @@ Store into a tensor on device memory (HBM) from on-chip memory (SBUF).
 - **value** — an SBUF tile that contains the values to store.
 
 ---
+
+### nki.language.zeros {#nki-language-zeros}
+
+`nki.language.zeros(shape, dtype, buffer, name)`
+
+**Signature:**
+```python
+language.zeros(shape, dtype, buffer=sbuf, name='')
+```
+
+Create a new tensor of given shape and dtype on the specified buffer, filled with zeros.
+
+((Similar to [numpy.zeros](https://numpy.org/doc/stable/reference/generated/numpy.zeros.html)))
+
+> **Warning:**
+>
+> This API is experimental and may change in future releases.
+>
+
+- **shape** — the shape of the tensor.
+- **dtype** — the data type of the tensor.
+- **buffer** — the specific buffer (ie, sbuf, psum, hbm), defaults to sbuf.
+- **name** — the name of the tensor, used in scheduling.
+**Returns:** a new `NkiTensor` allocated on the buffer.
+
+---
+

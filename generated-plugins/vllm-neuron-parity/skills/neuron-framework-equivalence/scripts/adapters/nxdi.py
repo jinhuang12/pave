@@ -1,7 +1,8 @@
 """
 NxDI (NeuronX Distributed Inference) adapter.
 
-Handles: NeuronConfig, from_pretrained, model_validation, DirectModelCompiler.
+Handles: NeuronConfig, from_pretrained, and compiled-model loading via
+scripts/nxdi_compiled_loader.py (public NxDI API only).
 """
 import importlib
 import importlib.util
@@ -101,20 +102,33 @@ class NxDIAdapter(StackAdapter):
         model_class = kwargs.get("model_class")
         config_class = kwargs.get("config_class")
 
-        from validator.main import create_model
-        from validator.patches import ensure_generation_config_version, patch_generation_mixin
+        try:
+            from nxdi_compiled_loader import (
+                create_compiled_model,
+                ensure_generation_config_version,
+                patch_generation_mixin,
+            )
+        except ImportError:
+            # Adapter imported without scripts/ on sys.path — add it and retry.
+            sys.path.insert(
+                0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
+            from nxdi_compiled_loader import (
+                create_compiled_model,
+                ensure_generation_config_version,
+                patch_generation_mixin,
+            )
         from transformers import GenerationConfig
         import transformers
 
-        config = {
-            "model_path": model_id,
-            "compiled_model_path": compiled_path,
-            "model_class": model_class,
-            "config_class": config_class,
-            "test_parameters": [{"batch_size": 1, "seq_len": 128}],
-        }
-
-        model, tokenizer, _ = create_model(config, batch_size=1, seq_len=128)
+        model, tokenizer, _ = create_compiled_model(
+            model_path=model_id,
+            compiled_model_path=compiled_path,
+            model_class=model_class,
+            config_class=config_class,
+            batch_size=1,
+            seq_len=128,
+        )
         model.load(compiled_path)
         ensure_generation_config_version(model)
         patch_generation_mixin()

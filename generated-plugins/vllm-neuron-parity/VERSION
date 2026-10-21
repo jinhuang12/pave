@@ -1,4 +1,102 @@
-version: 1.8.0
+version: 1.9.0
+
+## 1.9.0 — 2026-10-21
+
+The bundle grows from nine Neuron skills to fifteen, and the nine 1.8.0
+copies are re-synced to the source repo (NeuronAgenticDevelopment mainline).
+The graph, `revisions.yaml` and `history/` do not change.
+
+Renamed: the source repo promoted the planner out of experimental, so
+`experimental-neuron-parallelism-planner` becomes `neuron-parallelism-planner`
+in the bundle, the SKILL table, the agent contracts and their Codex copies,
+the manifest, the check script and the ceilings test. A seat now loads it as
+`vllm-neuron-parity:neuron-parallelism-planner`.
+
+Added, on the user's words "10 + 5": one skill the bundle already linked to,
+and five that bundled skills name.
+- `experimental-neuron-perf-compiler-artifact-debugging` — compile-debug
+  links its references; at 1.8.0 those links did not resolve.
+- `neuron-nki-profiling`, `neuron-nki-profile-querying` — kernel profiles
+  (stage 1b in the stage map).
+- `neuron-framework-profiling-vllm-neuron`,
+  `neuron-framework-profile-analysis-vllm-neuron` — served-profile capture
+  and analysis (stage 8). The README and SKILL no longer say no bundled
+  skill covers served profiles.
+- `experimental-neuron-framework-optimization` — reference only, a
+  competing end-to-end workflow, like autoport.
+Two of the six carry `release_category: internal`: compiler-artifacts and
+optimization.
+
+Re-sync method: each 1.8.0 copy was matched to the source commit it came
+from, and the release fixes were 3-way merged onto the repo copy. Where the
+repo had moved the same lines, the result keeps the repo's content and the
+fix's intent:
+1. compile-debug: fix 1 merged clean; `scripts/wipe_poisoned_cache.sh` stays out.
+2. nki-debugging: fix 2 merged clean.
+3. autoport: the repo's new cache-hygiene block keeps its detail, but every
+   "clear the cache" becomes a fresh cache root you own (P2). The repo
+   already dropped `~/tmp/vllm_autoport`. The planner link uses the new name.
+4. equivalence: the repo now pins vLLM and vllm-neuron 0.29 and dropped the
+   NeuroborosFoundations path and `MODEL_VALIDATION_DIR`, so the
+   `NEUROBOROS_SRC` part of fix 4 is gone. The compatibility-note-not-exit
+   part stays, at 0.29.
+5. planner: the repo replaced `PARALLELISM_PLANNER_OUTDIR` with
+   `--project-root` / `NEURON_PROJECT_ROOT` (output under
+   `<root>/agent_artifacts/tmp`, refuses to write inside the skill). That
+   covers fix 5's intent. The quick start says to pass the node's artifact
+   directory as `--project-root`, and `python3.12` becomes `python3`. The
+   repo stopped shipping `scripts/configs/`.
+New conflict fixes in the added skills, one line each:
+6. nki-profiling: the other plugin's settings-file read and the core-0 pin
+   are gone; the venv comes from `NKI_VENV_PATH` or the brief, cores from the lease.
+7. serve-profiling: `rm -rf` of the vLLM compile cache becomes a fresh
+   cache root you own (P2); its device-pinning section uses the leased range,
+   never a free range read from `neuron-ls`.
+8. optimization: "clear compilation caches before a fresh build" becomes a
+   fresh cache root you own (P2).
+
+Ceilings (`tests/test_document_ceilings.py`, line counts MEASURED): six
+re-synced copies grew upstream and their ceilings move with them: planner
+280 -> 340, nki-writing 460 -> 500, nki-docs 200 -> 210, autoport
+600 -> 970, equivalence 280 -> 390, benchmark 630 -> 1000. The six added
+skills get the same rule: line count rounded up to the next ten.
+`agents/measurer.md` 190 -> 200, at 194 lines, and `agents/implementer.md`
+450 -> 460, at 459 lines: the stage-map load lines grew; the implementer's
+guardrail restatement of P2 was cut first.
+
+`skills_md5.txt` lists 417 files (from 303). The manifest's compatibility
+line names each added skill's requirements.
+
+Stage map: the six added skills are wired where their node needs them,
+and the agent contracts move with the map (a contract's own load line
+and the map must agree, or the seat's behaviour is undefined). Changes,
+one line each; the reasons are the node purposes in the graph.
+- 1b: the measurer writes the suite's kernels until the suite script
+  ships, so nki-writing Quick Start and Hardware Constraints load;
+  nki-debugging narrows to Error Resolution; nki-profiling and
+  nki-profile-query capture and read the rows.
+- 4 register: the design freezes the profiler launch config and the
+  profile report form, because the measurer never chooses a comparator
+  and Method 1's flags are launch-time. A re-entry on
+  `performance_shortfall` reads the optimization lever catalogs.
+- 6: a kernel item's pass bar is a kernel-alone ratio, a profile read,
+  so nki-profiling and nki-profile-query load for kernel items; a glue
+  item loads compile-debug only. The kernel reviewer reads the ratio's
+  record with nki-profile-query Profile Analysis.
+- 7: serve-profiling Traps and Monitoring (hangs, orphan workers); the
+  serving launch carries the design-registered profiler config.
+- 8: serve-profiling profiles one replica when the served config has more.
+- 9: unchanged, none. Profile-analysis' Verification discipline tells
+  its reader to query raw profiles, which the adjudicator never does.
+- Recovery: compiler-artifacts (its own precondition is a valid graph
+  that runs but misses), profile-analysis Known dead-ends and
+  Collective-bound workloads, and the lever catalogs.
+The optimization skill is read by file path only: a skill loads whole,
+and its SKILL.md is a competing campaign controller. The rule is stated
+in the lead SKILL's bundled-skills paragraph and in the implementer and
+rederiver guardrail lines. Reviewed by an adversarial seat: two rounds,
+three findings fixed (the adjudicator load, the whole-skill load, the
+two surfaces), PASS.
 
 ## 1.8.0 — 2026-10-21
 

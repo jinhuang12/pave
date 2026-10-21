@@ -3,7 +3,9 @@
 When a new architecture fails and you suspect a **compiler/framework bug rather than a
 model bug**, the fastest disambiguation is to diff its artifacts against a known-good
 sibling that already compiles on the same stack (a previously-ported dense model, or a
-reference EP model like gpt_oss / qwen3_moe / deepseek_v32). This is the port analog of
+reference EP model). Pick the sibling from what your checkout actually ships — `ls
+vllm_neuron/model/` — since the released set of reference ports changes between releases;
+`gpt_oss` is the EP reference at the current release, `llama3` the dense one. This is the port analog of
 the perf skill's
 [`compiler_diff.md`](../experimental-neuron-perf-compiler-artifact-debugging/references/compiler_diff.md)
 (which diffs *two compilers on the same HLO*); here you diff *two models on the same compiler*.

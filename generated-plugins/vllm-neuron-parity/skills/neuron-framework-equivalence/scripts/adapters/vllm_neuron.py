@@ -33,18 +33,18 @@ from . import register
 #   - PINNED_VLLM_VERSION: the upstream vLLM framework. vLLM changes its
 #     distributed-init, VllmConfig, and v1 APIs across minor releases, so the
 #     equivalence skill targets one specific minor line. The adapter was
-#     updated for vLLM 0.24.0 (VllmConfig context requirement still applies;
-#     verified against vLLM-Neuron 0.24 that set_current_vllm_config +
+#     updated for vLLM 0.29.0 (VllmConfig context requirement still applies;
+#     vLLM-Neuron 0.29's set_current_vllm_config +
 #     ParallelConfig(tensor_parallel_size=) + VllmConfig(parallel_config=) and
 #     initialize_neuron_parallel_state(tp_global_ranks=, local_rank=) are
 #     unchanged).
 #   - PINNED_VLLM_NEURON_VERSION: the vLLM-Neuron plugin itself (dist name
 #     "vllm-neuron"). Its model classes, parallel-state helpers, and accuracy
 #     utilities are what the adapter actually calls; the plugin tracks vLLM but
-#     versions independently (its own version is e.g. 0.24.0.1.1.0).
+#     versions independently (its own version is e.g. 0.29.0.1.1.0).
 # Bump BOTH in lockstep with the adapter when moving to a new line.
-PINNED_VLLM_VERSION = "0.24.0"
-PINNED_VLLM_NEURON_VERSION = "0.24.0"
+PINNED_VLLM_VERSION = "0.29.0"
+PINNED_VLLM_NEURON_VERSION = "0.29.0"
 
 
 @register("vllm_neuron")
@@ -81,9 +81,9 @@ class VLLMNeuronAdapter(StackAdapter):
                 "vLLM-Neuron equivalence adapter: cannot import 'vllm_neuron'.\n"
                 f"  Underlying error: {e}\n"
                 "  This usually means the editable install is not on PYTHONPATH.\n"
-                "  Fix: export PYTHONPATH so it includes the private-vllm-neuron\n"
+                "  Fix: export PYTHONPATH so it includes the vllm-neuron\n"
                 "  project root, e.g.\n"
-                "    PYTHONPATH=/path/to/private-vllm-neuron:$PYTHONPATH python3 ...\n"
+                "    PYTHONPATH=/path/to/vllm-neuron:$PYTHONPATH python3 ...\n"
             ) from e
 
         # 2. Installed vLLM must match the pinned minor line.
@@ -145,10 +145,45 @@ class VLLMNeuronAdapter(StackAdapter):
                 file=sys.stderr,
             )
 
+        # 4. Reference-model helpers are optional — warn, never fail.
+        self._warn_if_reference_helpers_missing()
+
+    @staticmethod
+    def _warn_if_reference_helpers_missing() -> bool:
+        """Report whether the reference-model helpers are importable.
+
+        ``setup_reference_model`` / ``generate_teacher_forced_logits`` live in the
+        vLLM-Neuron repo's ``test/`` tree, which is **not** shipped in the wheel. Their
+        absence is not fatal, so this warns rather than raising — but the user should
+        know up front that Stage 5/6 will be degraded rather than discovering it
+        mid-run.
+
+        Returns True when the full comparison is available.
+        """
+        try:
+            import test.vllm_neuron.utils.logit_test_utils  # noqa: F401
+        except ModuleNotFoundError:
+            print(
+                "WARNING: vLLM-Neuron reference-model helpers are not importable\n"
+                "  ('test.vllm_neuron.utils.logit_test_utils'). This is expected for a\n"
+                "  wheel-only install — the test/ tree ships only with the repo.\n"
+                "\n"
+                "  Stage 5/6 will run in DEGRADED mode:\n"
+                "    - Step 4 (run_teacher_forced_comparison.py) is UNAFFECTED. The\n"
+                "      accuracy_debugger path builds its own FP32/dtype references.\n"
+                "    - run_stage5.py falls back to per-token logit validation instead of\n"
+                "      the three-tensor R-ratio, so it reports pass/fail rather than an R value.\n"
+                "\n"
+                "  For the full three-tensor comparison, put the vLLM-Neuron repo root\n"
+                "  (VLLM_NEURON_DIR) on PYTHONPATH so 'test/' is importable."
+            )
+            return False
+        return True
+
     def init_distributed(self, tp_degree: int = 1) -> None:
         """Initialize distributed + parallel state for CPU-mode testing.
 
-        vLLM 0.24.0 requires ``initialize_model_parallel`` to run inside a
+        vLLM 0.29.0 requires ``initialize_model_parallel`` to run inside a
         ``set_current_vllm_config(VllmConfig(...))`` context, and the exact
         ``VllmConfig`` / ``ParallelConfig`` signatures change between vLLM
         releases. Rather than reconstruct that context by hand (the 0.19.0

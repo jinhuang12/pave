@@ -1,0 +1,92 @@
+{
+  "_comment": "User-supplied NEURON benchmark config, consumed by neuron_sweep.py (the in-pod vLLM-Neuron sweep driver). Copy to neuron_bench_config.json and edit. Mirrors the GPU bench_config.example.json wherever the axes map — including the TP×DP `shardings` axis — and DIVERGES where Trainium forces it (compiled buckets, neuron_config regimes, no tp*dp==box requirement). See SKILL.md §B.",
+
+  "image": "<ECR-URI of the model's vLLM-Neuron bench image>",
+  "_image": "REQUIRED. ECR URI of a vLLM-Neuron bench image in which THIS model's arch is already registered (output of neuron-framework-autoport-vllm-neuron). Unlike the GPU side (stock upstream vLLM serves any registered arch), Neuron needs the model ported + an image built. IPA + the driver are expected to be importable inside it. Preflight verifies the arch is registered and the image exists before provisioning.",
+
+  "instance": "trn2.48xlarge",
+  "_instance": "Trainium instance. trn2.48xlarge = 16 chips × 128 physical cores, LNC=2 → 64 LOGICAL cores, ~96 GB HBM/chip. Every sharding's tp*dp must fit the box's logical cores (≤ 64 on trn2.48xlarge). Also the --instance label passed to build_deliverables.py at collection time; trn2 is unpriced in build_cost_deliverables.py's PRICE_PER_HR, so the cost deliverable simply skips it (throughput/latency deliverables are unaffected).",
+
+  "shardings": [
+    { "tp": 64, "dp": 1 },
+    { "tp": 32, "dp": 2 },
+    { "tp": 16, "dp": 4 }
+  ],
+  "_shardings": "PARALLELISM AXIS — same key and shape as the GPU config's `shardings`, so one authored sweep plan ports across platforms. Each entry is {tp, dp?, ep?}: tp = --tensor-parallel-size (SHARDS one model copy over tp logical cores; divides per-device weight bytes), dp = --data-parallel-size (REPLICATES the whole model, one full copy per replica on its own disjoint window of tp cores; buys throughput at fixed per-user latency, does NOT reduce per-replica weight bytes). dp defaults to 1 and is omitted from the argv at 1. Total cores used = tp*dp. Optional per-entry 'ep' overrides the ep_list sweep for that entry only (GPU-style per-sharding EP). DIVERGENCE FROM GPU: the GPU driver REQUIRES tp*dp == gpu_count ('every run must fill the box'); Trainium only requires tp*dp ≤ logical cores, so an under-filling sharding like tp8_dp1 (8 of 64 cores) is LEGAL — the driver warns, because that cell's tok/s is then a PARTIAL-BOX number you must not compare per-instance against a full-box GPU cell. The three entries above are the box-filling TP×DP ladder that also FITS this template's own 32768/2048 shape; the natural fourth rung {tp:8,dp:8} is deliberately omitted because 8 cores can't hold that shape's KV pool at conc 16 and the driver's fit-check hard-stops it before provisioning (add it back for short-context-only sweeps, or with concs_by_shape / num_gpu_blocks_override). Add a partial-box entry like {tp:8,dp:1} only when you specifically want the fractional-box question answered. With EP on and dp>1, vLLM-Neuron REQUIRES ep_degree == tp*dp — the driver defaults it there, so just don't pin ep_degree in that case (preflight and the driver both hard-fail a bad pin before provisioning). Per-model override via models[].shardings (e.g. a large model that only fits at high tp).",
+  "_shardings_legacy": "The older Neuron-only key `tp_list` ([32, 16, 8], global or per-model) is still accepted and implies dp=1 for every entry, so existing configs keep producing identical cell-ids and output paths. `shardings` wins when both are present. Prefer `shardings` for new configs — it is the only way to express dp.",
+
+  "models": [
+    {
+      "key": "llama3",
+      "hf_id": "meta-llama/Llama-3.1-8B-Instruct"
+    }
+  ],
+  "_weights_note": "WEIGHTS provenance (separate from CODE, which is baked into the ECR image): by default `hf_id` weights download from the HF hub at serve time (needs HF access; ~tens of GB per fresh pod). To serve from a PRE-STAGED local/FSx checkpoint dir instead (no HF download, no gated-access friction), set model.checkpoint_path to an in-pod path (e.g. under $FSX_TEAM_SHARED_RW, already mounted) — the driver serves that path and sets --served-model-name to hf_id (which is STILL required — it's the bench client's --model). Per-regime override: checkpoint_path_by_regime {regime_name: dir} (e.g. an fp8-converted dir). Opt-in failsafe: model.hf_fallback:true retries the HF id if the local checkpoint fails to start (LOUDLY logged — off by default so a bad path fails loudly instead of silently benching a different checkpoint).",
+
+  "_models": "models to benchmark. key = short label (output-dir prefix), hf_id = exact HF id (ALWAYS required — the served-model-name + deliverables/ledger key, even when weights come from checkpoint_path). Per-model 'shardings' (or the legacy 'tp_list') overrides the global one — see _shardings. Optional per-model: 'moe' (true → default EP on for this model), 'ep_list' ([true,false] to SWEEP expert-parallel on vs off as separate cells — the Neuron peer of the GPU per-sharding 'ep' axis; when unset defaults to a single value = moe, so dense models are unaffected; a sharding entry's own 'ep' overrides this for that entry; EP-on cells get --enable-expert-parallel + neuron_config.ep_degree defaulting to tp*dp, which is also what the plugin REQUIRES whenever dp>1),'concurrencies'/'concs_by_shape', 'regimes' (restrict to a subset by name), 'hf_id_by_regime' ({regime_name: pre-quantized checkpoint}), 'rope_scaling' ({...} → --rope-scaling for shapes whose max-model-len exceeds the native context window — SAME key + shape as the GPU config; without it a long shape that fits on GPU would be rejected on Neuron), 'kv_bytes_per_token' (int; exact KV bytes/token for a precise fit-check — the default heuristic assumes MHA and over-estimates GQA ~2x), 'num_gpu_blocks_override' (int; sizes the KV block pool explicitly — the Neuron analogue of GPU's gpu_memory_utilization), 'neuron_config_extra' ({...} merged into every regime's neuron_config for this model, wins over all). Llama-3.1-8B is the GOLDEN reference (known-working autoport) — validate the driver against it first.",
+
+  "regimes": [
+    { "name": "bf16", "prec": "bf16", "neuron_config": { "quantization": "bf16" } }
+  ],
+  "_regimes": "the REGIME axis: precision/quant × speculative-decoding, all on the SAME image (engine-matched). name = label (becomes regime_key in deliverables); prec = grouping label (bf16/fp8/…). Each regime carries a 'neuron_config' dict merged into the vLLM-Neuron --additional-config. Neuron precision is driven by neuron_config.quantization (\"bf16\", \"mxfp4\", …) + a pre-quantized checkpoint via hf_id_by_regime. PARITY: a regime authored for the GPU sweep with TOP-LEVEL 'quantization' and/or 'kv_cache_dtype' (e.g. {\"name\":\"fp8\",\"kv_cache_dtype\":\"fp8\"}) is honored — the driver folds those into neuron_config so a SHARED GPU/Neuron config's fp8 regime applies on both sides (explicit neuron_config still wins). SPEC-DECODE: set regime.speculative ({\"method\":\"eagle|eagle3|mtp|medusa\",\"model\":\"<draft hf id>\",\"num_speculative_tokens\":K}); the driver maps it to neuron_config.speculation_length/enable_fused_speculation (vLLM-Neuron does NOT take GPU's --speculative-config verbatim). EP: sweep it via model.ep_list (see _models); EP-on cells get --enable-expert-parallel + neuron_config.ep_degree (defaults to tp; pin via neuron_config.ep_degree/moe_ep_degree). CP: neuron_config.context_parallel_size. Omit extra regimes for a single bf16 run.",
+
+  "shapes": [
+    { "isl": 8192,  "osl": 1024 },
+    { "isl": 32768, "osl": 2048 },
+    { "isl": 512,   "osl": 1 }
+  ],
+  "_shapes": "input/output token shapes (one sweep per shape). THE TWO MILESTONE STANDARD SHAPES (Neuron Agentic Optimization: Performance Milestones, Table 1) are 8192/1024 (8:1, SemiAnalysis InferenceX v2 default — agentic/multi-turn) and 32768/2048 (16:1 — large agentic coding, the KV-cache-pressure regime not visible at 8k). 512/1 is a CHEAP SMOKE point only (--smoke), NOT a milestone shape. KEEP IDENTICAL to the GPU run for a valid comparison. On Neuron each distinct ISL must land on a compiled prefill bucket (num_batched_tokens_buckets, derived from these shapes unless overridden) — an off-bucket ISL PADS UP to the next bucket (skewing the measured prefill), and an ISL whose isl+osl exceeds max_model_len is REJECTED. So the shape list defines the compiled prefill graphs; every ISL a request can hit must be covered. Other shapes (1:1, 1:8, 1k/10k, etc.) are one-off per the doc — add them only for a specific ask.",
+
+  "baseline": "controlled",
+  "_baseline": "milestone serving-optimization baseline (Performance Milestones doc, Table 2 row 2). 'controlled' (PRIMARY for milestone reporting) = APC OFF, chunked prefill OFF, speculative decoding OFF, DI OFF — isolates raw hardware+kernel from serving-stack feature maturity. 'production' (SECONDARY, for GTM/customer-facing) = those optimizations ON where supported. The driver enforces this: under 'controlled' it forces enable_prefix_caching false and REJECTS any regime carrying 'speculative'. The baseline is recorded in regime_meta.json so a controlled and a production run never merge in the deliverables. WHATEVER you set here, set the SAME baseline on the GPU config — the comparison is only valid feature-matched. (Note: the doc names the third controlled toggle inconsistently — 'disaggregated inference' in Table 2, 'speculative decoding' in the Milestones section; since we never run DI, controlled = APC+chunked+spec all OFF, DI off by construction. See references/milestone-methodology.md.)",
+
+  "concurrencies": [1, 4, 8, 16, 24, 32],
+  "_concurrencies": "the concurrency sweep — the X-axis input that traces the throughput-vs-interactivity Pareto frontier (interactivity = tok/s/user = server tok/s ÷ concurrency). Sweep wide enough to bracket the interactivity range you want to compare at. On Neuron EACH concurrency is a distinct compiled DECODE-BATCH bucket (num_seqs_buckets). The driver compiles ALL of these into ONE server per (model, regime, tp) so the whole concurrency sweep reuses one server (compile cost paid ONCE per TP, not per cell) — BUT the largest concurrency's KV must fit (see fit-check). num_seqs_buckets is the CONCURRENT-SEQ count, NOT sequence length (confusing the two allocated KV for 1024 seqs and OOM'd OLMo-2-13B). Per-shape override via concs_by_shape.",
+
+  "concs_by_shape": {
+    "32768,2048": [1, 4, 8, 16]
+  },
+  "_concs_by_shape": "optional per-shape concurrency override keyed 'isl,osl'. The 32768/2048 milestone shape is the KV-cache-pressure regime — it fits far fewer concurrent seqs (KV per seq is ~4x the 8k shape), so cap it lower or the fit-check rejects the bucket set. Shapes not listed use the global 'concurrencies'.",
+
+  "buckets": {
+    "num_batched_tokens_buckets": null,
+    "num_seqs_buckets": null,
+    "decode_context_length_buckets": null
+  },
+  "_buckets": "compiled NEFF bucket sets. LEAVE null to auto-derive (RECOMMENDED): num_batched_tokens_buckets = sorted(unique ISLs padded to a stride), num_seqs_buckets = sorted(unique concurrencies), decode_context_length_buckets from the shapes' isl+osl. Set explicitly ONLY to add/pin buckets (e.g. an extra prefill bucket, or a coarser decode grid to cut compile count). Each bucket = one NEFF, ~minutes to compile via neuronx-cc (cached in /var/tmp/neuron-compile-cache; warmed once per (model,tp,bucket-set) on the first server start). More buckets = more up-front compile time; fewer/coarser = more padding waste.",
+
+  "num_gpu_blocks_override": null,
+  "_num_gpu_blocks_override": "optional int → vLLM --num-gpu-blocks-override. The Neuron KV-pool sizing knob (there is no gpu_memory_utilization auto-profiling on Neuron; the pool is sized from buckets/max_num_seqs). Set to relieve a bucket set whose largest num_seqs × max_model_len KV won't fit, or to bound the pool. Per-model override via models[].num_gpu_blocks_override.",
+
+  "targets": {
+    "ttft_p50_ms_by_isl": { "2048": 500, "8192": 800, "32768": 1400 },
+    "tpot_p50_ms": 13
+  },
+  "_targets": "PASS/FAIL latency bars from production (references/profiling-targets.md), identical to the GPU config so both platforms gate against the same bars. Omit to skip gating. Consumed by build_deliverables.py --config at collection time.",
+
+  "workload": {
+    "dataset": "random",
+    "random_range_ratio": 0.0,
+    "num_prompts_per_conc": 5,
+    "min_prompts": 50,
+    "warmups_per_conc": 2,
+    "min_warmups": 20,
+    "temperature": 0,
+    "ignore_eos": true
+  },
+  "_workload": "DEFAULT 'random' with random_range_ratio 0.0 (EXACT shapes) — this is MANDATORY for the Neuron-vs-GPU comparison, not optional as on GPU. Reason: Neuron pads every request UP to a compiled bucket, so sharegpt's variable lengths would be padded on Neuron but not on GPU, silently confounding the comparison. Exact shapes hit compiled buckets deterministically on both sides. num_prompts = max(conc*num_prompts_per_conc, min_prompts); num_warmups = max(conc*warmups_per_conc, min_warmups) — the warmup floor also ensures the compiled bucket is exercised before timing. (A sharegpt pass is only meaningful as a Neuron-only APC/prefix-hit study, never as a cross-platform comparison.)",
+
+  "server": {
+    "max_num_seqs": null,
+    "max_model_len": null,
+    "enable_prefix_caching": false,
+    "extra_flags": []
+  },
+  "_server": "vLLM-Neuron serve tuning held constant across the sweep. max_num_seqs: null → max(concurrencies) (must be ≥ the largest bucket). max_model_len: null → max(isl+osl)+buffer across shapes (must cover the longest request or it's rejected). enable_prefix_caching: false by default — the Neuron continuous-batching scheduler does NOT support chunked prefill, and APC is opt-in/newer; when OFF the plugin uses one KV block per full context. Set true ONLY for a Neuron-only APC study (never for the matched comparison). CUDA graphs / --enforce-eager are N/A on Neuron (AOT-compiled NEFFs). extra_flags appended verbatim to vllm serve.",
+
+  "fail_threshold": 0.05,
+  "_fail_threshold": "cells whose failed-request fraction exceeds this are recorded PASSED but excluded from clean results (saturation / KV exhaustion is not a clean point). Same semantics as the GPU sweep.",
+
+  "bench_timeout_s": 3600,
+  "_bench_timeout_s": "per-cell vllm bench serve timeout. Note the FIRST cell of each (model,regime,tp) also pays NEFF compile on server start (minutes) — that's in the server-startup timeout, not this."
+}

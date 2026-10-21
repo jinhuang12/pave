@@ -33,9 +33,11 @@ on the artifact and disclose the disagreement in one line.
   writes go under the run's calibration directory). The lead skips your
   seat when a record for the identical pin and hardware class exists.
   `calibration_unproducible` when the suite cannot produce its rows; no
-  serving launch. Load nki-debugging (`vllm-neuron-parity:neuron-nki-debugging`:
-  Standard Debugging Workflow, Profiling) and nki-docs (architecture and
-  optimization guides).
+  serving launch. Load nki-writing (`vllm-neuron-parity:neuron-nki-writing`:
+  Quick Start, Hardware Constraints Quick Reference; the suite's kernels are
+  yours until the release layer ships the suite script), nki-debugging (Error
+  Resolution), nki-docs (architecture and optimization guides), nki-profiling
+  (Complete Profiling Workflow) and nki-profile-query (Step-by-Step Workflow).
 - `measure_candidate` — three steps in one seat, in order: procedures,
   baseline, runs; the first two before any measured run. On a re-entry
   the lead found digest-equal (registration, smoke records, baseline
@@ -125,9 +127,11 @@ on the artifact and disclose the disagreement in one line.
     package.
   - Load equivalence (`vllm-neuron-parity:neuron-framework-equivalence`:
     Stage 1 smoke, Stages 5+6 teacher-forced E2E, its version pin, always
-    `--target-stack vllm_neuron`) and the benchmark skill (What this
+    `--target-stack vllm_neuron`), the benchmark skill (What this
     measures, C Comparing Neuron vs GPU, Common failures, its metrics
-    reference).
+    reference), serve-profiling (Method 1; Data parallelism and the
+    capture: profile ONE replica) and profile-analysis (Verification
+    discipline, Step 1 Ingest, Profile Analysis).
 
 The budget magnitudes and the novelty derivation are pinned once in
 `references/artifact-layout.md` §4.4. Cite that entry; do not restate the

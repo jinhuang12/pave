@@ -73,7 +73,7 @@ proceed on the artifact and disclose the disagreement in one line.
   backlog re-costs before any election); with none, the lead presents gate
   1. With one requested target no seat runs: the lead records the review
   as satisfied citing the costing record. Load the planner's methodology
-  reference (`vllm-neuron-parity:experimental-neuron-parallelism-planner`)
+  reference (`vllm-neuron-parity:neuron-parallelism-planner`)
   to check the costed entitlement.
 - `review_campaign_design` (per approved campaign; with the lead and
   user) — review the campaign design under the gate-2 material definition,
@@ -113,7 +113,8 @@ proceed on the artifact and disclose the disagreement in one line.
   other shapes or arms than the row's, a dtype stage outside the table, or
   a refused numerics form. The item passes when no material finding
   stands. Load nki-writing (`vllm-neuron-parity:neuron-nki-writing`: its
-  language-constraint reference and Coding Conventions).
+  language-constraint reference and Coding Conventions) and
+  nki-profile-query's Profile Analysis, to read the ratio's record.
 - `review_pr_evidence` (per approved campaign) — the one whole-campaign
   review: read the campaign branch's clean diff against the target base
   with the PR description and the records it links, before anything is

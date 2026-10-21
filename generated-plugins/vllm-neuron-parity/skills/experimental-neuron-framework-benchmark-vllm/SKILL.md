@@ -1,15 +1,38 @@
 ---
 name: experimental-neuron-framework-benchmark-vllm
-description: Benchmark LLM serving throughput/latency with `vllm bench serve` on Trainium (vLLM-Neuron via Kaizen) and on NVIDIA GPU (upstream vLLM), using one identical workload so the two are directly comparable. Use when measuring or comparing tok/s, TTFT, TPOT, or ITL for a model.
+description: Cross-platform comparative serving benchmark that PROVISIONS hardware (rents a GPU box / Kaizen-provisions Trainium) and runs `vllm bench serve` with one identical workload across stacks, so NVIDIA GPU (upstream vLLM) and Trainium (vLLM-Neuron) throughput/latency are directly comparable. Use ONLY for a deliberate cross-stack/cross-platform comparison that includes provisioning and spend. NOT for measuring a server already running on this box, NOT for iterating on a single platform, and NOT the measurement arm of an optimization loop — see "When NOT to use this skill".
 allowed-tools: Read Write Edit Bash Grep Glob
 metadata:
   version: 1.0.0
-  tags: [benchmark, vllm, vllm-bench, trainium, trn2, gpu, throughput, latency, ttft, tpot, kaizen]
+  tags: [benchmark, vllm bench, trainium, trn, gpu, pareto, report, kaizen]
 ---
 
 # vLLM Benchmarking (Neuron + GPU)
 
 Measure serving performance of a model with the **upstream `vllm bench serve`** harness, on Trainium (vLLM-Neuron) and/or NVIDIA GPU (stock upstream vLLM), with a single identical workload so the numbers compare apples-to-apples.
+
+> ## ⛔ When NOT to use this skill — read this first
+>
+> **This skill PROVISIONS hardware and SPENDS MONEY** (rents a GPU box / Kaizen-provisions a
+> Trainium box, with a STOP-GATE on spend ceilings and capacity-block authorization — see Step 0).
+> Its only job is a **deliberate cross-stack/cross-platform comparison** (GPU vs Neuron, or across
+> engine configs) that *starts by renting hardware*. If you already have a box, do not enter here.
+>
+> - **A server is already running on this box, or you just want to measure the local server** →
+>   run `vllm bench serve` against it directly. Do **not** enter this skill — it will try to rent
+>   a new box.
+> - **You are iterating on / optimizing a single platform** → this is **not** the measurement arm of
+>   `experimental-neuron-framework-optimization`. That orchestrator runs `vllm bench serve` itself
+>   inside its loop; it does not (and must not) call into this skill. **Do not enter this skill from
+>   inside an optimization loop** — you would provision a second box and spend money mid-optimization.
+> - **You want to profile a running vLLM-Neuron server** (device/system traces, NTFF, decode-step
+>   breakdown, bottleneck analysis) → use `neuron-framework-profiling-vllm-neuron` (live
+>   capture) or `neuron-framework-profile-analysis-vllm-neuron` (analysis). "Profiling"
+>   and "benchmarking" are distinct here: **profiling** inspects an existing run; **this skill**
+>   provisions hardware to produce comparable throughput/latency numbers across stacks.
+>
+> Enter this skill **only** when the task is explicitly a comparative benchmark that includes
+> provisioning and spend.
 
 ## What this measures
 
@@ -460,7 +483,7 @@ kaizen start-workload --image "$KAIZEN_IMAGE" \
   --command "export ORCHESTRATOR_RESULTS_ROOT=\$FSX_TEAM_SHARED_RW/<alias>/results \
              BENCH_CONFIG=<path>/bench_config.json KAIZEN_IMAGE=$KAIZEN_IMAGE && \
     python3 -m pytest <path>/sweep_bench.py -o addopts= --transport=kaizen -v" \
-  --tail-logs --profile kaizen-access
+  --tail-logs --profile "$KAIZEN_PROFILE"
 ```
 (`KAIZEN_IMAGE` = a baked image with IPA+pytest pre-installed — see the IPA
 image-baking guide; that bake is the main reason this path is heavier. `-o addopts=`
@@ -528,9 +551,10 @@ production Bedrock data (`references/profiling-targets.md`).
 Pareto outputs separate bf16 / fp8 / spec cleanly. (`build_deliverables.py` also has a
 single-run mode: `--regime <bf16|fp8> [--spec-decode] --instance <...>` without
 `--multi`, for a one-regime run.) `all_cells.csv` is the tidy per-cell audit trail.
-The cost script maps `--instance` to an on-demand price; its table covers
-p5/p5en/b200/b300 and g6e.12xlarge/g6e.48xlarge. An **unpriced instance is dropped
-with a warning** (not a hard error) — add its rate to `PRICE_PER_HR` to include it
+The cost script maps `--instance` to a public list price; its table covers
+p5/p5en/b200/b300, g6e.12xlarge/g6e.48xlarge, and **`trn2`** (35.7608 — the
+capacity-block list rate, so Neuron cost/parity now renders). An **unpriced instance is
+dropped with a warning** (not a hard error) — add its rate to `PRICE_PER_HR` to include it
 (prices are a dated snapshot; re-verify before quoting $). Cross-instance cost plots
 only render when ≥2 priced instances share a regime×shape.
 
@@ -538,38 +562,370 @@ only render when ≥2 priced instances share a regime×shape.
 
 ---
 
-## B. Neuron benchmark (vLLM-Neuron via Kaizen)
+## B. Neuron benchmark (vLLM-Neuron sweep via Kaizen Desktop)
 
-The model must already be ported/registered in vLLM-Neuron and have a built image in ECR. The in-container runner is `assets/neuron/bench_one_model.sh` (already baked into the bringup images).
+The Trainium peer of §A. Same `vllm bench serve` client, same four-file output layout,
+same resume ledger — but the sweep runs **inside a Kaizen pod** (the pod *is* the serving
+container, so there's no docker/kaizen transport choice) and the axes diverge where
+Trainium's AOT-compiled kernels force it. Driver: `assets/neuron/neuron_sweep.py`;
+launcher: `assets/neuron/submit_neuron_bench.py`; config template:
+`assets/neuron/neuron_bench_config.example.json`.
 
-### B1. Submit
+**Prerequisite — the model must be ported + have a built image.** Unlike GPU (stock
+upstream vLLM serves any arch registered upstream), vLLM-Neuron needs the model's arch
+**autoported and registered** with a built **ECR bench image** (the output of
+`neuron-framework-autoport-vllm-neuron`). `image` in the config is that ECR URI. A
+missing/unregistered arch is caught two ways: `preflight.py` flags the placeholder image
+locally, and the first server start of each `(model, regime, tp, dp, ep)` group fails with a
+"server start" error (the driver records the **whole group FAILED**, resume re-tries).
+
+### The config — same shape as GPU where the axes map, divergent where Trainium forces it
+
+Copy `neuron_bench_config.example.json` → `neuron_bench_config.json` and edit. It mirrors
+the GPU config wherever the axes map (`models`, `shapes`, `concurrencies`, `concs_by_shape`,
+`regimes`, `targets`, `fail_threshold`) and diverges on:
+
+- **`shardings`** — the SAME key and shape as GPU (`[{tp, dp?, ep?}]`, global or per-model),
+  because vLLM-Neuron supports TP **and** replica DP. `tp` = `--tensor-parallel-size`
+  (shards one copy over `tp` logical cores); `dp` = `--data-parallel-size`, defaulting to 1
+  (replicates the WHOLE model, one copy per replica on its own disjoint window of `tp`
+  cores — so total cores = `tp*dp` and per-replica weight bytes divide by `tp` only).
+  A per-entry `ep` overrides the `ep_list` sweep for that entry.
+  **The one divergence is the constraint, not the axis:** GPU *requires*
+  `tp*dp == gpu_count`, Trainium only requires `tp*dp ≤ logical cores` (≤ 64 on
+  `trn2.48xlarge`). An under-filling sharding is legal and the driver *warns* — see
+  "Partial-box shardings" below. With EP on and `dp > 1` the plugin requires
+  `ep_degree == tp*dp`; the driver defaults it there, so just don't pin `ep_degree`.
+  The legacy `tp_list` (`[32,16,8]`) is still accepted and implies `dp=1`.
+  CP is **not** a parallel axis here — it lives in `neuron_config` (below).
+- **`neuron_config` per regime** — precision/quant/spec/EP/CP are expressed HERE, in the
+  regime's `neuron_config` dict (merged into vLLM-Neuron's `--additional-config`), **NOT**
+  as CUDA flags. So: precision via `neuron_config.quantization` (`"bf16"`, `"mxfp4"`, …) +
+  a pre-quantized checkpoint via `hf_id_by_regime` (no `--quantization`/`--kv-cache-dtype`);
+  spec-decode via `regime.speculative` (`{"method","model","num_speculative_tokens"}`), which
+  the driver maps to `neuron_config.speculation_length` + `enable_fused_speculation`
+  (vLLM-Neuron does **not** take GPU's `--speculative-config` verbatim); CP via
+  `neuron_config.context_parallel_size`. All regimes share the `image`, so a bf16-vs-spec
+  or bf16-vs-fp8 comparison is engine-matched.
+- **`ep_list`** (per-model or global; the Neuron peer of GPU's per-sharding `ep`) — sweep
+  expert-parallel **on vs off as separate cells**, e.g. `"ep_list": [true, false]`. EP-on
+  cells get `--enable-expert-parallel` + `neuron_config.ep_degree` (defaults to `tp`; pin via
+  `neuron_config.ep_degree`/`moe_ep_degree`) and write to a **`<key>__<regime>_ep/`** run dir
+  so the deliverables attribute EP-on vs off separately. When `ep_list` is unset it defaults to
+  a single value = `model.moe` (dense → off, MoE → on), so dense models are unchanged.
+- **GPU-config parity** — a config authored for the GPU sweep runs on Neuron unchanged: the
+  driver honors GPU-style **top-level `regime.quantization` / `regime.kv_cache_dtype`** (folds
+  them into `neuron_config` — so a shared `fp8` regime applies FP8 KV on both sides),
+  **`model.rope_scaling`** (→ `--rope-scaling`, so a long shape that fits on GPU isn't rejected
+  on Neuron), and **`model.safetensors_prefetch`** (→ `--safetensors-load-strategy prefetch`).
+  Explicit `neuron_config` always wins. GPU-only knobs that are genuine hardware N/A
+  (`compilation_config`, `gpu_memory_utilization`, `block_size`, CUDA graphs, `dp`/fill-the-box,
+  `chunked_prefill`) are intentionally not mapped.
+- **`buckets`** (auto-derived; leave `null`) — the compiled NEFF bucket sets. See
+  "Bucketing + compile-cost sizing" below.
+- **`num_gpu_blocks_override`** — the Neuron KV-pool sizing knob (the analogue of GPU's
+  `gpu_memory_utilization`; there is no auto-profiling on Neuron — the pool is sized from
+  the buckets). Set to relieve a tight-KV bucket set. Per-model override available.
+- **`baseline`** (`"controlled"` default | `"production"`) — the **milestone
+  serving-optimization baseline** (Performance Milestones doc, Table 2). `controlled`
+  (PRIMARY for milestone reporting) = APC + chunked prefill + spec-decode all OFF
+  (DI off by construction) → isolates raw hardware/kernel. `production` (secondary,
+  GTM-facing) = those ON where supported. The driver **enforces** it: under `controlled`
+  it forces `enable_prefix_caching` off and **rejects** any regime carrying `speculative`
+  (`_regimes_for` raises), and it stamps the value into `regime_meta.json` so a controlled
+  and a production run never merge in the deliverables. Set the **same** baseline on the
+  GPU config — the comparison is only valid feature-matched. See the milestone subsection
+  below + `references/milestone-methodology.md`.
+- **workload default `random` + `random_range_ratio: 0.0`** — the opposite of GPU's
+  sharegpt default, and **mandatory** here (not opt-in). See "Neuron config philosophy".
+
+### Neuron config philosophy — why the defaults invert the GPU side
+
+- **`random` + `random_range_ratio: 0.0` is MANDATORY, not optional.** Neuron pads every
+  request UP to a compiled bucket. Under sharegpt (or `random` with nonzero jitter),
+  variable-length prompts get padded on Neuron but **not** on GPU — silently confounding
+  any Neuron-vs-GPU comparison via that padding. Exact shapes (`range 0.0`) hit compiled
+  buckets deterministically on both sides. A sharegpt pass is meaningful only as a
+  **Neuron-only APC/prefix-hit study**, never as a cross-platform comparison. (`preflight.py`
+  WARNs on sharegpt/nonzero-jitter for this reason.)
+- **APC + chunked prefill OFF by default, and the `baseline` governs APC.** The
+  vLLM-Neuron **continuous-batching scheduler** does not support chunked prefill (so it
+  is OFF on Neuron under BOTH baselines), and APC is opt-in/newer. Under
+  `baseline: controlled` (the primary milestone baseline) the driver **forces**
+  `--no-enable-prefix-caching` regardless of `server.enable_prefix_caching`; under
+  `baseline: production` it honors `server.enable_prefix_caching` (still `false` by
+  default). Flip APC on only for a `production` run or a Neuron-only prefix-cache study.
+  Because chunked prefill can't be turned on for Neuron, a `production` GPU-vs-Neuron run
+  must either accept the chunked-prefill asymmetry or disable it on the GPU side (see §C).
+- **CUDA graphs are N/A.** Neuron runs AOT-compiled NEFFs; there is no `--enforce-eager`
+  toggle and no graph-capture warmup concern. The GPU side's "CUDA graphs on by omission"
+  assumption simply does not exist here.
+
+### Bucketing + compile-cost sizing (do this BEFORE you provision)
+
+Neuron compiles **one NEFF per bucket** (~minutes each via `neuronx-cc`, cached in
+`/var/tmp/neuron-compile-cache`, **warmed once per `(model, tp, bucket-set)`** on the first
+server start). The driver derives three bucket sets from your shapes/concurrencies (leave
+`buckets.*` `null` to auto-derive; set explicitly only to add/pin/coarsen):
+
+- **`num_batched_tokens_buckets`** = the prefill-**chunk** size (a SINGLE bucket), NOT the raw
+  ISLs. The vLLM-Neuron plugin only accepts chunk sizes from **`[512, 1024, 2048, 4096, 8192]`**
+  for `--max-num-batched-tokens`, and the segmented-prefill kernel requires this bucket list to
+  be a **single value equal to that chunk size** (a multi-entry list is rejected). A long ISL
+  (e.g. 32768) is served by **repeated ≤8192-token chunks**, not a 32768 prefill graph — so the
+  driver emits `[chunk]` where `chunk` = the smallest supported size ≥ the largest ISL, capped
+  at 8192. `--max-num-batched-tokens` is set to that same value (plugin invariant: they must match).
+- **`num_seqs_buckets`** = decode-batch graphs — the unique **concurrencies**. This is the
+  **DECODE BATCH (concurrent-seq) count, NOT sequence length** — confusing the two allocates
+  KV for e.g. 1024 seqs and OOMs (the OLMo-2-13B `1024`-seqs case).
+- **`decode_context_length_buckets`** = per-context decode graphs, from each shape's `isl+osl`
+  padded to stride. Every entry must be **STRICTLY LESS than `max_model_len`** (the plugin treats
+  `max_model_len` as an implicit final fallback bucket, so an entry == it is rejected — the driver
+  clamps to `max_model_len − stride`).
+
+> **Five plugin invariants** the driver encodes (each was a live server-start failure on the
+> first trn2 run, all now handled automatically): no `--device neuron` (plugin auto-selects via
+> `VLLM_PLUGINS=neuron`); `--max-num-batched-tokens` ∈ the supported chunk set; it must equal the
+> single `num_batched_tokens_buckets` entry; `decode_context_length_buckets` strictly `<`
+> `max_model_len`; chunked prefill OFF (Neuron scheduler is batch-1-only). You don't set these —
+> `derive_buckets`/`build_serve_argv` do — but know them when reading a compile-time `ValueError`.
+
+Because all buckets compile into **ONE server per `(model, regime, tp)`**, that server is
+**reused across the whole shape × concurrency sweep** — multi-minute compile is paid **once
+per TP**, not per cell. Two request-shape hazards follow directly: an **off-bucket ISL pads
+UP** to the next prefill bucket (skewing the measured prefill — add the shape to cover it),
+and a request whose **`isl+osl` exceeds `max_model_len` is REJECTED** (raise `max_model_len`
+or drop the shape).
+
+**Up-front FIT-CHECK.** A non-fitting cell on Neuron costs **minutes of compile before it
+OOMs at load** — not a cheap skip like GPU. So the driver runs a coarse KV fit-check at
+parse time and **hard-stops (exit 2) before provisioning a single core** if a bucket set
+won't fit. Crucially the KV budget **scales with tp** (a TP=N shard's weights+KV live on
+only those N cores, not the whole box), so **LOW tp is where OOM bites**. Remedies when the
+fit-check fails: **lower the top concurrency** (`concs_by_shape`), **shrink the long shape**,
+**raise tp**, or set **`num_gpu_blocks_override`** to size the pool explicitly.
+
+### Partial-box shardings + per-instance comparison
+
+Trainium sweeps the same TP×DP axis as GPU, but **does not force `tp*dp == logical cores`**.
+That flexibility is the footgun: `tp8_dp1` occupies **8 of `trn2.48xlarge`'s 64 logical
+cores** and leaves 56 **idle**, so its tok/s is a *partial-box* number. Comparing it
+per-instance against a full-box GPU cell understates Trainium by up to the idle fraction —
+the error direction is "Trainium looks worse than it is", which is the dangerous one for a
+milestone claim.
+
+Rules:
+- **Prefer box-filling shardings** for any number that will be reported per-instance:
+  `tp64_dp1`, `tp32_dp2`, `tp16_dp4`, `tp8_dp8` all use all 64 cores on `trn2.48xlarge`.
+  That ladder is also the answer to "what's the best way to shard this model on one box?" —
+  same weights, same box, different parallelism decision.
+- **Under-filling is still legal** and sometimes exactly what you want (the fractional-box
+  question: "what does a quarter of a Trn2 do?"). Both `preflight.py` and the driver emit a
+  **WARN** naming the idle core count for every such sharding, so it can't slip into a
+  report unnoticed — but nothing normalizes it for you. If you report a partial-box cell,
+  say so next to the number.
+- Run the whole sharding sweep on **each** platform before declaring a best (§C).
+
+### Provisioning — the Kaizen Desktop flow (submit_neuron_bench.py)
+
+`submit_neuron_bench.py` is a **Kaizen Desktop** launcher (a long-lived pod with a
+persistent home + warm compile cache), not the old single-cell `start-workload` submitter.
+It starts/reuses a desktop on the model's ECR image, **vendors IPA** into the pod, stages
+`neuron_sweep.py` + the config, and runs the driver there. All commands go through the
+`kaizen` CLI (`$KAIZEN_BIN`, else `$PATH`) with profile **`$KAIZEN_PROFILE`** in region
+**`$AWS_REGION`**; nothing about the account is hardcoded (see `references/neuron-input-contract.md`
+§D for the full env list). The operator sequence shares **one warm desktop** across all steps:
 
 ```bash
-HF_TOKEN=<token> python3 assets/neuron/submit_neuron_bench.py \
-  --image <ecr-uri-of-model-bench-image> \
-  --model-id <HF_ID> --tp <TP> --instance trn2.48xlarge
+# 0a. refresh BOTH creds up front — connect needs the cluster profile too (see below), and a
+#     long sweep will outlive a stale token.
+ada credentials update --profile="$KAIZEN_PROFILE" --once   # ada-managed; auto-pulls
+ada credentials update --account="$KAIZEN_CLUSTER_ACCOUNT" --provider=isengard \
+    --role="$KAIZEN_CLUSTER_ROLE" --profile="$KAIZEN_CLUSTER_PROFILE" --once
+
+# 0b. preflight the config locally — fails fast, provisions nothing
+python3 assets/neuron/preflight.py neuron_bench_config.json
+
+# 1. --collect-only: preview the cells the config expands to (inline, cheap, then stops desktop)
+HF_TOKEN=<tok> IPA_SRC=/path/to/InferencePerfAnalyzer/src \
+  python3 assets/neuron/submit_neuron_bench.py \
+  --config neuron_bench_config.json --image <ecr-uri> --collect-only
+
+# 2. --smoke: ~3 cells (smallest tp + smallest shape) — the go/no-go gate. DETACHED;
+#    proves the image+config serve the model and the NEFFs compile; keeps the desktop WARM.
+HF_TOKEN=<tok> IPA_SRC=/path/to/InferencePerfAnalyzer/src \
+  python3 assets/neuron/submit_neuron_bench.py \
+  --config neuron_bench_config.json --image <ecr-uri> --smoke
+
+# 3. --reuse: full sweep, DETACHED on the warm desktop from step 2
+HF_TOKEN=<tok> IPA_SRC=/path/to/InferencePerfAnalyzer/src \
+  python3 assets/neuron/submit_neuron_bench.py \
+  --config neuron_bench_config.json --image <ecr-uri> --reuse
 ```
-This base64-encodes the in-container script (sets `MODEL_ID/TP/NUM_PROMPTS/SEQ_LEN/MAX_NUM_SEQS`, runs `bench_one_model.sh`) and submits via `kaizen start-workload`. It prints the full workload ID (`T_...`) — always record the FULL id.
 
-### B2. Pull results
+- **IPA is vendored — pass `--ipa-src` (or `$IPA_SRC`) pointing at an InferencePerfAnalyzer
+  checkout's `src/`.** The bench image ships vLLM-Neuron but **not** `inference_perf_analyzer`,
+  which the driver imports for its framework-agnostic core. The launcher tars the package and
+  pushes it to the desktop's **S3-backed `$HOME`** (via `aws s3 cp --profile "$KAIZEN_CLUSTER_PROFILE"` — the
+  S3 bucket is in the cluster account) and extracts it onto `PYTHONPATH` in the pod. (Inline
+  base64 was tried and fails — a package-sized blob blows past `ARG_MAX`.) Pass `--no-vendor-ipa`
+  only if a future image already has IPA installed.
+- **`connect` needs BOTH `$KAIZEN_PROFILE` AND `$KAIZEN_CLUSTER_PROFILE`.** `desktop start`/`info`
+  work on the service profile alone, but `desktop connect` calls EKS `DescribeCluster` in the
+  cluster account (`$KAIZEN_CLUSTER_ACCOUNT`) with the cluster profile to build a kubeconfig.
+  If those creds are stale you get
+  `ExpiredTokenException` on DescribeCluster → a cascade of `connection to server localhost:8080
+  refused`. Refresh it (step 0a) and retry.
+- **`--results-root` MUST be a durable FSx path** — default
+  `$FSX_TEAM_SHARED_RW/<alias>/neuron-results`. The driver's `state.json` **resume ledger** lives
+  there, so it survives desktop teardown and a re-run skips PASSED cells.
+- **All run modes except collect are DETACHED (`setsid`) with the live log on LOCAL pod disk
+  (`/tmp/sweep.log`).** This is load-bearing: a synchronous `connect` that blocks on the sweep
+  dies when the client times out during the multi-minute NEFF compile, orphaning the server; and
+  the orphaned server then **wedges on `pipe_write`** (vLLM's stdout fills an undrained pipe). The
+  driver's `start_server_to_file` writes the server log to a local file too. The launcher prints
+  `SWEEP_PID`/`SWEEP_LOG`, writes a **handoff file** `neuron-bench-<name>.txt`, and returns.
+- HF_TOKEN is injected into the pod inside a base64 blob and **never printed/logged**. (It also
+  won't be in this transcript — supply it via env at call time.)
+- Other flags: `--instance` (override config), `--driver <rpm>` (Neuron driver installed via `-nd`
+  at desktop start; skipped with a warning if absent), `--desktop-timeout` (default 8h — must
+  exceed the sweep), `--keep-desktop`, `--reuse` (attach to a running desktop), `-k` (cell filter).
 
-Status: `kaizen get-workload --workload-id <WID> --profile kaizen-access`. A `SUCCEEDED` status does NOT mean the bench produced numbers — always verify `completed == num_prompts`.
+**Monitor + pull results + verify.** Poll the live log with a fresh connect, then pull the tree
+off FSx and gate on completeness — a desktop being up (or a cell being recorded) does **not** mean
+it produced trusted numbers:
 
-Results land in FSx; pull the single result.json (fast):
 ```bash
-kaizen get-artifact --location WORKLOAD_OUTPUT_RW --workload-id <WID> \
-  --source "/bench/result.json" --destination ./neuron_<MODEL>.json --profile kaizen-access
+# progress (fresh connect each time; the sweep is detached and unaffected)
+kaizen desktop connect --name <name> --profile "$KAIZEN_PROFILE" \
+  --cmd 'tail -30 /tmp/sweep.log; python3 -c "import json;print(json.load(open(\"$HOME/nb/results/state.json\"))[\"summary\"])"'
+
+# pull (FSx get-artifact is the durable path)
+kaizen get-artifact --location FSX_TEAM_SHARED_RW \
+  --source <alias>/neuron-results --destination ./results --directory --profile "$KAIZEN_PROFILE"
 ```
-(For models served from a converted local checkpoint dir, the path is `/bench/<MODEL>/result.json`.) Refresh CloudWatch creds when needed: `ada credentials update --account=<kaizen-cw-acct-id> --provider=isengard --role=ReadOnly --profile=kaizen-cw --once` (the account that owns the Kaizen cluster's CloudWatch metrics — ask your Kaizen admin; same `<acct-id>` placeholder convention as Step 0).
+A cell's numbers are valid only when **`completed == num_prompts`** (`num_prompts =
+max(conc*num_prompts_per_conc, min_prompts)`); the ledger records `completed` per cell.
+
+> **Kaizen exec gotchas (from the first real run):** (1) `connect --cmd` can be SIGKILLed
+> (exit 137) when the pod is under heavy load (during compile / after failed launches) — wait
+> for load to drop or use a fresh desktop; the detached sweep is unaffected. (2) The S3-home mount
+> is eventually-consistent and unreliable for pulling results — prefer `get-artifact`, or pull
+> small files via `connect --cmd 'cat <file>'`, or run `build_deliverables.py` **inside the pod**
+> (it has pandas/matplotlib/tabulate/numpy) and pull only the small `.md`/`.csv` + base64 each PNG
+> individually (a >1MB tar gets truncated by kubectl exec).
+
+Stop the desktop when done: `kaizen desktop stop --name <name> --profile "$KAIZEN_PROFILE"`.
+
+### Deliverables parity — the SAME scripts, unchanged
+
+The Neuron tree feeds the identical §A deliverables path. Each cell writes
+`<key>__<regime>/<key>_<isl>_<osl>_<tag>/conc_<C>/result.json` + `regime_meta.json`, where
+`<tag>` is IPA's `server_tag(tp, dp)` — `tp<N>` at `dp=1`, `tp<N>_dp<M>` above it, exactly
+as on GPU. That layout matches `build_deliverables.py`'s `_PATH_RE` **unchanged** (its `_dp`
+and `_ep` groups are optional, so both tag forms parse), so DP cells need no ingest change:
+
+```bash
+python3 build_deliverables.py ./results --multi --instance trn2 \
+    --model-name "<Model Label>" --out ./deliverables
+```
+Throughput/latency deliverables + Pareto frontiers + `all_cells.csv` are unaffected — the
+cell path `<key>_<isl>_<osl>_tp<N>[_dp<M>]/conc_<C>/` matches `_PATH_RE` unchanged (the
+`_dp`/`_ep` groups are optional), and `per_user_otps = output_throughput/conc`
+is exactly the doc's interactivity metric, already on the Pareto X-axis
+(`_pareto_frontier` builds the non-dominated envelope over `(per_user_otps, otps)`).
+**`trn2` is now priced** in `build_cost_deliverables.py`'s `PRICE_PER_HR`
+(`"trn2": 35.7608` — the capacity-block public list rate, per the code comment, since a
+plain on-demand trn2 rate wasn't reliably published), so the cost deliverable — tokens/$
+bars and the cost-parity/cross-instance plots — **now renders for trn2** alongside the GPU
+instances. Re-verify the rate before quoting $ (prices are a dated snapshot).
+
+### Milestone methodology (what the numbers mean)
+
+The Neuron sweep is aligned to the **"Neuron Agentic Optimization: Performance
+Milestones"** doc, which defines how a Trn-vs-GPU number is a *milestone*, not just a
+data point. Full distillation in `references/milestone-methodology.md`; the essentials:
+
+- **Performance = the Pareto frontier of THROUGHPUT vs INTERACTIVITY.** Throughput
+  (tok/s/server, Y — drives cost efficiency) vs interactivity (tok/s/user, X — =
+  server-throughput ÷ concurrency = 1/TPOT). You **compare at a FIXED interactivity
+  point**, reading each chip's throughput off its own curve — never a single raw tok/s
+  ratio. This is exactly what the deliverables plot: `per_user_otps` (interactivity) on X,
+  `otps` (throughput) on Y.
+- **Two standard workload shapes** (doc Table 1): **8192/1024** (8:1, SemiAnalysis
+  InferenceX v2 default, agentic/multi-turn) and **32768/2048** (16:1, large agentic
+  coding, the KV-cache-pressure regime). Both ship in the example config. Any other shape
+  (1:1, 1:8, 1k/10k) is a one-off, not a milestone number.
+- **Controlled baseline is PRIMARY** (doc Table 2): `baseline: controlled` = APC +
+  chunked prefill + spec-decode all OFF → isolates raw hardware/kernel from serving-stack
+  maturity. `production` (APC etc. ON where supported) is the secondary GTM/customer
+  number. Report the same baseline on both platforms.
+- **Cost = public LIST PRICE per server-hour** (doc Q2), **single-instance, no DI**
+  (doc Q1) — not internal cost/PPA. `build_cost_deliverables.py` uses the list-price
+  `PRICE_PER_HR` table (trn2 now included).
+- **Milestone bars** (doc Table 3), read at equivalent interactivity: **≥60% of GPU
+  throughput = "Low bar"** (cost parity without PPAs; Trn commercially competitive on
+  price/perf); **=100% = "Mid bar"** (parity; decision comes down to cost where Trn wins
+  30-40% + ecosystem); **≥130% = "High bar"** (performance leadership).
+- **The milestone deliverable** — `assets/gpu/build_milestone_deliverable.py` — consumes
+  the Trn and GPU `all_cells.csv`, builds both Pareto frontiers, interpolates GPU
+  throughput at the Trn interactivity points, and reports **%-of-GPU + the 60/100/130 bar
+  per shape×baseline**, emitting `milestone_<shape>_<baseline>.md/.png` +
+  `milestone_summary.csv` (CLI `--trn` / `--gpu` / `--trn-instance` / `--gpu-instance` /
+  `--baseline` / `--out`). Matching the baseline and shapes on BOTH platforms is the
+  operator's responsibility; the tool does the frontier math and bar assignment.
+
+### bench_one_model.sh — the single-cell smoke helper
+
+`assets/neuron/bench_one_model.sh` is the **old single-cell** in-container runner (reads
+`MODEL_ID/TP/NUM_PROMPTS/SEQ_LEN/MAX_NUM_SEQS` from env, serves one config, benches it,
+tears down). It's kept as a **quick one-off smoke helper** — the fastest way to prove one
+model serves at all inside a pod — but the **sweep is the primary path**. Prefer
+`submit_neuron_bench.py --smoke` for a real go/no-go, since it exercises the actual driver.
 
 ---
 
 ## C. Comparing Neuron vs GPU (do this honestly)
 
-- **Same workload only.** Confirm both used the identical bench + serve config.
-- **State the accelerator budget.** Neuron TP8 = 8 NeuronCores; GPU TP1 = 1 GPU. These are NOT equal. Compare per-accelerator (tok/s ÷ devices), per-instance (whole box vs whole box), or each platform at its own best TP. Never quote a raw GPU/Neuron ratio as a "hardware verdict."
-- **Parallelism sweet spots differ.** On GPU, small (≤2B) models peak at TP1; 3–8B scale up with TP. On Neuron, very low TP can be pathological for a given model (a single core starved → huge TTFT) — each platform has its own optimal TP. Run a TP sweep before declaring a "best" number.
-- Report `completed`, the exact config, the instance/TP, and the harness version alongside every number.
+The milestone question is not "what's the tok/s ratio" — it is **"what % of GPU
+throughput does Trn deliver at equivalent interactivity, per instance?"** (the metric
+that maps to the 60/100/130 bars — see the milestone subsection in §B and
+`references/milestone-methodology.md`). Everything below is what makes that % honest.
+
+- **Compare at equivalent INTERACTIVITY, per instance — not at a raw tok/s.** Read each
+  platform's throughput (`otps`, Y) off its own Pareto frontier at a **fixed interactivity**
+  (`per_user_otps` = tok/s/user = 1/TPOT, X), then take Trn ÷ GPU at that X. Because the
+  sweeps trace both frontiers, you can pick a common interactivity that both curves cover.
+  `build_milestone_deliverable.py` interpolates the GPU curve at the Trn interactivity
+  points and emits the % + bar directly.
+- **State the accelerator budget — the milestone number is per-INSTANCE.** Neuron TP8 = **8
+  logical cores** of the 64-core `trn2.48xlarge` box; GPU TP1 = 1 GPU (and GPU's `tp*dp`
+  shardings fill the whole 8-GPU box). The doc's bars are **per-instance** (whole 64-core
+  Trn box vs whole 8-GPU box). If you quote per-core/per-GPU instead, say so — never quote a
+  raw Neuron/GPU tok/s ratio as a "hardware verdict" without stating which budget it's over.
+- **Run each platform's full `shardings` sweep before declaring a best — compare at each
+  platform's own optimum.** The optimal TP×DP split differs by platform and model: on GPU
+  small (≤2B) models peak at TP1 (so `tp1_dp8` fills the box) and 3–8B scale up; on Neuron a
+  too-low TP can be pathological (a starved core → huge TTFT) *and* is where the KV
+  fit-check bites, so the box-filling ladder trades those off (`tp8_dp8` maximizes replicas,
+  `tp64_dp1` maximizes per-replica HBM). The milestone % should be each platform's best
+  frontier, not a shared sharding.
+- **Config equivalence caveats (match them, both sides):**
+  - **`random` + `random_range_ratio: 0.0` on BOTH.** Exact shapes are mandatory on Neuron
+    (bucket padding) and must therefore also be used on GPU for the matched pass — sharegpt
+    or nonzero jitter on either side invalidates the comparison.
+  - **Match the baseline.** For a **controlled** milestone (the primary number), APC +
+    chunked prefill + spec-decode are OFF on **both** sides — set `baseline: controlled` on
+    Neuron and `enable_prefix_caching: false` + `enable_chunked_prefill: false` on GPU. For a
+    **production** comparison, chunked prefill is **unavailable on Neuron** (the
+    continuous-batching scheduler lacks it), so either accept that asymmetry or disable
+    chunked prefill GPU-side too — and say which. Never credit GPU with a feature the Neuron
+    server can't run without noting it.
+  - **CUDA graphs are GPU-only** (Neuron is AOT NEFFs); at c≥1 the gap includes that.
+- **c=1 is the fairest single point** — at concurrency 1 the scheduler/batching differences
+  wash out and you're closest to a raw kernel/latency comparison.
+- Report `completed` (gate `completed == num_prompts`), the exact config, the baseline, the
+  instance/TP, and the harness version alongside every number.
 
 ---
 
@@ -590,12 +946,21 @@ kaizen get-artifact --location WORKLOAD_OUTPUT_RW --workload-id <WID> \
 | workers stuck idle after "Using FP8 indexer cache" (or equivalent post-kernel-selection log), GPU 0%, `read_bytes: 0`, "Loading safetensors checkpoint shards" never prints, no forward progress for many minutes | safetensors' default random-read pattern deadlocks on some large-MoE + POSIX/ext4 layouts (vLLM issue #40988); default auto-detect thinks "local, use lazy" | set `safetensors_prefetch: true` on the model entry — emits `--safetensors-load-strategy prefetch`, load goes from hang → tens of seconds per rank |
 | high-conc cells all SKIP with "high failure rate" | real saturation / KV exhaustion past the knee | expected — the guard is bracketing the peak; the last usable conc is the ceiling for that sharding |
 | Neuron `SUCCEEDED` but not trusted | SUCCEEDED ≠ benched | always gate on `completed == num_prompts` (Neuron side) |
+| **(Neuron)** server-start fails / arch "not supported" for the whole `(model,regime,tp)` group | model not registered in the vLLM-Neuron image | autoport it (`neuron-framework-autoport-vllm-neuron`) / check the arch is in the registry; `preflight.py` + first-server-start catch it |
+| **(Neuron)** OOM at load after minutes of NEFF compile | bucket set too big for that tp (KV budget scales with tp → low tp OOMs) | the up-front fit-check should catch it before provisioning; lower top concurrency (`concs_by_shape`), raise tp, or set `num_gpu_blocks_override` |
+| **(Neuron)** prefill numbers skewed / off-bucket request padded up | request ISL not in `num_batched_tokens_buckets` → padded up to the next bucket | add the shape (its ISL becomes a compiled prefill bucket) |
+| **(Neuron)** request rejected by the server | `isl+osl` > `max_model_len` | raise `server.max_model_len` or drop that shape |
+| **(Neuron)** Kaizen desktop stuck `PENDING` / no capacity | shared-pool capacity limit | retry, or try the other Trainium instance type |
+| **(Neuron)** sharegpt used for a GPU comparison | invalid — Neuron pads variable lengths to buckets, GPU doesn't | use `random` + `random_range_ratio: 0.0` (exact shapes) for the matched comparison |
+| **(Neuron)** driver aborts: `baseline=controlled forbids speculative decoding` | a spec regime under the controlled milestone baseline (APC+chunked+spec all OFF) | move the spec regime to a `baseline: production` run, or drop `speculative`; `preflight.py` flags this before provisioning |
 
 ## Running via a task-dispatching agent (Claude Code, etc.) — optional
 
 This skill is deliberately runtime-neutral — a human operator SSH'ing into a rented box can follow it end-to-end. But when a task-dispatching agent runtime is available (Claude Code's Agent tool, for example), delegating provisioning + launch to a sub-agent is worth the setup. The pattern that survived three real runs (Gemma bf16 re-run, Qwen fp8, DSV4-Flash):
 
 **Sub-agent scope: launch, not watch.** A sub-agent's lifetime is typically bounded (dies when the parent session ends). So its job is to *provision, set up, smoke-test, and launch the detached processes* on the box — then report and exit. It does NOT stay alive to babysit the sweep. The sweep runs detached (`nohup … & disown`) and survives sub-agent death by design, so pytest + `sync_results.sh` + `capture_logs.sh` keep going even after the sub-agent exits. Data lands in S3 continuously; the parent session picks up from S3 next time.
+
+**The same "launch, not watch" holds for the Neuron Desktop path** (§B). `submit_neuron_bench.py --reuse` launches the full sweep **detached inside the Kaizen pod** (`nohup`, tee'd to a log on durable FSx), so it survives both the launcher process and the sub-agent exiting — the sub-agent's job is to run `preflight.py`, `--collect-only`, then the `--smoke` go/no-go, and on a pass fire `--reuse` and exit. There's no on-box S3 sync loop to start: the driver writes results + the `state.json` resume ledger straight to the FSx results-root, so **the parent session syncs from FSx** (`kaizen get-artifact --location FSX_TEAM_SHARED_RW …`) next turn — the FSx analogue of reading S3. The launcher's **handoff file** (`neuron-bench-<name>.txt`) is the Neuron analogue of `instance.txt`: it carries the desktop name, image, results-root, pull command, and `state.json` verify command for the parent to reconstitute state. Fences still apply: don't stop/reuse a teammate's desktop, don't edit `neuron_sweep.py` in the pod, don't clear the ledger, never echo HF_TOKEN.
 
 **Step-0 smoke gate.** Before authorizing the full spend, run **~3 cells** covering the risk axes: (1) a nospec/baseline cell to prove the vLLM image + config serve the model at all; (2) an EP-on cell if EP is being swept, to prove that code path; (3) a spec-decode cell if a spec regime is being swept, to prove the drafter loads and drafts (verify `spec_decode_acceptance_rate` in `result.json`). Sub-agent STOPS at that point and reports for go/no-go. Cheap way to catch: wrong image tag, incompatible `--speculative-config method`, incompatible `--rope-scaling` on newer vLLMs, model-load hangs (see the safetensors_prefetch row in the troubleshooting table), and OOMs at the smallest sharding-that-should-fit. Every real DSV4 launch failure this project has hit was caught here in the smoke, not in the full sweep.
 
@@ -619,9 +984,16 @@ This skill is deliberately runtime-neutral — a human operator SSH'ing into a r
 - `assets/gpu/sync_results.sh` — continuous incremental `aws s3 sync` of the results tree, run detached ON THE BOX (needs box-side creds — IAM instance profile preferred). Makes a long sweep's data durable even if the orchestrator dies or the box is torn down mid-run (the gap that lost run #3's tail). Env: `BUCKET`, `RUN_PREFIX`, `AWS_PROFILE`, `REGION`, `ORCHESTRATOR_RESULTS_ROOT`.
 - `assets/gpu/collect.sh` — quick on-box sanity table over the nested `result.json` layout (flags cells with >5% failures).
 - `assets/gpu/build_deliverables.py` — run locally on the synced `results/`: per-shape metric tables, Pareto frontiers over the sharding×concurrency grid, coverage report, and `all_cells.csv` (the tidy per-cell audit table). Single-run mode takes `--instance` / `--regime`; `--config bench_config.json` adds PASS/FAIL columns vs the production latency bars.
-- `assets/gpu/build_cost_deliverables.py` — run locally on `all_cells.csv`: **$/1M-token** cost bars (cross-instance) + cost/latency frontier, at on-demand list price. Holds a dated price table for p5/p5en/b200/b300 (`PRICE_PER_HR`) — add other instances' rates before use; re-verify prices before quoting.
-- `assets/neuron/submit_neuron_bench.py` — generic Kaizen submitter (args: `--image --model-id --tp --instance ...`).
-- `assets/neuron/bench_one_model.sh` — in-container Neuron runner (reads `MODEL_ID/TP/...` from env).
+- `assets/gpu/build_cost_deliverables.py` — run locally on `all_cells.csv`: **$/1M-token** cost bars (cross-instance) + cost/latency frontier, at public list price. Holds a dated `PRICE_PER_HR` table (p5/p5en/b200/b300/g6e + **`trn2`: 35.7608**, the capacity-block list rate per the code comment) — add other instances' rates before use; re-verify prices before quoting.
+- `assets/gpu/build_milestone_deliverable.py` — run locally on the Trn + GPU `all_cells.csv`: builds both throughput-vs-interactivity Pareto frontiers, interpolates GPU throughput at the Trn interactivity points, and reports **%-of-GPU + the 60/100/130 milestone bar per shape×baseline**; emits `milestone_<shape>_<baseline>.md/.png` + `milestone_summary.csv`. CLI `--trn` / `--gpu` / `--trn-instance` / `--gpu-instance` / `--baseline` / `--out`. (The Trn-vs-GPU milestone reporting step.)
+- `assets/neuron/neuron_bench_config.example.json` — the Neuron user config template (image, instance, models, `shardings` (TP×DP; legacy `tp_list` still accepted), shapes, concurrencies, `regimes` with `neuron_config`, `buckets`, `num_gpu_blocks_override`, workload `random`+range0, server). Every field carries a `_field` doc string. **This is the thing you fill in per request** on the Neuron side.
+  For a first run, fill it in for a small **upstream-supported** model at `baseline: controlled` and validate the driver against that before benching the real target; flip `baseline` to `production` (+ `enable_prefix_caching: true`) for the secondary GTM/customer-facing number.
+- `assets/neuron/neuron_sweep.py` — the **in-pod** vLLM-Neuron sweep driver (Trainium peer of `sweep_bench.py`). Drives IPA's framework-agnostic core over every model×regime×shape×**(tp,dp)**×ep×concurrency cell, with the up-front fit-check + parallelism check (core budget `tp*dp ≤ logical cores`, `ep_degree == tp*dp` when EP+DP), a partial-box WARN, one-server-per-`(model,regime,tp,dp,ep)` bucket compile reused across the shape×conc sweep, `regime_meta.json` per run dir, and the FSx `state.json` resume ledger. Flags: `--config`, `--results-root`, `--collect-only`, `-k`, `--startup-timeout`. Output layout is `build_deliverables.py`-ingestible unchanged.
+- `assets/neuron/submit_neuron_bench.py` — the **Kaizen Desktop launcher** for `neuron_sweep.py`: starts/reuses a long-lived desktop on the model's ECR image, base64-stages the driver+config into the pod, and runs it. Operator sequence `--collect-only` → `--smoke` → `--reuse` (full, detached) shares one warm desktop; writes a handoff file; HF_TOKEN rides in the base64 blob, never logged. Profile `$KAIZEN_PROFILE`, region `$AWS_REGION` (see `references/neuron-input-contract.md` §D).
+- `assets/neuron/preflight.py` — stdlib-only fail-fast config checker (run BEFORE submitting): validates parse + required fields, every tp ≤ the instance's logical-core count (read from `neuron_sweep._LOGICAL_CORES`), a real (non-placeholder) ECR image; **baseline sanity** (FAIL on a spec regime under `controlled`, WARN on APC-on under `controlled`), **milestone shape check** (WARN if neither 8192/1024 nor 32768/2048 is present), WARNs on non-comparable workload (sharegpt / nonzero jitter), and prints the documented-but-skipped arch-registration confirm command. Non-zero exit on FAIL.
+- `assets/neuron/bench_one_model.sh` — the **old single-cell** in-container Neuron runner (reads `MODEL_ID/TP/...` from env). Kept as a quick one-off **smoke helper**; the sweep (`neuron_sweep.py`) is the primary path.
+- `references/neuron-setup.md` — Kaizen Desktop lifecycle, profile/region/account, the Neuron driver RPM, FSx durable paths (why the ledger lives there), the `neuron_config` field reference, the NEFF compile cache + warmup-once behavior, and the trn2.48xlarge core math.
+- `references/milestone-methodology.md` — the citable cross-platform milestone spec (distilled from "Neuron Agentic Optimization: Performance Milestones"): throughput/interactivity definitions + the fixed-interactivity Pareto method, the two standard shapes, the controlled-vs-production baselines (controlled primary + the DI-vs-spec reconciliation), the public-list-price/no-DI cost basis, and the 60/100/130 bars; notes which parts the tooling implements vs the operator owns.
 - `references/gpu-setup.md` — RAID0 / image / dataset detail + SSH/SG specifics.
 - `references/metrics.md` — every result.json field + derived per-stream / per-accelerator metrics.
 - `references/profiling-targets.md` — production Bedrock request shapes, per-model latency/concurrency baselines, and the TTFT(ISL)/TPOT pass-fail bars that seed the config defaults + `targets` block. **The "what to profile and what to beat" source.**

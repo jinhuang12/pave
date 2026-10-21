@@ -3,7 +3,7 @@
 Stage 5: E2E Three-Tensor Comparison.
 
 Compares last-position logits from HF FP32, HF BF16, and compiled Neuron model.
-Requires model_validation on PYTHONPATH for model loading.
+Requires the scripts/ directory on PYTHONPATH.
 
 Usage:
     python3 scripts/run_stage5.py \
@@ -50,6 +50,56 @@ def get_last_logits(model, input_ids, attention_mask=None):
     return torch.nan_to_num(last, nan=0.0, posinf=1e6, neginf=-1e6)
 
 
+def _run_via_logit_validation(adapter, args):
+    """Fallback Stage 5 for stacks whose reference-model helpers aren't importable.
+
+    Uses the stack's own per-token logit validation instead of our three-tensor
+    comparison. Currently only vLLM-Neuron provides this (its accuracy_debugger builds
+    the FP32 and dtype references internally, so no HF reference model is needed here).
+
+    Returns a result dict, or None if the stack has no equivalent.
+    """
+    if adapter.name != "vllm_neuron":
+        return None
+
+    print("\n  Falling back to the adapter's per-token logit validation.")
+    print("  NOTE: this is a different measurement from the three-tensor R-ratio —")
+    print("        it reports the stack's own pass/fail per token, not an R-ratio.")
+
+    output_dir = os.path.dirname(os.path.abspath(args.output)) if args.output else "./accuracy_report"
+    try:
+        validation = adapter.run_logit_validation(
+            model_id=args.model_path,
+            tp_size=args.tp_size,
+            prompts=args.prompts,
+            output_length=args.num_tokens if hasattr(args, "num_tokens") else 16,
+            output_dir=output_dir,
+        )
+    except Exception as e:
+        print(f"  Logit-validation fallback also failed: {e}")
+        return None
+
+    plugin_results = validation.get("plugin_results", {}) or {}
+    logit_val = plugin_results.get("logit_val", plugin_results)
+    passed = bool(logit_val) and all(
+        v.get("passed", False) if isinstance(v, dict) else False
+        for v in logit_val.values()
+    )
+
+    print(f"\n{'=' * 70}")
+    print(f"  STAGE 5 (logit-validation fallback): {'PASS' if passed else 'FAIL'}")
+    print(f"{'=' * 70}")
+
+    return {
+        "passed": passed,
+        "method": "adapter_logit_validation_fallback",
+        "reason": "reference-model helpers not importable; used stack logit validation",
+        "prompts": validation.get("prompts"),
+        "report_path": validation.get("report_path"),
+        "plugin_results": {k: str(v) for k, v in logit_val.items()},
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Stage 5: E2E Three-Tensor")
     parser.add_argument("--model-path", required=True)
@@ -83,12 +133,29 @@ def main():
         auto_detect_from=args.target_module_file,
     )
 
-    # Load HF source models via adapter's setup_reference_model
-    print("Loading HF FP32...")
-    fp32_model = adapter.setup_reference_model(args.model_path, dtype=torch.float32)
+    # Load HF source models via adapter's setup_reference_model.
+    #
+    # The vLLM-Neuron adapter's implementation lives in the vLLM-Neuron repo's test tree,
+    # which is not shipped in the wheel. If it can't be imported, fall back to the plugin's
+    # own logit validation instead of failing the stage outright.
+    try:
+        print("Loading HF FP32...")
+        fp32_model = adapter.setup_reference_model(args.model_path, dtype=torch.float32)
 
-    print("Loading HF BF16...")
-    bf16_model = adapter.setup_reference_model(args.model_path, dtype=torch.bfloat16)
+        print("Loading HF BF16...")
+        bf16_model = adapter.setup_reference_model(args.model_path, dtype=torch.bfloat16)
+    except ModuleNotFoundError as e:
+        print(f"\n  Reference-model helpers unavailable: {e}")
+        result = _run_via_logit_validation(adapter, args)
+        if result is None:
+            print("  No fallback available for this stack — Stage 5 cannot run.")
+            return 1
+        if args.output:
+            os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
+            with open(args.output, "w") as f:
+                json.dump(result, f, indent=2, default=str)
+            print(f"\nResults saved to {args.output}")
+        return 0 if result.get("passed") else 1
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
 

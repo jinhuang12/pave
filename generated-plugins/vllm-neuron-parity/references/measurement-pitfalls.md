@@ -154,4 +154,4 @@ Rules for every seat that turns an observation into evidence, the measurer above
 
 **Rule (served carry):** A kernel-alone gain carries to the served path only on the engine that binds under the served cap. Before a served run, re-rate the predicted rows under the served cap row, engine by engine; after it, read the profile's per-op attribution against those re-rated rows, never against the kernel-alone figure. `references/hardware-cost-reasoning.md` §6.5 has the measured case.
 
-**Evidence:** `experimental-neuron-framework-profile-analysis-vllm-neuron` skill, `SKILL.md` (experimental banner, verification discipline, `references/fabricated-analysis-case-study.md`); `neuron-nki-profile-querying` skill, `SKILL.md`.
+**Evidence:** `neuron-framework-profile-analysis-vllm-neuron` skill, `SKILL.md` (experimental banner, verification discipline, `references/fabricated-analysis-case-study.md`); `neuron-nki-profile-querying` skill, `SKILL.md`.

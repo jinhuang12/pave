@@ -15,21 +15,36 @@ Workflow for compiling a target model and enabling it to run on both Neuron devi
 
 ### 1. Compile the Model
 
-```python
-from amzn.neuron.neuroboros.utils.model_compiler import DirectModelCompiler, CompilationConfig
+Use the standard NxDI compile path — build the `NeuronConfig`, resolve the inference config
+from the HF checkpoint, instantiate the `ForCausalLM` class, then compile:
 
-config = CompilationConfig(
-    model_class=NeuronModelForCausalLM,
-    config_class=ModelInferenceConfig,
-    neuron_config_class=ModelNeuronConfig,
-    model_path=HF_MODEL_PATH,
-    output_path=COMPILED_MODEL_PATH,
+```python
+import torch
+
+# ModelNeuronConfig if the port subclasses it, else NeuronConfig from
+# neuronx_distributed_inference.models.config
+neuron_config = ModelNeuronConfig(
     tp_degree=TP_DEGREE,
+    world_size=TP_DEGREE,
     batch_size=1,
     seq_len=128,
+    torch_dtype=torch.bfloat16,
+    save_sharded_checkpoint=True,
 )
-compiler = DirectModelCompiler(config)
-compiler.compile()
+
+config = ModelInferenceConfig.from_pretrained(HF_MODEL_PATH, neuron_config=neuron_config)
+config.add_derived_config()
+
+model = NeuronModelForCausalLM(HF_MODEL_PATH, config)
+model.compile(COMPILED_MODEL_PATH)
+```
+
+If `ModelInferenceConfig.from_pretrained` is unavailable on the port, fall back to the
+two-arg form used by `scripts/adapters/nxdi.py`:
+
+```python
+from neuronx_distributed_inference.utils.hf_adapter import load_pretrained_config
+config = ModelInferenceConfig(neuron_config, load_config=load_pretrained_config(HF_MODEL_PATH))
 ```
 
 **Expected output:**
@@ -72,8 +87,10 @@ Run `templates/run_inference_cpu_template.py` with `cpu_mode=True`:
 
 Always capture full output:
 ```bash
-python3 scripts/compile_model.py 2>&1 | tee logs/compilation.log
-python3 scripts/run_inference.py 2>&1 | tee logs/inference_neuron.log
+# Compilation — the snippet from "1. Compile the Model" above
+python3 <your_compile_script>.py 2>&1 | tee logs/compilation.log
+# Device validation — your copy of templates/neuron_device_validator_template.py
+python3 <your_device_validator>.py 2>&1 | tee logs/inference_neuron.log
 ```
 
 ---

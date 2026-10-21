@@ -15,13 +15,14 @@ python3 scripts/run_stage7.py \
   --tolerance 0.02
 ```
 
-Or run `neuron_bench` directly:
+The script picks a backend from the target stack:
 
-```bash
-python -m neuron_bench.run --config ${EXP_DIR}/bench_config.yaml --hf-baseline
-```
-
-Requires `neuron_bench/` on PYTHONPATH.
+- **vLLM-Neuron** — runs through the adapter's accuracy-analysis diagnostics. No extra
+  dependency beyond the adapter itself.
+- **NxDI** — delegates aggregate scoring to a benchmark harness that runs the `lm_eval` tasks
+  from the bench config and compares them against the HF baseline. That harness must be
+  importable on `PYTHONPATH`; if it is not, this stage cannot run and should be reported as
+  blocked rather than skipped silently.
 
 ## Bench Config Format
 

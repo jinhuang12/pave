@@ -14,8 +14,8 @@
     {
       "name": "vllm-neuron-parity",
       "source": "./generated-plugins/vllm-neuron-parity",
-      "description": "pave-init-generated workflow: bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM through user-gated, evidence-backed campaigns. Ships the nine Neuron skills its campaign stages load inside the plugin (see its README).",
-      "version": "1.8.0"
+      "description": "pave-init-generated workflow: bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM through user-gated, evidence-backed campaigns. Ships the fifteen Neuron skills its campaign stages load inside the plugin (see its README).",
+      "version": "1.9.0"
     }
   ]
 }

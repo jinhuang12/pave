@@ -46,7 +46,7 @@ float8_e4m3, `k_active/v_active` bf16 → cast actives to `float8_e4m3`).
 - **Tiny cross-DP EP decode batch:** `moe_cte`/`build_blockwise_mapping` tile the token dim
   in 128-row tiles grouped into `block_size=256` blocks; a DP16×bs1 = 16-token decode
   under-fills tile 0 → `Out-of-bound ... index range [0,127] exceed dimension size of 16`.
-  Reference EP models (gpt_oss, qwen3_moe) used `moe_cte` only in prefill. **Zero-pad the
+  In-tree EP references (e.g. `gpt_oss`) used `moe_cte` only in prefill. **Zero-pad the
   token dim to a multiple of `block_size`** with `torch.cat`-of-zeros (pad rows have zero
   affinity, inert), run, slice `[:T]`. Pad to `block_size`, not 128, for whole blocks.
 

@@ -177,15 +177,38 @@ def _len_buffer(isl: int) -> int:
     return 1024
 
 
-def _max_num_batched_tokens() -> int:
+def _max_num_batched_tokens(max_model_len: int | None = None) -> int:
     """Scheduler-step size. Standardized so prefill of the largest ISL lands in one
     step (not artificially fragmented) while the cap still bounds batching:
     max(2*max_isl, 8192) capped at 16384 (per the E2E config doc). Overridable via
-    server.max_num_batched_tokens."""
+    server.max_num_batched_tokens.
+
+    CHUNKED-PREFILL INTERACTION (hard vLLM invariant, not a preference): with
+    chunked prefill DISABLED, a prefill must fit in ONE scheduler step, so vLLM
+    rejects `max_num_batched_tokens < max_model_len` with a ValueError at engine
+    construction — the server exits before becoming healthy and the cell records
+    "container exited before becoming healthy" with an EMPTY server log (the
+    failure happens before vLLM's logger is attached, so there's no traceback to
+    read — do not go looking for one). Chunked prefill ON has no such constraint,
+    which is why the SAME shape passes in an APC/chunked run and fails only in the
+    strict matched-config pass.
+
+    Concrete case this fixes: SmolLM3 isl=16383 needs max_model_len 17408
+    (16383 + osl 1 + 1024 buffer) but the 16384 cap is below it, so both
+    isl16383 cells of the `--no-enable-chunked-prefill` pass died while every
+    shorter shape (max_model_len <= 12902) ran fine. So when chunked prefill is
+    off, raise the floor to max_model_len — this DEVIATES from the standardized
+    step size, but the alternative is no data point at all. An explicit
+    server.max_num_batched_tokens is still honoured verbatim: if you pin a value
+    below max_model_len with chunking off, that's your call and vLLM will reject
+    it — we don't silently override an explicit number."""
     v = SERVER.get("max_num_batched_tokens")
     if v not in (None, "auto"):
         return int(v)
-    return min(max(2 * _MAX_ISL, 8192), 16384)
+    mnbt = min(max(2 * _MAX_ISL, 8192), 16384)
+    if max_model_len is not None and not SERVER.get("enable_chunked_prefill", True):
+        mnbt = max(mnbt, int(max_model_len))
+    return mnbt
 
 
 # --- build the flat cell list (model x regime x sharding-EP x SweepEntry) -----
@@ -251,7 +274,9 @@ def _server_argv(model: dict, regime: dict, tp: int, dp: int, ep: bool,
         "--max-num-seqs", str(max_num_seqs),
         # Standardized scheduler-step size so prefill of the largest ISL is one step
         # and the step size is identical across models (one fewer comparison DOF).
-        "--max-num-batched-tokens", str(_max_num_batched_tokens()),
+        # max_model_len is passed so the no-chunked-prefill floor can apply — see
+        # _max_num_batched_tokens' docstring for why that's a hard vLLM invariant.
+        "--max-num-batched-tokens", str(_max_num_batched_tokens(max_model_len)),
         "--gpu-memory-utilization", str(SERVER.get("gpu_memory_utilization", 0.9)),
         "--trust-remote-code",
         "--no-enable-log-requests",
@@ -421,9 +446,34 @@ def test_sweep(cell, results_root: Path, server_handle_pool, sweep_state):
         if WORKLOAD.get("ignore_eos", True):
             bench_args += ["--ignore-eos"]
     else:  # sharegpt: variable lengths — NOT comparable to a bucketed Neuron run.
+        # `dataset_path` is read by the BENCH CLIENT, which on the docker transport
+        # runs INSIDE the vLLM container (`docker exec <c> vllm bench serve …`). The
+        # container mounts only two host paths — the HF cache and results_root — so a
+        # host path outside both is invisible to the client: every cell dies rc=1 in
+        # ~10s (the server itself is healthy, which is what makes this look mysterious
+        # — metrics_before/after and run_manifest.json all get written). Cost us a
+        # whole 10-cell sharegpt pass on the H200 run. Fail loudly here instead: the
+        # dataset must live under results_root so it lands in the container. Kaizen
+        # transport runs the client on the host, so the check only applies to docker.
+        # translate_results_dir is transport-aware: the kaizen/host-venv client gets
+        # the host path back unchanged, while the docker client gets the path mapped
+        # through results_mount — and raises ValueError when the path is outside it,
+        # which is exactly the unreachable case we want to catch BEFORE spending a
+        # server start on it.
+        ds_path = Path(str(WORKLOAD.get("dataset_path", "/scratch/sharegpt.json")))
+        try:
+            ds_dir = srv.translate_results_dir(ds_path.parent)
+        except ValueError:
+            pytest.fail(
+                f"sharegpt dataset_path {ds_path} is not under results_root "
+                f"{results_root}. On the docker transport the bench client runs "
+                f"inside the container, which mounts only results_root and the HF "
+                f"cache — a path outside them is unreachable and EVERY cell fails "
+                f"rc=1 while the server looks healthy. Copy the dataset under "
+                f"results_root (e.g. {results_root / ds_path.name}) and point "
+                f"workload.dataset_path at it.")
         bench_args += ["--dataset-name", "sharegpt",
-                       "--dataset-path", str(WORKLOAD.get(
-                           "dataset_path", "/scratch/sharegpt.json"))]
+                       "--dataset-path", f"{ds_dir.rstrip('/')}/{ds_path.name}"]
     if "temperature" in WORKLOAD:
         bench_args += ["--temperature", str(WORKLOAD["temperature"])]
     # --save-detailed retains per-request ITLs, input/output lens, ttfts,

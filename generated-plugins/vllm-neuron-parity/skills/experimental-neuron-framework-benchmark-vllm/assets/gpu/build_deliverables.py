@@ -281,9 +281,14 @@ def read_regime_meta(run_dir: Path, default_instance: str) -> dict | None:
     """Prefer the sweep's regime_meta.json (native path for sweep_bench.py output).
 
     sweep_bench.py writes one `regime_meta.json` per <model>__<regime> run dir with
-    {prec, spec, quantization, kv_cache_dtype, model_key}. The instance isn't in it
-    (a run is one box) — it comes from --instance at collection time. Falls back to
-    the legacy `_RUN_RE` prefix convention for older run dirs that predate regime_meta.
+    {prec, spec, quantization, kv_cache_dtype, model_key}. The instance normally comes
+    from --instance at collection time (one sweep = one box), but a run dir MAY carry
+    its own `instance` key to override it. That override is what makes a cross-platform
+    overlay possible: a Trainium run dir and a GPU run dir can sit side by side under
+    one --multi parent and still be attributed to different boxes, which is what
+    `overlay_*_by-instance_*` plots. Without it every run collapses onto one instance
+    label and the by-instance overlay silently never fires (it needs nunique >= 2).
+    Falls back to the legacy `_RUN_RE` prefix convention for pre-regime_meta run dirs.
     """
     meta_file = run_dir / "regime_meta.json"
     if meta_file.exists():
@@ -295,7 +300,7 @@ def read_regime_meta(run_dir: Path, default_instance: str) -> dict | None:
             "prec": m.get("prec", "bf16"),
             "spec": bool(m.get("spec", False)),
             "ep": bool(m.get("ep", False)),
-            "instance": default_instance,
+            "instance": m.get("instance") or default_instance,
             "run_no": 0,
             "date": "",
         }
