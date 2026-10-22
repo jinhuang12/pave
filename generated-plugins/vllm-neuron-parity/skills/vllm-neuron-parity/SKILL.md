@@ -136,7 +136,7 @@ map names each by a short name:
 |---|---|
 | planner | `neuron-parallelism-planner` |
 | nki-writing | `neuron-nki-writing` |
-| nki-docs | `neuron-nki-docs` |
+| nki-docs | `neuron-nki-docs` — its bundled NKI Library reference is a sample; the library authority is the installed `nkilib` tree (core, experimental, models) at the run's pinned SDK |
 | nki-debugging | `neuron-nki-debugging` |
 | compile-debug | `experimental-neuron-autoport-compiler-debugging-vllm-neuron` |
 | autoport | `neuron-framework-autoport-vllm-neuron` — reference only: a competing tool, never the port procedure |
@@ -154,10 +154,13 @@ A brief names the skill and the sections the stage map gives for the node.
 Device work under any bundled skill runs on the cores and pools its job
 lease names, and a troubleshooting device command runs only under a lease.
 The benchmark skill serves already-standing hosts only: its provisioning
-sections A1-A4 and its submission section B1 never apply (P6). The
-equivalence skill runs every stage with `--target-stack vllm_neuron`. A
-profiling skill writes under the project root the seat names: pass the
-node's artifact directory as `--project-root` or `NEURON_PROJECT_ROOT`. The
+and submission sections never apply (P6). The equivalence skill runs every
+stage with `--target-stack vllm_neuron`. The four profiling skills write
+under `NEURON_PROJECT_ROOT`: set it to the node's artifact directory (the
+planner alone takes `--project-root`). A brief that loads compile-debug,
+compiler-artifacts, serve-profiling or profile-analysis names the leg's
+compile route from the run record (`references/measurement-pitfalls.md`,
+CPU-mode rule): the four skills label their XLA-only steps. The
 optimization skill is read by file path under
 `<plugin-root>/skills/experimental-neuron-framework-optimization/references/`,
 never by plugin address: a skill loads whole, and its SKILL.md is a
@@ -394,8 +397,8 @@ reminder < reviewed/socratic < mechanical < blocking hook.
 
 | # | Prohibition | Level and where it lives |
 |---|---|---|
-| P1 | Never mutate protected base branches (release-0.24.0.1.1.0, release-0.21.0.1.0.0, main, mainline) on the fork or upstream | BLOCKING `hooks/protected-branch-guard.sh` |
-| P2 | Never clear a shared Neuron compile cache — the prohibition is the class, and four roots are in it. The three vLLM compile-cache roots ($VLLM_CACHE_ROOT/neuron/compile_cache, ~/.cache/vllm/neuron/compile_cache, /var/tmp/neuron-compile-cache) and the kernel intermediate cache (/var/tmp/nki-intermediate-cache — the kernel toolchain writes it outside every cache root a run can set, and it can hold a co-tenant's kernel artifacts). Instances and the rename-aside duty: `references/artifact-layout.md` §4.10 | BLOCKING `hooks/compile-cache-guard.sh` + delegate guardrail wrapper (a documented remedy that says "clear the cache" is intercepted, never followed). The guard refuses every destructive verb on all four roots, `mv` included — it cannot tell a root you own from a shared one, and rename-aside is sanctioned only inside one you own (`references/artifact-layout.md` §4.10) |
+| P1 | Never mutate protected base branches (every `release-*` branch, main, mainline) on the fork or upstream | BLOCKING `hooks/protected-branch-guard.sh` |
+| P2 | Never clear a shared Neuron compile cache — the prohibition is the class: every root that holds compiled Neuron programs, on either compile route, plus the kernel intermediate cache (the kernel toolchain writes it outside every cache root a run can set, and it can hold a co-tenant's kernel artifacts). The known roots and the rename-aside duty: `references/artifact-layout.md` §4.10 | BLOCKING `hooks/compile-cache-guard.sh` + delegate guardrail wrapper (a documented remedy that says "clear the cache" is intercepted, never followed). The guard matches the family — a path or variable that joins "cache" with neuron, nki or neff, and the bare `$VLLM_CACHE_ROOT` — and refuses every destructive verb on it, `mv` included: it cannot tell a root you own from a shared one, and rename-aside is sanctioned only inside one you own (`references/artifact-layout.md` §4.10) |
 | P3 | No `cp -a` venv cloning; no pip writes into /opt | BLOCKING `hooks/venv-opt-guard.sh` |
 | P4 | Zero `neuronx_distributed*` (NxDI) imports in ported code | MECHANICAL import scan over added/modified lines in your `changeset_complete` check on `plan_satisfied` |
 | P5 | GPU baseline read-only; no autonomous reboot or reset; durable-host-state scoping | Contract text + reminder + mechanical skew and identity probes; `measure_candidate`'s baseline step refuses to capture on a kickoff-record contradiction |

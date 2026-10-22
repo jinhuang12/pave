@@ -95,6 +95,8 @@ resulting view is indirect (see `NkiTensor.is_indirect`).
 language.dynamic_range(start, stop=None, step=1)
 ```
 
+> **Removed under tracing in NKI 0.7.0** (the default frontend): `dynamic_range` has no value at trace time. Use `nl.fori_loop` or `nl.while_loop`; see `../../reference/migration/nki-migration-guide.md`.
+
 Create a sequence for **dynamic** loop iteration.
 
 Create a sequence of numbers for use as **dynamic** loop iterators in NKI.

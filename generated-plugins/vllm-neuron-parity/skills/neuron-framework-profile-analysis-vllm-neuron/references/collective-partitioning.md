@@ -158,10 +158,11 @@ MLP paths, so substring-matching it mislabels the split).
 
 1. **`layer`** — the framework **module scope** path, e.g.
    `…/<AttentionModule>[self_attn]/…` or `…/<MLPModule>[mlp]/…`. It *names* the owning
-   `nn.Module`, so it is the strongest, most model-generic signal. Populated only when
-   `NEURON_FRAMEWORK_DEBUG=1` was set at compile; otherwise often `"Unknown"`.
+   `nn.Module`, so it is the strongest, most model-generic signal. On the XLA route populated
+   only when the compile-time debug variables (serve-profiling's table) were set, otherwise
+   often `"Unknown"`; on the native route populated from the FX graph with no switch.
 2. **`nki_source_location` / `bir_debug_info_source_location`** — the source `file:line` of
-   the kernel or framework op (needs `XLA_IR_DEBUG=1` / `XLA_HLO_DEBUG=1` at compile). NKI
+   the kernel or framework op (XLA route: needs the compile-time debug variables; native: carried from the FX stack trace). NKI
    kernel paths carry the component in the *directory* (`…/nki/kernels/<component>/…`,
    `…/nkilib/core/<component>/…`); framework ops point into the model's `model.py`.
 3. **`hlo_name`** — last resort for ops with no source line.

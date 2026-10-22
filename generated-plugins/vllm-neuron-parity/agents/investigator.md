@@ -57,7 +57,9 @@ proceed on the artifact and disclose the disagreement in one line.
   `gh` and record a design trace or a cited dead end — never a
   code-vendor plan, because both its front-ends lower to a different
   kernel substrate. Run the mechanical runner-entanglement check (config
-  oracle forcing conditions plus the legacy-runner grep) with transcripts.
+  oracle forcing conditions plus the legacy-runner grep) with transcripts;
+  its verdict names the model runner the target serves on, from the
+  `use_v2_model_runner` policy and `VLLM_USE_V2_MODEL_RUNNER`.
   Flag any target touching a subsystem that left the plugin repo at the
   pin. Verify at code level any doc-only support claim bearing on the
   target. Close with a residual-gaps section: an honestly recorded gap
@@ -66,8 +68,9 @@ proceed on the artifact and disclose the disagreement in one line.
   served configuration into every op class per component block, across
   every parallelism and scheduling form the target serves, and inventory
   each op against the NKI library and the plugin at the pin (present,
-  partial, absent); `target_traced` needs the inventory. Load nki-docs'
-  NKI Library kernel reference (`vllm-neuron-parity:neuron-nki-docs`) and,
+  partial, absent); `target_traced` needs the inventory. Inventory against the
+  library authority the lead skill's nki-docs row names (the installed
+  `nkilib` tree at the pin, never the bundled sample alone), and load,
   reference only, the autoport skill's Step 1 Architecture Research and
   Search Before Implementing — never as the port procedure.
   Route selection, costing, and every other target are out of scope.
@@ -121,8 +124,8 @@ proceed on the artifact and disclose the disagreement in one line.
   matrix's at-risk cells (the implementer assembles the rows); executing
   any matrix procedure is forbidden, and a cell is non-adjudicable only on
   evidence read in full — a partial-read suspicion is a residual gap, not
-  a blocker. Load nki-docs' library reference for untried levers, with
-  `references/hardware-cost-reasoning.md` §5.
+  a blocker. Read the installed `nkilib` tree at the pin for untried levers (the
+  lead skill's nki-docs row), with `references/hardware-cost-reasoning.md` §5.
 
 `rederive_approach` is not yours: the run binds it to the dedicated
 rederiver seat.

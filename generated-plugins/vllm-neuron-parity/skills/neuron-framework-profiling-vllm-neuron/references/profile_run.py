@@ -473,7 +473,7 @@ def dry_run(cfg: dict) -> int:
             print(f"  {k}={cfg['MODEL_ENV'][k]}")
     else:
         print('  (none — declare via PROFILE_MODEL_ENV="NAME1 NAME2 ..." or use '
-              "GEMMA4_ / VLLM_NEURON_BACKEND_ prefixes)")
+              "GEMMA4_ / VLLM_NEURON_BACKEND prefixes)")
     warmups, nprompts, result = (
         (0, cfg["NPROMPTS"], f"{cfg['PROFILE_DIR']}/bench_prefill.json")
         if cfg["phase"] == "prefill"

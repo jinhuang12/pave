@@ -1,5 +1,7 @@
 # About NKI Versions
 
+Documentation level: this page was copied at NKI 0.4.0 (Neuron SDK 2.30.0). The current level, NKI 0.7.0 (SDK 2.33.0), is in `../reference/nki_rn.md`.
+
 About NKI Versions
 This page provides details on the versions of the Neuron Kernel Interface (NKI) and its ongoing evolution.
 

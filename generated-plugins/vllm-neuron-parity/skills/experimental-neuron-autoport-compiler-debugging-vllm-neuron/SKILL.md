@@ -2,7 +2,7 @@
 name: experimental-neuron-autoport-compiler-debugging-vllm-neuron
 description: |
   Debug BRINGUP / first-compile failures when porting a NEW model architecture to the
-  vllm-neuron / torch-xla Trainium2 backend: a graph that will NOT trace, lower, verify,
+  vllm-neuron Trainium2 backend (native torch.compile route by default since 0.29, XLA route deprecated): a graph that will NOT trace, lower, verify,
   fit, schedule, or produce correct output — NOT tuning a model that already runs (that is
   experimental-neuron-perf-compiler-artifact-debugging). Covers the overloaded "compilation
   failed with 70" (read the per-rank log-neuron-cc.txt for the real NCC_ code), internal
@@ -35,7 +35,7 @@ from the decision tree; don't load them all.**
 |---|---|---|
 | Precondition | A valid NEFF exists and **runs** | Nothing compiles / lowers / runs yet |
 | Question | "Why is this valid graph slow / too big / redundant?" | "Why won't this op trace / lower / verify / fit / produce correct output?" |
-| Primary artifact | NTFF profile parquet, penguin per-pass timing | `log-neuron-cc.txt` NCC_ code, `fxgraph.txt`, raw `graph.hlo` proto |
+| Primary artifact | NTFF profile parquet, penguin per-pass timing | `log-neuron-cc.txt` NCC_ code; XLA route: `fxgraph.txt`, raw `graph.hlo` proto; native route: kept `fx_graphs/*.fx.txt`, `module.mlir` |
 | Typical fix | kernel selection, DMA overlap, opt level | model-code rewrite, dtype typing, config/bucket/parallelism change |
 
 **Everything the perf skill teaches about *reading* artifacts still applies** — the
@@ -70,6 +70,8 @@ vLLM worker log tells you **nothing**. Exit code 70 multiplexes every failure cl
 per-rank log, not stdout). A bare alphanumeric token in a log (`EXRJ671`, `narwhal`,
 cache-hash fragments) is **not** a diagnostic — only `NCC_*`/`EXXX` codes emitted
 *with a source location* are real.
+
+**Read the route first** ([compile_route.md](../experimental-neuron-perf-compiler-artifact-debugging/references/compile_route.md)): the cache paths, `scripts/classify_compile_failure.sh`, `scripts/scan_hlo.py` and the torch_xla probes in this skill are XLA-route recipes. On the native route (default since 0.29) the per-rank log is `$TORCH_NEURONX_DEBUG_DIR/neuronx-cc/<hash>/log-neuron-cc.txt`, kept only with `TORCH_NEURONX_PRESERVE_COMPILATION_ARTIFACTS=1`.
 
 ```bash
 # useless alone:
@@ -113,7 +115,7 @@ START: new architecture fails
    │        data-dependent slice, Tensor used as slice bound, SymInt loop count,
    │        skipped decode warmup, xla::unselect in-place slice. → §1
    │
-   ├─▶ (2) Does it LOWER at all?  (torch_xla → HLO, neuronx-cc front-end)
+   ├─▶ (2) Does it LOWER at all?  (XLA: torch_xla → HLO; native: FX → StableHLO, f64 cast to f32 by the lowering; then neuronx-cc)
    │        │
    │        ├─ UNSUPPORTED OP: "op does not lower" (IBTN006), topk/sort (EVRF029),
    │        │    _pad Simplifier ICE (ISMP902). Triage via `neuronx-cc list-operators`;
@@ -170,8 +172,8 @@ START: new architecture fails
 
 ## When to reach past the FX graph
 
-- **`make_fx` / CPU compile lie about f64.** Parse `graph.hlo` proto directly for
-  `element_type==12` (F64) — `scripts/scan_hlo.py f64`. See `dtype_layout_legalization.md`.
+- **`make_fx` / CPU compile lie about f64.** XLA route: parse `graph.hlo` proto directly for
+  `element_type==12` (F64) — `scripts/scan_hlo.py f64`; see `dtype_layout_legalization.md`. The native lowering casts f64 to f32 itself.
 - **`.square()` / `.pow(2)` / `.pow(2.0)` all lower to HLO `power`; only `x*x` lowers to
   `multiply`.** Verify by counting HLO opcodes (`scripts/scan_hlo.py act`), never the
   Python source form. Matters for the 8-LUT `INLA001` ceiling.

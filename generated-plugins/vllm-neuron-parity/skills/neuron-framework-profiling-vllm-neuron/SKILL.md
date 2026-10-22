@@ -187,12 +187,15 @@ vllm serve "$HF_HOME/<model>" \
   forward pass. See
   [serve_profiling.md → Capturing steady-state decode](references/serve_profiling.md#capturing-steady-state-decode)
   for how to size these — in particular the `max_iterations=2` CcOp lower bound.
-- **Debug env vars at compile time** — set these three before `vllm serve`
+- **XLA-route debug env vars at compile time** — on the XLA route
+  (`VLLM_NEURON_BACKEND=vllm_neuron`) set these three before `vllm serve`,
   so the NEFFs carry the debug info the analysis skill needs for source
-  attribution (mapping instructions back to HLO / framework source lines).
-  They must be set at *compile* time, not at capture time, because the info
-  is baked into the NEFF; a warm cache only carries it if the original
-  compile had them set. Both isolation scripts export these defensively:
+  attribution. They act at *compile* time, not capture time: a warm cache
+  carries the info only if the original compile had them set. On the native
+  route (default since vllm-neuron 0.29) nothing reads them and the NEFF key
+  ignores them; source lines and module scope come from the FX graph with no
+  switch. The scripts export them regardless, which is harmless. Record the
+  route with every capture: `VLLM_NEURON_BACKEND` is in the env snapshot.
 
   | Variable | Default | Purpose |
   |---|---|---|
@@ -294,8 +297,8 @@ the `workload` knobs, and `model_env` — so it survives a compile/launch failur
 **`manifest.json`** (the OUTPUT) is written before cleanup with the profile paths + NEFF
 hashes and a `run_spec` back-reference. Model-specific compile flags (kernel routing,
 backend toggles, dedup) live OUTSIDE `resolve_config` and reach `vllm serve` by inheritance;
-declare their NAMES in `PROFILE_MODEL_ENV` (and/or use the `GEMMA4_` / `VLLM_NEURON_BACKEND_`
-auto-capture prefixes) so the driver snapshots them into `run_spec.json`'s `model_env`,
+declare their NAMES in `PROFILE_MODEL_ENV` (and/or use the `GEMMA4_` / `VLLM_NEURON_BACKEND`
+auto-capture prefixes; the second also catches the route variable itself) so the driver snapshots them into `run_spec.json`'s `model_env`,
 making the compile key self-documenting and a run reproducible. See the invocation example
 and full samples under *run_spec.json (input) + manifest.json (output)* /
 [`references/run_spec.example.json`](references/run_spec.example.json) +

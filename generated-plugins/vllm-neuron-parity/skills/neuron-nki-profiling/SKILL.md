@@ -87,7 +87,8 @@ os.environ['NEURON_RT_INSPECT_DEVICE_PROFILE'] = '1'
 os.environ['NEURON_RT_INSPECT_OUTPUT_DIR'] = './output'
 
 # Compiler flags for target hardware
-os.environ['NEURON_CC_FLAGS'] = '--target trn2 --lnc 1' # use lnc=2 if explicitely told to.  
+os.environ['NEURON_CC_FLAGS'] = '--target trn2 --lnc 1' # use lnc=2 if explicitly told to.
+os.environ['NEURON_LOGICAL_NC_CONFIG'] = '1' # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 
 # Use only the cores your job lease names; never pick a core yourself
 os.environ['NEURON_RT_VISIBLE_CORES'] = LEASED_CORES  # from the lease record, e.g. '4' or '4-5'

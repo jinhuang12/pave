@@ -32,7 +32,7 @@
 #
 # Optional: PROFILE_MODEL_ENV="NAME1 NAME2 ..." — declare the compile-affecting
 #   model flag NAMES so they are snapshotted into run_spec.json's `model_env`
-#   (making the compile key self-documenting). GEMMA4_* and VLLM_NEURON_BACKEND_*
+#   (making the compile key self-documenting). GEMMA4_* and VLLM_NEURON_BACKEND*
 #   are auto-captured by prefix; list anything else (e.g. VLLM_NEURON_DISABLE_INPUT_DEDUP,
 #   NEURON_VISIBLE_DEVICES, NEURON_PLATFORM_TARGET_OVERRIDE) here.
 #

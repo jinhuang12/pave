@@ -131,9 +131,9 @@ Consult the **Utility Selection Guide** to choose the right utilities for the ke
 then follow `references/memory-patterns.md` and `references/transpose-and-layout.md`:
 
 - **Contiguous DMA:** For aligned, sequential access (most efficient)
-- **Strided DMA:** Use `TensorView.slice(step=N)` for gather/scatter patterns (see transpose-and-layout.md)
+- **Strided DMA:** Use the native view `tensor.slice(dim, start, end, step=N)` for gather/scatter patterns (see transpose-and-layout.md)
 - **Tiling loops:** Use `TiledRange` for dimensions requiring tiling with remainder handling
-- **Transpose operations:** Use `nisa.nc_transpose()` for P↔F transpose, `TensorView` for layout manipulation
+- **Transpose operations:** Use `nisa.nc_transpose()` for P↔F transpose, the native `NkiTensor` view methods for layout manipulation
 - **Partition broadcast:** Use `stream_shuffle_broadcast` when a bias/scale in partition 0 must reach all PEs
 - **Buffer management:** Use `SbufManager` when the kernel has 4+ SBUF allocations or shared sub-functions
 
@@ -251,8 +251,8 @@ References are tiered to minimize overhead on simple tasks. Load only what you n
 - `references/nkilib/core/kernel-helpers.md` - Math helpers, SPMD, dtype utilities
 
 ### Load when layout manipulation is needed:
-- `references/transpose-and-layout.md` - **Transpose and layout transformation guide**: nc_transpose, TensorView, array patterns, strided DMA, decision trees for layout operations
-- `references/nkilib/core/tensor-view.md` - TensorView: zero-copy tensor manipulation
+- `references/transpose-and-layout.md` - **Transpose and layout transformation guide**: nc_transpose, native tensor views, array patterns, strided DMA, decision trees for layout operations
+- `references/nkilib/core/tensor-view.md` - zero-copy view methods; the nkilib `TensorView` wrapper is gone since NKI Library 2.33, so read `TensorView(t).m(...).get_view()` there as the native `t.m(...)`
 
 ### API features documented in `/neuron-nki-docs` (query it, not duplicated here):
 - **Native `NkiTensor` view methods** — composable, zero-copy views callable directly on a tensor: `slice`, `select`, `permute`, `broadcast`, `expand_dim`, `squeeze_dim`, `reshape_dim`, `flatten_dims`, `rearrange`, `reshape`, `view`, `vector_select`, plus query methods `is_contiguous` / `is_indirect` and low-level `ap` / `get_pattern`. These are the native tensor methods (e.g. `t.slice(1, 0, 256)`); the `TensorView` helper above wraps the same ops for composing complex 3D+ `.ap()` patterns. Look up signatures/examples via `/neuron-nki-docs` → `api-nki-tensor.md`.
@@ -294,7 +294,7 @@ Full source for nkilib/core utilities and subkernels:
 | `nl.tiles` / `nl.blocks` | Addressing a tensor by tile (or block) coordinate instead of computing offsets and strides by hand | `references/indexing-patterns.md` ("Tiled and Blocked Layouts") |
 | `nl.alloc_tiles` / `nl.alloc_blocks` | Allocating on-chip storage that is itself a tile/block grid | `references/indexing-patterns.md` ("Tiled and Blocked Layouts") |
 | `TiledRange` | Tiled dimension iteration with remainder handling | `references/nkilib/core/tiled-range.md` |
-| `TensorView` | Strided/interleaved DMA, broadcasting, reshape without copy, dynamic selection | `references/nkilib/core/tensor-view.md` |
+| native `NkiTensor` views (`slice`, `broadcast`, `reshape_dim`, `select`, ...) | Strided/interleaved DMA, broadcasting, reshape without copy, dynamic selection; the nkilib `TensorView` wrapper was removed in 2.33 (inline the bundled source if you keep it) | `references/nkilib/core/tensor-view.md` |
 | `stream_shuffle_broadcast` | Replicate partition-0 value (bias, scale) to all 128 partitions | `references/nkilib/ops/stream-shuffle-broadcast.md` |
 | `SbufManager` | 4+ SBUF tensors or sub-functions sharing SBUF | `references/nkilib/core/allocator.md` |
 | `NkiTensor` view methods | Zero-copy reshape/slice/permute/broadcast directly on a tensor (`t.slice(...)`, `t.reshape_dim(...)`, etc.) | `/neuron-nki-docs` → `api-nki-tensor.md` |
@@ -319,10 +319,10 @@ Kernel needs tiling?
 └─ No tiling → Plain range()
 
 Kernel accesses tensors non-contiguously?
-├─ Strided/interleaved → TensorView.slice(step=N)
-├─ Broadcasting → TensorView.broadcast(dim, size)
-├─ Reshape without copy → TensorView.reshape_dim() / flatten_dims()
-├─ Dynamic expert selection → TensorView.select(dim, scalar_offset)
+├─ Strided/interleaved → tensor.slice(dim, start, end, step=N)
+├─ Broadcasting → tensor.broadcast(dim, size)
+├─ Reshape without copy → tensor.reshape_dim() / flatten_dims()
+├─ Dynamic expert selection → tensor.select(dim, scalar_offset)
 └─ Simple contiguous → plain tensor[start:end, :]
 
 Kernel needs to broadcast a scalar/vector to all partitions?

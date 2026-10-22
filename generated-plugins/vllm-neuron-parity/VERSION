@@ -1,4 +1,135 @@
-version: 1.9.0
+version: 1.10.0
+
+## 1.10.0 — 2026-10-21
+
+The plugin moves from the Neuron SDK 2.32 / vllm-neuron 0.24 line to SDK
+2.33 / vllm-neuron 0.29, where the native torch.compile route is the
+default and the XLA route is on its deprecation path (last release 2.34).
+Twenty items from an orchestrated audit of the 2.33 release notes against
+every plugin and bundled-skill surface: eleven in the release layer, nine
+in the bundled skills. The graph, `revisions.yaml` and `history/` do not
+change. The audit's thirteen greps found graph text touched only at the
+served-cap sites, and the served profile stays the cap source.
+
+Two blocking guards missed 2.33 state:
+1. P1 protected branches: the guard and its rule text listed four names and
+   stopped at the 0.24 release branch. The guard now matches every
+   `release-<version>` branch by pattern (`release-` then a digit) plus
+   `main` and `mainline`, with a test case per form. The rule text at the
+   lead SKILL, the implementer contract and its Codex copy, and the README
+   say "every `release-*` branch".
+2. P2 compile cache: the guard listed the XLA route's three
+   `neuron/compile_cache` roots and one variable. The native route keeps
+   NEFFs under its own roots, and the root moved at 0.24 and at 0.29. The
+   guard now matches the family — a path or variable that joins "cache"
+   with neuron, nki or neff, case-insensitive — plus the bare
+   `$VLLM_CACHE_ROOT`, with refuse and allow test lists (the Hugging Face
+   cache and the vLLM logs stay allowed). The known roots are listed once,
+   in `references/artifact-layout.md` §4.10; the P2 row and the README
+   point there. The cache-pin pitfall says to find again at your pin every
+   variable that places compiled programs, and records
+   `VLLM_NEURON_BACKEND` and `TORCH_CACHING_PRECOMPILE` per leg.
+
+Release layer, one line each:
+- `references/patch-mechanism-inventory.md` rebuilt whole at
+  `release-0.29.0.1.2.0`: eight mechanisms; the `vllm.general_plugins`
+  entry point described as the live layer it is (1.9.0 called it a dead
+  stub); the import redirector, the `overrides/` registrations and the
+  pydantic all2all mutation recorded as gone; the all2all seam recorded as
+  the `NeuronDeviceCommunicator` config read; the 0.29 patch sites added;
+  the route fork in `_init_backend()` marked, so a change beside the XLA
+  branch is never placed on the default route.
+- `references/collision-ranking.md`: `neuron_model_runner_v2.py` joins
+  rank 1. The runner-entanglement verdict names which runner the target
+  serves on (`use_v2_model_runner`, `VLLM_USE_V2_MODEL_RUNNER`); the
+  investigator contract and its Codex copy say so.
+- Library authority defined once, at the lead SKILL's nki-docs row: the
+  installed `nkilib` tree at the pinned SDK; the bundled reference is an
+  8-kernel sample. The investigator's two load lines cite the row.
+- `references/measurement-pitfalls.md`: the equivalence adapter's pin by
+  pointer (`PINNED_VLLM_VERSION`, 0.29 at this release; it warns, it does
+  not exit). The CPU-mode rule records once per run the compile route (the
+  variable decides; the start-up line confirms), the model runner and the precompile
+  cache state.
+- Lead SKILL bundled-skills paragraph: the benchmark exclusion drops dead
+  section ids; the four profiling skills take `NEURON_PROJECT_ROOT` only
+  (the planner alone takes `--project-root`); a brief that loads
+  compile-debug, compiler-artifacts, serve-profiling or profile-analysis
+  names the leg's compile route from the run record.
+- `references/hardware-cost-reasoning.md`: Driver 2.31 adds a per-core
+  sysfs throttle node on Trn2 and Trn3. The measurer reads it beside each
+  served profile and checks it against the profile's throttle rows; the
+  served profile stays the cap source, so the measurer contract and the
+  graph do not change.
+- Manifest compatibility line points instead of repeating: the NKI venv is
+  built per the bundled nki-docs setup page at the pinned SDK (NKI 0.4 was
+  named); the pave-init minimum is the one the stop guard checks (2.6.2;
+  2.6.0 was named); `NEURON_PROJECT_ROOT` only for the profiling skills.
+
+Bundled skills, fixed in the source repo (NeuronAgenticDevelopment) and
+re-synced by 3-way merge onto the 1.9.0 copies: five merged files, one
+conflict. On the core-isolation page the repo's new core-count comment met
+fix 2's lease-based pin; the lease block stands and the count comment was
+dropped, since cores come from the lease. The conflict fixes 1-8 of 1.8.0
+and 1.9.0 stand.
+- nki-profiling, nki-debugging: every `--lnc` site sets
+  `NEURON_LOGICAL_NC_CONFIG` to the same degree. NKI 0.7.0 refuses a
+  mismatch (`NCC_EVRF066`), which gets its entry in the verification-errors
+  reference.
+- nki-writing: NKI Library 2.33 removed `nkilib.core.utils.tensor_view`.
+  The eleven import sites and the selection guide point at the bundled
+  source to inline, or at the native `NkiTensor` view methods.
+- nki-docs: the setup page re-copied at 2.33 (it installed torch-neuronx
+  2.8 on Ubuntu 22.04); a documentation-level stamp in SKILL.md;
+  `nl.dynamic_range` marked removed under tracing, with a pointer to the
+  migration guide.
+- compiler-artifacts: a new `references/compile_route.md` holds the shared
+  route text — how to read the route, where native keeps artifacts
+  (`TORCH_NEURONX_DEBUG_DIR`, kept only with
+  `TORCH_NEURONX_PRESERVE_COMPILATION_ARTIFACTS=1`), how to lift the native
+  compile flags from the kept `compiler_args.txt` (no `command.txt` is
+  written, and a hand-written set masks the real failure), which recipes
+  are XLA-only. Quick start, crash triage and the source map gain the
+  native branch. Which `--framework` value the native compile passes is
+  not settled from the wheel, so that flag is not marked XLA-only.
+- compile-debug: a route step; the cache recipes, the classify script,
+  `scan_hlo.py` and the torch_xla probes labelled XLA-route; the
+  `affine_range` → `sequential_range` swap dropped at both sites (both are
+  aliases of `range` in NKI 0.7).
+- serve-profiling: the three debug variables labelled the XLA-route switch
+  (native reads none of them and the NEFF key ignores them); the env
+  snapshot prefix `VLLM_NEURON_BACKEND_` becomes `VLLM_NEURON_BACKEND`, so
+  the route variable is recorded.
+- profile-analysis: the quality check and the module-scope column guide
+  point at that table; on native an `Unknown` goes to the source map.
+- nki-debugging core isolation and the equivalence device validator: the
+  `neuron-ls` JSON flags end in 2.34. Both now read the plain `neuron-ls`
+  table by its headers. The validator raises `NeuronDeviceQueryError` on a
+  failed, empty or unreadable command instead of reporting zero devices
+  (`assert_on_neuron` turns it into an `AssertionError`); the page's dead
+  `grep -c "NeuronCore"` count is gone.
+
+Ceilings (`tests/test_document_ceilings.py`, line counts MEASURED):
+compile-debug 190 -> 200, at 191 lines (the route step; 189 at 1.9.0).
+Every other document stays under its ceiling, three of them at the cap:
+nki-writing 500 of 500, compiler-artifacts 220 of 220, and
+`references/artifact-layout.md` 470 of 470 after the §4.10 roots list was
+cut to fit; `agents/investigator.md` is at 199 of 200. A document at its
+cap means the next change to it cuts first.
+
+`skills_md5.txt` lists 418 files (from 417): one new reference.
+
+Not done here, needs a 2.33 host: six checks the audit could not make from
+documents and source — `TORCH_DEVICE_BACKEND_AUTOLOAD=0` when torch-neuronx
+is in the vLLM venv, the short `neuron-ls --json` flag, the kernel summary
+latency field, the sysfs throttle node against the profile's throttle rows,
+unknown-type throttle rows, and the `nrt_tensor_read` trace name.
+Reviewed by an adversarial seat (opus): two rounds. Round 1 REVISE with one
+HIGH: the native recompile recipe in the new route reference hand-wrote
+flags that the kept `compiler_args.txt` records, so a hand recompile would
+mask the real failure; fixed. Eight wording notes applied. Round 2 PASS,
+one more wording note applied (the bundled TensorView source carries
+relative imports; the native view methods are the usual path).
 
 ## 1.9.0 — 2026-10-21
 

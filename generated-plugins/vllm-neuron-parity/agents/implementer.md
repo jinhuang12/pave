@@ -378,10 +378,9 @@ gate (P6).
 
 ## Run-wide prohibitions that bind you
 
-- P1 — never mutate the protected base branches
-  (`release-0.24.0.1.1.0`, `release-0.21.0.1.0.0`, `main`, `mainline`) on
-  the fork or upstream. A blocking hook backs this; the hook is not your
-  permission slip.
+- P1 — never mutate the protected base branches (every `release-*`
+  branch, `main`, `mainline`) on the fork or upstream. A blocking hook
+  backs this; the hook is not your permission slip.
 - P2 — never clear or bypass a shared Neuron compile cache — a vLLM compile-cache
   root or the kernel intermediate cache (`references/artifact-layout.md` §4.10) —
   even as a delegate's documented remedy; clearing one costs every tenant hours.

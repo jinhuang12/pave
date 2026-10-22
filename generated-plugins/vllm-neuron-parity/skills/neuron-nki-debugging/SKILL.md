@@ -25,6 +25,7 @@ import nki.language as nl
 import nki.isa as nisa
 
 os.environ["NEURON_CC_FLAGS"] = "--target trn2 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 os.environ["NEURON_PLATFORM_TARGET_OVERRIDE"] = "trn2"
 
 @nki.jit
@@ -93,6 +94,7 @@ import os
 
 # Standard debugging flags (minimal, fast compilation)
 os.environ["NEURON_CC_FLAGS"] = "--target trn2 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 os.environ["NEURON_PLATFORM_TARGET_OVERRIDE"] = "trn2"
 
 # Use only the cores your job lease names; never pick a core yourself
@@ -127,6 +129,7 @@ from torch_xla.core import xla_model as xm
 import nki
 
 os.environ["NEURON_CC_FLAGS"] = "--target trn2 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 os.environ["NEURON_PLATFORM_TARGET_OVERRIDE"] = "trn2"
 
 @nki.jit
@@ -241,6 +244,7 @@ import nki.isa as nisa
 
 # Standard debugging configuration
 os.environ["NEURON_CC_FLAGS"] = "--target trn2 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 
 # Optional: Enable profiling
 os.environ['NEURON_RT_INSPECT_ENABLE'] = '1'

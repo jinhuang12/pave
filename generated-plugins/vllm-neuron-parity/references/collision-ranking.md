@@ -10,7 +10,7 @@ methods, never lines: derive lines with grep at the current pin.
 
 | Rank | Path | Why it collides | Parallel rule |
 |---|---|---|---|
-| 1 | `vllm_neuron/vllm/worker/neuron_model_runner.py` | One ~8,000-line class, `NeuronModelRunner`, holds every runtime subsystem (loading, warmup/compile, `execute_model`, spec decode, KV and encoder cache, capture). Any two runtime changes meet here. | Single writer. Parallel only when both increments name disjoint method clusters up front; `execute_model` is single-writer always. |
+| 1 | `vllm_neuron/vllm/worker/neuron_model_runner.py` and `neuron_model_runner_v2.py` | Two runner classes. `NeuronModelRunner` (~8,000 lines) holds every runtime subsystem (loading, warmup/compile, `execute_model`, spec decode, KV and encoder cache, capture); `NeuronModelRunnerV2` serves dense generate models when the `use_v2_model_runner` policy (or `VLLM_USE_V2_MODEL_RUNNER`) selects it. The delta scan's runner-entanglement verdict names which file the target serves on; a change placed in the other runner does nothing. | Single writer per file. Parallel only when both increments name disjoint method clusters up front; `execute_model` is single-writer always. |
 | 2 | `vllm_neuron/vllm/platform.py` | `NeuronPlatform` funnels config mutation, request validation, quantization gating, DCP/DP validation, and attention-backend selection; most features add a validator here. | Adding a new method is parallel-safe; the one-line registrations in `check_and_update_config` and `validate_request` are applied by one hand or sequenced. |
 | 3 | `vllm_neuron/vllm/worker/neuron_worker.py` | `NeuronWorker` plus module-level distributed-bootstrap helpers; device init, parallelism degree, and lifecycle changes land here. | Serialize increments that both touch init or bootstrap; side-by-side helpers rarely conflict. |
 | 4 | `vllm_neuron/vllm/core/scheduler.py` | Sole scheduling hook: `NeuronScheduler` and `NeuronAsyncScheduler` subclass upstream. | Serialize only when both increments are scheduling-class. |
@@ -33,6 +33,7 @@ None of the four ranked files has test coverage; the repo's only tests are
    will edit:
    ```
    grep -n "^class \|    def " vllm_neuron/vllm/worker/neuron_model_runner.py
+   grep -n "^class \|    def " vllm_neuron/vllm/worker/neuron_model_runner_v2.py
    ```
 4. Before merging, diff the increment's hunks (`git diff --unified=0`) against
    every other in-flight scope. An undeclared hunk in a rank-1 or rank-2 file

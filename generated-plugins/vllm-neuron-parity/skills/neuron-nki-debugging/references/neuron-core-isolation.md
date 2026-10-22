@@ -32,16 +32,22 @@ os.environ["NEURON_RT_VISIBLE_CORES"] = LEASED_CORES  # the cores the lease name
 ## Detecting Available Cores
 
 ```bash
-# Count available NeuronCores
-neuron-ls | grep -c "NeuronCore"
-
-# List core details
-neuron-ls --json-output | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-for dev in data:
-    for nc in dev.get('neuron_cores', []):
-        print(f\"Core {nc['id']}: {nc['status']}\")
+# List devices, core IDs and the NeuronCore total from the plain neuron-ls table
+# (the JSON flags --json-output and -j end in Neuron 2.34)
+neuron-ls | python3 -c "
+import sys
+rows = [[c.strip() for c in l.strip()[1:-1].split('|')] for l in sys.stdin if l.strip().startswith('|')]
+head = [' '.join(p).strip() for p in zip(*rows[:2])]
+if 'NEURON DEVICE' not in head or 'NEURON CORES' not in head:
+    sys.exit('neuron-ls: no device table with NEURON DEVICE and NEURON CORES columns')
+dev, cores = head.index('NEURON DEVICE'), head.index('NEURON CORES')
+ids = head.index('NEURON CORE IDS') if 'NEURON CORE IDS' in head else None
+devs = [r for r in rows[2:] if r[dev].isdigit()]
+if not devs:
+    sys.exit('neuron-ls: device table has no device rows')
+for r in devs:
+    print('Device ' + r[dev] + ': ' + r[cores] + ' cores, IDs ' + (r[ids] if ids is not None else 'not shown'))
+print('NeuronCores:', sum(int(r[cores]) for r in devs))
 "
 ```
 

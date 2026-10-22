@@ -152,7 +152,7 @@ Read it in a profile:
 
 - Throttle rows are hardware notices, not events. Their k/n is the allowed utilization; the common record was 4/8, a 50 % cap (MEASURED, 2026-10).
 - u is the mean allowed PE utilization over a call. r_adj = r × u is the roofline ratio with the cap taken out. Read both.
-- No host counter shows the throttle, and device power read in single-digit percent (MEASURED, 2026-10). Power readings do not reveal it.
+- Device power read in single-digit percent (MEASURED, 2026-10), so power readings do not reveal it. Driver 2.31 and later (SDK 2.33) adds a per-core sysfs node on Trn2 and Trn3, `neuron_core<M>/stats/hardware/ham_throttle/throttle` under the device's sysfs tree: mean, max and min level, 0 fully throttled to 255 not throttled (DOC). The measurer reads it beside each served profile, stores the reading in that cap row's run record, and checks it against the profile's throttle rows; the served profile stays the cap source.
 
 Price every PE time under a cap row. Cite the served cap row for that engine when the calibration record holds one, and the suite's synthetic-load cap row until then. A time priced under the synthetic row is re-rated at measurement: t_served = t_priced × (u_priced ÷ u_served).
 

@@ -56,7 +56,7 @@ Alphabetical index of all public NKI API symbols.
 | `dropout` | isa | Miscellaneous | Randomly replace some elements of the input tile `data` with zeros based on inpu | [→](../programming/api/api-nki-isa-misc.md#nki-isa-dropout) |
 | `dropout` | language | Miscellaneous | Randomly zeroes some of the elements of the input tile given a probability rate. | [→](../programming/api/api-nki-language-misc.md#nki-language-dropout) |
 | `ds` | language | Dimensions & Indexing | A `size`-element window starting at `start`. | [→](../programming/api/api-nki-language-dims.md#nki-language-ds) |
-| `dynamic_range` | language | Dimensions & Indexing | Create a sequence for **dynamic** loop iteration. | [→](../programming/api/api-nki-language-dims.md#nki-language-dynamic_range) |
+| `dynamic_range` | language | Dimensions & Indexing | Create a sequence for **dynamic** loop iteration. Removed under tracing in 0.7.0: use `fori_loop` / `while_loop` (migration guide). | [→](../programming/api/api-nki-language-dims.md#nki-language-dynamic_range) |
 | `empty_like` | language | Tiled & Blocked Layouts | Allocate independent, uninitialized storage with matching geometry. | [→](../programming/api/api-nki-language-layout.md#nki-language-empty_like) |
 | `engine` | isa | Miscellaneous | Neuron Device engines. | [→](../programming/api/api-nki-isa-misc.md#nki-isa-engine) |
 | `equal` | language | Operators (op specifiers) | Op specifier for equal. | [→](../programming/api/api-nki-language-operators.md#nki-language-equal) |

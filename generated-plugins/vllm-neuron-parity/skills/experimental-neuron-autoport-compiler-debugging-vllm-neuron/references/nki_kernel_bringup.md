@@ -58,9 +58,9 @@ float8_e4m3, `k_active/v_active` bf16 → cast actives to `float8_e4m3`).
 preloads a too-large live set (whole `(128, W*D)=(128,4096)` window; `[512,512]`
 intermediate at head_dim=512). Get the exact NKI file:line from the log:
 `(DMACopy: ...)Source Kernel "..." File "....py", line N`. **Fix:** stream per-tile via
-`nisa.dma_copy` inside the loop instead of preloading; `nl.affine_range` →
-`nl.sequential_range`; smaller d-tiles/head-packing; or route the offending layers to a
-different backend.
+`nisa.dma_copy` inside the loop instead of preloading; smaller d-tiles/head-packing; or
+route the offending layers to a different backend. (Swapping `nl.affine_range` for
+`nl.sequential_range` does nothing: in NKI 0.7 both are aliases of Python `range`.)
 
 **Silent-spill variant:** `SbufManager(use_auto_alloc=True)` silently spills an
 over-budget SBUF working set to HBM (28.4GB/step at B=8) with **no error** — flip to

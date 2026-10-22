@@ -228,7 +228,7 @@ import nki.language as nl
 import nki.tensor as ntensor
 
 from nkilib.core.utils.kernel_assert import kernel_assert
-from nkilib.core.utils.tensor_view import TensorView
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 
 def RoPE_sbuf(

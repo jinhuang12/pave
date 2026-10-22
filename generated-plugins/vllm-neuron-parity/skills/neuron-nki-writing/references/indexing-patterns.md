@@ -272,10 +272,10 @@ tile = tensor[:, f_start:f_end]
 
 ## 2. TensorView for Strided/Complex Access (Recommended)
 
-Use `TensorView` from the production utility library for strided or interleaved access patterns.
+Use the native `NkiTensor` view methods for strided or interleaved access patterns (the nkilib `TensorView` wrapper below was removed in NKI Library 2.33; the method names are the same).
 
 ```python
-from nkilib.core.utils.tensor_view import TensorView  # or inline from references/nkilib/core/utils/tensor_view.py
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 # Strided access - even indices (step=2, start=0)
 nisa.dma_copy(

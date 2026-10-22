@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
-# P2 -- Never clear a shared Neuron compile cache. Four roots are in the class:
-#   $VLLM_CACHE_ROOT/neuron/compile_cache
-#   ~/.cache/vllm/neuron/compile_cache
-#   /var/tmp/neuron-compile-cache
-#   /var/tmp/nki-intermediate-cache   (kernel artifacts, written outside every
-#                                      cache root you can set; may hold a
-#                                      co-tenant's kernels, so it is never a
-#                                      root you own and every destructive verb
-#                                      is refused, `mv` included)
+# P2 -- Never clear a shared Neuron compile cache. The class is any path or
+# variable whose name joins "cache" with "neuron", "nki" or "neff", plus the
+# vLLM cache root itself. Known roots at Neuron SDK 2.33 are listed in
+# references/artifact-layout.md section 4.10: the XLA compile_cache roots, the
+# native_neff_cache and torch_compile dirs beside them, ~/.cache/neuron_libtorch,
+# /var/tmp/neuron-compile-cache and /var/tmp/nki-intermediate-cache.
 #
 # Enforcement level: BLOCKING PreToolUse hook (P2 in the prohibitions table
 # of skills/vllm-neuron-parity/SKILL.md),
@@ -44,11 +41,13 @@ command = ((payload.get("tool_input") or {}).get("command") or "")
 if not isinstance(command, str) or not command.strip():
     sys.exit(0)
 
-# The three protected cache roots, matched by shape so that an unexpanded
-# $VLLM_CACHE_ROOT, a ~ prefix, and an absolute expansion all hit.
+# The protected family, matched by shape so that an unexpanded variable, a ~
+# prefix, and an absolute expansion all hit. A list of roots opens a new gap at
+# every cache move (0.24, then 0.29), so the class is a name match instead: a
+# token that joins "cache" with "neuron", "nki" or "neff", in any case.
+CACHE_WORD = re.compile(r"cache", re.IGNORECASE)
+FAMILY_WORD = re.compile(r"neuron|nki|neff", re.IGNORECASE)
 CACHE_PATTERNS = (
-    re.compile(r"neuron/+compile_cache"),          # both vllm cache roots
-    re.compile(r"neuron-compile-cache"),           # /var/tmp form
     # The cache root itself, or the root with a glob/neuron tail: removing it
     # removes the cache. A sibling path under the root (logs, weights) is not
     # P2 and is deliberately not matched.
@@ -71,6 +70,8 @@ KERNEL_CACHE_PATTERN = re.compile(r"nki-intermediate-cache")
 def touches_cache(tok):
     if not isinstance(tok, str):
         return False
+    if CACHE_WORD.search(tok) and FAMILY_WORD.search(tok):
+        return True
     return any(p.search(tok) for p in CACHE_PATTERNS)
 
 
@@ -113,13 +114,15 @@ for toks in segments(command):
     cache_toks = [t for t in rest if touches_cache(t)]
     kernel_toks = [t for t in rest if touches_kernel_cache(t)]
     any_toks = cache_toks + kernel_toks
-    if exe in DESTRUCTIVE and cache_toks:
-        hits.append("`%s` %s the shared Neuron compile cache (%s)"
-                    % (exe, DESTRUCTIVE[exe], cache_toks[0]))
-    elif exe in DESTRUCTIVE and kernel_toks:
+    # The kernel cache is in the family too; test it first so it keeps its own
+    # reason.
+    if exe in DESTRUCTIVE and kernel_toks:
         hits.append("`%s` %s the shared Neuron kernel intermediate cache, "
                     "which can hold kernels of another tenant (%s)"
                     % (exe, DESTRUCTIVE[exe], kernel_toks[0]))
+    elif exe in DESTRUCTIVE and cache_toks:
+        hits.append("`%s` %s the shared Neuron compile cache (%s)"
+                    % (exe, DESTRUCTIVE[exe], cache_toks[0]))
     elif exe == "find" and any_toks:
         if any(f in rest for f in ("-delete", "-exec", "-execdir", "-ok")):
             hits.append("`find ... -delete/-exec` clears a shared Neuron "
@@ -142,11 +145,9 @@ cat >&2 <<EOF
 
 These caches are shared with every co-tenant on the host. Clearing one costs
 everyone hours of recompilation, and moving one aside costs the same warm
-state. Protected roots:
-\$VLLM_CACHE_ROOT/neuron/compile_cache, ~/.cache/vllm/neuron/compile_cache,
-/var/tmp/neuron-compile-cache, and /var/tmp/nki-intermediate-cache -- the
-kernel intermediate cache, which sits outside every cache root you can set and
-can hold another tenant's kernel artifacts.
+state. Protected: any path or variable that joins "cache" with "neuron", "nki"
+or "neff", and the vLLM cache root itself. The known roots are listed in
+references/artifact-layout.md section 4.10.
 
 Do this instead: a bring-up remedy that reads "clear the compile cache" is
 intercepted, not followed. Point the run at a private cache root you own for
@@ -157,7 +158,7 @@ own, the authority's remedy is to rename a partition aside rather than delete it
 -- that keeps every new artifact provably post-change
 (references/measurement-pitfalls.md, "Control compile-cache state"). This guard
 cannot prove which root you own, so it refuses the move on every path shaped
-like one of the four above; report the case to the lead rather than working
-around the guard.
+like the family above; report the case to the lead rather than working around
+the guard.
 EOF
 exit 2

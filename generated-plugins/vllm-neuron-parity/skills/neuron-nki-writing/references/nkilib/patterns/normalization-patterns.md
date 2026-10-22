@@ -47,7 +47,7 @@ Validate tensor shapes for normalization operations. Handles both HBM inputs (sh
 
 **Example:**
 ```python
-from nkilib.core.utils.tensor_view import TensorView
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 input_view = TensorView(input_tensor)   # [B, S, H] in HBM
 gamma_view = TensorView(gamma_tensor)   # [1, H]
@@ -144,7 +144,7 @@ gamma_view = load_gamma_to_sbuf(
 ### Pattern 1: Standard normalization data preparation
 ```python
 import nki.language as nl
-from nkilib.core.utils.tensor_view import TensorView
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 def prepare_norm_inputs(input_tensor, gamma_tensor, batch_size, seq_len, hidden_size):
     """Validate shapes and load normalization inputs to SBUF."""
@@ -174,7 +174,7 @@ def prepare_norm_inputs(input_tensor, gamma_tensor, batch_size, seq_len, hidden_
 ### Pattern 2: Sharded normalization with LNC
 ```python
 import nki.language as nl
-from nkilib.core.utils.tensor_view import TensorView
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 def prepare_sharded_norm(input_tensor, gamma_tensor, hidden_size, num_shards=2):
     """Load normalization inputs with hidden-dimension sharding for LNC=2."""

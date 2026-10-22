@@ -66,7 +66,7 @@ reference file:
 |-------|----------|-----------------------|
 | (1) **dynamo trace** | FX placeholder per unique runtime tensor. Logs `Input dedup: removed N duplicate placeholder(s)` at `vllm_neuron/compile/backend.py:124`. | [kv_cache_memory_model.md](references/kv_cache_memory_model.md) for why N model attrs become 1 placeholder. |
 | (2) **vllm-neuron backend** | `fxgraph.txt`, `example_inputs.txt`, `command.txt` next to `graph.hlo`. | Quick start below for `command.txt` flag-lifting. |
-| (3) **torch_xla lowering** | `graph.hlo` (proto). | [hlo_convert.md](references/hlo_convert.md) to read it; [inspection_recipes.md](references/inspection_recipes.md) for one-liners. |
+| (3) **torch_xla lowering** (XLA route; native lowers FX → StableHLO `module.mlir`, see [compile_route.md](references/compile_route.md)) | `graph.hlo` (proto). | [hlo_convert.md](references/hlo_convert.md) to read it; [inspection_recipes.md](references/inspection_recipes.md) for one-liners. |
 | (4) **Tensorizer** | `penguin-sg*/penguin.py`, `debug_info_*.dbg_sg*`. | [penguin_anatomy.md](references/penguin_anatomy.md) for what each file means; [crash_triage.md](references/crash_triage.md) for which sg crashed. |
 | (5) **WalrusDriver** | Allocator output, kernel scheduling, BIR, NEFF. | [kv_cache_budgeting.md](references/kv_cache_budgeting.md) for `DRAM hwm` accounting. |
 
@@ -94,11 +94,14 @@ transition observable.
 
 For a workload that crashed or regressed:
 
-1. Locate the failing/regressed graph's `graph.hlo` (in `compile_cache/<hash>/`
-   or in a per-rank work dir like `dev0_15.rank0/`).
+1. Read the compile route first ([compile_route.md](references/compile_route.md)).
+   XLA route: locate the graph's `graph.hlo` (in `compile_cache/<hash>/` or a
+   per-rank work dir like `dev0_15.rank0/`). Native route (default since 0.29):
+   no `graph.hlo` or `command.txt` exists; rerun with the artifacts kept and
+   stage `module.mlir` from `$TORCH_NEURONX_DEBUG_DIR/neuronx-cc/<hash>/`.
 2. Stage it into a fresh dir under `/mnt/data/` (do **not** rerun in the cache;
    penguin output litters the cwd unless `cwd=compiler_workdir` is set).
-3. **Lift the original compile flags from `command.txt`** (next subsection).
+3. **Lift the original compile flags from `command.txt`** (next subsection; XLA route only, native lifts them from the kept `compiler_args.txt`, see compile_route.md).
 4. Compile with `--internal-compiler-debug-mode=penguin` to dump
    `penguin-sg*/` subdirs and `penguin.py.*` IR snapshots.
 5. Pick a workflow from the Decision tree below and load the matching
@@ -173,6 +176,7 @@ specific signals to look for.
 | Suspect **redundant DMA / KV cache copy** | [dma_redundancy.md](references/dma_redundancy.md) |
 | Need to **map penguin IR op → model.py** | [source_map.md](references/source_map.md) |
 | Just want to **read the HLO** (proto → text, or proto-only fallback) | [hlo_convert.md](references/hlo_convert.md) |
+| Which **compile route** wrote the artifacts, where the native route keeps them, which recipes are XLA-only | [compile_route.md](references/compile_route.md) |
 | Want to **understand penguin file layout, IR conventions, dialects** (Legacy vs MLIR-affine) | [penguin_anatomy.md](references/penguin_anatomy.md) |
 | Need a **one-liner for HLO/penguin** (count `must-alias`, find crashing sg, detect `TiledOffloadedMemCpy`, op-class histograms) — also covers common pitfalls | [inspection_recipes.md](references/inspection_recipes.md) |
 | Reason about **why HBM looks the way it does** — three sharing layers, hybrid grouping, `must-alias` semantics, framework↔HLO handshake | [kv_cache_memory_model.md](references/kv_cache_memory_model.md) |

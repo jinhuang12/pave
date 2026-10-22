@@ -330,7 +330,7 @@ owners:
   lives OUTSIDE `resolve_config`** (kernel routing, backend toggles, dedup, device pinning)
   and reaches `vllm serve` only by process inheritance. The driver snapshots it — from an
   explicit `PROFILE_MODEL_ENV="NAME1 NAME2 ..."` list unioned with a `GEMMA4_` /
-  `VLLM_NEURON_BACKEND_` prefix allowlist — **before** applying its own defaults, so the
+  `VLLM_NEURON_BACKEND` prefix allowlist (which catches the route variable itself) — **before** applying its own defaults, so the
   compile key is self-documenting. Two runs' `model_env` can be diffed to explain a
   warm-cache miss or a behavioural delta. (`--dry-run` echoes `model_env` too, so a master
   can verify the flags it intends to hand off before spending a device.)
@@ -407,7 +407,7 @@ export GEMMA4_TKG_FUSE_OPROJ=1 GEMMA4_TKG_DIRECT=0 GEMMA4_TKG_FUSE_OPROJ_KERNEL=
 export VLLM_NEURON_BACKEND_TKG_CAST_WIDEN=0 VLLM_NEURON_DISABLE_INPUT_DEDUP=1
 export NEURON_VISIBLE_DEVICES=0-15 NEURON_PLATFORM_TARGET_OVERRIDE=trn2
 export PROFILE_MODEL_ENV="VLLM_NEURON_DISABLE_INPUT_DEDUP NEURON_VISIBLE_DEVICES NEURON_PLATFORM_TARGET_OVERRIDE"
-# (GEMMA4_* and VLLM_NEURON_BACKEND_* are auto-captured by prefix; list the rest above.)
+# (GEMMA4_* and VLLM_NEURON_BACKEND* — the route variable included — are auto-captured by prefix; list the rest above.)
 export TP=16 ISL=8192 OSL=1024 MAXLEN=10240 SEG=8192 NUM_SEQS_MAX=48 NUM_GPU_BLOCKS=79872 CONC=16
 ./run_profile_decode.sh decode_c16    # builds run_spec.json from env, then runs
 ```
@@ -526,8 +526,9 @@ POST /start_profile
 
 ## Open questions to verify against your installed version
 
-- Whether the debug env vars used by Method 2 (`XLA_IR_DEBUG`, `XLA_HLO_DEBUG`,
-  `NEURON_FRAMEWORK_DEBUG`) are needed for source attribution in serve-captured
-  NEFFs, or whether the compile cache already carries that info.
+- Resolved at vllm-neuron 0.29 / SDK 2.33: the Method 2 debug env vars (`XLA_IR_DEBUG`,
+  `XLA_HLO_DEBUG`, `NEURON_FRAMEWORK_DEBUG`) act only on the XLA route; the native route
+  takes source attribution from the FX graph and no code reads them (SKILL.md, the
+  XLA-route debug env vars bullet).
 - Exact behavior of `sys_trace_max_events_per_nc` tuning for very long
   system-profile sessions.

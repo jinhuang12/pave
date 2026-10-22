@@ -9,6 +9,7 @@ All compiler flags are passed via the `NEURON_CC_FLAGS` environment variable:
 ```python
 import os
 os.environ["NEURON_CC_FLAGS"] = "--target trn2 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 ```
 
 ## Core Flags
@@ -33,7 +34,7 @@ Specifies the target Neuron hardware platform. Must match the `platform_target` 
 
 ### --lnc (Logical NeuronCore)
 
-Controls how many NeuronCores the kernel is sharded across.
+Controls how many NeuronCores the kernel is sharded across. Since NKI 0.7.0 the kernel's own LNC degree must equal this flag: set `NEURON_LOGICAL_NC_CONFIG` to the same value (or pass the matching launch grid), or the compile fails with `NCC_EVRF066` (`ncc-verification-errors.md`).
 
 | Value | Use Case |
 |-------|----------|
@@ -58,6 +59,7 @@ Controls compiler output verbosity.
 ```python
 # Minimal flags for standard debugging
 os.environ["NEURON_CC_FLAGS"] = "--target trn2 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 ```
 
 This configuration:
@@ -71,6 +73,7 @@ This configuration:
 
 ```python
 os.environ["NEURON_CC_FLAGS"] = "--target trn1 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 os.environ["NEURON_PLATFORM_TARGET_OVERRIDE"] = "trn1"
 
 @nki.jit
@@ -82,6 +85,7 @@ def kernel(...):
 
 ```python
 os.environ["NEURON_CC_FLAGS"] = "--target trn2 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 os.environ["NEURON_PLATFORM_TARGET_OVERRIDE"] = "trn2"
 
 @nki.jit
@@ -93,6 +97,7 @@ def kernel(...):
 
 ```python
 os.environ["NEURON_CC_FLAGS"] = "--target trn3 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 os.environ["NEURON_PLATFORM_TARGET_OVERRIDE"] = "trn3"
 
 @nki.jit
@@ -104,6 +109,7 @@ def kernel(...):
 
 ```python
 os.environ["NEURON_CC_FLAGS"] = "--target inf2 --lnc 1"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 os.environ["NEURON_PLATFORM_TARGET_OVERRIDE"] = "inf2"
 
 @nki.jit
@@ -117,20 +123,21 @@ For more detailed compiler output during troubleshooting:
 
 ```python
 os.environ["NEURON_CC_FLAGS"] = "--target trn2 --lnc 1 --verbose=info"
+os.environ["NEURON_LOGICAL_NC_CONFIG"] = "1"  # kernel LNC degree; must equal --lnc, else NCC_EVRF066
 ```
 
 ## Common Flag Combinations
 
 | Scenario | Flags |
 |----------|-------|
-| Basic debugging | `--target trn2 --lnc 1` |
-| Verbose debugging | `--target trn2 --lnc 1 --verbose=info` |
-| Multi-core test | `--target trn2 --lnc 2` |
+| Basic debugging | `--target trn2 --lnc 1` with `NEURON_LOGICAL_NC_CONFIG=1` |
+| Verbose debugging | `--target trn2 --lnc 1 --verbose=info` with `NEURON_LOGICAL_NC_CONFIG=1` |
+| Multi-core test | `--target trn2 --lnc 2` with `NEURON_LOGICAL_NC_CONFIG=2` |
 | Production build | `--target trn2` (uses platform defaults) |
 
 ## Notes
 
 - The `--target` flag MUST match the `platform_target` parameter in the `@nki.jit` decorator
-- Use `--lnc 1` during development for simpler error diagnosis
+- Use `--lnc 1` with `NEURON_LOGICAL_NC_CONFIG=1` during development for simpler error diagnosis
 - For advanced debugging with intermediate artifacts, see `compiler-artifacts.md`
 - Flags set via `NEURON_CC_FLAGS` apply to all neuronx-cc compilations in the process

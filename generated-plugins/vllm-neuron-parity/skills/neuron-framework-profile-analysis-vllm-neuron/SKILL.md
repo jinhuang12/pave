@@ -372,11 +372,10 @@ Total: 2
 
 ### 1c. Verify quality
 
-For best profile quality, ensure these were set during the profiling and capture steps:
-- `NEURON_FRAMEWORK_DEBUG=1` — source attribution in instructions
+For best profile quality, check what was set during the compile and capture steps:
 - `NEURON_RT_ENABLE_DGE_NOTIFICATIONS=1` — DMA packet data (set during capture)
-- `XLA_IR_DEBUG=1` — IR-level debug info in NEFFs
-- `XLA_HLO_DEBUG=1` — HLO-level debug info in NEFFs
+- XLA route only: the three compile-time debug variables in serve-profiling's "XLA-route debug env vars" bullet fill the `layer` and source-location columns
+- Native route (default since vllm-neuron 0.29): those columns come from the FX graph with no switch, so an `Unknown` there points at the graph or the compiler — send it to compiler-artifacts `source_map.md`
 
 ## Step 2: Load and query parquet
 

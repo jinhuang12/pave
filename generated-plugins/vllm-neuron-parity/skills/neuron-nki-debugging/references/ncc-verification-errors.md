@@ -645,6 +645,14 @@ result = lax.scatter(
 
 ---
 
+## NCC_EVRF066 - LNC Degree Mismatch
+
+**Error:** the kernel's LNC degree differs from the `neuronx-cc` `--lnc` degree (NKI 0.7.0 and later).
+
+**Cause:** `NEURON_CC_FLAGS` carries `--lnc N` but the kernel was specialized at another degree: `NEURON_LOGICAL_NC_CONFIG` unset or different, or a launch grid `kernel[M]` with M != N. A `[2]` kernel fails under `--lnc 1`; an unset kernel fails under `--lnc 2` or the trn2 default.
+
+**Fix:** set `NEURON_LOGICAL_NC_CONFIG=N` to the same N as `--lnc` (the launch-grid bracket takes precedence when both are given). The rule and the launch model: `neuron-nki-writing/references/nki-language-constraint.md`, "LNC degree must match".
+
 ## Quick Reference
 
 | Error Code | Summary | Quick Fix |
@@ -666,6 +674,7 @@ result = lax.scatter(
 | EVRF022 | Shift-right non-32-bit | Cast first argument to 32-bit |
 | EVRF024 | Output tensor > 4GB | Reduce tensor size or use parallelism |
 | EVRF031 | Scatter out-of-bounds | Match iota size to operand dimension |
+| EVRF066 | Kernel LNC degree != --lnc | Set NEURON_LOGICAL_NC_CONFIG to the --lnc value |
 
 ## Related References
 

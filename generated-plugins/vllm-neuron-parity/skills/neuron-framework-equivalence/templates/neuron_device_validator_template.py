@@ -17,8 +17,12 @@ Usage:
 """
 
 import os
+import re
 import subprocess
-import json
+
+
+class NeuronDeviceQueryError(RuntimeError):
+    """neuron-ls failed, or its output had no device table this template can read."""
 
 
 def check_neuron_runtime_available():
@@ -40,26 +44,70 @@ def check_neuron_runtime_available():
         return False
 
 
-def get_neuron_device_count():
+def parse_neuron_ls_table(text):
     """
-    Get the number of available Neuron devices.
+    Count Neuron devices in the plain `neuron-ls` table.
+
+    The table is read by its header, not by column position: the "NEURON DEVICE"
+    column holds one integer per device row. Rows with an empty device cell are
+    process continuation rows (--show-all-procs) and are skipped. The plain table
+    is used because the neuron-ls JSON flags (--json-output, -j) end in Neuron 2.34.
 
     Returns:
-        int: Number of Neuron devices (0 if none available)
+        int: Number of Neuron devices, always >= 1
+
+    Raises:
+        NeuronDeviceQueryError: no device table, no "NEURON DEVICE" column, or no device rows
+    """
+    text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+    rows = [
+        [cell.strip() for cell in line.strip()[1:-1].split('|')]
+        for line in text.splitlines()
+        if line.strip().startswith('|') and line.strip().endswith('|')
+    ]
+    if len(rows) < 3:
+        raise NeuronDeviceQueryError(
+            "neuron-ls printed no device table; output starts: %r" % text[:200]
+        )
+    header = [' '.join(parts).strip() for parts in zip(rows[0], rows[1])]
+    if 'NEURON DEVICE' not in header:
+        raise NeuronDeviceQueryError(
+            "neuron-ls table has no NEURON DEVICE column; header: %r" % header
+        )
+    col = header.index('NEURON DEVICE')
+    devices = {row[col] for row in rows[2:] if len(row) > col and row[col].isdigit()}
+    if not devices:
+        raise NeuronDeviceQueryError(
+            "neuron-ls table has no device rows; header: %r" % header
+        )
+    return len(devices)
+
+
+def get_neuron_device_count():
+    """
+    Get the number of available Neuron devices from the plain `neuron-ls` table.
+
+    Returns:
+        int: Number of Neuron devices, always >= 1
+
+    Raises:
+        NeuronDeviceQueryError: neuron-ls is missing, times out, exits non-zero,
+            or prints output this template cannot read. It never returns 0.
     """
     try:
         result = subprocess.run(
-            ['neuron-ls', '--json'],
+            ['neuron-ls'],
             capture_output=True,
             text=True,
             timeout=5
         )
-        if result.returncode == 0:
-            data = json.loads(result.stdout)
-            return len(data) if isinstance(data, list) else 0
-    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
-        pass
-    return 0
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        raise NeuronDeviceQueryError("neuron-ls did not run: %s" % exc) from exc
+    if result.returncode != 0:
+        raise NeuronDeviceQueryError(
+            "neuron-ls exited %d: %s" % (result.returncode, result.stderr.strip()[:200])
+        )
+    return parse_neuron_ls_table(result.stdout)
 
 
 def check_neff_format_exists(compiled_path):
@@ -133,7 +181,10 @@ def assert_on_neuron(compiled_path, verbose=True):
             "Run 'neuron-ls' to verify Neuron devices are accessible."
         )
 
-    device_count = get_neuron_device_count()
+    try:
+        device_count = get_neuron_device_count()
+    except NeuronDeviceQueryError as exc:
+        raise AssertionError(f"Could not count Neuron devices: {exc}") from exc
     if verbose:
         print(f"✓ Neuron runtime available ({device_count} devices detected)")
 
@@ -208,8 +259,10 @@ if __name__ == "__main__":
     print(f"  Result: {'✓ Available' if runtime_available else '✗ Not available'}")
 
     if runtime_available:
-        device_count = get_neuron_device_count()
-        print(f"  Devices: {device_count}")
+        try:
+            print(f"  Devices: {get_neuron_device_count()}")
+        except NeuronDeviceQueryError as exc:
+            print(f"  Devices: ✗ {exc}")
 
     print()
 

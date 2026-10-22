@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# P1 -- Never mutate protected base branches (release-0.24.0.1.1.0,
-# release-0.21.0.1.0.0, main, mainline) on the fork or upstream.
+# P1 -- Never mutate a protected base branch on the fork or upstream: any
+# branch named release-<version>, plus main and mainline.
 #
 # Enforcement level: BLOCKING PreToolUse hook (P1 in the prohibitions table
 # of skills/vllm-neuron-parity/SKILL.md).
@@ -25,12 +25,15 @@ PAYLOAD="$(cat 2>/dev/null || true)"
 REASON="$(printf '%s' "$PAYLOAD" | "$PY" -c '
 import json, re, shlex, sys
 
-PROTECTED = {
-    "release-0.24.0.1.1.0",
-    "release-0.21.0.1.0.0",
-    "main",
-    "mainline",
-}
+# main and mainline by name; every release base by pattern (release- then a
+# digit), so the base branch of each new pin is covered with no list edit.
+PROTECTED = {"main", "mainline"}
+RELEASE_BRANCH = re.compile(r"^release-[0-9]")
+
+
+def is_protected(name):
+    return isinstance(name, str) and (
+        name in PROTECTED or bool(RELEASE_BRANCH.match(name)))
 
 try:
     payload = json.loads(sys.stdin.read())
@@ -123,11 +126,11 @@ for toks in segments(command):
         for spec in specs:
             if spec.startswith(":"):          # git push origin :main
                 b = refspec_branch(spec[1:])
-                if b in PROTECTED:
+                if is_protected(b):
                     hits.append("git push deletes protected branch %r" % b)
                 continue
             b = refspec_branch(spec)
-            if b in PROTECTED:
+            if is_protected(b):
                 hits.append("git push %s protected branch %r"
                             % ("deletes" if delete else "writes", b))
         if not specs and not delete:
@@ -154,7 +157,7 @@ for toks in segments(command):
                     name = cur.stdout.strip() if cur.returncode == 0 else ""
                 except Exception:
                     name = ""
-            if name in PROTECTED and name:
+            if is_protected(name):
                 hits.append("git push with no refspec would push the currently "
                             "checked-out protected branch %r" % name)
     elif sub == "branch":
@@ -168,12 +171,12 @@ for toks in segments(command):
                     mutating = True
         if mutating:
             for w in rest:
-                if not w.startswith("-") and refspec_branch(w) in PROTECTED:
+                if not w.startswith("-") and is_protected(refspec_branch(w)):
                     hits.append("git branch mutates protected branch %r"
                                 % refspec_branch(w))
     elif sub in ("update-ref", "symbolic-ref"):
         for w in rest:
-            if w.startswith("refs/heads/") and w.rsplit("/", 1)[-1] in PROTECTED:
+            if w.startswith("refs/heads/") and is_protected(w.rsplit("/", 1)[-1]):
                 hits.append("git %s rewrites protected ref %r" % (sub, w))
 
 if hits:
@@ -185,7 +188,7 @@ cat >&2 <<EOF
 [protected-branch-guard] BLOCKED by prohibition P1: $REASON.
 
 Protected base branches (fork and upstream) are never mutated by this
-workflow: release-0.24.0.1.1.0, release-0.21.0.1.0.0, main, mainline.
+workflow: every release-<version> branch, main, and mainline.
 
 Do this instead: push the campaign branch and open the PR on the
 jinhuang12/vllm-neuron fork (close_campaign's only allowed effect). Merging a

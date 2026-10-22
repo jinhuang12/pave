@@ -21,6 +21,8 @@ mkdir -p $DBG
 cp <compile_cache>/$FAILED_HASH/dev0_*.rank0/graph.hlo $DBG/
 ```
 
+Native route (default since vllm-neuron 0.29): the crash leaves nothing in `compile_cache/`. Rerun the failing compile with `TORCH_NEURONX_PRESERVE_COMPILATION_ARTIFACTS=1` and `TORCH_NEURONX_DEBUG_DIR` set to a fresh dir you own; the kept `neuronx-cc/<hash>/` holds `module.mlir` (the StableHLO compiler input) and `log-neuron-cc.txt`. Stage `module.mlir` instead of `graph.hlo` and recompile it with every flag from the kept `compiler_args.txt` ([compile_route.md](compile_route.md)); the penguin steps below are the same.
+
 ## Step 2 — re-run with penguin debug
 
 **Lift the flags from `command.txt`** — do NOT hand-write the compile

@@ -19,6 +19,8 @@ Research $ARGUMENTS thoroughly:
 
 This skill provides comprehensive access to NKI (Neuron Kernel Interface) documentation for AWS Trainium/Inferentia kernel development. Use this skill to answer questions about NKI APIs, tutorials, hardware architecture, error codes, and optimization techniques.
 
+Documentation level: Neuron SDK 2.33.0, NKI 0.7.0 (`references/reference/nki_rn.md`). A page copied at another level says so in its first lines.
+
 ## Query Type Routing
 
 Route queries to the appropriate documentation based on the query pattern:

@@ -336,11 +336,18 @@ why (the graph door: `baseline_unusable`'s unredirectable persistent
 cache write, routed to re-derivation).
 
 **Instances on this hardware class** (measured at Neuron SDK 2.32: L-136,
-L-139, L-147, L-159):
-- the kernel toolchain's intermediate cache, written outside the run root
-  and outside any cache variable you set, possibly holding a co-tenant's
-  artifacts;
-- a shared compile cache whose key directories any re-trace rewrites;
+L-139, L-147, L-159; roots re-read at the 0.29 line and SDK 2.33):
+- the kernel toolchain's intermediate cache (`/var/tmp/nki-intermediate-cache`),
+  written outside the run root and outside any cache variable you set,
+  possibly holding a co-tenant's artifacts;
+- a shared compile cache whose key directories any re-trace rewrites. XLA
+  route roots: `$VLLM_CACHE_ROOT/neuron/compile_cache`,
+  `~/.cache/vllm/neuron/compile_cache`, `/var/tmp/neuron-compile-cache`.
+  Native route: NEFF roots `native_neff_cache` beside `compile_cache`,
+  `~/.cache/neuron_libtorch` (`NEURON_LIBTORCH_CACHE_ROOT`),
+  `TORCH_NEURONX_NEFF_CACHE_DIR`; precompile packages under
+  `$VLLM_CACHE_ROOT/neuron/torch_compile`. The root moved at 0.24 and at
+  0.29: the guard matches the family, and this list is the record;
 - a long-lived serving checkout that untracked build artifacts make
   permanently git-dirty;
 - instance-store devices encrypted at rest, whose never-written blocks

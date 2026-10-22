@@ -23,7 +23,7 @@
 #
 # Model-specific compile flags belong OUTSIDE this script (caller's responsibility).
 # Optional: PROFILE_MODEL_ENV="NAME1 NAME2 ..." — declare those flag NAMES so they are
-#   snapshotted into run_spec.json's `model_env`. GEMMA4_* / VLLM_NEURON_BACKEND_* are
+#   snapshotted into run_spec.json's `model_env`. GEMMA4_* / VLLM_NEURON_BACKEND* are
 #   auto-captured by prefix; list anything else (dedup toggle, device pinning, platform
 #   target) here. run_spec.json (INPUT) is written at launch; manifest.json (OUTPUT, with a
 #   run_spec back-reference) after teardown.

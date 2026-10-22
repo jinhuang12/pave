@@ -176,7 +176,7 @@ From RoPE kernel (strided DMA gather — see [layout-conversion.md](nkilib/patte
 # OUTPUTS: x_in_sb [d_head, B, n_heads, tile_size] @ SBUF - contiguous [e0,e1,...,o0,o1,...]
 # GENERATION: All (gen3+ optimized)
 
-from nkilib.core.utils.tensor_view import TensorView  # or inline from references/nkilib/core/utils/tensor_view.py
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 half_d = d_head // 2
 
@@ -459,7 +459,7 @@ From RoPE kernel (interleaved to contiguous strided load — see [layout-convers
 # OUTPUTS: x_in_sb [d_head, B, n_heads, tile_size] @ SBUF - [e0,e1,...,o0,o1,...] contiguous
 # GENERATION: All (gen3+ optimized for strided DMA)
 
-from nkilib.core.utils.tensor_view import TensorView  # or inline from references/nkilib/core/utils/tensor_view.py
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 d_head, B, n_heads, S = x_in.shape
 half_d = d_head // 2
@@ -892,7 +892,7 @@ def simple_transpose_kernel(input_hbm: nl.ndarray) -> nl.ndarray:
 import nki
 import nki.isa as nisa
 import nki.language as nl
-from nkilib.core.utils.tensor_view import TensorView  # or inline from references/nkilib/core/utils/tensor_view.py
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 @nki.jit
 def broadcast_multiply_kernel(data_hbm: nl.ndarray, scale_hbm: nl.ndarray) -> nl.ndarray:
@@ -938,7 +938,7 @@ def broadcast_multiply_kernel(data_hbm: nl.ndarray, scale_hbm: nl.ndarray) -> nl
 import nki
 import nki.isa as nisa
 import nki.language as nl
-from nkilib.core.utils.tensor_view import TensorView  # or inline from references/nkilib/core/utils/tensor_view.py
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 @nki.jit
 def gather_even_odd_kernel(input_hbm: nl.ndarray) -> tuple:

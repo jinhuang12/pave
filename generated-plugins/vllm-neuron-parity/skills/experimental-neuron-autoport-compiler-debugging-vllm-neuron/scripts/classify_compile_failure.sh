@@ -7,6 +7,8 @@
 #
 # Example:
 #   classify_compile_failure.sh /tmp/vllm_neuron_wdir_$USER/neuron/compile_cache slurm-30247.out
+# XLA route only. On the native route, follow the compiler-artifacts skill's
+# references/compile_route.md (../experimental-neuron-perf-compiler-artifact-debugging/).
 #
 # Prints:
 #   1. tally of real NCC_ codes across per-rank log-neuron-cc.txt (exit 70 is useless alone)

@@ -1,7 +1,7 @@
 # Source attribution: penguin IR → HLO → framework code
 
 Penguin IR carries a `DebugLocation`, but the `file` and `line` fields are
-typically empty for vllm-neuron / torch-xla compiles. This guide shows how
+typically empty for XLA-route vllm-neuron compiles. This guide shows how
 to recover source attribution anyway.
 
 ## What's in penguin IR
@@ -148,11 +148,17 @@ The compiler team can reproduce from items 1–5 alone; item 6 saves them time.
 - **torch_xla in lazy-tensor mode** can populate metadata when `XLA_IR_DEBUG=1`
   and `XLA_HLO_DEBUG=1` are set (see profiling skill). Most production runs
   don't set these.
+- **The native torch.compile route** (default since vllm-neuron 0.29) carries file,
+  line and module scope from the FX node's `stack_trace` / `nn_module_stack` into
+  the kept StableHLO text (`loc(...)` entries in the per-job
+  `stablehlo/*.stablehlo.mlir`), with no variable to set. An empty location there points at the
+  graph or the compiler, not at a missing flag. See [compile_route.md](compile_route.md).
 - **HLO `metadata.stack_frame_id` + `stack_frame_index`** is a newer XLA feature
   that some versions of torch_xla emit; check `m.stack_frame_index.file_names`
   to see if it's populated.
 
-If running a fresh debug compile, set `XLA_IR_DEBUG=1 XLA_HLO_DEBUG=1
-NEURON_FRAMEWORK_DEBUG=1` before the run that produces the HLO. That gets
-metadata into the HLO at framework lowering time, before the compiler ever
-sees it.
+On the XLA route, if running a fresh debug compile, set `XLA_IR_DEBUG=1
+XLA_HLO_DEBUG=1 NEURON_FRAMEWORK_DEBUG=1` before the run that produces the HLO.
+That gets metadata into the HLO at framework lowering time, before the compiler
+ever sees it. On the native route no framework or compiler code reads these
+three variables, and they are not in the NEFF cache key.

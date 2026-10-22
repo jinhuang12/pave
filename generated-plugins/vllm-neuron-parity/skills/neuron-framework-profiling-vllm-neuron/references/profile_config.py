@@ -17,7 +17,7 @@ REQUIRED_ENV = ("VLLM_NEURON_VENV_PATH", "VLLM_NEURON_DIR", "TARGET_MODEL")
 #       — use for anything not matched by the prefixes below, e.g.
 #         VLLM_NEURON_DISABLE_INPUT_DEDUP, NEURON_VISIBLE_DEVICES, NEURON_PLATFORM_TARGET_OVERRIDE.
 #   * default prefix allowlist (best-effort convenience): any env var starting with one of:
-_MODEL_ENV_PREFIXES = ("GEMMA4_", "VLLM_NEURON_BACKEND_")
+_MODEL_ENV_PREFIXES = ("GEMMA4_", "VLLM_NEURON_BACKEND")
 
 
 def _capture_model_env() -> dict:

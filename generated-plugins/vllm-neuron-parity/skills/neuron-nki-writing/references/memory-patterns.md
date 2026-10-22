@@ -45,7 +45,7 @@ For gather/scatter operations with non-contiguous access.
 **Pattern from RoPE kernel** (strided DMA with TensorView — see [tensor-view.md](nkilib/core/tensor-view.md)):
 
 ```python
-from nkilib.core.utils.tensor_view import TensorView  # or inline from references/nkilib/core/utils/tensor_view.py
+# NKI Library 2.33 removed nkilib.core.utils.tensor_view: read TensorView(t).m(...).get_view() below as the native view call t.m(...), or inline references/nkilib/core/utils/tensor_view.py with its relative imports.
 
 # Gather even indices with stride=2 in dimension 0
 nisa.dma_copy(

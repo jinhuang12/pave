@@ -230,7 +230,7 @@ bash scripts/classify_compile_failure.sh <cache> <run.out>
 python3 scripts/scan_hlo.py f64  graph.hlo
 python3 scripts/scan_hlo.py pad  graph.hlo
 python3 scripts/scan_hlo.py act  graph.hlo
-# verify pow/square/x*x lowering
+# verify pow/square/x*x lowering (XLA route; native: grep the kept stablehlo for ' power'/' multiply')
 python -c "import torch,torch_xla,torch_xla.core.xla_model as xm; d=xm.xla_device(); x=torch.randn(8,16,device=d); h=torch_xla._XLAC._get_xla_tensors_hlo([x.pow(2).sum()]); print('power',h.count(' power('),'multiply',h.count(' multiply('))"
 # which subgraph holds a given NKI kernel (proves the kernel's own sg passed)
 for sg in penguin-sg*/; do grep -q kv_cache_scatter "$sg/penguin.py" && echo "$sg HAS it"; done

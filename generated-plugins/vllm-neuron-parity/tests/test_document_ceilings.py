@@ -41,7 +41,7 @@ CEILINGS: dict[str, int] = {
     "skills/neuron-nki-writing/SKILL.md": 500,  # 500 (460 at 1.8.0)
     "skills/neuron-nki-docs/SKILL.md": 210,  # 202 (200 at 1.8.0)
     "skills/neuron-nki-debugging/SKILL.md": 310,  # 303
-    "skills/experimental-neuron-autoport-compiler-debugging-vllm-neuron/SKILL.md": 190,  # 189
+    "skills/experimental-neuron-autoport-compiler-debugging-vllm-neuron/SKILL.md": 200,  # 191 (189 at 1.9.0; the 1.10.0 route step)
     "skills/neuron-framework-autoport-vllm-neuron/SKILL.md": 970,  # 961 (600 at 1.8.0)
     "skills/neuron-framework-equivalence/SKILL.md": 390,  # 383 (280 at 1.8.0)
     "skills/experimental-neuron-framework-benchmark-vllm/SKILL.md": 1000,  # 999 (630 at 1.8.0)

@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+from typing import Callable
 import unittest
 
 
@@ -209,10 +210,16 @@ class InstallerTests(unittest.TestCase):
 
 class HookSmokeTests(unittest.TestCase):
     def _run_guard(
-        self, guard: str, command: str, state: dict[str, object] | None
+        self,
+        guard: str,
+        command: str,
+        state: dict[str, object] | None,
+        prepare: Callable[[Path], None] | None = None,
     ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp)
+            if prepare is not None:
+                prepare(project)
             if state is not None:
                 state_path = project / "run-state.json"
                 state_path.write_text(json.dumps(state), encoding="utf-8")
@@ -299,6 +306,121 @@ class HookSmokeTests(unittest.TestCase):
                 self.assertIn(
                     "which can hold kernels of another tenant", blocked.stderr
                 )
+
+    def test_protected_branch_guard_refuses_every_release_branch(self) -> None:
+        # P1 protects release-<version> by pattern (release- then a digit), so
+        # the base branch of a new pin is covered with no list edit; main and
+        # mainline stay fixed names.
+        for command in (
+            "git push origin release-0.29.0.1.2.0",
+            "git push --force origin release-0.30.0.0.1.0",
+            "git branch -D release-0.24.0.1.1.0",
+            "git push origin HEAD:release-0.29.0.1.2.0",
+            "git push origin HEAD:refs/heads/release-0.29.0.1.2.0",
+            "git push origin --delete release-0.29.0.1.2.0",
+            "git push origin :release-0.29.0.1.2.0",
+            "git branch -f release-0.29.0.1.2.0 HEAD",
+            "git update-ref refs/heads/release-0.29.0.1.2.0 HEAD",
+            "git push origin HEAD:main",
+            "git push origin mainline",
+        ):
+            with self.subTest(command=command):
+                blocked = self._run_guard(
+                    "protected-branch", command, dict(ACTIVE_STATE)
+                )
+                self.assertEqual(blocked.returncode, 2, blocked.stderr)
+                self.assertIn(
+                    "Protected base branches (fork and upstream) are never "
+                    "mutated by this workflow: every release-<version> branch, "
+                    "main, and mainline.",
+                    " ".join(blocked.stderr.split()),
+                )
+
+    def test_protected_branch_guard_resolves_a_checked_out_release_branch(
+        self,
+    ) -> None:
+        # A push with no refspec pushes the current branch; the guard resolves
+        # it in the payload cwd and applies the same pattern.
+        def on_release_branch(project: Path) -> None:
+            subprocess.run(["git", "init", "-q", str(project)], check=True)
+            subprocess.run(
+                [
+                    "git", "-C", str(project), "symbolic-ref", "HEAD",
+                    "refs/heads/release-0.29.0.1.2.0",
+                ],
+                check=True,
+            )
+
+        blocked = self._run_guard(
+            "protected-branch", "git push", dict(ACTIVE_STATE), on_release_branch
+        )
+        self.assertEqual(blocked.returncode, 2, blocked.stderr)
+        self.assertIn("'release-0.29.0.1.2.0'", blocked.stderr)
+
+    def test_protected_branch_guard_allows_unprotected_branches(self) -> None:
+        # No digit after "release-" is not a release base; a campaign branch
+        # that merely contains a release name is not one either.
+        for command in (
+            "git push origin campaign/foo",
+            "git checkout -b release-notes-draft",
+            "git push origin release-notes-draft",
+            "git branch -D release-notes-draft",
+            "git push origin campaign/release-0.29.0.1.2.0-port",
+        ):
+            with self.subTest(command=command):
+                result = self._run_guard(
+                    "protected-branch", command, dict(ACTIVE_STATE)
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_compile_cache_guard_refuses_the_whole_cache_family(self) -> None:
+        # P2 matches the family, not a list: any token that joins "cache" with
+        # "neuron", "nki" or "neff", plus the bare vLLM cache root. The native
+        # route's NEFF and precompile roots and both of its variables are in it.
+        for command in (
+            "rm -rf ~/.cache/neuron_libtorch",
+            "rm -rf $VLLM_CACHE_ROOT/neuron/native_neff_cache",
+            "mv ~/.cache/vllm/neuron/torch_compile /tmp/x",
+            'rm -rf "$TORCH_NEURONX_NEFF_CACHE_DIR"',
+            "rm -rf $NEURON_LIBTORCH_CACHE_ROOT",
+            # Shapes the fixed list refused; the family must keep them.
+            "rm -rf ~/.cache/vllm/neuron/compile_cache",
+            "rm -rf $VLLM_CACHE_ROOT/neuron/compile_cache",
+            "rm -rf /var/tmp/neuron-compile-cache",
+            "rm -rf $VLLM_CACHE_ROOT",
+            "rm -rf ${VLLM_CACHE_ROOT}/*",
+            "rm -rf $VLLM_CACHE_ROOT/neuron",
+            "find /var/tmp/neuron-compile-cache -delete",
+            "rsync -a --delete /tmp/empty/ ~/.cache/neuron_libtorch/",
+        ):
+            with self.subTest(command=command):
+                blocked = self._run_guard(
+                    "compile-cache", command, dict(ACTIVE_STATE)
+                )
+                self.assertEqual(blocked.returncode, 2, blocked.stderr)
+                flat = " ".join(blocked.stderr.split())
+                self.assertIn(
+                    'Protected: any path or variable that joins "cache" with '
+                    '"neuron", "nki" or "neff", and the vLLM cache root itself. '
+                    "The known roots are listed in references/artifact-layout.md "
+                    "section 4.10.",
+                    flat,
+                )
+                self.assertIn("shaped like the family above", flat)
+
+    def test_compile_cache_guard_allows_paths_outside_the_family(self) -> None:
+        for command in (
+            "rm -rf ~/.cache/huggingface",
+            "rm -rf $VLLM_CACHE_ROOT/logs",
+            "rm -rf /tmp/mycache",
+            "ls ~/.cache/neuron_libtorch",
+            "du -sh $VLLM_CACHE_ROOT/neuron/native_neff_cache",
+        ):
+            with self.subTest(command=command):
+                result = self._run_guard(
+                    "compile-cache", command, dict(ACTIVE_STATE)
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_blocking_guards_allow_inactive_and_terminal_runs(self) -> None:
         cases = {

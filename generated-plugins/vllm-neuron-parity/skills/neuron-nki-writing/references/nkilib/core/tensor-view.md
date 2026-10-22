@@ -38,15 +38,9 @@ Used in 17+ production kernels including attention, RoPE, MLP projections, MoE e
 | `has_dynamic_access` | `() -> bool` | Check if view uses dynamic (indirect) indexing |
 | `get_trivial_strides` | `(shape, base_stride=1) -> Tuple[int, ...]` | Compute row-major strides (static) |
 
-## Import Options
+## Status at NKI Library 2.33
 
-**Default** — inline the source into your kernel file.
-Source: `references/nkilib/core/utils/tensor_view.py`
-
-**If nkilib is installed** in the user's environment:
-```python
-from nkilib.core.utils.tensor_view import TensorView
-```
+The `nkilib.core.utils.tensor_view` module was removed in NKI Library 2.33 (Neuron SDK 2.33), so the import below fails on an installed 2.33 library. The usual path is the native `nl.NkiTensor` view methods (`slice`, `select`, `permute`, `broadcast`, `expand_dim`, `reshape_dim`, `flatten_dims`, ...; signatures in `/neuron-nki-docs`, `api-nki-tensor.md`): read every `TensorView(t).m(...).get_view()` below as `t.m(...)`; the partition-dimension rules are unchanged. If you keep the wrapper, inline the bundled source `references/nkilib/core/utils/tensor_view.py` and rewrite its four relative imports (`.allocator`, `.kernel_assert`, `.kernel_helpers`, `.logging`) to inlined copies too.
 
 ## API Documentation
 
