@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pave-composition.schema.json",
+  "title": "PAVE composition extension",
+  "description": "Structural validation for extensions.composition. Cross-references against the child graph file are checked by validate_pave.py, not by this schema.",
+  "type": "object",
+  "required": ["version", "implementations"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "1.0.0"
+    },
+    "implementations": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/implementation"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "implementation": {
+      "type": "object",
+      "required": ["kind", "graph_file", "child_outcome_map"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "child_graph_file"
+        },
+        "graph_file": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path to the child graph file, relative to the parent file."
+        },
+        "graph_file_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "Required only for child graph files outside the generated package."
+        },
+        "entrypoint": {
+          "$ref": "#/$defs/identifier"
+        },
+        "inputs": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_exports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["child", "parent"],
+            "additionalProperties": false,
+            "properties": {
+              "child": {
+                "$ref": "#/$defs/identifier"
+              },
+              "parent": {
+                "$ref": "#/$defs/identifier"
+              }
+            }
+          }
+        },
+        "child_outcome_map": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "delegated_effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "max_child_runs": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": {
+            "type": ["integer", "number", "string"]
+          }
+        }
+      }
+    }
+  }
+}

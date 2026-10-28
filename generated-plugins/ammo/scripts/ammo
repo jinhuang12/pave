@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Run an AMMO plugin script under the campaign's python, from any cwd.
+
+Usage: ammo <script> [args...]
+
+<script> is a file name in the plugin's scripts/ dir (new_target.py) or a path.
+A relative path that is not found from the current dir is tried from the
+plugin root (codex/scripts/monitor_queue_ack.py).
+The launcher finds the campaign from the current dir (references/campaign-env.md),
+fills the campaign environment names that are not set yet, then runs a .py file
+with python_exe() and a .sh file with bash. Outside a campaign it uses
+AMMO_PYTHON, else python3.
+"""
+
+import os
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+import campaign_paths  # noqa: E402
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return 0
+    name, rest = argv[0], argv[1:]
+    script = Path(name).expanduser() if os.sep in name else HERE / name
+    if not script.is_file() and not script.is_absolute():
+        script = campaign_paths.plugin_root() / script
+    if not script.is_file():
+        print(f"ammo: no such script: {name} (looked for {script})", file=sys.stderr)
+        return 2
+    campaign = campaign_paths.apply_env()
+    if script.suffix == ".py":
+        exe = str(campaign_paths.python_exe(campaign))
+        os.execv(exe, [exe, str(script), *rest])
+    if script.suffix == ".sh":
+        os.execvp("bash", ["bash", str(script), *rest])
+    os.execv(str(script), [str(script), *rest])
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

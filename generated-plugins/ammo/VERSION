@@ -1,0 +1,14 @@
+version: 1.0.0
+
+## 1.0.0 - 2026-10-28
+
+Initial delivery. The ammo plugin runs an AMMO campaign host-local, inside a
+Pumice checkout, on Claude Code or Codex, with no server, container, web UI,
+or archive store. It ships the lead skill (`ammo:ammo`) and the report
+sub-skill (`ammo:ammo-report`), the role agents for both harnesses, the
+campaign hooks, the state schema and transition data, the measurement,
+serving, and GPU-lease scripts, and the PAVE graph: 13 nodes and 47 edges
+that map the seven stages, four audits, five binding gates, the debate, and
+the fact-checked report one to one. One campaign lives at
+`<pumice-checkout>/.ammo/<campaign-id>/`. The runtime profile is
+`pumice-cuda`; Neuron profiles are refused.

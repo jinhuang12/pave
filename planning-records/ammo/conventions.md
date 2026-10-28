@@ -30,7 +30,9 @@ campaign_id(campaign_dir) -> str          # basename
 engine_root(campaign_dir) -> Path         # parent of .ammo
 plugin_root() -> Path                     # parent of scripts/
 plugin_path(*parts) -> Path               # plugin_root()/parts ("schemas", "state.schema.json")
-python_exe(campaign_dir | None) -> Path   # target.json engine.venv, else AMMO_PYTHON, else <engine>/.venv/bin/python, else python3
+python_exe(campaign_dir | None) -> Path   # target.json engine.venv, else AMMO_PYTHON, else <engine>/.venv/bin/python, else python3.
+                                          # new_target.py records engine.venv from AMMO_PYTHON when that is set at scaffold (ruled 2026-10-28),
+                                          # so the recorded venv is the frozen contract and wins afterwards. An empty env value counts as unset.
 in_campaign(path, campaign_dir) -> bool   # realpath containment; the one path classifier
 campaign_env(campaign_dir) -> dict        # every name in the env table (§4) derived from target.json
 apply_env(env=os.environ) -> Path | None  # find, then env.setdefault each derived name; explicit env wins
@@ -102,15 +104,17 @@ Worker-2 (wave 0) completes this table from the 58 `AMMO_*` names the source rea
 ## 9. Acceptance battery (one block, run by every worker and every reviewer)
 
 ```
-PYTEST="uv run --no-project --with pytest --with pyyaml --with jsonschema --with pydantic --with httpx --with numpy python -m pytest"
+PYTEST="uv run --no-project --with pytest --with pyyaml --with jsonschema --with pydantic --with httpx --with numpy --with psutil python -m pytest"
 cd R && $PYTEST tests -q -m "not neuron and not requires_gpu"     # no regression against planning-records/ammo/baseline.md
 ```
+
+A test that imports from a directory the plugin does not ship (`eval/`, `tests/agents/`) is not shipped either (ruled 2026-10-28).
 
 Structural tests, written in wave 0 and shipped under `R/tests/`:
 - `test_path_refs.py`: every `scripts/x`, `references/x`, `schemas/x`, `orchestration/x`, `data/x` token in any `.md`, `hooks.json`, or `.toml` under R resolves to a file.
 - `test_env_inventory.py`: every `AMMO_*` name read in `scripts/`, `hooks/`, `codex/` is in `references/campaign-env.md`.
 - `test_hooks_silent.py`: every `hooks.json` command, run from a temp dir with no `.ammo/`, exits 0 with empty stdout. Linux only.
-- `test_prose_bans.py`: banned tokens anywhere under R except `hooks/README.md` and `README.md` migration tables: `ttyd`, `LIGHTGRID`, `cross-pod`, `/data/sessions`, `/opt/pumice-venv`, `/opt/neuron-venv`, `/usr/local/share/ammo`, `/app/shared`, `/workspace/`, `kernel_opt_artifacts`, `.claude/skills/ammo`, `.codex/skills/ammo`, `.claude/schemas`, `.claude/agents`, the em dash, and pin literals outside §6's allowed files.
+- `test_prose_bans.py`: the em-dash ban applies to `.md` files only; the four byte-identical PAVE tool copies (`scripts/validate_pave.py`, `scripts/record_revision.py`, `references/pave.schema.json`, `references/pave-composition.schema.json`) are exempt from every prose ban (ruled 2026-10-28). Otherwise, banned tokens anywhere under R except `hooks/README.md` and `README.md` migration tables: `ttyd`, `LIGHTGRID`, `cross-pod`, `/data/sessions`, `/opt/pumice-venv`, `/opt/neuron-venv`, `/usr/local/share/ammo`, `/app/shared`, `/workspace/`, `kernel_opt_artifacts`, `.claude/skills/ammo`, `.codex/skills/ammo`, `.claude/schemas`, `.claude/agents`, the em dash, and pin literals outside §6's allowed files.
 - `test_guidance_semantic_contract.py` (ported): relative links resolve, stage graph and all roles preserved.
 
 Linux-only checks (hook harnesses, `test_hooks_silent.py`) run on `g6e-cdd` inside the warm container: `rsync -a R/ g6e-cdd:~/ammo-plugin-smoke/plugin/ && ssh g6e-cdd docker exec ammo-plugin-smoke bash -lc '<command>'`.

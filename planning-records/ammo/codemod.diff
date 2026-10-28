@@ -1,0 +1,2357 @@
+diff -ru pre/agents/ammo-auditor.md post/agents/ammo-auditor.md
+--- pre/agents/ammo-auditor.md	2026-10-02 09:04:41
++++ post/agents/ammo-auditor.md	2026-10-28 15:04:29
+@@ -8,12 +8,12 @@
+     - matcher: "Write"
+       hooks:
+         - type: command
+-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/inject-audit-phase2.sh"
++          command: "${CLAUDE_PLUGIN_ROOT}/hooks/inject-audit-phase2.sh"
+           timeout: 5000
+   Stop:
+     - hooks:
+         - type: command
+-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/audit-phase2-guard.sh"
++          command: "${CLAUDE_PLUGIN_ROOT}/hooks/audit-phase2-guard.sh"
+           timeout: 5000
+ ---
+ 
+@@ -29,7 +29,7 @@
+ 
+ Use the exact `artifact_dir` supplied in dispatch. If a legacy dispatch omits it, proceed only when exactly one campaign directory exists; otherwise fail closed and ask for the path.
+ 
+-Read `{artifact_dir}/state.json`. Load `.claude/skills/ammo/SKILL.md` for campaign context. Do **not** read `references/audit-invariants.md` at spawn: it is Phase 2 material, and the hook hands it to you after you write the Phase 1 verdict.
++Read `{artifact_dir}/state.json`. Load `skills/ammo/SKILL.md` for campaign context. Do **not** read `references/audit-invariants.md` at spawn: it is Phase 2 material, and the hook hands it to you after you write the Phase 1 verdict.
+ 
+ Write only the assigned verdict file. The first audit at a gate writes `rounds/{round}/audits/{stage}.md`; repeat cycle N writes `{stage}_cycle_{N}.md`. The lead, not the auditor, publishes a verified final passing cycle at canonical `stage_67.md`.
+ 
+@@ -158,5 +158,5 @@
+ 
+ - `orchestration/audit-protocol.md` — boundaries, verdict provenance, and loop termination
+ - `references/audit-invariants.md` — Phase 2 checklist; hook-delivered only
+-- `.claude/agents/ammo-delegate.md` — bounded evidence-gathering contract
++- `agents/ammo-delegate.md` — bounded evidence-gathering contract
+ - `references/artifact-layout.md` — canonical artifact locations
+diff -ru pre/agents/ammo-investigator.md post/agents/ammo-investigator.md
+--- pre/agents/ammo-investigator.md	2026-10-02 09:04:41
++++ post/agents/ammo-investigator.md	2026-10-28 15:04:29
+@@ -8,7 +8,7 @@
+ 
+ # AMMO Investigator
+ 
+-Read `.claude/skills/ammo/SKILL.md` first. You answer one narrow question on demand, and you are read-only. Your scope is uncertainty outside the four scheduled audit gates, because `ammo-auditor` owns those gates. Read this file when a caller sends you a consistency question, a fork it cannot settle, or a failure with no known cause.
++Read `skills/ammo/SKILL.md` first. You answer one narrow question on demand, and you are read-only. Your scope is uncertainty outside the four scheduled audit gates, because `ammo-auditor` owns those gates. Read this file when a caller sends you a consistency question, a fork it cannot settle, or a failure with no known cause.
+ 
+ For `vllm-neuron`, read `references/accelerator-binding.md` § Investigator and inspect `scripts/runtime_ops.py`; on `vllm-cuda`, follow this role's CUDA/Nsys/NCU evidence route.
+ 
+diff -ru pre/agents/ammo-report-writer.md post/agents/ammo-report-writer.md
+--- pre/agents/ammo-report-writer.md	2026-10-02 09:04:41
++++ post/agents/ammo-report-writer.md	2026-10-28 15:04:29
+@@ -6,7 +6,7 @@
+   Stop:
+     - hooks:
+         - type: agent
+-          prompt: "You are an adversarial fact-checker for an ammo-report-writer agent. This agent generates optimization reports from campaign artifacts. Catch every hallucinated number, misattributed result, invented methodology step, and leaked internal term before the report ships. Paths below use the round-scoped layout in .claude/skills/ammo/references/artifact-layout.md; {N} is a round number and {op_id} a track id.\n\nRead the generated REPORT.md and cross-reference it against the source artifacts in the same artifact directory. The artifact directory path is in the agent's dispatch prompt.\n\nVerifications:\n\n1. DATA TRACEABILITY: Extract every quantitative claim from REPORT.md (E2E speedups, kernel timings, BW utilization percentages, latency numbers, improvement percentages). For each number, verify it exists in a source artifact:\n   - E2E latency numbers must match rounds/{N}/sweeps/baseline/json/baseline_bs*.json, rounds/{N}/sweeps/opt/{op_id}/e2e_latency_results.json, or rounds/{N}/sweeps/integration/e2e_latency_results.json\n   - Kernel speedups and BW utilization must match rounds/{N}/mining/bottleneck_analysis.md or rounds/{N}/debate/proposals/*.md\n   - Shipped optimizations and cumulative gain must match state.json ($.campaign.shipped_optimizations, $.campaign.cumulative_speedup_vs_round1)\n   - Per-BS results must match the validation tables in rounds/{N}/tracks/{op_id}/validation_results.md\n   If a number cannot be traced to any artifact, flag it as a hallucinated number.\n\n2. JARGON COMPLIANCE: Scan REPORT.md for AMMO internal terminology that should have been translated. Flag any occurrence of: 'champion' (should be 'optimization candidate/approach/proponent'), 'adversarial debate' (should be 'candidate evaluation/structured peer review'), 'Stage 1-7' (should use plain descriptions), 'campaign' used as jargon (should be 'optimization effort/study'), 'Gate 5.x' (should use plain descriptions like 'correctness validation'), 'ship/shipped' (should be 'merged/accepted/deployed'), 'f_decode' used without definition on first use, 'worktree' (should be 'development working copy/branch'). The terminology translation table in .claude/skills/ammo/report/SKILL.md is the reference.\n\n3. CLAIMS ACCURACY: Verify that:\n   - 'What shipped' matches $.campaign.shipped_optimizations in state.json\n   - Candidate names match those in state.json $.campaign.rounds[*].debate.selected_candidates[] or rounds/{N}/tracks/{op_id}/validation_results.md titles\n   - Failure reasons for rejected candidates match actual track outcomes\n   - The executive summary is consistent with the detailed sections\n   - Projected vs actual comparisons reference the original projections in state.json $.campaign.rounds[*].debate.selected_candidates[] (rounds/{N}/debate/summary.md is a derived view of the same numbers)\n   - GATED_PASS dispatch descriptions match the actual gating mechanism implemented\n\nReturn {\"ok\": true} if no issues found.\nReturn {\"ok\": false, \"violations\": [{\"type\": \"hallucinated_number|jargon_leak|wrong_attribution|invented_methodology\", \"location\": \"section and approximate quote\", \"detail\": \"what is wrong and what the correct value should be\"}]} if you find any violations."
++          prompt: "You are an adversarial fact-checker for an ammo-report-writer agent. This agent generates optimization reports from campaign artifacts. Catch every hallucinated number, misattributed result, invented methodology step, and leaked internal term before the report ships. Paths below use the round-scoped layout in references/artifact-layout.md; {N} is a round number and {op_id} a track id.\n\nRead the generated REPORT.md and cross-reference it against the source artifacts in the same artifact directory. The artifact directory path is in the agent's dispatch prompt.\n\nVerifications:\n\n1. DATA TRACEABILITY: Extract every quantitative claim from REPORT.md (E2E speedups, kernel timings, BW utilization percentages, latency numbers, improvement percentages). For each number, verify it exists in a source artifact:\n   - E2E latency numbers must match rounds/{N}/sweeps/baseline/json/baseline_bs*.json, rounds/{N}/sweeps/opt/{op_id}/e2e_latency_results.json, or rounds/{N}/sweeps/integration/e2e_latency_results.json\n   - Kernel speedups and BW utilization must match rounds/{N}/mining/bottleneck_analysis.md or rounds/{N}/debate/proposals/*.md\n   - Shipped optimizations and cumulative gain must match state.json ($.campaign.shipped_optimizations, $.campaign.cumulative_speedup_vs_round1)\n   - Per-BS results must match the validation tables in rounds/{N}/tracks/{op_id}/validation_results.md\n   If a number cannot be traced to any artifact, flag it as a hallucinated number.\n\n2. JARGON COMPLIANCE: Scan REPORT.md for AMMO internal terminology that should have been translated. Flag any occurrence of: 'champion' (should be 'optimization candidate/approach/proponent'), 'adversarial debate' (should be 'candidate evaluation/structured peer review'), 'Stage 1-7' (should use plain descriptions), 'campaign' used as jargon (should be 'optimization effort/study'), 'Gate 5.x' (should use plain descriptions like 'correctness validation'), 'ship/shipped' (should be 'merged/accepted/deployed'), 'f_decode' used without definition on first use, 'worktree' (should be 'development working copy/branch'). The terminology translation table in skills/ammo-report/SKILL.md is the reference.\n\n3. CLAIMS ACCURACY: Verify that:\n   - 'What shipped' matches $.campaign.shipped_optimizations in state.json\n   - Candidate names match those in state.json $.campaign.rounds[*].debate.selected_candidates[] or rounds/{N}/tracks/{op_id}/validation_results.md titles\n   - Failure reasons for rejected candidates match actual track outcomes\n   - The executive summary is consistent with the detailed sections\n   - Projected vs actual comparisons reference the original projections in state.json $.campaign.rounds[*].debate.selected_candidates[] (rounds/{N}/debate/summary.md is a derived view of the same numbers)\n   - GATED_PASS dispatch descriptions match the actual gating mechanism implemented\n\nReturn {\"ok\": true} if no issues found.\nReturn {\"ok\": false, \"violations\": [{\"type\": \"hallucinated_number|jargon_leak|wrong_attribution|invented_methodology\", \"location\": \"section and approximate quote\", \"detail\": \"what is wrong and what the correct value should be\"}]} if you find any violations."
+           model: sonnet
+           timeout: 600
+ ---
+@@ -23,7 +23,7 @@
+ 
+ ## Instructions
+ 
+-Read `.claude/skills/ammo/report/SKILL.md` completely. It is the sole authority for report structure, terminology translation, chart construction, source selection, and quality checks.
++Read `skills/ammo-report/SKILL.md` completely. It is the sole authority for report structure, terminology translation, chart construction, source selection, and quality checks.
+ 
+ The dispatch prompt supplies the artifact directory. Write `{artifact_dir}/REPORT.md`; place chart images and reproducible generation scripts under `{artifact_dir}/report_assets/`.
+ 
+diff -ru pre/agents/ammo-researcher.md post/agents/ammo-researcher.md
+--- pre/agents/ammo-researcher.md	2026-10-02 09:04:41
++++ post/agents/ammo-researcher.md	2026-10-28 15:04:29
+@@ -75,7 +75,7 @@
+ `scripts/mine_trace.py` owns every mined number. Never compute, transcribe, or edit one by hand.
+ 
+ 1. Author `rounds/{N}/mining/mine_config.json` — this is your judgment: `segmentation` policy (`max_gap`, or `delimiter_symbol` plus `symbol`), `families[]` (label, `symbol_patterns` regexes, `physical_ceiling` where a roofline is grounded, `prefill_active`), the trace-to-BS mapping, `arm`, `e2e_results`, and `allow_residual` only when a remainder is disclosed. Mark `prefill_active` when more than 5% of measured component time is in prefill; the kernel-only `f_e2e` of a prefill-active family is then a lower bound.
+-2. Run `python3 .claude/skills/ammo/scripts/mine_trace.py --config rounds/{N}/mining/mine_config.json`. It writes `rounds/{N}/mining/mined.json` (schema `mine_trace/1`) and `rounds/{N}/mining/tables.md`.
++2. Run `python3 scripts/mine_trace.py --config rounds/{N}/mining/mine_config.json`. It writes `rounds/{N}/mining/mined.json` (schema `mine_trace/1`) and `rounds/{N}/mining/tables.md`.
+ 3. Paste `tables.md` verbatim into `bottleneck_analysis.md`. It supplies `## Workload Dilution (per BS)` and `## Top Components (by f_e2e)` with the exact mandated columns.
+ 4. Write the prose around the tables: chronological kernel chains, kernel-to-source mapping, physical-ceiling derivations, phase attribution narrative, disclosed gaps.
+ 
+diff -ru pre/agents/ammo-transcript-monitor.md post/agents/ammo-transcript-monitor.md
+--- pre/agents/ammo-transcript-monitor.md	2026-10-02 09:04:41
++++ post/agents/ammo-transcript-monitor.md	2026-10-28 15:04:29
+@@ -51,7 +51,7 @@
+ Continuous means full-lifetime coverage and durable offsets, not a fixed
+ interval.
+ 
+-Filter new content with `.claude/skills/ammo/scripts/transcript_filter.py`
++Filter new content with `scripts/transcript_filter.py`
+ (`--start-line {last_line}`, `--include-subagents`, `--projects-dir`) against
+ the exact transcript and durable offset state. Take `LAST_LINE_PROCESSED: N`
+ from its output as the next offset.
+diff -ru pre/codex/RUNTIME.md post/codex/RUNTIME.md
+--- pre/codex/RUNTIME.md	2026-09-23 11:10:39
++++ post/codex/RUNTIME.md	2026-10-28 15:04:29
+@@ -121,7 +121,7 @@
+ 
+ The hook-to-skill references close only when the two install parts use the
+ documented layout. In particular, hooks resolve
+-`.codex/skills/ammo/scripts/ammo_state.py`, `gpu_reservation.py`, and
++`scripts/ammo_state.py`, `gpu_reservation.py`, and
+ `monitor_queue_ack.py`, as well as the skill's agent, orchestration, reference,
+ and report contracts. Moving either tree independently breaks that closure.
+ 
+diff -ru pre/codex/agents/ammo-auditor.toml post/codex/agents/ammo-auditor.toml
+--- pre/codex/agents/ammo-auditor.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-auditor.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-auditor-a", "ammo-auditor-b", "ammo-auditor-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-auditor Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-auditor.md first, then follow the authority order in SKILL.md and the role-local contract. Do not read the Phase 2 checklist at spawn; the hook delivers it after the Phase 1 verdict write. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, dispatch prompt, or hook-delivered instructions.
++You are the ammo-auditor Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-auditor.md first, then follow the authority order in SKILL.md and the role-local contract. Do not read the Phase 2 checklist at spawn; the hook delivers it after the Phase 1 verdict write. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, dispatch prompt, or hook-delivered instructions.
+ """
+diff -ru pre/codex/agents/ammo-champion.toml post/codex/agents/ammo-champion.toml
+--- pre/codex/agents/ammo-champion.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-champion.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-champion-a", "ammo-champion-b", "ammo-champion-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-champion Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-champion.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-champion Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-champion.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/agents/ammo-delegate.toml post/codex/agents/ammo-delegate.toml
+--- pre/codex/agents/ammo-delegate.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-delegate.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-delegate-a", "ammo-delegate-b", "ammo-delegate-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-delegate Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-delegate.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-delegate Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-delegate.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/agents/ammo-impl-champion.toml post/codex/agents/ammo-impl-champion.toml
+--- pre/codex/agents/ammo-impl-champion.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-impl-champion.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-impl-champion-a", "ammo-impl-champion-b", "ammo-impl-champion-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-impl-champion Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-implementer.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-impl-champion Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-impl-champion.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/agents/ammo-implementer.toml post/codex/agents/ammo-implementer.toml
+--- pre/codex/agents/ammo-implementer.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-implementer.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-implementer-a", "ammo-implementer-b", "ammo-implementer-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-implementer Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-implementer.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-implementer Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-impl-champion.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/agents/ammo-investigator.toml post/codex/agents/ammo-investigator.toml
+--- pre/codex/agents/ammo-investigator.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-investigator.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-investigator-a", "ammo-investigator-b", "ammo-investigator-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-investigator Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-investigator.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-investigator Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-investigator.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/agents/ammo-report-writer.toml post/codex/agents/ammo-report-writer.toml
+--- pre/codex/agents/ammo-report-writer.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-report-writer.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-report-writer-a", "ammo-report-writer-b", "ammo-report-writer-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-report-writer Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-report.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-report-writer Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-report-writer.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/agents/ammo-report.toml post/codex/agents/ammo-report.toml
+--- pre/codex/agents/ammo-report.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-report.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-report-a", "ammo-report-b", "ammo-report-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-report Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-report.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-report Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-report-writer.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/agents/ammo-researcher.toml post/codex/agents/ammo-researcher.toml
+--- pre/codex/agents/ammo-researcher.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-researcher.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-researcher-a", "ammo-researcher-b", "ammo-researcher-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-researcher Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-researcher.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-researcher Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-researcher.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/agents/ammo-resolver.toml post/codex/agents/ammo-resolver.toml
+--- pre/codex/agents/ammo-resolver.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-resolver.toml	2026-10-28 15:04:29
+@@ -4,7 +4,7 @@
+ nickname_candidates = ["ammo-resolver-a", "ammo-resolver-b", "ammo-resolver-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-resolver Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-resolver.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-resolver Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-resolver.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/agents/ammo-transcript-monitor.toml post/codex/agents/ammo-transcript-monitor.toml
+--- pre/codex/agents/ammo-transcript-monitor.toml	2026-10-02 09:04:41
++++ post/codex/agents/ammo-transcript-monitor.toml	2026-10-28 15:04:29
+@@ -5,7 +5,7 @@
+ nickname_candidates = ["ammo-monitor-a", "ammo-monitor-b", "ammo-monitor-c"]
+ 
+ developer_instructions = """
+-Serving deployment targets use `.codex/skills/ammo/references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
++Serving deployment targets use `references/serving-campaign.md` and `serving-measurement.md` for objective units and evidence. Keep this role, the existing stage order, and all required audits. Do not use batch E2E fields for serving metrics.
+ 
+-You are the ammo-transcript-monitor Codex subagent for AMMO. This TOML is runtime bootstrap only: read .codex/skills/ammo/SKILL.md and .codex/skills/ammo/agents/ammo-transcript-monitor.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
++You are the ammo-transcript-monitor Codex subagent for AMMO. This TOML is runtime bootstrap only: read skills/ammo/SKILL.md and agents/ammo-transcript-monitor.md first, then follow the authority order in SKILL.md and the role-local contract. After a context reset, reread those files and references/context-recovery.md under the skill root. Recover the exact assignment from your assigned note, or request its exact path from the parent. Lead-only instructions do not change your role. Do not add requirements from this TOML that are absent from the authority order, role-local contract, or dispatch prompt.
+ """
+diff -ru pre/codex/hooks/common.py post/codex/hooks/common.py
+--- pre/codex/hooks/common.py	2026-09-26 14:53:32
++++ post/codex/hooks/common.py	2026-10-28 15:04:29
+@@ -415,7 +415,7 @@
+ # traceback and an empty stdout, so a missing or partial classifier would
+ # silently disable the whole enforcement layer -- every PreToolUse deny and the
+ # Stop gate at once. That is reachable: the Dockerfile ships hooks/ and
+-# skills/ammo/scripts/ as one `cp -a` tree, and a partial S3 worktree restore on
++# scripts/ as one `cp -a` tree, and a partial S3 worktree restore on
+ # cross-pod resume can land one without the other, or truncate one of them. One
+ # missing attribute degrades all five re-exports together, so the fail direction
+ # below is the only degraded behavior either way.
+diff -ru pre/codex/hooks/post_tool_use_guard.py post/codex/hooks/post_tool_use_guard.py
+--- pre/codex/hooks/post_tool_use_guard.py	2026-09-23 11:10:39
++++ post/codex/hooks/post_tool_use_guard.py	2026-10-28 15:04:29
+@@ -605,7 +605,7 @@
+ 
+ 
+ def _layout_manifest_path() -> Path:
+-    """Resolve skills/ammo/scripts/artifact_layout.json next to this hook.
++    """Resolve scripts/artifact_layout.json next to this hook.
+ 
+     `hooks/../skills/...` holds in the repo tree AND in the managed bundle,
+     because the Dockerfile copies `.codex/.` wholesale into
+@@ -696,7 +696,7 @@
+             + rel
+             + " is outside the canonical AMMO V2 layout. Expected: "
+             + "rounds/{N}/{profiling|sweeps|mining|debate|tracks|audits|_archive}/... "
+-            + "See .codex/skills/ammo/references/artifact-layout.md § Prohibited Patterns."
++            + "See references/artifact-layout.md § Prohibited Patterns."
+         )
+     return messages
+ 
+diff -ru pre/codex/hooks/pre_tool_use_guard.py post/codex/hooks/pre_tool_use_guard.py
+--- pre/codex/hooks/pre_tool_use_guard.py	2026-09-23 20:10:39
++++ post/codex/hooks/pre_tool_use_guard.py	2026-10-28 15:04:29
+@@ -8,7 +8,7 @@
+ from common import active_artifact_dir,additional_context,block_pretool,blocking_monitor_records,command_from_payload,command_invokes_gpu_heavy_tool,command_invokes_vllm_bench_latency,find_repo_root,format_monitor_records,is_ammo_context,is_static_inspection_command,load_json,pending_monitor_pairs,read_stdin_json,record_session_id,session_id_from_payload,spawn_role_and_name,state_session_id,task_names_equivalent
+ 
+ # Always-on session provisioning guard. Install classification is the shared
+-# tokenizer in skills/ammo/scripts/hook_cmd_classify.py -- the shell hooks and
++# tokenizer in scripts/hook_cmd_classify.py -- the shell hooks and
+ # the Codex hooks must deny the same commands, so there is one implementation.
+ # It parses shell command positions so path-qualified executables, wrappers,
+ # legal global options, and nested `sh -c` forms are denied without matching
+@@ -154,9 +154,9 @@
+     if not _current_is_child_agent():
+         return
+     protected=(
+-        '/.codex/skills/ammo/references/',
+-        '/.codex/skills/ammo/orchestration/',
+-        '/.codex/skills/ammo/agents/',
++        '/references/',
++        '/orchestration/',
++        '/agents/',
+         '/.codex/agents/',
+     )
+     for path in _edit_target_paths():
+@@ -164,8 +164,8 @@
+         if any(token in posix for token in protected):
+             block_pretool(
+                 'Subagents may not edit '+str(path)+'. Files under '
+-                '.codex/skills/ammo/references/, .codex/skills/ammo/orchestration/, '
+-                '.codex/skills/ammo/agents/, and .codex/agents/ are orchestrator-owned. '
++                'references/, orchestration/, '
++                'agents/, and .codex/agents/ are orchestrator-owned. '
+                 'Surface the proposed change to the lead instead.'
+             )
+             raise SystemExit(0)
+@@ -313,7 +313,7 @@
+     block_pretool(
+         'Engine sweep/bench/profiling scripts must run under the session '
+         'virtualenv — system python has no engine. Use .venv/bin/python '
+-        '.codex/skills/ammo/scripts/run_pumice_grpc_bench.py ... or '
++        'scripts/run_pumice_grpc_bench.py ... or '
+         'source .venv/bin/activate first.'
+     )
+     raise SystemExit(0)
+@@ -615,7 +615,7 @@
+         pass
+     if first_notice:
+         if _is_neuron_runtime():
+-            reason='Accelerator-heavy AMMO command detected without reservation. For vLLM or serving-level profiling, use NVD=$(python .codex/skills/ammo/scripts/gpu_reservation.py reserve --num-resources N) and NEURON_VISIBLE_DEVICES=$NVD. Direct single-process NKI/runtime commands may use the same range as NEURON_RT_VISIBLE_CORES. Empty Neuron visibility is not a no-core sentinel. Use AMMO_ALLOW_UNRESERVED_GPU=1 only with justification. This warning fires only once per session.'
++            reason='Accelerator-heavy AMMO command detected without reservation. For vLLM or serving-level profiling, use NVD=$(python scripts/gpu_reservation.py reserve --num-resources N) and NEURON_VISIBLE_DEVICES=$NVD. Direct single-process NKI/runtime commands may use the same range as NEURON_RT_VISIBLE_CORES. Empty Neuron visibility is not a no-core sentinel. Use AMMO_ALLOW_UNRESERVED_GPU=1 only with justification. This warning fires only once per session.'
+         else:
+             reason='GPU-heavy AMMO command detected without reservation. Use gpu_reservation.py reserve, CUDA_VISIBLE_DEVICES="" for explicit no-GPU commands, or AMMO_ALLOW_UNRESERVED_GPU=1 with justification. This warning fires only once per session.'
+         if warnings:
+diff -ru pre/codex/hooks/session_start.py post/codex/hooks/session_start.py
+--- pre/codex/hooks/session_start.py	2026-09-23 11:10:39
++++ post/codex/hooks/session_start.py	2026-10-28 15:04:29
+@@ -56,7 +56,7 @@
+             "SessionStart",
+             "# AMMO Campaign Terminal\n\n" + position + "\n"
+             "Do not restart completed stages. Check only outstanding terminal report and "
+-            "fact-check requirements in `.codex/skills/ammo/SKILL.md`; the Stop gate "
++            "fact-check requirements in `skills/ammo/SKILL.md`; the Stop gate "
+             "owns the final report acceptance check.",
+         )
+         return
+@@ -65,7 +65,7 @@
+             "SessionStart",
+             "# AMMO Optimization Detected\n\n"
+             f"Existing optimization state at: `{state_file}`.\n"
+-            "If the user continues this campaign, read `.codex/skills/ammo/SKILL.md` "
++            "If the user continues this campaign, read `skills/ammo/SKILL.md` "
+             "and its current state. This startup notice does not resume it.",
+         )
+         return
+@@ -76,7 +76,7 @@
+     try:
+         skill = skill_path.read_text(encoding="utf-8")
+     except OSError:
+-        skill = "Read `.codex/skills/ammo/SKILL.md` before continuing."
++        skill = "Read `skills/ammo/SKILL.md` before continuing."
+     # Managed hooks carry both guides. Select from the server's launch profile,
+     # rather than reloading the template's default V2 guide for a V1 campaign.
+     mode = "v1" if is_v1_session() else "v2"
+@@ -84,7 +84,7 @@
+     try:
+         runtime_guide = runtime_path.read_text(encoding="utf-8")
+     except OSError:
+-        runtime_guide = "Read `.codex/skills/ammo/references/codex-runtime.md` before any agent operation."
++        runtime_guide = "Read `references/codex-runtime.md` before any agent operation."
+     current_round = campaign.get("current_round")
+     rounds = campaign.get("rounds")
+     round_doc = {}
+diff -ru pre/codex/hooks/stop_gate_guard.py post/codex/hooks/stop_gate_guard.py
+--- pre/codex/hooks/stop_gate_guard.py	2026-10-02 09:04:41
++++ post/codex/hooks/stop_gate_guard.py	2026-10-28 15:04:29
+@@ -124,7 +124,7 @@
+         return (
+             f"Campaign is {status} but REPORT.md has not been generated. "
+             "Use spawn_agent with a fresh report agent, have it read "
+-            ".codex/skills/ammo/report/SKILL.md, and generate "
++            "skills/ammo-report/SKILL.md, and generate "
+             f"{artifact_dir / 'REPORT.md'}."
+         )
+ 
+@@ -211,7 +211,7 @@
+     if stage.startswith("7b_report") or "report_gen" in stage:
+         return (
+             "You are at Stage 7b (Report Generation). Use spawn_agent with a fresh "
+-            "report agent, have it read .codex/skills/ammo/report/SKILL.md, and "
++            "report agent, have it read skills/ammo-report/SKILL.md, and "
+             f"generate {artifact_dir / 'REPORT.md'} before stopping."
+         )
+     return f"AMMO campaign is still active at {stage}; complete or advance the stage before stopping."
+diff -ru pre/hooks/_ammo_msg_identity.sh post/hooks/_ammo_msg_identity.sh
+--- pre/hooks/_ammo_msg_identity.sh	2026-09-24 08:39:18
++++ post/hooks/_ammo_msg_identity.sh	2026-10-28 15:04:29
+@@ -279,7 +279,7 @@
+ # Who receives mid-turn injection. Sources (2026-09-24):
+ #   skills/ammo/SKILL.md:65             only ammo-champion, ammo-impl-champion and
+ #                                       ammo-transcript-monitor are team members
+-#   skills/ammo/orchestration/parallel-tracks.md:34-35,77
++#   orchestration/parallel-tracks.md:34-35,77
+ #                                       impl-champion-{op_id}, monitor-impl-champion-{op_id}
+ #   hooks/ammo-monitor-reminder.sh:42   monitor-<champion name>
+ #   hooks/ammo-team-spawn-guard.sh:75   examples champion-1, impl-op001, monitor-champion-1
+diff -ru pre/hooks/ammo-artifact-layout-warn.sh post/hooks/ammo-artifact-layout-warn.sh
+--- pre/hooks/ammo-artifact-layout-warn.sh	2026-08-03 16:41:59
++++ post/hooks/ammo-artifact-layout-warn.sh	2026-10-28 15:04:29
+@@ -3,7 +3,7 @@
+ # canonical AMMO V2 artifact layout under kernel_opt_artifacts/.
+ #
+ # Spec: docs/superpowers/specs/2026-05-12-ammo-artifact-layout-design.md
+-# Reference: ai_cli_session/.claude/skills/ammo/references/artifact-layout.md
++# Reference: references/artifact-layout.md
+ #
+ # Matchers (configured in settings.local.json): Write, Edit, Bash.
+ #   - Write/Edit: extracts tool_input.file_path
+@@ -25,7 +25,7 @@
+ [ -z "$TOOL" ] && exit 0
+ 
+ # Allowed regex patterns relative to {artifact_dir}/, DERIVED from the shared
+-# manifest skills/ammo/scripts/artifact_layout.json. No path fact is restated
++# manifest scripts/artifact_layout.json. No path fact is restated
+ # here: the manifest owns every template, this hook owns detection only. Adding
+ # a slot is a one-file edit, and the Codex twin reads the same manifest.
+ #
+@@ -37,7 +37,7 @@
+ # Fail-open and LOUD: a missing or corrupt manifest disables checking with a
+ # stderr diagnostic. It never degrades to an empty allowlist, which would warn
+ # on every correct write.
+-LAYOUT_MANIFEST="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../skills/ammo/scripts/artifact_layout.json"
++LAYOUT_MANIFEST="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../scripts/artifact_layout.json"
+ 
+ PATTERN_TEXT=$(AMMO_LAYOUT_MANIFEST="$LAYOUT_MANIFEST" python3 -c '
+ import json, os, sys
+@@ -104,7 +104,7 @@
+ emit_warn() {
+     local rel="$1"
+     local msg
+-    msg="LAYOUT WARN: ${rel} is outside the canonical AMMO V2 layout. Expected: rounds/{N}/{profiling|sweeps|mining|debate|tracks|audits|_archive}/... See ai_cli_session/.claude/skills/ammo/references/artifact-layout.md § Prohibited Patterns."
++    msg="LAYOUT WARN: ${rel} is outside the canonical AMMO V2 layout. Expected: rounds/{N}/{profiling|sweeps|mining|debate|tracks|audits|_archive}/... See references/artifact-layout.md § Prohibited Patterns."
+     jq -c -n --arg msg "$msg" '
+     {
+         hookSpecificOutput: {
+diff -ru pre/hooks/ammo-audit-start-stamp.sh post/hooks/ammo-audit-start-stamp.sh
+--- pre/hooks/ammo-audit-start-stamp.sh	2026-08-06 08:13:34
++++ post/hooks/ammo-audit-start-stamp.sh	2026-10-28 15:04:29
+@@ -27,7 +27,7 @@
+ #   - tool_input.subagent_type != "ammo-auditor" → exit 0.
+ #   - Parses task / artifact_dir / stage / round / cycle out of
+ #     tool_input.prompt (the canonical dispatch block in
+-#     skills/ammo/orchestration/audit-protocol.md). Leading whitespace and
++#     orchestration/audit-protocol.md). Leading whitespace and
+ #     inline `#` comments are tolerated. Any missing or invalid field → exit 0.
+ #   - run_in_background is NOT inspected: a foreground dispatch stamps too.
+ #
+@@ -103,7 +103,7 @@
+ # ammo-state-validate.sh does. Never walk up from artifact_dir: artifact_dir
+ # arrives in the spawn prompt and the artifact tree is writable by the campaign
+ # agent, so a walk-up lets prompt content choose the code this hook executes.
+-ENGINE="$HELPER_DIR/../skills/ammo/scripts/ammo_state.py"
++ENGINE="$HELPER_DIR/../scripts/ammo_state.py"
+ if [ ! -f "$ENGINE" ]; then exit 0; fi
+ 
+ # Swallow the exit code: the engine already exits 0 on both fail-open no-ops
+diff -ru pre/hooks/ammo-gpu-release.sh post/hooks/ammo-gpu-release.sh
+--- pre/hooks/ammo-gpu-release.sh	2026-09-23 11:10:39
++++ post/hooks/ammo-gpu-release.sh	2026-10-28 15:04:29
+@@ -48,8 +48,8 @@
+ GPU_STATE="$GPU_RES_DIR/state.json"
+ [ -f "$GPU_STATE" ] || exit 0
+ 
+-SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../skills/ammo/scripts" 2>/dev/null && pwd)" || \
+-SCRIPTS_DIR="${CLAUDE_PROJECT_DIR:-.}/.claude/skills/ammo/scripts"
++SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" 2>/dev/null && pwd)" || \
++SCRIPTS_DIR="${CLAUDE_PROJECT_DIR:-.}/scripts"
+ 
+ # Audit log — every release attempt is recorded so leak investigations can
+ # distinguish "hook never fired" from "hook fired but extraction missed the id".
+diff -ru pre/hooks/ammo-next-step-reminder.sh post/hooks/ammo-next-step-reminder.sh
+--- pre/hooks/ammo-next-step-reminder.sh	2026-09-24 12:19:09
++++ post/hooks/ammo-next-step-reminder.sh	2026-10-28 15:04:29
+@@ -16,7 +16,7 @@
+ #
+ # Message generation (the stage-ladder reminder + the 9 Socratic edge nudges +
+ # the threshold warning) is delegated to the python state engine
+-# (skills/ammo/scripts/ammo_state.py next-step). The hook keeps only the
++# (scripts/ammo_state.py next-step). The hook keeps only the
+ # orchestration shell: lead gating, the worktree cwd-drift warning, state.json
+ # discovery, and the throttle + terminal-transition bypass. The engine
+ # implements the first-fire fix: with no PREV_STATE snapshot, NO Socratic edge
+@@ -67,7 +67,7 @@
+ # ── Resolve the state engine (hook-relative; the test harness copies neither
+ #    scripts nor schemas into its tmp project dir, so hook-relative resolution
+ #    is REQUIRED). Advisory hook → fail-open if python3 / engine is missing. ──
+-ENGINE="$HELPER_DIR/../skills/ammo/scripts/ammo_state.py"
++ENGINE="$HELPER_DIR/../scripts/ammo_state.py"
+ HOOK_PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ if [ -x "$HOOK_PROJ/.venv/bin/python" ]; then
+     ENGINE_PY="$HOOK_PROJ/.venv/bin/python"
+diff -ru pre/hooks/ammo-pip-guard.sh post/hooks/ammo-pip-guard.sh
+--- pre/hooks/ammo-pip-guard.sh	2026-09-23 20:10:39
++++ post/hooks/ammo-pip-guard.sh	2026-10-28 15:04:29
+@@ -42,7 +42,7 @@
+ #   - pip / pip3            install|uninstall
+ #   - uv pip                install|uninstall
+ #   - python[3] -m pip      install|uninstall
+-# Classification is delegated to skills/ammo/scripts/hook_cmd_classify.py
++# Classification is delegated to scripts/hook_cmd_classify.py
+ # (--mode install), which tokenizes the command and inspects each segment. It
+ # replaces a regex that required the verb to sit IMMEDIATELY after the invoker
+ # and matched the invoker name literally, so all of these passed:
+@@ -59,7 +59,7 @@
+ # EVERY Bash call, so a degraded env must not block every command. The pip
+ # policy is also carried in CLAUDE.md prose and the .venv provisioning path.
+ HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+-CLASSIFY="$HOOK_DIR/../skills/ammo/scripts/hook_cmd_classify.py"
++CLASSIFY="$HOOK_DIR/../scripts/hook_cmd_classify.py"
+ if [ -x "$HOOK_DIR/../../.venv/bin/python" ]; then
+     CLASSIFY_PY="$HOOK_DIR/../../.venv/bin/python"
+ else
+diff -ru pre/hooks/ammo-postcompact.sh post/hooks/ammo-postcompact.sh
+--- pre/hooks/ammo-postcompact.sh	2026-09-26 14:54:23
++++ post/hooks/ammo-postcompact.sh	2026-10-28 15:04:29
+@@ -154,7 +154,7 @@
+               + "## You Are The AMMO Lead Orchestrator\n\n"
+               + "This session was compacted while orchestrating an AMMO optimization.\n\n"
+               + "### Immediate Actions\n\n"
+-              + "1. **Read the skill**: `.claude/skills/ammo/SKILL.md`\n"
++              + "1. **Read the skill**: `skills/ammo/SKILL.md`\n"
+               + "2. **Load state**: `cat " + $state_file + "`\n"
+               + "3. **Resume current stage** — spawn subagents as needed"
+               + $extra + "\n\n"
+@@ -187,7 +187,7 @@
+                   + "Existing optimization state at: `" + $state_file + "`\n"
+                   + "Model: " + $model + " | Stage: " + $stage + "\n\n"
+                   + "If continuing this optimization:\n"
+-                  + "- Read the skill: `.claude/skills/ammo/SKILL.md`\n"
++                  + "- Read the skill: `skills/ammo/SKILL.md`\n"
+                   + "- You are the lead orchestrator — scaffold, delegate, gate. Do not implement directly."
+                 )
+               }
+diff -ru pre/hooks/ammo-precompact.sh post/hooks/ammo-precompact.sh
+--- pre/hooks/ammo-precompact.sh	2026-09-26 14:54:23
++++ post/hooks/ammo-precompact.sh	2026-10-28 15:04:29
+@@ -61,7 +61,7 @@
+           campaign_status: $campaign_status,
+           cumulative_speedup: ($cumulative_speedup | tonumber? // 1.0),
+           state_file: $state_file,
+-          skill_path: ".claude/skills/ammo/SKILL.md"
++          skill_path: "skills/ammo/SKILL.md"
+         }' > "$CHECKPOINT_TMP" 2>/dev/null; then
+         mv -f "$CHECKPOINT_TMP" "$CHECKPOINT_FILE"
+     else
+diff -ru pre/hooks/ammo-pretool-guard.sh post/hooks/ammo-pretool-guard.sh
+--- pre/hooks/ammo-pretool-guard.sh	2026-09-23 20:10:39
++++ post/hooks/ammo-pretool-guard.sh	2026-10-28 15:04:29
+@@ -21,7 +21,7 @@
+ ls "$PROJECT_DIR"/kernel_opt_artifacts/*/state.json &>/dev/null && _CAMPAIGN_ACTIVE=true
+ 
+ HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+-CLASSIFY="$HOOK_DIR/../skills/ammo/scripts/hook_cmd_classify.py"
++CLASSIFY="$HOOK_DIR/../scripts/hook_cmd_classify.py"
+ 
+ # _is_inspection_only — true only when EVERY segment of $COMMAND is
+ # inspection-class. The old test was an ANCHORED regex on the start of the
+@@ -93,7 +93,7 @@
+     if echo "$COMMAND" | grep -qP 'vllm\s+bench\s+latency' && \
+        ! echo "$COMMAND" | grep -q 'run_vllm_bench_latency_sweep'; then
+         echo "AMMO REMINDER: Raw 'vllm bench latency' detected. AMMO non-negotiable N4 requires using the sweep script:" >&2
+-        echo "  python .claude/skills/ammo/scripts/run_vllm_bench_latency_sweep.py --artifact-dir <dir>" >&2
++        echo "  python scripts/run_vllm_bench_latency_sweep.py --artifact-dir <dir>" >&2
+         echo "If this is a false positive (e.g., documentation or search), ignore this warning." >&2
+     fi
+ 
+@@ -210,7 +210,7 @@
+ 
+ Use the accelerator pool pattern before Neuron execution or profiling:
+ 
+-  NVD=\$(python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-resources N) && NEURON_VISIBLE_DEVICES=\$NVD <your_vllm_or_profile_command>
++  NVD=\$(python scripts/gpu_reservation.py reserve --num-resources N) && NEURON_VISIBLE_DEVICES=\$NVD <your_vllm_or_profile_command>
+ 
+ For a direct single-process NKI/runtime command only, assign the same printed
+ range to NEURON_RT_VISIBLE_CORES. Do not use an empty Neuron visibility value
+@@ -223,7 +223,7 @@
+ 
+ Use the GPU pool pattern to acquire GPUs before running GPU commands:
+ 
+-  CVD=\$(python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus N) && CUDA_VISIBLE_DEVICES=\$CVD <your_command>
++  CVD=\$(python scripts/gpu_reservation.py reserve --num-gpus N) && CUDA_VISIBLE_DEVICES=\$CVD <your_command>
+ 
+ Or set CUDA_VISIBLE_DEVICES="" if no GPU is needed.
+ (This warning fires only once per session.)
+diff -ru pre/hooks/ammo-skill-files-guard.sh post/hooks/ammo-skill-files-guard.sh
+--- pre/hooks/ammo-skill-files-guard.sh	2026-08-03 16:41:59
++++ post/hooks/ammo-skill-files-guard.sh	2026-10-28 15:04:29
+@@ -3,11 +3,11 @@
+ # orchestrator-owned skill/agent definition files.
+ #
+ # Protected paths (substring match):
+-#   .claude/skills/ammo/references/
+-#   .claude/skills/ammo/orchestration/
+-#   .claude/agents/
+-#   .claude/skills/ammo/scripts/     — the Mechanical Authorities
+-#   .claude/schemas/                 — the schema a subagent's work is judged by
++#   references/
++#   orchestration/
++#   agents/
++#   scripts/     — the Mechanical Authorities
++#   schemas/                 — the schema a subagent's work is judged by
+ #
+ # audit-invariants.md § Mechanical Authorities names scripts/ and schemas/ as
+ # the two locations that decide whether a track passes. A subagent that can
+@@ -36,11 +36,11 @@
+ 
+ # Only gate paths under protected directories.
+ case "$FILE_PATH" in
+-    *".claude/skills/ammo/references/"*) ;;
+-    *".claude/skills/ammo/orchestration/"*) ;;
+-    *".claude/skills/ammo/scripts/"*) ;;
+-    *".claude/schemas/"*) ;;
+-    *".claude/agents/"*) ;;
++    *"references/"*) ;;
++    *"orchestration/"*) ;;
++    *"scripts/"*) ;;
++    *"schemas/"*) ;;
++    *"agents/"*) ;;
+     *) exit 0 ;;
+ esac
+ 
+@@ -57,7 +57,7 @@
+   hookSpecificOutput: {
+     hookEventName: "PreToolUse",
+     permissionDecision: "deny",
+-    permissionDecisionReason: ("Subagents may not edit \($path). Files under .claude/skills/ammo/references/, .claude/skills/ammo/orchestration/, .claude/skills/ammo/scripts/, .claude/schemas/, and .claude/agents/ are orchestrator-owned. scripts/ and schemas/ are the Mechanical Authorities that decide whether your own work passes, so editing them from inside a track is never the fix. Surface the proposed change to the orchestrator via SendMessage instead.")
++    permissionDecisionReason: ("Subagents may not edit \($path). Files under references/, orchestration/, scripts/, schemas/, and agents/ are orchestrator-owned. scripts/ and schemas/ are the Mechanical Authorities that decide whether your own work passes, so editing them from inside a track is never the fix. Surface the proposed change to the orchestrator via SendMessage instead.")
+   }
+ }'
+ exit 0
+diff -ru pre/hooks/ammo-state-validate.sh post/hooks/ammo-state-validate.sh
+--- pre/hooks/ammo-state-validate.sh	2026-08-03 16:41:59
++++ post/hooks/ammo-state-validate.sh	2026-10-28 15:04:29
+@@ -1,5 +1,5 @@
+ #!/bin/bash
+-# PostToolUse hook — validates state.json against .claude/schemas/state.schema.json.
++# PostToolUse hook — validates state.json against schemas/state.schema.json.
+ #
+ # Fires on Write|Edit (file_path match) AND on Bash (command-string detection).
+ # Delegates schema + cross-field validation to scripts/ammo_state.py (validate
+@@ -116,8 +116,8 @@
+ DIR=$(dirname "$FILE_PATH")
+ SCHEMA=""
+ for _ in 1 2 3 4 5 6 7 8 9 10; do
+-    if [ -f "$DIR/.claude/schemas/state.schema.json" ]; then
+-        SCHEMA="$DIR/.claude/schemas/state.schema.json"
++    if [ -f "$DIR/schemas/state.schema.json" ]; then
++        SCHEMA="$DIR/schemas/state.schema.json"
+         break
+     fi
+     PARENT=$(dirname "$DIR")
+@@ -137,7 +137,7 @@
+ # Resolve the engine relative to THIS hook's own dir (not CWD) — the test
+ # harness runs the hook from a tmp project dir, so a CWD-relative path would
+ # miss it.
+-ENGINE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../skills/ammo/scripts/ammo_state.py"
++ENGINE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../scripts/ammo_state.py"
+ 
+ # Interpreter: prefer the session worktree venv (guaranteed to have jsonschema)
+ # over bare python3 — a jsonschema-less system python3 would degrade every
+diff -ru pre/hooks/ammo-stop-guard.sh post/hooks/ammo-stop-guard.sh
+--- pre/hooks/ammo-stop-guard.sh	2026-10-02 09:04:41
++++ post/hooks/ammo-stop-guard.sh	2026-10-28 15:04:29
+@@ -84,7 +84,7 @@
+         else
+             # Terminal status but no REPORT.md (we passed the fully-done check above)
+             NUDGE="Campaign is $STATUS but REPORT.md has not been generated.
+-Run Stage 7b now: spawn a fresh ammo-report-writer (subagent_type=ammo-report-writer) with artifact_dir=${ARTIFACT_DIR}; it reads .claude/skills/ammo/report/SKILL.md itself."
++Run Stage 7b now: spawn a fresh ammo-report-writer (subagent_type=ammo-report-writer) with artifact_dir=${ARTIFACT_DIR}; it reads skills/ammo-report/SKILL.md itself."
+         fi
+         ;;
+     7b_report*|*report_gen*)
+diff -ru pre/hooks/ammo-subagent-release.sh post/hooks/ammo-subagent-release.sh
+--- pre/hooks/ammo-subagent-release.sh	2026-09-23 11:10:39
++++ post/hooks/ammo-subagent-release.sh	2026-10-28 15:04:29
+@@ -38,8 +38,8 @@
+ GPU_STATE="$GPU_RES_DIR/state.json"
+ [ -f "$GPU_STATE" ] || exit 0
+ 
+-SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../skills/ammo/scripts" 2>/dev/null && pwd)" || \
+-SCRIPTS_DIR="${CLAUDE_PROJECT_DIR:-.}/.claude/skills/ammo/scripts"
++SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" 2>/dev/null && pwd)" || \
++SCRIPTS_DIR="${CLAUDE_PROJECT_DIR:-.}/scripts"
+ 
+ RELEASE_LOG="$GPU_RES_DIR/release.log"
+ TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+diff -ru pre/hooks/ammo-venv-python-guard.sh post/hooks/ammo-venv-python-guard.sh
+--- pre/hooks/ammo-venv-python-guard.sh	2026-09-23 20:10:39
++++ post/hooks/ammo-venv-python-guard.sh	2026-10-28 15:04:29
+@@ -39,6 +39,6 @@
+ BLOCKED: Use .venv/bin/python for sweep/bench scripts (system python has no engine)
+ 
+ Fix — use:
+-    .venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py ...
++    .venv/bin/python scripts/run_pumice_grpc_bench.py ...
+ EOF
+ exit 2
+diff -ru pre/hooks/inject-audit-phase2.sh post/hooks/inject-audit-phase2.sh
+--- pre/hooks/inject-audit-phase2.sh	2026-09-24 12:23:59
++++ post/hooks/inject-audit-phase2.sh	2026-10-28 15:04:29
+@@ -44,12 +44,12 @@
+ touch "$SENTINEL"
+ 
+ # Discover invariants path. Prefer CLAUDE_PROJECT_DIR; fallback to dirname walk-up.
+-if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]] && [[ -f "${CLAUDE_PROJECT_DIR}/.claude/skills/ammo/references/audit-invariants.md" ]]; then
+-  INVARIANTS="${CLAUDE_PROJECT_DIR}/.claude/skills/ammo/references/audit-invariants.md"
++if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]] && [[ -f "${CLAUDE_PROJECT_DIR}/references/audit-invariants.md" ]]; then
++  INVARIANTS="${CLAUDE_PROJECT_DIR}/references/audit-invariants.md"
+ else
+   # Walk up 6 levels: stage_*.md -> audits -> N -> rounds -> target -> kernel_opt_artifacts -> worktree
+   WORKTREE=$(dirname "$(dirname "$(dirname "$(dirname "$(dirname "$(dirname "$FILE_PATH")")")")")")
+-  INVARIANTS="${WORKTREE}/.claude/skills/ammo/references/audit-invariants.md"
++  INVARIANTS="${WORKTREE}/references/audit-invariants.md"
+ fi
+ 
+ # If invariants file doesn't exist, skip injection
+diff -ru pre/hooks/tests/test-ammo-artifact-layout-warn.sh post/hooks/tests/test-ammo-artifact-layout-warn.sh
+--- pre/hooks/tests/test-ammo-artifact-layout-warn.sh	2026-09-25 08:08:28
++++ post/hooks/tests/test-ammo-artifact-layout-warn.sh	2026-10-28 15:04:29
+@@ -6,7 +6,7 @@
+ # hookSpecificOutput.additionalContext ("LAYOUT WARN: ..."). So every case here
+ # asserts on STDOUT presence/absence, not on the exit code.
+ #
+-# It derives its allowlist from skills/ammo/scripts/artifact_layout.json. Three
++# It derives its allowlist from scripts/artifact_layout.json. Three
+ # properties matter and each has cases below:
+ #   1. every canonical slot in the manifest is SILENT (the four regressions that
+ #      motivated the manifest — evidence.json, validation_summary.json,
+@@ -16,8 +16,8 @@
+ #      never degrades to an empty allowlist that warns on everything.
+ set -uo pipefail
+ 
+-HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")" && pwd)/ammo-artifact-layout-warn.sh}"
+-MANIFEST="$(cd "$(dirname "$0")" && pwd)/../skills/ammo/scripts/artifact_layout.json"
++HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-artifact-layout-warn.sh}"
++MANIFEST="$(cd "$(dirname "$0")/.." && pwd)/../scripts/artifact_layout.json"
+ ART="/w/kernel_opt_artifacts/tgt"
+ PASS=0
+ FAIL=0
+@@ -144,7 +144,7 @@
+ # A silent empty allowlist would warn on every correct write, which is worse
+ # than not checking: it trains the reader to ignore the channel.
+ STAGE="$TMPDIR/stage"
+-mkdir -p "$STAGE/hooks" "$STAGE/skills/ammo/scripts"
++mkdir -p "$STAGE/hooks" "$STAGE/scripts"
+ cp "$HOOK" "$STAGE/hooks/"
+ STAGED_HOOK="$STAGE/hooks/$(basename "$HOOK")"
+ GOOD_PAYLOAD=$(jq -n -c --arg p "$ART/state.json" '{tool_name:"Write",tool_input:{file_path:$p}}')
+@@ -174,15 +174,15 @@
+ check_disabled "missing manifest: loud stderr, no warn on a canonical path" "$GOOD_PAYLOAD"
+ check_disabled "missing manifest: loud stderr, no warn on real drift either" "$DRIFT_PAYLOAD"
+ 
+-printf '{ not json' > "$STAGE/skills/ammo/scripts/artifact_layout.json"
++printf '{ not json' > "$STAGE/scripts/artifact_layout.json"
+ check_disabled "corrupt manifest: loud stderr, checking disabled" "$GOOD_PAYLOAD"
+ 
+-printf '{"placeholders":{},"slots":{}}' > "$STAGE/skills/ammo/scripts/artifact_layout.json"
++printf '{"placeholders":{},"slots":{}}' > "$STAGE/scripts/artifact_layout.json"
+ check_disabled "empty slots: loud stderr, never an empty allowlist" "$GOOD_PAYLOAD"
+ 
+ # Restoring a good manifest must re-enable checking, so a disabled hook is a
+ # transient state and not a latch.
+-cp "$MANIFEST" "$STAGE/skills/ammo/scripts/artifact_layout.json"
++cp "$MANIFEST" "$STAGE/scripts/artifact_layout.json"
+ TOTAL=$((TOTAL + 1))
+ restore_rc=0
+ printf '%s' "$DRIFT_PAYLOAD" | bash "$STAGED_HOOK" \
+diff -ru pre/hooks/tests/test-ammo-audit-phase2.sh post/hooks/tests/test-ammo-audit-phase2.sh
+--- pre/hooks/tests/test-ammo-audit-phase2.sh	2026-08-06 08:13:34
++++ post/hooks/tests/test-ammo-audit-phase2.sh	2026-10-28 15:04:29
+@@ -19,7 +19,7 @@
+ # see the round-trip cases fail there.
+ set -euo pipefail
+ 
+-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
++HOOK_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ INJECT="${AMMO_TEST_INJECT:-$HOOK_DIR/inject-audit-phase2.sh}"
+ GUARD="${AMMO_TEST_GUARD:-$HOOK_DIR/audit-phase2-guard.sh}"
+ PASS=0
+@@ -29,8 +29,8 @@
+ TMPDIR=$(mktemp -d)
+ PROJ="$TMPDIR/proj"
+ AUDITS="$PROJ/kernel_opt_artifacts/tgt/rounds/1/audits"
+-mkdir -p "$AUDITS" "$PROJ/.claude/skills/ammo/references"
+-echo "# Audit invariants" > "$PROJ/.claude/skills/ammo/references/audit-invariants.md"
++mkdir -p "$AUDITS" "$PROJ/references"
++echo "# Audit invariants" > "$PROJ/references/audit-invariants.md"
+ 
+ # Sentinels live in /tmp by contract, so use a session id nothing else can
+ # collide with and clean up only our own.
+diff -ru pre/hooks/tests/test-ammo-audit-start-stamp.sh post/hooks/tests/test-ammo-audit-start-stamp.sh
+--- pre/hooks/tests/test-ammo-audit-start-stamp.sh	2026-08-06 08:13:34
++++ post/hooks/tests/test-ammo-audit-start-stamp.sh	2026-10-28 15:04:29
+@@ -23,12 +23,12 @@
+ 
+ set -euo pipefail
+ 
+-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
++HOOK_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ HOOK="$HOOK_DIR/ammo-audit-start-stamp.sh"
+ # The hook resolves the engine through CLAUDE_PROJECT_DIR, so the fake project
+ # needs the real script at the real relative path.
+-ENGINE_REL=".claude/skills/ammo/scripts/ammo_state.py"
+-REAL_ENGINE="$(cd "$HOOK_DIR/../skills/ammo/scripts" && pwd)/ammo_state.py"
++ENGINE_REL="scripts/ammo_state.py"
++REAL_ENGINE="$(cd "$HOOK_DIR/../scripts" && pwd)/ammo_state.py"
+ 
+ PASS=0
+ FAIL=0
+@@ -397,7 +397,7 @@
+ # the campaign agent, so a walk-up from it would let prompt content choose the
+ # code this hook runs. The engine resolves from the hook's own dir only.
+ 
+-PLANT="$ART/.claude/skills/ammo/scripts"
++PLANT="$ART/scripts"
+ mkdir -p "$PLANT"
+ cat > "$PLANT/ammo_state.py" <<'PLANTED'
+ import pathlib, sys
+diff -ru pre/hooks/tests/test-ammo-compaction.sh post/hooks/tests/test-ammo-compaction.sh
+--- pre/hooks/tests/test-ammo-compaction.sh	2026-09-25 08:49:26
++++ post/hooks/tests/test-ammo-compaction.sh	2026-10-28 15:04:29
+@@ -25,7 +25,7 @@
+ 
+ set -euo pipefail
+ 
+-HERE="$(cd "$(dirname "$0")" && pwd)"
++HERE="$(cd "$(dirname "$0")/.." && pwd)"
+ PRE="$HERE/ammo-precompact.sh"
+ POST="$HERE/ammo-postcompact.sh"
+ PASS=0
+diff -ru pre/hooks/tests/test-ammo-env-default-guard.sh post/hooks/tests/test-ammo-env-default-guard.sh
+--- pre/hooks/tests/test-ammo-env-default-guard.sh	2026-09-23 20:10:39
++++ post/hooks/tests/test-ammo-env-default-guard.sh	2026-10-28 15:04:29
+@@ -13,7 +13,7 @@
+ # "conforming name" and "getenv idiom" blocks fail there.
+ set -euo pipefail
+ 
+-HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")" && pwd)/ammo-env-default-guard.sh}"
++HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-env-default-guard.sh}"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+diff -ru pre/hooks/tests/test-ammo-gpu-release.sh post/hooks/tests/test-ammo-gpu-release.sh
+--- pre/hooks/tests/test-ammo-gpu-release.sh	2026-08-06 08:13:34
++++ post/hooks/tests/test-ammo-gpu-release.sh	2026-10-28 15:04:29
+@@ -13,8 +13,8 @@
+ 
+ set -euo pipefail
+ 
+-HOOK="$(cd "$(dirname "$0")" && pwd)/ammo-gpu-release.sh"
+-SCRIPTS_DIR="$(cd "$(dirname "$0")/../skills/ammo/scripts" && pwd)"
++HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-gpu-release.sh"
++SCRIPTS_DIR="$(cd "$(dirname "$0")/../../scripts" && pwd)"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+@@ -98,44 +98,44 @@
+ 
+ echo "=== --no-auto-release present → release skipped (space-form) ==="
+ seed_state
+-run_hook 'CVD=$(python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus 1 --session-id sess_foo --no-auto-release) && CUDA_VISIBLE_DEVICES=$CVD echo ok'
++run_hook 'CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1 --session-id sess_foo --no-auto-release) && CUDA_VISIBLE_DEVICES=$CVD echo ok'
+ assert_not_released "no-auto-release space-form" "sess_foo"
+ 
+ echo "=== Reserve without --no-auto-release (with following flag) → released ==="
+ seed_state
+-run_hook 'CVD=$(python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus 1 --session-id sess_foo --lease-minutes 30) && CUDA_VISIBLE_DEVICES=$CVD echo ok'
++run_hook 'CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1 --session-id sess_foo --lease-minutes 30) && CUDA_VISIBLE_DEVICES=$CVD echo ok'
+ assert_released "space-form without no-auto-release" "sess_foo"
+ 
+ echo "=== Two-space form (--session-id  foo) → argv id released, env id kept ==="
+ seed_state
+-run_hook 'CVD=$(python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus 1 --session-id  sess_foo) && echo ok' "sess_bar"
++run_hook 'CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1 --session-id  sess_foo) && echo ok' "sess_bar"
+ assert_released "two-space form releases argv id" "sess_foo"
+ assert_not_released "two-space form leaves CLAUDE_SESSION_ID lease" "sess_bar"
+ 
+ echo "=== Canonical \$(...) pattern (trailing paren, no following flag) ==="
+ seed_state
+-run_hook 'CVD=$(python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus 1 --session-id sess_bar) && echo done'
++run_hook 'CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1 --session-id sess_bar) && echo done'
+ assert_released "space-form with trailing paren" "sess_bar"
+ 
+ echo "=== Equals form (--session-id=foo) ==="
+ seed_state
+-run_hook 'python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus 1 --session-id=t2-baseline'
++run_hook 'python scripts/gpu_reservation.py reserve --num-gpus 1 --session-id=t2-baseline'
+ assert_released "equals-form" "t2-baseline"
+ 
+ echo "=== Retry loop form with --no-auto-release → release skipped ==="
+ seed_state
+-run_hook 'for i in $(seq 1 60); do CVD=$(python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus 1 --session-id stage2_ncu_123 --no-auto-release 2>/dev/null) && break; done'
++run_hook 'for i in $(seq 1 60); do CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1 --session-id stage2_ncu_123 --no-auto-release 2>/dev/null) && break; done'
+ assert_not_released "retry loop with no-auto-release" "stage2_ncu_123"
+ 
+ echo "=== Colon id (space form): parent:child releases exactly parent:child ==="
+ seed_state
+-run_hook 'CVD=$(python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus 1 --session-id parent:child) && echo ok'
++run_hook 'CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1 --session-id parent:child) && echo ok'
+ assert_released "colon id space-form" "parent:child"
+ assert_not_released "colon id space-form leaves parent" "parent"
+ 
+ echo "=== Colon id (equals form): --session-id=parent:child ==="
+ seed_state
+-run_hook 'python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus 1 --session-id=parent:child'
++run_hook 'python scripts/gpu_reservation.py reserve --num-gpus 1 --session-id=parent:child'
+ assert_released "colon id equals-form" "parent:child"
+ assert_not_released "colon id equals-form leaves parent" "parent"
+ 
+diff -ru pre/hooks/tests/test-ammo-is-lead.sh post/hooks/tests/test-ammo-is-lead.sh
+--- pre/hooks/tests/test-ammo-is-lead.sh	2026-08-03 16:41:59
++++ post/hooks/tests/test-ammo-is-lead.sh	2026-10-28 15:04:29
+@@ -23,7 +23,7 @@
+ # AMMO_TEST_HOOK lets a reviewer aim this harness at an ARCHIVED copy of the
+ # helper to see which cases the archived version fails (red->green evidence for
+ # the stale-team-config demotion cases 09/09b).
+-HELPER="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")" && pwd)/_ammo_is_lead.sh}"
++HELPER="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/_ammo_is_lead.sh}"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+diff -ru pre/hooks/tests/test-ammo-monitor-reminder.sh post/hooks/tests/test-ammo-monitor-reminder.sh
+--- pre/hooks/tests/test-ammo-monitor-reminder.sh	2026-09-04 14:52:55
++++ post/hooks/tests/test-ammo-monitor-reminder.sh	2026-10-28 15:04:29
+@@ -12,7 +12,7 @@
+ #
+ set -euo pipefail
+ 
+-HOOK="$(cd "$(dirname "$0")" && pwd)/ammo-monitor-reminder.sh"
++HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-monitor-reminder.sh"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+diff -ru pre/hooks/tests/test-ammo-msg-check.sh post/hooks/tests/test-ammo-msg-check.sh
+--- pre/hooks/tests/test-ammo-msg-check.sh	2026-09-24 08:39:18
++++ post/hooks/tests/test-ammo-msg-check.sh	2026-10-28 15:04:29
+@@ -16,8 +16,8 @@
+ 
+ set -euo pipefail
+ 
+-HOOK="$(cd "$(dirname "$0")" && pwd)/ammo-msg-check.sh"
+-MIRROR_HOOK="$(cd "$(dirname "$0")" && pwd)/ammo-msg-mirror.sh"
++HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-msg-check.sh"
++MIRROR_HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-msg-mirror.sh"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+diff -ru pre/hooks/tests/test-ammo-msg-mirror.sh post/hooks/tests/test-ammo-msg-mirror.sh
+--- pre/hooks/tests/test-ammo-msg-mirror.sh	2026-09-24 08:39:18
++++ post/hooks/tests/test-ammo-msg-mirror.sh	2026-10-28 15:04:29
+@@ -15,7 +15,7 @@
+ 
+ set -euo pipefail
+ 
+-HOOK="$(cd "$(dirname "$0")" && pwd)/ammo-msg-mirror.sh"
++HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-msg-mirror.sh"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+diff -ru pre/hooks/tests/test-ammo-next-step-reminder.sh post/hooks/tests/test-ammo-next-step-reminder.sh
+--- pre/hooks/tests/test-ammo-next-step-reminder.sh	2026-07-24 09:47:27
++++ post/hooks/tests/test-ammo-next-step-reminder.sh	2026-10-28 15:04:29
+@@ -7,7 +7,7 @@
+ # Run: bash .claude/hooks/test-ammo-next-step-reminder.sh
+ set -euo pipefail
+ 
+-HOOK="$(cd "$(dirname "$0")" && pwd)/ammo-next-step-reminder.sh"
++HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-next-step-reminder.sh"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+diff -ru pre/hooks/tests/test-ammo-pip-guard.sh post/hooks/tests/test-ammo-pip-guard.sh
+--- pre/hooks/tests/test-ammo-pip-guard.sh	2026-09-23 20:10:39
++++ post/hooks/tests/test-ammo-pip-guard.sh	2026-10-28 15:04:29
+@@ -20,7 +20,7 @@
+ # AMMO_TEST_HOOK lets a reviewer aim this harness at an ARCHIVED copy of the
+ # hook to see which cases the archived version fails (red->green evidence for
+ # the flag/path/wrapper bypass block below).
+-HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")" && pwd)/ammo-pip-guard.sh}"
++HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-pip-guard.sh}"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+diff -ru pre/hooks/tests/test-ammo-pretool-guard.sh post/hooks/tests/test-ammo-pretool-guard.sh
+--- pre/hooks/tests/test-ammo-pretool-guard.sh	2026-08-03 16:41:59
++++ post/hooks/tests/test-ammo-pretool-guard.sh	2026-10-28 15:04:29
+@@ -12,7 +12,7 @@
+ # AMMO_TEST_HOOK lets a reviewer aim this harness at an ARCHIVED copy of the
+ # hook to see which cases the archived version fails. Used to demonstrate
+ # red->green for the fast-path-bypass cases below.
+-HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")" && pwd)/ammo-pretool-guard.sh}"
++HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-pretool-guard.sh}"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+@@ -133,7 +133,7 @@
+ # ══════════════════════════════════════════════════
+ 
+ run_test "Reservation pattern → allow" 0 \
+-    'CVD=$(python .claude/skills/ammo/scripts/gpu_reservation.py reserve --num-gpus 1) && CUDA_VISIBLE_DEVICES=$CVD python benchmark.py'
++    'CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1) && CUDA_VISIBLE_DEVICES=$CVD python benchmark.py'
+ 
+ # ══════════════════════════════════════════════════
+ echo ""
+diff -ru pre/hooks/tests/test-ammo-skill-files-guard.sh post/hooks/tests/test-ammo-skill-files-guard.sh
+--- pre/hooks/tests/test-ammo-skill-files-guard.sh	2026-08-03 16:41:59
++++ post/hooks/tests/test-ammo-skill-files-guard.sh	2026-10-28 15:04:29
+@@ -8,9 +8,9 @@
+ # distinct from the exit-2 convention used by the two Bash guards).
+ #
+ # Protected set:
+-#   .claude/skills/ammo/references/     .claude/skills/ammo/scripts/
+-#   .claude/skills/ammo/orchestration/  .claude/schemas/
+-#   .claude/agents/
++#   references/     scripts/
++#   orchestration/  schemas/
++#   agents/
+ #
+ # scripts/ and schemas/ are the audit-invariants.md "Mechanical Authorities":
+ # the state engine, the gate verifier, and the schema a track is judged by. A
+@@ -19,8 +19,8 @@
+ # it fail them.
+ set -euo pipefail
+ 
+-HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")" && pwd)/ammo-skill-files-guard.sh}"
+-HELPER_DIR="$(cd "$(dirname "$0")" && pwd)"
++HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-skill-files-guard.sh}"
++HELPER_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+@@ -89,32 +89,32 @@
+ W="/w/.claude"
+ 
+ echo "== Subagent DENY: the pre-existing protected set =="
+-run_test "references/ md → DENY" DENY "$W/skills/ammo/references/audit-invariants.md" subagent
+-run_test "orchestration/ md → DENY" DENY "$W/skills/ammo/orchestration/parallel-tracks.md" subagent
++run_test "references/ md → DENY" DENY "$W/references/audit-invariants.md" subagent
++run_test "orchestration/ md → DENY" DENY "$W/orchestration/parallel-tracks.md" subagent
+ run_test "agents/ md → DENY" DENY "$W/agents/ammo-impl-champion.md" subagent
+ 
+ echo ""; echo "== Subagent DENY: Mechanical Authorities (new) =="
+ # Every case in this block is ALLOW on the pre-fix hook.
+ run_test "scripts/ammo_state.py → DENY (state engine)" DENY \
+-    "$W/skills/ammo/scripts/ammo_state.py" subagent
++    "$W/scripts/ammo_state.py" subagent
+ run_test "scripts/verify_validation_gates.py → DENY (gate verifier)" DENY \
+-    "$W/skills/ammo/scripts/verify_validation_gates.py" subagent
++    "$W/scripts/verify_validation_gates.py" subagent
+ run_test "scripts/reconcile_track_state.py → DENY" DENY \
+-    "$W/skills/ammo/scripts/reconcile_track_state.py" subagent
++    "$W/scripts/reconcile_track_state.py" subagent
+ run_test "schemas/state.schema.json → DENY (the schema it is judged by)" DENY \
+     "$W/schemas/state.schema.json" subagent
+ run_test "absolute worktree path under scripts/ → DENY" DENY \
+-    "/data/sessions/x/worktree/.claude/skills/ammo/scripts/ammo_state.py" subagent
++    "/data/sessions/x/worktree/scripts/ammo_state.py" subagent
+ run_test "relative path under schemas/ → DENY" DENY \
+-    ".claude/schemas/state.schema.json" subagent
++    "schemas/state.schema.json" subagent
+ 
+ echo ""; echo "== Lead ALLOW: the same protected paths =="
+ run_test "lead edits scripts/ammo_state.py → ALLOW" ALLOW \
+-    "$W/skills/ammo/scripts/ammo_state.py" lead
++    "$W/scripts/ammo_state.py" lead
+ run_test "lead edits schemas/state.schema.json → ALLOW" ALLOW \
+     "$W/schemas/state.schema.json" lead
+ run_test "lead edits references/ md → ALLOW" ALLOW \
+-    "$W/skills/ammo/references/audit-invariants.md" lead
++    "$W/references/audit-invariants.md" lead
+ 
+ echo ""; echo "== ALLOW: paths outside the protected set =="
+ run_test "subagent edits vllm source → ALLOW" ALLOW \
+@@ -123,10 +123,10 @@
+     "/w/kernel_opt_artifacts/tgt/rounds/1/notes.md" subagent
+ run_test "subagent edits state.json → ALLOW (state-validate owns that)" ALLOW \
+     "/w/kernel_opt_artifacts/tgt/state.json" subagent
+-run_test "subagent edits tests under skills/ammo/tests → ALLOW" ALLOW \
+-    "$W/skills/ammo/tests/test_ammo_state.py" subagent
++run_test "subagent edits tests under tests → ALLOW" ALLOW \
++    "$W/tests/test_ammo_state.py" subagent
+ # A near-miss must not match: schemas/ outside .claude is not the authority.
+-run_test "subagent edits vllm/schemas/x.json → ALLOW (not .claude/schemas)" ALLOW \
++run_test "subagent edits vllm/schemas/x.json → ALLOW (not schemas)" ALLOW \
+     "/w/vllm/schemas/x.json" subagent
+ 
+ echo ""; echo "== Fail-open =="
+@@ -149,7 +149,7 @@
+     [ -n "$real" ] && ln -sf "$real" "$MIN_PATH/$t"
+ done
+ rc=0
+-echo '{"tool_name":"Edit","tool_input":{"file_path":"/w/.claude/schemas/state.schema.json"}}' \
++echo '{"tool_name":"Edit","tool_input":{"file_path":"/w/schemas/state.schema.json"}}' \
+     | env PATH="$MIN_PATH" bash "$HOOK" >/dev/null 2>&1 || rc=$?
+ if [ "$rc" -eq 0 ]; then
+     echo "  PASS [$TOTAL]: jq unavailable → ALLOW (fail-open)"
+diff -ru pre/hooks/tests/test-ammo-state-validate.sh post/hooks/tests/test-ammo-state-validate.sh
+--- pre/hooks/tests/test-ammo-state-validate.sh	2026-08-03 16:41:59
++++ post/hooks/tests/test-ammo-state-validate.sh	2026-10-28 15:04:29
+@@ -18,7 +18,7 @@
+ 
+ # AMMO_TEST_HOOK lets a reviewer aim this harness at an ARCHIVED copy of the
+ # hook (red->green evidence for the reconcile_track_state.py --write cases).
+-HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")" && pwd)/ammo-state-validate.sh}"
++HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-state-validate.sh}"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+@@ -26,10 +26,10 @@
+ TMPDIR=$(mktemp -d)
+ ARTIFACT_DIR="$TMPDIR/kernel_opt_artifacts/test_target"
+ mkdir -p "$ARTIFACT_DIR"
+-mkdir -p "$TMPDIR/.claude/schemas"
++mkdir -p "$TMPDIR/schemas"
+ 
+-SCHEMA_SRC="$(cd "$(dirname "$0")" && pwd)/../schemas/state.schema.json"
+-cp "$SCHEMA_SRC" "$TMPDIR/.claude/schemas/state.schema.json"
++SCHEMA_SRC="$(cd "$(dirname "$0")/.." && pwd)/../schemas/state.schema.json"
++cp "$SCHEMA_SRC" "$TMPDIR/schemas/state.schema.json"
+ 
+ mkdir -p "$TMPDIR/.git"
+ 
+@@ -931,22 +931,22 @@
+ 
+ write_state '.campaign.current_stage = "campaign_complete"'
+ run_bash_test "reconcile_track_state.py --write (invalid) blocks" 0 "true" \
+-    ".venv/bin/python .claude/skills/ammo/scripts/reconcile_track_state.py --artifact-dir kernel_opt_artifacts/test_target --track-id op001 --write" \
++    ".venv/bin/python scripts/reconcile_track_state.py --artifact-dir kernel_opt_artifacts/test_target --track-id op001 --write" \
+     "is not one of"
+ 
+ write_state '.campaign.current_stage = "campaign_complete"'
+ run_bash_test "reconcile_track_state.py --artifact-dir=X --write (invalid) blocks" 0 "true" \
+-    "python3 .claude/skills/ammo/scripts/reconcile_track_state.py --artifact-dir=kernel_opt_artifacts/test_target --write --track-id op001" \
++    "python3 scripts/reconcile_track_state.py --artifact-dir=kernel_opt_artifacts/test_target --write --track-id op001" \
+     "is not one of"
+ 
+ write_state '.'
+ run_bash_test "reconcile_track_state.py --write (valid) passes" 0 "false" \
+-    ".venv/bin/python .claude/skills/ammo/scripts/reconcile_track_state.py --artifact-dir kernel_opt_artifacts/test_target --track-id op001 --write"
++    ".venv/bin/python scripts/reconcile_track_state.py --artifact-dir kernel_opt_artifacts/test_target --track-id op001 --write"
+ 
+ # Dry-run has no --write, so it is not a write and must not be validated.
+ write_state '.campaign.current_stage = "campaign_complete"'
+ run_bash_test "reconcile_track_state.py WITHOUT --write is ignored (read-only)" 0 "false" \
+-    ".venv/bin/python .claude/skills/ammo/scripts/reconcile_track_state.py --artifact-dir kernel_opt_artifacts/test_target --track-id op001"
++    ".venv/bin/python scripts/reconcile_track_state.py --artifact-dir kernel_opt_artifacts/test_target --track-id op001"
+ 
+ # A --write outside kernel_opt_artifacts must not be validated.
+ write_state '.campaign.current_stage = "campaign_complete"'
+@@ -1044,7 +1044,7 @@
+ # outer safety net — e.g. engine run with schema discovery failing)
+ write_state '.campaign.current_stage = "campaign_complete"'
+ run_bash_test "ammo_state.py set CLI counts as a write (invalid state blocks)" 0 "true" \
+-    "python3 .claude/skills/ammo/scripts/ammo_state.py set --state kernel_opt_artifacts/test_target/state.json --field campaign.current_round --value 2" \
++    "python3 scripts/ammo_state.py set --state kernel_opt_artifacts/test_target/state.json --field campaign.current_round --value 2" \
+     "is not one of"
+ 
+ # Test 63e: read-only commands stay ignored despite widened idioms
+diff -ru pre/hooks/tests/test-ammo-stop-guard.sh post/hooks/tests/test-ammo-stop-guard.sh
+--- pre/hooks/tests/test-ammo-stop-guard.sh	2026-06-23 16:02:48
++++ post/hooks/tests/test-ammo-stop-guard.sh	2026-10-28 15:04:29
+@@ -11,7 +11,7 @@
+ 
+ set -euo pipefail
+ 
+-HOOK="$(cd "$(dirname "$0")" && pwd)/ammo-stop-guard.sh"
++HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-stop-guard.sh"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+diff -ru pre/hooks/tests/test-ammo-team-spawn-guard.sh post/hooks/tests/test-ammo-team-spawn-guard.sh
+--- pre/hooks/tests/test-ammo-team-spawn-guard.sh	2026-09-25 08:12:01
++++ post/hooks/tests/test-ammo-team-spawn-guard.sh	2026-10-28 15:04:29
+@@ -28,7 +28,7 @@
+ 
+ set -euo pipefail
+ 
+-HOOK="$(cd "$(dirname "$0")" && pwd)/ammo-team-spawn-guard.sh"
++HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-team-spawn-guard.sh"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+diff -ru pre/hooks/tests/test-ammo-venv-python-guard.sh post/hooks/tests/test-ammo-venv-python-guard.sh
+--- pre/hooks/tests/test-ammo-venv-python-guard.sh	2026-09-23 20:10:39
++++ post/hooks/tests/test-ammo-venv-python-guard.sh	2026-10-28 15:04:29
+@@ -20,7 +20,7 @@
+ 
+ set -euo pipefail
+ 
+-HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")" && pwd)/ammo-venv-python-guard.sh}"
++HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-venv-python-guard.sh}"
+ PASS=0
+ FAIL=0
+ TOTAL=0
+@@ -62,7 +62,7 @@
+     fi
+ }
+ 
+-SKILL_DIR=".claude/skills/ammo/scripts"
++SKILL_DIR="scripts"
+ 
+ # ══════════════════════════════════════════════
+ echo "== DENY: bare python, full skill path (exit 2) =="
+diff -ru pre/orchestration/audit-protocol.md post/orchestration/audit-protocol.md
+--- pre/orchestration/audit-protocol.md	2026-09-04 14:52:55
++++ post/orchestration/audit-protocol.md	2026-10-28 15:04:29
+@@ -8,7 +8,7 @@
+ 
+ Two other files own the rest, so do not restate the auditor role here. The
+ auditor's reasoning, evidence, severity, and output contract live in
+-`.claude/agents/ammo-auditor.md`. The stage checklists live in
++`agents/ammo-auditor.md`. The stage checklists live in
+ `references/audit-invariants.md`, and the hook delivers them only after the
+ auditor writes Phase 1.
+ 
+@@ -52,7 +52,7 @@
+ 
+ Keep the prompt that thin. The auditor uses the exact supplied artifact directory
+ and resolves canonical paths from it. Its authority and workflow come from
+-`.claude/agents/ammo-auditor.md`; do not copy them into the dispatch prompt. What
++`agents/ammo-auditor.md`; do not copy them into the dispatch prompt. What
+ holds in every audit:
+ 
+ - the auditor writes its assigned verdict, but cannot modify source, campaign
+@@ -186,9 +186,9 @@
+ 
+ ## References
+ 
+-- `.claude/agents/ammo-auditor.md` — independent reconstruction, delegate fanout,
++- `agents/ammo-auditor.md` — independent reconstruction, delegate fanout,
+   severity, and verdict contract
+-- `.claude/agents/ammo-delegate.md` — bounded evidence helper
++- `agents/ammo-delegate.md` — bounded evidence helper
+ - `references/audit-invariants.md` — hook-delivered Phase 2 checklist
+ - `references/artifact-layout.md` — canonical artifact locations
+ - `scripts/ammo_state.py` — state validation, compatibility, and transitions
+diff -ru pre/orchestration/debate-protocol.md post/orchestration/debate-protocol.md
+--- pre/orchestration/debate-protocol.md	2026-10-02 09:04:41
++++ post/orchestration/debate-protocol.md	2026-10-28 15:04:29
+@@ -1,6 +1,6 @@
+ # Stage 3: Candidate Proposal and Adversarial Debate
+ 
+-Read this file when Stage 3 starts. It owns Stage 3 policy and choreography: what a candidate is, what counts as evidence, how the debate runs, and how the lead picks winners. Projection math stays in `references/e2e-delta-math.md`. Artifact paths stay in `references/artifact-layout.md`. State shape stays in `.claude/schemas/state.schema.json`.
++Read this file when Stage 3 starts. It owns Stage 3 policy and choreography: what a candidate is, what counts as evidence, how the debate runs, and how the lead picks winners. Projection math stays in `references/e2e-delta-math.md`. Artifact paths stay in `references/artifact-layout.md`. State shape stays in `schemas/state.schema.json`.
+ 
+ `{CR}` means `campaign.current_round`.
+ 
+diff -ru pre/orchestration/integration-logic.md post/orchestration/integration-logic.md
+--- pre/orchestration/integration-logic.md	2026-08-06 08:13:34
++++ post/orchestration/integration-logic.md	2026-10-28 15:04:29
+@@ -31,7 +31,7 @@
+    judge compatibility and dominance from evidence. File overlap is a warning,
+    not proof of incompatibility; disjoint files are not proof of independence.
+    If a conflict or a semantic interaction needs code resolution, spawn
+-   `ammo-resolver` under `.claude/agents/ammo-resolver.md`, then obtain the
++   `ammo-resolver` under `agents/ammo-resolver.md`, then obtain the
+    required independent merge review. Validate the resulting exact subset as a
+    composition. If the defensible result is one unchanged track, fall back to
+    the single-pass short-circuit; if none remains, exhaust the round.
+@@ -173,14 +173,14 @@
+ 
+ ## Authority Pointers
+ 
+-- State shapes and enums: `.claude/schemas/state.schema.json`
++- State shapes and enums: `schemas/state.schema.json`
+ - Legal transitions and terminal sets: `scripts/transitions.json`
+ - Track verdicts, correctness, E2E, activation, and gating:
+   `references/validation-defaults.md`
+ - Environment flags and fallback contracts: `references/impl-track-rules.md`
+ - Canonical integration, profiling, and golden paths:
+   `references/artifact-layout.md`
+-- Conflict-resolution role: `.claude/agents/ammo-resolver.md`
++- Conflict-resolution role: `agents/ammo-resolver.md`
+ - Stage 6-7 audit: `orchestration/audit-protocol.md` and
+   `references/audit-invariants.md`
+ - Stage 7 continuation: `SKILL.md`
+diff -ru pre/orchestration/parallel-tracks.md post/orchestration/parallel-tracks.md
+--- pre/orchestration/parallel-tracks.md	2026-09-24 12:23:59
++++ post/orchestration/parallel-tracks.md	2026-10-28 15:04:29
+@@ -7,8 +7,8 @@
+ try to leave Stage 5.
+ 
+ The rest lives elsewhere. Implementation behavior belongs to
+-`.claude/agents/ammo-impl-champion.md`. Continuous review belongs to
+-`.claude/agents/ammo-transcript-monitor.md`. Gate and verdict policy belongs to
++`agents/ammo-impl-champion.md`. Continuous review belongs to
++`agents/ammo-transcript-monitor.md`. Gate and verdict policy belongs to
+ `references/impl-track-rules.md` and `references/validation-defaults.md`.
+ 
+ ## One Worktree and One Agent Pair per Track
+@@ -152,7 +152,7 @@
+ Preserve evidence provenance. Repair any disagreement between state and the
+ primary files before you use that track in a decision. State shape,
+ status/verdict enums, and legal transitions are owned by
+-`.claude/schemas/state.schema.json` and `scripts/transitions.json`.
++`schemas/state.schema.json` and `scripts/transitions.json`.
+ 
+ A blocker that still needs lead triage is not a terminal track.
+ 
+diff -ru pre/references/artifact-layout.md post/references/artifact-layout.md
+--- pre/references/artifact-layout.md	2026-09-25 08:09:03
++++ post/references/artifact-layout.md	2026-10-28 15:04:29
+@@ -1,6 +1,6 @@
+ # Artifact Layout (V2) — Path Resolution Reference
+ 
+-This file says where every AMMO campaign artifact lives. Read it before you write any file under `kernel_opt_artifacts/`, and read it again whenever two candidate files could answer the same question. It is the single source of truth for campaign artifact paths: all agent docs, orchestration docs, and scripts point here, and if another document contradicts a path here, this file wins.
++This file says where every AMMO campaign artifact lives. Read it before you write any file under `.ammo/`, and read it again whenever two candidate files could answer the same question. It is the single source of truth for campaign artifact paths: all agent docs, orchestration docs, and scripts point here, and if another document contradicts a path here, this file wins.
+ 
+ ## Table of Contents
+ 
+@@ -21,7 +21,7 @@
+ Only these entries live at the campaign root. Everything else is round-scoped.
+ 
+ ```
+-kernel_opt_artifacts/{target}/
++.ammo/<id>/
+ ├── state.json              # Campaign state (orchestrator-only writes)
+ ├── state.json.lock         # flock file — every state.json writer serializes on it
+ ├── target.json             # Workload + bench config (mutated on SHIP)
+@@ -42,7 +42,7 @@
+ 
+ | File | Writer | Notes |
+ |------|--------|-------|
+-| `state.json` | Orchestrator only | Schema: `.claude/schemas/state.schema.json` |
++| `state.json` | Orchestrator only | Schema: `schemas/state.schema.json` |
+ | `state.json.lock` | `ammo_state.py` + `reconcile_track_state.py` | Empty flock file, never deleted. Holds no campaign data |
+ | `target.json` | `new_target.py` + orchestrator (env promotion on SHIP) | Never written by sub-agents |
+ | `REPORT.md` | `ammo-report-writer` (terminal only) | Authoritative final deliverable |
+@@ -153,7 +153,7 @@
+ The runner starts the Pumice gRPC server for each arm and drives it with Generate waves. Name the runner output with `--round` and `--slot`. Never name the directory yourself.
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+     --artifact-dir {artifact_dir} \
+     --round {N} --slot {SLOT} \
+     [--labels baseline|opt] [other flags...]
+@@ -357,7 +357,7 @@
+ 3. **Ad-hoc `--out-name`** on the bench runner (use `--round` + `--slot`)
+ 4. **`monitor_log_*` at campaign root** — must be under `monitor_audits/`
+ 5. **`validation_results_DRAFT.md`** or similar at track root — use `_scratch/`
+-6. **Nested `kernel_opt_artifacts/` paths** — monitors must receive absolute `output_dir`
++6. **Nested `.ammo/` paths** — monitors must receive absolute `output_dir`
+ 7. **`e2e_latency_opt*`, `e2e_latency_combined/`** at campaign root — use semantic slots
+ 8. **`investigation/`, `runs/`, `monitoring/`** directories at root — not part of the layout; the Root Layout list is complete
+ 9. **Writing nsys traces into sweep output** — traces go to `profiling/nsys/`, not `sweeps/*/nsys/`
+diff -ru pre/references/audit-invariants.md post/references/audit-invariants.md
+--- pre/references/audit-invariants.md	2026-09-23 21:38:57
++++ post/references/audit-invariants.md	2026-10-28 15:04:29
+@@ -177,7 +177,7 @@
+ 
+ ## Mechanical Authorities
+ 
+-- schema and state transitions: `.claude/schemas/state.schema.json`,
++- schema and state transitions: `schemas/state.schema.json`,
+   `scripts/transitions.json`, and `scripts/ammo_state.py`
+ - structured validation: `scripts/reconcile_track_state.py` and
+   `scripts/verify_validation_gates.py`
+diff -ru pre/references/e2e-latency-guide.md post/references/e2e-latency-guide.md
+--- pre/references/e2e-latency-guide.md	2026-10-02 12:24:23
++++ post/references/e2e-latency-guide.md	2026-10-28 15:04:29
+@@ -55,17 +55,17 @@
+ 
+ ```bash
+ # Stage 1a: Clean E2E baseline (no profiling, authoritative timing)
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} --round 1 --slot baseline --labels baseline \
+   --capture-golden-refs
+ 
+ # Stage 1b: Profiling traces (separate invocation, so the overhead does not pollute the baseline)
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} --round 1 --slot profiling --labels baseline \
+   --nsys-profile --nsys-mode node --warmup-waves 1 --profile-waves 1
+ 
+ # Stage 5: Per-track validation sweep (opt-only vs Stage 1 baseline, isolated cache)
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} --round {N} --slot opt/{op_id} \
+   --labels opt --baseline-from {artifact_dir}/rounds/{N}/sweeps/baseline --fresh-cache
+ 
+@@ -73,12 +73,12 @@
+ # Round >= 2 MUST append `--baseline-from-arm opt` to the command below: the
+ # comparator is then the promoted arm, not the stale pre-SHIP baseline arm of
+ # that directory. Without it the measured delta is cumulative, not incremental.
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} --round {N} --slot integration \
+   --labels opt --baseline-from {artifact_dir}/rounds/{N}/sweeps/baseline --fresh-cache
+ 
+ # Post-SHIP: Golden-refs capture after environment promotion
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} --round {N} --slot golden_capture \
+   --labels baseline --capture-golden-refs
+ ```
+@@ -150,7 +150,7 @@
+ The runner sweeps all buckets in one invocation and launches the server once per label. Pass `--round {N} --slot {SLOT}` so results land in the canonical round-scoped layout:
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} --round {CR} --slot baseline
+ ```
+ 
+diff -ru pre/references/gpu-pool.md post/references/gpu-pool.md
+--- pre/references/gpu-pool.md	2026-09-23 20:17:12
++++ post/references/gpu-pool.md	2026-10-28 15:04:29
+@@ -32,7 +32,7 @@
+ On `pumice-cuda`:
+ 
+ ```bash
+-CVD=$(.venv/bin/python .claude/skills/ammo/scripts/gpu_reservation.py reserve \
++CVD=$(.venv/bin/python scripts/gpu_reservation.py reserve \
+   --num-gpus N --session-id {gpu_session_id} --no-auto-release) && \
+   CUDA_VISIBLE_DEVICES=$CVD <command>
+ ```
+@@ -40,7 +40,7 @@
+ On `pumice-neuron`:
+ 
+ ```bash
+-NVD=$(.venv/bin/python .claude/skills/ammo/scripts/gpu_reservation.py reserve \
++NVD=$(.venv/bin/python scripts/gpu_reservation.py reserve \
+   --num-resources N --session-id {gpu_session_id} --no-auto-release) && \
+   NEURON_VISIBLE_DEVICES=$NVD <engine-or-serving-profile-command>
+ ```
+@@ -56,7 +56,7 @@
+ 
+ If you minted an ad-hoc id, always release it explicitly before returning:
+ 
+-`.venv/bin/python .claude/skills/ammo/scripts/gpu_reservation.py release-session --session-id {gpu_session_id} || true`
++`.venv/bin/python scripts/gpu_reservation.py release-session --session-id {gpu_session_id} || true`
+ 
+ Pass `--lease-hours 2` (or higher) on the reserve call for long sweeps or profiler captures that run >10 min, so a run that legitimately exceeds the **15 min default** lease does not expire mid-run. The script does NOT auto-extend profiler leases.
+ 
+diff -ru pre/references/nsys-profiling-guide.md post/references/nsys-profiling-guide.md
+--- pre/references/nsys-profiling-guide.md	2026-10-02 12:24:23
++++ post/references/nsys-profiling-guide.md	2026-10-28 15:04:29
+@@ -49,7 +49,7 @@
+ Clean baseline, used for all speedup math:
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} \
+   --target-json {artifact_dir}/target.json \
+   --round {N} \
+@@ -61,7 +61,7 @@
+ Bounded nsys capture, used for bottleneck attribution on every CUDA platform:
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} \
+   --target-json {artifact_dir}/target.json \
+   --round {N} \
+@@ -173,7 +173,7 @@
+ Graph diagnostic command:
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} \
+   --target-json {artifact_dir}/target.json \
+   --round {N} \
+diff -ru pre/references/serving-campaign.md post/references/serving-campaign.md
+--- pre/references/serving-campaign.md	2026-10-02 09:04:41
++++ post/references/serving-campaign.md	2026-10-28 15:04:29
+@@ -31,11 +31,11 @@
+ Inside the server-assigned session:
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/new_target.py \
++.venv/bin/python scripts/new_target.py \
+   --artifact-dir "$ARTIFACT_DIR" --serving-manifest "$SERVING_MANIFEST"
+ ```
+ 
+-For Codex, use the corresponding `.codex/skills/ammo/scripts/` path. The scaffold
++For Codex, use the corresponding `scripts/` path. The scaffold
+ checks assigned runtime, resources, and Neuron LNC. It refuses explicit batch,
+ parallelism, or gate flags alongside a serving manifest. Per-role settings come
+ from the manifest, not the flat legacy TP field. It emits a closed serving state
+@@ -52,7 +52,7 @@
+ gates also apply to serving state. Add evidence with:
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/ammo_state.py serving-sync \
++.venv/bin/python scripts/ammo_state.py serving-sync \
+   --state "$ARTIFACT_DIR/state.json" --kind baseline --from "$BASELINE_RESULT"
+ ```
+ 
+@@ -151,7 +151,7 @@
+ Use the normal explicit report entry point:
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/generate_validation_report.py \
++.venv/bin/python scripts/generate_validation_report.py \
+   --artifact-dir "$ARTIFACT_DIR" --track OP-001
+ ```
+ 
+diff -ru pre/references/serving-measurement.md post/references/serving-measurement.md
+--- pre/references/serving-measurement.md	2026-10-05 09:13:42
++++ post/references/serving-measurement.md	2026-10-28 15:04:29
+@@ -218,25 +218,25 @@
+ Use the rendered runtime path in the assigned session:
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/run_serving_sweep.py \
++.venv/bin/python scripts/run_serving_sweep.py \
+   --artifact-dir "$ARTIFACT_DIR" --kind baseline --arm "$BASELINE_ARM"
+ 
+-.venv/bin/python .claude/skills/ammo/scripts/run_serving_sweep.py \
++.venv/bin/python scripts/run_serving_sweep.py \
+   --artifact-dir "$ARTIFACT_DIR" --kind promote --result "$BASELINE_RESULT"
+ 
+-.venv/bin/python .claude/skills/ammo/scripts/run_serving_sweep.py \
++.venv/bin/python scripts/run_serving_sweep.py \
+   --artifact-dir "$ARTIFACT_DIR" --kind candidate --arm "$CANDIDATE_ARM" \
+   --round 1 --op-id OP-001
+ 
+-.venv/bin/python .claude/skills/ammo/scripts/run_serving_sweep.py \
++.venv/bin/python scripts/run_serving_sweep.py \
+   --artifact-dir "$ARTIFACT_DIR" --kind integration --arm "$INTEGRATED_ARM" \
+   --composition "$COMPOSITION_JSON" --round 1 --op-id combined
+ 
+-.venv/bin/python .claude/skills/ammo/scripts/run_serving_sweep.py \
++.venv/bin/python scripts/run_serving_sweep.py \
+   --artifact-dir "$ARTIFACT_DIR" --kind verify \
+   --result "$INTEGRATION_RESULT" --against "$EXACT_PREVIOUS_RESULT"
+ 
+-.venv/bin/python .claude/skills/ammo/scripts/run_serving_sweep.py \
++.venv/bin/python scripts/run_serving_sweep.py \
+   --artifact-dir "$ARTIFACT_DIR" --kind promote --result "$INTEGRATION_RESULT" \
+   --expected-incumbent "$EXPECTED_EVIDENCE_SHA256"
+ ```
+diff -ru pre/references/validation-defaults.md post/references/validation-defaults.md
+--- pre/references/validation-defaults.md	2026-10-02 12:24:23
++++ post/references/validation-defaults.md	2026-10-28 15:04:29
+@@ -318,7 +318,7 @@
+ On CUDA, Nsys is normally sufficient for path, launch, graph, and timeline claims. Use NCU or another detailed profiler only when a load-bearing claim needs counters or launch-resource details. Run profiling separately from the clean E2E sweep; the standard Nsys capture is:
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py \
++.venv/bin/python scripts/run_pumice_grpc_bench.py \
+   --artifact-dir {artifact_dir} --round {N} --slot opt_profiling/{op_id} --labels opt \
+   --nsys-profile --nsys-mode node \
+   --warmup-waves 1 --profile-waves 1
+diff -ru pre/references/workload-invocation.md post/references/workload-invocation.md
+--- pre/references/workload-invocation.md	2026-10-02 19:08:11
++++ post/references/workload-invocation.md	2026-10-28 15:04:29
+@@ -51,8 +51,8 @@
+ ## Canonical Invocation
+ 
+ ```bash
+-.venv/bin/python .claude/skills/ammo/scripts/new_target.py \
+-  --artifact-dir kernel_opt_artifacts/{model}_{hardware}_{dtype}_tp{tp} \
++.venv/bin/python scripts/new_target.py \
++  --artifact-dir .ammo/{model}_{hardware}_{dtype}_tp{tp} \
+   --model-id <MODEL_ID> --hardware <HW> --dtype <DTYPE> --tp <TP> \
+   [--batch-sizes <BATCH_SIZES>] \
+   [--input-len <INPUT_LEN> --output-len <OUTPUT_LEN>] \
+@@ -207,7 +207,7 @@
+ 
+ ## Pumice Preflight
+ 
+-Run `.venv/bin/python .claude/skills/ammo/scripts/preflight_pumice.py` once at
++Run `.venv/bin/python scripts/preflight_pumice.py` once at
+ campaign start and again after any engine change. It needs no GPU. It checks the
+ proto fields, server flags, and metric names that the runner reads, the
+ `shared/pumice_pins.py` versions when the runner kind is `vllm`, the cmb-api
+diff -ru pre/schemas/state.schema.json post/schemas/state.schema.json
+--- pre/schemas/state.schema.json	2026-10-02 09:04:41
++++ post/schemas/state.schema.json	2026-10-28 15:04:29
+@@ -2,7 +2,7 @@
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "$id": "ammo.campaign.state/v2",
+   "title": "AMMO Campaign State",
+-  "description": "Authoritative schema for kernel_opt_artifacts/state.json. Round-centric hierarchy: all mutable pipeline state lives under campaign.rounds[N]. The validation hook blocks non-conforming writes.",
++  "description": "Authoritative schema for .ammo/<id>/state.json. Round-centric hierarchy: all mutable pipeline state lives under campaign.rounds[N]. The validation hook blocks non-conforming writes.",
+   "type": "object",
+   "required": [
+     "target",
+diff -ru pre/scripts/ammo_state.py post/scripts/ammo_state.py
+--- pre/scripts/ammo_state.py	2026-10-02 09:04:41
++++ post/scripts/ammo_state.py	2026-10-28 15:04:29
+@@ -49,7 +49,7 @@
+ _THIS_DIR = Path(__file__).resolve().parent
+ _TRANSITIONS_PATH = _THIS_DIR / "transitions.json"
+ 
+-_AUDIT_STARTED_SCRIPT = ".claude/skills/ammo/scripts/ammo_state.py"
++_AUDIT_STARTED_SCRIPT = "scripts/ammo_state.py"
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -61,7 +61,7 @@
+ 
+ 
+ def find_schema(start_path):
+-    """Walk up from `start_path` to locate .claude/schemas/state.schema.json,
++    """Walk up from `start_path` to locate schemas/state.schema.json,
+     stopping at a .git boundary — same algorithm as ammo-state-validate.sh.
+     Returns a Path or None.
+     """
+@@ -1079,7 +1079,7 @@
+                 return (
+                     "Audit gate (4-phase audit): transition to %s blocked — "
+                     "audit.%s.passed_at not set in current round. Spawn ammo-auditor "
+-                    "for %s first (see .claude/skills/ammo/orchestration/audit-protocol.md)."
++                    "for %s first (see orchestration/audit-protocol.md)."
+                     % (stage, audit_key, audit_key)
+                 )
+ 
+@@ -1120,7 +1120,7 @@
+                     "%s null/missing on the current round while current_stage=%s. "
+                     "Parse rounds/{N}/mining/bottleneck_analysis.md and write the fields "
+                     "(SKILL.md § FE Metric Enrichment), or run "
+-                    "`.venv/bin/python .claude/skills/ammo/scripts/ammo_state.py backfill "
++                    "`.venv/bin/python scripts/ammo_state.py backfill "
+                     "--state <state.json> --artifact-dir <artifact_dir>`. "
+                     "Writes that do not advance the round past mining are not blocked."
+                     % (", ".join(missing), stage)
+diff -ru pre/scripts/artifact_layout.json post/scripts/artifact_layout.json
+--- pre/scripts/artifact_layout.json	2026-09-25 08:09:08
++++ post/scripts/artifact_layout.json	2026-10-28 15:04:29
+@@ -1,5 +1,5 @@
+ {
+-  "_comment": "Machine-readable AMMO V2 artifact-path manifest. Sole source of the PATH FACTS that references/artifact-layout.md states in prose and that both variants' layout warn hooks enforce. Consumers: .claude/hooks/ammo-artifact-layout-warn.sh and .codex/hooks/post_tool_use_guard.py both derive their allowlist from `slots[].path_template` + `placeholders`; neither restates a path. Judgment (disambiguation rules, prohibited-pattern rationale, resolution order) stays prose in artifact-layout.md. skills/ammo/tests/test_artifact_layout_manifest.py holds doc<->manifest parity.",
++  "_comment": "Machine-readable AMMO V2 artifact-path manifest. Sole source of the PATH FACTS that references/artifact-layout.md states in prose and that both variants' layout warn hooks enforce. Consumers: .claude/hooks/ammo-artifact-layout-warn.sh and .codex/hooks/post_tool_use_guard.py both derive their allowlist from `slots[].path_template` + `placeholders`; neither restates a path. Judgment (disambiguation rules, prohibited-pattern rationale, resolution order) stays prose in artifact-layout.md. tests/test_artifact_layout_manifest.py holds doc<->manifest parity.",
+   "version": 1,
+   "doc": "references/artifact-layout.md",
+   "placeholders": {
+@@ -57,7 +57,7 @@
+     },
+     "report_md": {
+       "path_template": "REPORT.md",
+-      "writer": ".claude/agents/ammo-report-writer",
++      "writer": "agents/ammo-report-writer",
+       "gate": null,
+       "is_gate_slot": false,
+       "kind": "authoritative",
+@@ -65,7 +65,7 @@
+     },
+     "report_assets": {
+       "path_template": "report_assets/",
+-      "writer": ".claude/agents/ammo-report-writer",
++      "writer": "agents/ammo-report-writer",
+       "gate": null,
+       "is_gate_slot": false,
+       "kind": "derived",
+@@ -288,7 +288,7 @@
+     },
+     "track_validation_results": {
+       "path_template": "rounds/{N}/tracks/{op_id}/validation_results.md",
+-      "writer": "generate_validation_report.py + .claude/agents/ammo-impl-champion",
++      "writer": "generate_validation_report.py + agents/ammo-impl-champion",
+       "gate": "T9",
+       "is_gate_slot": false,
+       "kind": "authoritative",
+@@ -296,7 +296,7 @@
+     },
+     "track_evidence": {
+       "path_template": "rounds/{N}/tracks/{op_id}/evidence.json",
+-      "writer": "create_evidence_template.py + .claude/agents/ammo-impl-champion",
++      "writer": "create_evidence_template.py + agents/ammo-impl-champion",
+       "gate": null,
+       "is_gate_slot": false,
+       "kind": "authoritative",
+@@ -312,7 +312,7 @@
+     },
+     "track_diff_patch": {
+       "path_template": "rounds/{N}/tracks/{op_id}/diff.patch",
+-      "writer": ".claude/agents/ammo-impl-champion",
++      "writer": "agents/ammo-impl-champion",
+       "gate": null,
+       "is_gate_slot": false,
+       "kind": "authoritative",
+@@ -320,7 +320,7 @@
+     },
+     "track_runtime_pkg_patch": {
+       "path_template": "rounds/{N}/tracks/{op_id}/runtime_pkg.patch",
+-      "writer": ".claude/agents/ammo-impl-champion",
++      "writer": "agents/ammo-impl-champion",
+       "gate": null,
+       "is_gate_slot": false,
+       "kind": "authoritative",
+@@ -328,7 +328,7 @@
+     },
+     "track_validator_tests": {
+       "path_template": "rounds/{N}/tracks/{op_id}/validator_tests/",
+-      "writer": ".claude/agents/ammo-impl-champion",
++      "writer": "agents/ammo-impl-champion",
+       "gate": "5.1a+5.2",
+       "is_gate_slot": false,
+       "kind": "authoritative",
+@@ -344,7 +344,7 @@
+     },
+     "track_scratch": {
+       "path_template": "rounds/{N}/tracks/{op_id}/_scratch/",
+-      "writer": ".claude/agents/ammo-impl-champion",
++      "writer": "agents/ammo-impl-champion",
+       "gate": null,
+       "is_gate_slot": false,
+       "kind": "diagnostic",
+diff -ru pre/scripts/new_target.py post/scripts/new_target.py
+--- pre/scripts/new_target.py	2026-10-02 09:05:56
++++ post/scripts/new_target.py	2026-10-28 15:04:29
+@@ -9,8 +9,8 @@
+ Safety: refuses to overwrite existing files unless --force is provided.
+ 
+ Example:
+-  .venv/bin/python .claude/skills/ammo/scripts/new_target.py \\
+-    --artifact-dir kernel_opt_artifacts/auto_qwen3_l40s_fp8_tp1 \\
++  .venv/bin/python scripts/new_target.py \\
++    --artifact-dir .ammo/auto_qwen3_l40s_fp8_tp1 \\
+     --model-id Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8 \\
+     --hardware L40S --dtype fp8 --tp 1 --ep 1
+ """
+@@ -672,7 +672,7 @@
+ 
+     # Create v2 round-scoped scaffold for round 1.
+     # Spec: docs/superpowers/specs/2026-05-12-ammo-artifact-layout-design.md (§Bootstrap)
+-    # Reference: ai_cli_session/.claude/skills/ammo/references/artifact-layout.md
++    # Reference: references/artifact-layout.md
+     round_dir = artifact_dir / "rounds" / "1"
+     for subdir in (
+         "profiling/nsys",
+diff -ru pre/scripts/preflight_pumice.py post/scripts/preflight_pumice.py
+--- pre/scripts/preflight_pumice.py	2026-09-24 04:02:12
++++ post/scripts/preflight_pumice.py	2026-10-28 15:04:29
+@@ -21,8 +21,8 @@
+ 
+ Usage
+ -----
+-  .venv/bin/python .claude/skills/ammo/scripts/preflight_pumice.py [--verbose]
+-  .venv/bin/python .claude/skills/ammo/scripts/preflight_pumice.py \\
++  .venv/bin/python scripts/preflight_pumice.py [--verbose]
++  .venv/bin/python scripts/preflight_pumice.py \\
+       --model-path /hf/gpt-oss-20b [--verbose]
+ """
+ 
+@@ -151,7 +151,7 @@
+ 
+     Order: ``AMMO_RUNTIME_SOURCE_DIR`` (the server stamps the session
+     worktree), then the current directory and its parents, then the
+-    parents of this script (``<worktree>/.claude/skills/ammo/scripts``).
++    parents of this script (``<worktree>/scripts``).
+     The marker is ``rust_grpc_server.py``, the launcher the runner uses.
+     """
+     marker = "rust_grpc_server.py"
+@@ -193,7 +193,7 @@
+             pins = importlib.import_module("shared.pumice_pins")
+         else:
+             # A session worktree has no shared/ directory (the script sits
+-            # under <worktree>/.claude/skills/ammo/scripts). The image ships
++            # under <worktree>/scripts). The image ships
+             # the same file at /usr/local/share/ammo/pumice_pins.py, which
+             # uid 1000 can read; /app/shared is root-only.
+             pins_file = _installed_pins_file()
+diff -ru pre/scripts/run_vllm_bench_latency_sweep.py post/scripts/run_vllm_bench_latency_sweep.py
+--- pre/scripts/run_vllm_bench_latency_sweep.py	2026-10-02 09:04:41
++++ post/scripts/run_vllm_bench_latency_sweep.py	2026-10-28 15:04:29
+@@ -2695,7 +2695,7 @@
+ # ---------------------------------------------------------------------------
+ #
+ # Spec: docs/superpowers/specs/2026-05-12-ammo-artifact-layout-design.md
+-# Reference: ai_cli_session/.claude/skills/ammo/references/artifact-layout.md
++# Reference: references/artifact-layout.md
+ #
+ # v2 layout is detected by filesystem presence of `rounds/` under
+ # {artifact_dir}. When v2: sweep output goes to rounds/{N}/sweeps/{slot}/,
+diff -ru pre/scripts/transitions.json post/scripts/transitions.json
+--- pre/scripts/transitions.json	2026-08-06 08:13:34
++++ post/scripts/transitions.json	2026-10-28 15:04:29
+@@ -1,5 +1,5 @@
+ {
+-  "_comment": "Declarative AMMO state-machine data consumed by ammo_state.py. Holds STRUCTURE and CONDITIONS only. Schema enums (track/integration/status) and config defaults are NOT duplicated here \u2014 the engine loads those from .claude/schemas/state.schema.json at runtime. Message TEXT lives in ammo_state.py python templates, not here.",
++  "_comment": "Declarative AMMO state-machine data consumed by ammo_state.py. Holds STRUCTURE and CONDITIONS only. Schema enums (track/integration/status) and config defaults are NOT duplicated here \u2014 the engine loads those from schemas/state.schema.json at runtime. Message TEXT lives in ammo_state.py python templates, not here.",
+   "stage_ladder": [
+     "1_baseline",
+     "2_bottleneck_mining",
+diff -ru pre/skills/ammo/SKILL.md post/skills/ammo/SKILL.md
+--- pre/skills/ammo/SKILL.md	2026-10-02 09:04:41
++++ post/skills/ammo/SKILL.md	2026-10-28 15:04:29
+@@ -7,7 +7,7 @@
+ 
+ AMMO is a staged, multi-agent accelerator optimization campaign. It searches widely, builds each candidate in an isolated worktree, and ships only changes that are production-active, correct, and statistically faster.
+ 
+-The Lead Role and stage-dispatch instructions apply to the root orchestrator. Child agents use the shared campaign constraints and their own role assignment. Reading this file does not change a child's role. Role behavior lives in `.claude/agents/`, stage choreography in `orchestration/`, and domain policy in `references/`. Open a linked file when its stage or decision becomes active. Do not preload the whole corpus.
++The Lead Role and stage-dispatch instructions apply to the root orchestrator. Child agents use the shared campaign constraints and their own role assignment. Reading this file does not change a child's role. Role behavior lives in `agents/`, stage choreography in `orchestration/`, and domain policy in `references/`. Open a linked file when its stage or decision becomes active. Do not preload the whole corpus.
+ 
+ ## Operating Principle
+ 
+@@ -16,10 +16,10 @@
+ Every rule has exactly one owning document. Other files may say why or when the rule applies, but they must point to the owner instead of restating the rule. If two documents disagree, the higher one on this list wins:
+ 
+ 1. The user-approved target and policy in `state.json`.
+-2. `.claude/schemas/state.schema.json` and `scripts/transitions.json` for state shape, enums, and legal transitions.
++2. `schemas/state.schema.json` and `scripts/transitions.json` for state shape, enums, and legal transitions.
+ 3. The topical `references/*.md` file.
+ 4. The stage's `orchestration/*.md` file.
+-5. The role's own `.claude/agents/*.md` file.
++5. The role's own `agents/*.md` file.
+ 
+ Record an explicit user override and its scope. Never bend raw evidence to make it look supported. Do not add approval or testing gates. Complete the binding gates; add further tests when a change, failure, or unresolved question requires them.
+ 
+@@ -46,7 +46,7 @@
+ 
+ ## Invocation
+ 
+-Collect every parameter the user gave. Scaffold once with `.venv/bin/python .claude/skills/ammo/scripts/new_target.py`, and omit only the flags the user did not set. `references/workload-invocation.md` owns defaults, workload-matrix handling, `max_num_seqs`, DP/EP semantics, and the canonical command.
++Collect every parameter the user gave. Scaffold once with `.venv/bin/python scripts/new_target.py`, and omit only the flags the user did not set. `references/workload-invocation.md` owns defaults, workload-matrix handling, `max_num_seqs`, DP/EP semantics, and the canonical command.
+ 
+ After scaffolding, `target.json`, `state.json`, and `rounds/{N}/constraints.md` are the frozen target contract. `references/artifact-layout.md` owns artifact paths.
+ 
+@@ -56,13 +56,13 @@
+ 
+ | Stage | Required agents | Required outcome | Detailed authority |
+ |---|---|---|---|
+-| `1_baseline` | lead + fresh `ammo-researcher` | clean production-parity baseline/golden capture and a separate bounded attribution profile | `.claude/agents/ammo-researcher.md`, `references/nsys-profiling-guide.md` |
+-| `2_bottleneck_mining` | lead + `ammo-researcher` | grounded `bottleneck_analysis.md` with `## Technology Landscape`, workload dilution, component shares, and physical bounds | `.claude/agents/ammo-researcher.md`, `references/e2e-delta-math.md` |
++| `1_baseline` | lead + fresh `ammo-researcher` | clean production-parity baseline/golden capture and a separate bounded attribution profile | `agents/ammo-researcher.md`, `references/nsys-profiling-guide.md` |
++| `2_bottleneck_mining` | lead + `ammo-researcher` | grounded `bottleneck_analysis.md` with `## Technology Landscape`, workload dilution, component shares, and physical bounds | `agents/ammo-researcher.md`, `references/e2e-delta-math.md` |
+ | `3_debate` | lead + 2-4 `ammo-champion` | independent candidates, adversarial debate, an eligibility record, and 2-3 winners | `orchestration/debate-protocol.md` |
+ | `4_5_parallel_tracks` | one `ammo-impl-champion` and one paired `ammo-transcript-monitor` per winner | isolated implementation, complete gates, a terminal verdict, durable evidence | `orchestration/parallel-tracks.md` |
+ | `6_integration` | lead; `ammo-resolver` plus independent merge review when required | the exact validated composition, an integration measurement, SHIP or round EXHAUSTED | `orchestration/integration-logic.md` |
+ | `7_campaign_eval` | lead | mechanical continue-or-stop from current opportunity | this file, Stage 7 |
+-| `7b_report` | fresh `ammo-report-writer` + fresh adversarial fact-checker | artifact-grounded `REPORT.md` accepted with `ok:true` | `.claude/agents/ammo-report-writer.md` |
++| `7b_report` | fresh `ammo-report-writer` + fresh adversarial fact-checker | artifact-grounded `REPORT.md` accepted with `ok:true` | `agents/ammo-report-writer.md` |
+ 
+ `ammo-auditor` is mandatory after Stage 1 (`T_AUDIT_S1`), Stage 2 (`T_AUDIT_S2`), Stages 4-5 (`T_AUDIT_S45`), and Stages 6-7 (`T_AUDIT_S67`). Auditors may hand bounded evidence tasks to `ammo-delegate`. `ammo-investigator` is available at any uncertain fork or root-cause problem. The implementation role is registered as `ammo-impl-champion` and the report role as `ammo-report-writer`.
+ 
+@@ -148,7 +148,7 @@
+ 
+ ## State Management
+ 
+-`.claude/schemas/state.schema.json` owns the closed state shape and enums. `scripts/transitions.json` owns legal transitions. Do not restate or invent enum values in prose. Keep these stage values exactly:
++`schemas/state.schema.json` owns the closed state shape and enums. `scripts/transitions.json` owns legal transitions. Do not restate or invent enum values in prose. Keep these stage values exactly:
+ 
+ `1_baseline` -> `2_bottleneck_mining` -> `3_debate` -> `4_5_parallel_tracks` -> `6_integration` -> `7_campaign_eval` -> `7b_report`.
+ 
+diff -ru pre/tests/run_all.sh post/tests/run_all.sh
+--- pre/tests/run_all.sh	2026-08-03 16:41:59
++++ post/tests/run_all.sh	2026-10-28 15:04:29
+@@ -1,6 +1,6 @@
+ #!/bin/bash
+ # AMMO test runner — runs the full local test surface for the skill template:
+-#   1. the pytest suites under skills/ammo/tests/, skills/ammo/eval/tests/, and
++#   1. the pytest suites under tests/, skills/ammo/eval/tests/, and
+ #      skills/ammo/eval/causal/tests/
+ #   2. every bash hook harness under hooks/test-*.sh
+ #
+@@ -10,14 +10,14 @@
+ # uniform signal. The runner prints a per-child line + an aggregate footer and
+ # exits 1 if ANY child failed.
+ #
+-# Usage:  bash .claude/skills/ammo/tests/run_all.sh
++# Usage:  bash tests/run_all.sh
+ set -uo pipefail
+ 
+ # ── Resolve BASE (the .claude dir) from this script's own location ──
+-#    THIS = .../.claude/skills/ammo/tests/run_all.sh  →  BASE = .../.claude
++#    THIS = .../tests/run_all.sh  →  BASE = .../.claude
+ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ BASE="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+-PYTEST_DIR="$BASE/skills/ammo/tests"
++PYTEST_DIR="$BASE/tests"
+ EVAL_TEST_DIR="$BASE/skills/ammo/eval/tests"
+ CAUSAL_TEST_DIR="$BASE/skills/ammo/eval/causal/tests"
+ HOOKS_DIR="$BASE/hooks"
+@@ -50,7 +50,7 @@
+     echo "FAILED: worktree .venv/bin/python not found" >&2
+     exit 1
+ fi
+-run_child "pytest: skills/ammo/tests" "$PYTHON" -m pytest "$PYTEST_DIR" -q
++run_child "pytest: tests" "$PYTHON" -m pytest "$PYTEST_DIR" -q
+ run_child "pytest: skills/ammo/eval/tests" "$PYTHON" -m pytest "$EVAL_TEST_DIR" -q
+ run_child "pytest: skills/ammo/eval/causal/tests" "$PYTHON" -m pytest "$CAUSAL_TEST_DIR" -q
+ 
+diff -ru pre/tests/test_ammo_serving.py post/tests/test_ammo_serving.py
+--- pre/tests/test_ammo_serving.py	2026-10-05 07:51:43
++++ post/tests/test_ammo_serving.py	2026-10-28 15:04:29
+@@ -16,8 +16,8 @@
+ import pytest
+ from pydantic import ValidationError
+ 
+-ROOT = Path(__file__).resolve().parents[2]
+-SCRIPTS = ROOT / 'ai_cli_session' / '_ammo_shared' / 'scripts'
++ROOT = Path(__file__).resolve().parents[1]
++SCRIPTS = ROOT / 'scripts'
+ sys.path.insert(0, str(SCRIPTS))
+ from serving_contract import (Arm, Command, ContractError, ServingSpec, contained,
+                               digest, file_digest, read_json, write_json)
+@@ -616,7 +616,7 @@
+ def test_serving_schema_snapshots_match_models(name, model):
+     schema = model.model_json_schema()
+     schema['$schema'] = 'https://json-schema.org/draft/2020-12/schema'
+-    stored = read_json(ROOT/'ai_cli_session/_ammo_shared/schemas'/name)
++    stored = read_json(ROOT/'schemas'/name)
+     assert stored == schema
+ 
+ 
+diff -ru pre/tests/test_ammo_serving_campaign.py post/tests/test_ammo_serving_campaign.py
+--- pre/tests/test_ammo_serving_campaign.py	2026-10-02 09:04:41
++++ post/tests/test_ammo_serving_campaign.py	2026-10-28 15:04:29
+@@ -12,7 +12,7 @@
+ from jsonschema import Draft202012Validator
+ 
+ # Reuse the explicitly synthetic subprocess driver, not model inference.
+-from tests.unit.test_ammo_serving import (ROOT, source, spec, captured, run_fake, arm_for,
++from test_ammo_serving import (ROOT, source, spec, captured, run_fake, arm_for,
+                               fake_reserve, FakeDeployment, fake_correctness)
+ from serving_contract import Arm, ContractError, ServingSpec, digest, read_json, write_json
+ from serving_evidence import promote, seal, verify_result
+@@ -33,12 +33,12 @@
+ 
+ @pytest.fixture(params=['claude', 'codex'])
+ def engine(request, monkeypatch):
+-    scripts = ROOT / f'ai_cli_session/.{request.param}/skills/ammo/scripts'
++    scripts = ROOT / 'scripts'
+     monkeypatch.syspath_prepend(str(scripts))
+     module = module_at('serving_state_' + request.param, scripts/'ammo_state.py')
+     monkeypatch.setitem(sys.modules, 'ammo_state', module)
+     target = module_at('serving_target_' + request.param, scripts/'new_target.py')
+-    schema = read_json(ROOT / f'ai_cli_session/.{request.param}/schemas/state.schema.json')
++    schema = read_json(ROOT / 'schemas/state.schema.json')
+     return module, target, schema, request.param
+ 
+ 
+@@ -277,7 +277,7 @@
+ def test_batch_cli_overrides_are_rejected_by_serving_scaffold(engine,spec,tmp_path,monkeypatch):
+     _,_,_,variant=engine;manifest=tmp_path/'manifest.json';write_json(manifest,spec.model_dump())
+     monkeypatch.setenv('CUDA_VISIBLE_DEVICES','0,1')
+-    scripts=ROOT/f'ai_cli_session/.{variant}/skills/ammo/scripts'
++    scripts=ROOT/'scripts'
+     result=subprocess.run([sys.executable,str(scripts/'new_target.py'),'--artifact-dir',str(tmp_path/'new'),
+         '--serving-manifest',str(manifest),'--input-len','99'],text=True,capture_output=True)
+     assert result.returncode!=0 and 'batch workload/gate flags' in result.stderr
+@@ -287,7 +287,7 @@
+ def test_serving_scaffold_selects_only_serving_measurement(engine,spec,tmp_path,monkeypatch):
+     _,_,_,variant=engine;manifest=tmp_path/'manifest.json';write_json(manifest,spec.model_dump())
+     monkeypatch.setenv('CUDA_VISIBLE_DEVICES','0,1')
+-    scripts=ROOT/f'ai_cli_session/.{variant}/skills/ammo/scripts'
++    scripts=ROOT/'scripts'
+     result=subprocess.run([sys.executable,str(scripts/'new_target.py'),'--artifact-dir',str(tmp_path/'new'),
+         '--serving-manifest',str(manifest),'--hardware','CPU_TEST_ONLY','--gpu-model','CPU_TEST_ONLY'],text=True,capture_output=True)
+     assert result.returncode==0,result.stderr
+diff -ru pre/tests/test_ammo_serving_runtime.py post/tests/test_ammo_serving_runtime.py
+--- pre/tests/test_ammo_serving_runtime.py	2026-10-02 09:04:41
++++ post/tests/test_ammo_serving_runtime.py	2026-10-28 15:04:29
+@@ -10,8 +10,8 @@
+ 
+ import pytest
+ 
+-ROOT = Path(__file__).resolve().parents[2]
+-SCRIPTS = ROOT / 'ai_cli_session/_ammo_shared/scripts'
++ROOT = Path(__file__).resolve().parents[1]
++SCRIPTS = ROOT / 'scripts'
+ sys.path.insert(0, str(SCRIPTS))
+ from serving_contract import ContractError
+ from serving_benchmark_adapter import preserve_request_ids, verify_source
+diff -ru pre/tests/test_ammo_state.py post/tests/test_ammo_state.py
+--- pre/tests/test_ammo_state.py	2026-09-24 03:56:00
++++ post/tests/test_ammo_state.py	2026-10-28 15:04:29
+@@ -135,7 +135,7 @@
+ 
+ 
+ def _write_state(tmp_path, state):
+-    """Write a state.json inside a .claude/schemas-walkable artifact dir."""
++    """Write a state.json inside a schemas-walkable artifact dir."""
+     root = tmp_path
+     (root / ".git").mkdir(parents=True, exist_ok=True)
+     (root / ".claude" / "schemas").mkdir(parents=True, exist_ok=True)
+diff -ru pre/tests/test_audit_started.py post/tests/test_audit_started.py
+--- pre/tests/test_audit_started.py	2026-08-06 08:13:34
++++ post/tests/test_audit_started.py	2026-10-28 15:04:29
+@@ -367,7 +367,7 @@
+     assert "Audit provenance violation" in reason
+     assert "round 1 audit.stage_1" in reason
+     assert "audit-started --artifact-dir <artifact_dir> --stage stage_1 --round 1 --cycle 1" in reason
+-    assert ".claude/skills/ammo/scripts/ammo_state.py" in reason
++    assert "scripts/ammo_state.py" in reason
+ 
+ 
+ def test_backstop_passes_once_started_at_is_present():
+diff -ru pre/tests/test_codex_hook_campaign_resolution.py post/tests/test_codex_hook_campaign_resolution.py
+--- pre/tests/test_codex_hook_campaign_resolution.py	2026-09-26 14:54:13
++++ post/tests/test_codex_hook_campaign_resolution.py	2026-10-28 15:04:29
+@@ -24,8 +24,8 @@
+ 
+ import pytest
+ 
+-ROOT = Path(__file__).resolve().parents[2]
+-CODEX_SRC = ROOT / "ai_cli_session" / ".codex"
++ROOT = Path(__file__).resolve().parents[1]
++CODEX_SRC = ROOT / "codex"
+ SERVER_SESSION = "srv-858af077"
+ CODEX_THREAD = "thr-01a0dd4c"
+ 
+diff -ru pre/tests/test_codex_v1_runtime.py post/tests/test_codex_v1_runtime.py
+--- pre/tests/test_codex_v1_runtime.py	2026-09-23 11:10:39
++++ post/tests/test_codex_v1_runtime.py	2026-10-28 15:04:29
+@@ -14,7 +14,7 @@
+     _hook_repo, _run_hook,
+ )
+ 
+-sys.path.insert(0, str(ROOT / ".codex/skills/ammo/scripts"))
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "codex" / "scripts"))
+ import codex_agent_registry as registry
+ from resolve_codex_transcript import resolve_transcript
+ 
+@@ -129,7 +129,7 @@
+     start = _run_hook("post_tool_use_guard.py", child_payload, env)
+     assert "registration" in start.stdout.lower(), start.stderr
+     pre = {**child_payload, "hook_event_name": "PreToolUse", "tool_name": "Bash",
+-           "tool_input": {"command": "cat .codex/skills/ammo/SKILL.md"}}
++           "tool_input": {"command": "cat skills/ammo/SKILL.md"}}
+     assert '"decision": "block"' not in _run_hook("pre_tool_use_guard.py", pre, env).stdout
+     pre["tool_input"] = {"command": "touch candidate.txt"}
+     assert "registration is pending" in _run_hook("pre_tool_use_guard.py", pre, env).stdout
+@@ -179,6 +179,6 @@
+     repo, _, root, _, env, _ = native
+     env["AMMO_CODEX_AGENT_MODE"] = mode
+     result = _run_hook("session_start.py", {"cwd": str(repo), "session_id": root, "source": source}, env)
+-    guide = (ROOT / f".codex/skills/ammo/references/codex-runtime-{mode}.md").read_text()
++    guide = (ROOT / f"references/codex-runtime-{mode}.md").read_text()
+     context = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+     assert guide in context
+diff -ru pre/tests/test_context_recovery.py post/tests/test_context_recovery.py
+--- pre/tests/test_context_recovery.py	2026-09-23 11:10:39
++++ post/tests/test_context_recovery.py	2026-10-28 15:04:29
+@@ -41,7 +41,7 @@
+     assert str(other) not in context
+     assert "Stage: 1_baseline" in context
+     assert checkpoint.read_bytes() == before
+-    assert (ROOT / ".codex/skills/ammo/SKILL.md").read_text() in context
++    assert (ROOT / "skills/ammo/SKILL.md").read_text() in context
+ 
+ 
+ @pytest.mark.parametrize("live_status,old_status", [
+diff -ru pre/tests/test_env_default_guard_hook.py post/tests/test_env_default_guard_hook.py
+--- pre/tests/test_env_default_guard_hook.py	2026-10-02 12:24:23
++++ post/tests/test_env_default_guard_hook.py	2026-10-28 15:04:29
+@@ -12,8 +12,8 @@
+ 
+ import pytest
+ 
+-ROOT = Path(__file__).parent.parent.parent
+-HOOK = ROOT / "ai_cli_session" / ".claude" / "hooks" / "ammo-env-default-guard.sh"
++ROOT = Path(__file__).resolve().parents[1]
++HOOK = ROOT / "hooks" / "ammo-env-default-guard.sh"
+ SETTINGS = ROOT / "ai_cli_session" / ".claude" / "settings.local.json"
+ 
+ # Environment for the hook subprocess. None means inherit the test env.
+@@ -209,8 +209,8 @@
+ class TestPumiceEnvAllowlistFile:
+     """The seeded allowlist counts are pinned (WS5.1)."""
+ 
+-    ALLOWLIST = ROOT / "ai_cli_session" / "_ammo_shared" / "hooks" / "pumice_env_allowlist.txt"
+-    CLAUDE_COPY = ROOT / "ai_cli_session" / ".claude" / "hooks" / "pumice_env_allowlist.txt"
++    ALLOWLIST = ROOT / "hooks" / "pumice_env_allowlist.txt"
++    CLAUDE_COPY = ROOT / "hooks" / "pumice_env_allowlist.txt"
+     CODEX_COPY = ROOT / "ai_cli_session" / ".codex" / "hooks" / "pumice_env_allowlist.txt"
+ 
+     def _names(self, path):
+@@ -271,7 +271,7 @@
+ 
+     def test_n5_warning_exists_in_pretool_guard(self):
+         """ammo-pretool-guard.sh must contain N5 env contamination warning."""
+-        pretool = ROOT / "ai_cli_session" / ".claude" / "hooks" / "ammo-pretool-guard.sh"
++        pretool = ROOT / "hooks" / "ammo-pretool-guard.sh"
+         content = pretool.read_text()
+         assert "N5" in content, "ammo-pretool-guard.sh must have N5 warning section"
+         assert "VLLM_OP" in content, "N5 section must reference VLLM_OP*"
+diff -ru pre/tests/test_gpu_reservation.py post/tests/test_gpu_reservation.py
+--- pre/tests/test_gpu_reservation.py	2026-08-03 16:41:59
++++ post/tests/test_gpu_reservation.py	2026-10-28 15:04:29
+@@ -2,7 +2,7 @@
+ """Tests for gpu_reservation.py — the foundation GPU reservation module.
+ 
+ Run with:
+-    python -m pytest .claude/skills/ammo/tests/test_gpu_reservation.py -v
++    python -m pytest tests/test_gpu_reservation.py -v
+ """
+ 
+ from __future__ import annotations
+diff -ru pre/tests/test_gpu_reservation_session_id.py post/tests/test_gpu_reservation_session_id.py
+--- pre/tests/test_gpu_reservation_session_id.py	2026-08-03 16:41:59
++++ post/tests/test_gpu_reservation_session_id.py	2026-10-28 15:04:29
+@@ -14,7 +14,7 @@
+ 
+ import pytest
+ 
+-# The module under test. Live at skills/ammo/scripts/; make it importable
++# The module under test. Live at scripts/; make it importable
+ # regardless of the pytest invocation cwd (matches tests/test_sweep_dp.py).
+ _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
+ if str(_SCRIPTS_DIR) not in sys.path:
+diff -ru pre/tests/test_guidance_semantic_contract.py post/tests/test_guidance_semantic_contract.py
+--- pre/tests/test_guidance_semantic_contract.py	2026-09-23 20:17:32
++++ post/tests/test_guidance_semantic_contract.py	2026-10-28 15:04:29
+@@ -3,9 +3,9 @@
+ These tests intentionally assert topology, authority, and machine-facing
+ contracts rather than duplicated prose sentences.
+ 
+-Claude-variant layout: role documents live in `.claude/agents/*.md` (frontmatter
++Claude-variant layout: role documents live in `agents/*.md` (frontmatter
+ IS the runtime registration — there are no bootstrap TOMLs), the schema in
+-`.claude/schemas/`, and the lifecycle guards are shell hooks in `.claude/hooks/`.
++`schemas/`, and the lifecycle guards are shell hooks in `.claude/hooks/`.
+ """
+ 
+ from __future__ import annotations
+@@ -19,12 +19,12 @@
+ 
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+-CLAUDE_DIR = ROOT.parents[1]
++CLAUDE_DIR = ROOT
+ # Shell scripts that guidance may name but that are not hooks: they ship in the
+ # repo docker/ dir and install to /usr/local/bin in the Pumice session images.
+ IMAGE_INSTALLED_SCRIPTS = frozenset({"pumice-stage-native.sh", "install-rust-toolchain.sh"})
+ AGENTS = CLAUDE_DIR / "agents"
+-SKILL = (ROOT / "SKILL.md").read_text(encoding="utf-8")
++SKILL = (ROOT / "skills" / "ammo" / "SKILL.md").read_text(encoding="utf-8")
+ 
+ # Claude keeps the legacy role names for the implementation and report roles.
+ ROLE_TO_AGENT_FILE = {
+@@ -242,7 +242,7 @@
+     # Claude runs the adversarial fact-checker as the report-writer's Stop hook.
+     assert "adversarial fact-checker" in report
+     assert '"ok": true' in report or "ok: true" in report
+-    report_authority = _text("report/SKILL.md")
++    report_authority = _text("skills/ammo-report/SKILL.md")
+     for path in (
+         "rounds/{N}/constraints.md",
+         "rounds/{N}/mining/bottleneck_analysis.md",
+@@ -306,7 +306,7 @@
+ 
+ 
+ def test_retired_hook_names_and_bare_python3_are_absent() -> None:
+-    active = [ROOT / "SKILL.md"]
++    active = [ROOT / "skills" / "ammo" / "SKILL.md"]
+     active += sorted(AGENTS.glob("ammo-*.md"))
+     active += sorted((ROOT / "orchestration").glob("*.md"))
+     active += sorted((ROOT / "references").glob("*.md"))
+@@ -326,7 +326,7 @@
+     # Bare python3 at line start invites system-python vllm imports; guidance
+     # must show the venv-activated form (hook YAML command lines excepted —
+     # they run outside the venv contract).
+-    for path in [ROOT / "SKILL.md"] + sorted((ROOT / "orchestration").glob("*.md")) + sorted(
++    for path in [ROOT / "skills" / "ammo" / "SKILL.md"] + sorted((ROOT / "orchestration").glob("*.md")) + sorted(
+         (ROOT / "references").glob("*.md")
+     ):
+         body = path.read_text(encoding="utf-8")
+@@ -347,18 +347,18 @@
+ 
+ 
+ def test_active_relative_markdown_links_resolve() -> None:
+-    docs = [ROOT / "SKILL.md", ROOT / "report" / "SKILL.md"]
++    docs = [ROOT / "skills" / "ammo" / "SKILL.md", ROOT / "skills" / "ammo-report" / "SKILL.md"]
+     docs += sorted(AGENTS.glob("ammo-*.md"))
+     docs += sorted((ROOT / "orchestration").glob("*.md"))
+     docs += sorted((ROOT / "references").glob("*.md"))
+     pattern = re.compile(r"`((?:orchestration|references)/[^`*]+\.md)`")
+-    agent_pattern = re.compile(r"`\.claude/agents/([^`*]+\.md)`")
++    agent_pattern = re.compile(r"`agents/([^`*]+\.md)`")
+     for doc in docs:
+         body = doc.read_text(encoding="utf-8")
+         for relative in pattern.findall(body):
+             assert (ROOT / relative).is_file(), f"{doc}: {relative}"
+         for agent_file in agent_pattern.findall(body):
+-            assert (AGENTS / agent_file).is_file(), f"{doc}: .claude/agents/{agent_file}"
++            assert (AGENTS / agent_file).is_file(), f"{doc}: agents/{agent_file}"
+ 
+ 
+ def test_stop_guard_blocks_active_campaign_and_requires_report() -> None:
+@@ -617,7 +617,7 @@
+ 
+ 
+ def test_removed_authority_headings_are_not_referenced() -> None:
+-    docs = [ROOT / "SKILL.md"]
++    docs = [ROOT / "skills" / "ammo" / "SKILL.md"]
+     docs += sorted(AGENTS.glob("ammo-*.md"))
+     docs += sorted((ROOT / "orchestration").glob("*.md"))
+     docs += sorted((ROOT / "references").glob("*.md"))
+diff -ru pre/tests/test_hook_cmd_classify_parity.py post/tests/test_hook_cmd_classify_parity.py
+--- pre/tests/test_hook_cmd_classify_parity.py	2026-09-23 20:10:39
++++ post/tests/test_hook_cmd_classify_parity.py	2026-10-28 15:04:29
+@@ -219,7 +219,7 @@
+ _ACCELERATOR: tuple[tuple[str, bool], ...] = (
+     ("python rust_grpc_server.py --model /hf/m --tensor-parallel-size 1", True),
+     ("pumice-server --model /hf/m", True),
+-    ("python .claude/skills/ammo/scripts/run_pumice_grpc_bench.py --artifact-dir d", True),
++    ("python scripts/run_pumice_grpc_bench.py --artifact-dir d", True),
+     ("cargo build --release --manifest-path pumice-rust/Cargo.toml", True),
+     ("CARGO_TARGET_DIR=/x cargo build --release", True),
+     ("python foo.py --no-compile", True),
+diff -ru pre/tests/test_hook_semantics.py post/tests/test_hook_semantics.py
+--- pre/tests/test_hook_semantics.py	2026-09-23 11:10:39
++++ post/tests/test_hook_semantics.py	2026-10-28 15:04:29
+@@ -357,7 +357,7 @@
+     payload = {
+         "cwd": str(repo),
+         "session_id": "sess-test",
+-        "tool_input": {"command": "cat ai_cli_session/.codex/skills/ammo/SKILL.md"},
++        "tool_input": {"command": "cat skills/ammo/SKILL.md"},
+     }
+ 
+     result = _run_hook("pre_tool_use_guard.py", payload, env)
+@@ -374,7 +374,7 @@
+         "cwd": str(repo),
+         "session_id": "sess-test",
+         "tool_input": {
+-            "command": "python ai_cli_session/.claude/skills/ammo/scripts/gpu_reservation.py status"
++            "command": "python scripts/gpu_reservation.py status"
+         },
+     }
+ 
+@@ -394,7 +394,7 @@
+     payload = {
+         "cwd": str(repo),
+         "session_id": "sess-test",
+-        "tool_input": {"command": "python ai_cli_session/.codex/skills/ammo/scripts/run_vllm_bench_latency_sweep.py"},
++        "tool_input": {"command": "python scripts/run_vllm_bench_latency_sweep.py"},
+     }
+ 
+     result = _run_hook("pre_tool_use_guard.py", payload, env)
+@@ -782,7 +782,7 @@
+     assert result.returncode == 0
+     assert "AMMO Optimization Detected" in result.stdout
+     assert "Existing optimization state at" in result.stdout
+-    assert ".codex/skills/ammo/SKILL.md" in result.stdout
++    assert "skills/ammo/SKILL.md" in result.stdout
+     assert "$ammo" not in result.stdout
+ 
+ 
+@@ -1683,7 +1683,7 @@
+     body = json.loads(result.stdout)
+     assert body["decision"] == "block"
+     assert "Subagents may not edit" in body["reason"]
+-    assert ".codex/skills/ammo/references/" in body["reason"]
++    assert "references/" in body["reason"]
+ 
+ 
+ def test_pretool_allows_lead_edits_to_orchestrator_owned_ammo_files(tmp_path):
+@@ -1999,7 +1999,7 @@
+     (other / "state.json").write_text(json.dumps(other_doc), encoding="utf-8")
+     env = _env(repo, active)
+     command = (
+-        "python .codex/skills/ammo/scripts/reconcile_track_state.py "
++        "python scripts/reconcile_track_state.py "
+         f"--artifact-dir {other} --track-id op001 --write"
+     )
+ 
+@@ -2278,7 +2278,7 @@
+     (generated / "state.json").write_text("{}", encoding="utf-8")
+     env = _env(repo, active)
+     command = (
+-        'python ".codex/skills/ammo/scripts/new_target.py" '
++        'python "scripts/new_target.py" '
+         f"--artifact-dir {generated} --min-e2e-improvement -1"
+     )
+ 
+@@ -2299,7 +2299,7 @@
+     state_path.write_text("{}", encoding="utf-8")
+     env = _env(repo, artifact)
+     command = (
+-        'python ".codex/skills/ammo/scripts/ammo_state.py"   set '
++        'python "scripts/ammo_state.py"   set '
+         f'--state "{state_path}" --field campaign.status --value ' + "'\"active\"'"
+     )
+ 
+diff -ru pre/tests/test_mining_invalidated_schema.py post/tests/test_mining_invalidated_schema.py
+--- pre/tests/test_mining_invalidated_schema.py	2026-07-24 09:47:27
++++ post/tests/test_mining_invalidated_schema.py	2026-10-28 15:04:29
+@@ -112,7 +112,7 @@
+ 
+ 
+ def _write_state(tmp_path, state):
+-    """Write a state.json inside a .claude/schemas-walkable artifact dir."""
++    """Write a state.json inside a schemas-walkable artifact dir."""
+     root = tmp_path
+     (root / ".git").mkdir(exist_ok=True)
+     (root / ".claude" / "schemas").mkdir(parents=True, exist_ok=True)
+diff -ru pre/tests/test_preflight_pumice_session.py post/tests/test_preflight_pumice_session.py
+--- pre/tests/test_preflight_pumice_session.py	2026-09-24 03:55:27
++++ post/tests/test_preflight_pumice_session.py	2026-10-28 15:04:29
+@@ -1,7 +1,7 @@
+ """Preflight checks inside a session worktree (found on g6e-cdd, 2026-09-24).
+ 
+ Session b003fb98 ran ``preflight_pumice.py`` from
+-``<worktree>/.claude/skills/ammo/scripts`` and got two spurious FAILs:
++``<worktree>/scripts`` and got two spurious FAILs:
+ 
+ * ``pumice pins``: the worktree has no ``shared/`` directory; the pins file
+   is installed at ``/usr/local/share/ammo/pumice_pins.py``.
+diff -ru pre/tests/test_pumice_pins.py post/tests/test_pumice_pins.py
+--- pre/tests/test_pumice_pins.py	2026-10-02 12:24:23
++++ post/tests/test_pumice_pins.py	2026-10-28 15:04:29
+@@ -6,7 +6,8 @@
+ 
+ import pytest
+ 
+-from shared import pumice_pins
++sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parents[1] / 'scripts'))
++import pumice_pins
+ 
+ 
+ def _fake_version(versions):
+diff -ru pre/tests/test_resolve_codex_transcript.py post/tests/test_resolve_codex_transcript.py
+--- pre/tests/test_resolve_codex_transcript.py	2026-07-24 09:47:27
++++ post/tests/test_resolve_codex_transcript.py	2026-10-28 15:04:29
+@@ -6,7 +6,7 @@
+ 
+ import pytest
+ 
+-SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
++SCRIPTS = Path(__file__).resolve().parent.parent / "codex" / "scripts"
+ if str(SCRIPTS) not in sys.path:
+     sys.path.insert(0, str(SCRIPTS))
+ 
+diff -ru pre/tests/test_worktree_hook.py post/tests/test_worktree_hook.py
+--- pre/tests/test_worktree_hook.py	2026-10-02 12:24:42
++++ post/tests/test_worktree_hook.py	2026-10-28 15:04:29
+@@ -15,7 +15,7 @@
+ def _get_hook_path():
+     """Find the hook script."""
+     paths = [
+-        Path(__file__).parent.parent.parent / "ai_cli_session" / ".claude" / "hooks" / "worktree-create-with-build.sh",
++        Path(__file__).resolve().parents[1] / "hooks" / "worktree-create-with-build.sh",
+         Path("/app/ai_cli_session/.claude/hooks/worktree-create-with-build.sh"),
+     ]
+     for p in paths:
+@@ -27,11 +27,8 @@
+ def _get_codex_create_script_path():
+     """Find the Codex worktree creation helper."""
+     path = (
+-        Path(__file__).parent.parent.parent
+-        / "ai_cli_session"
+-        / ".codex"
+-        / "skills"
+-        / "ammo"
++        Path(__file__).resolve().parents[1]
++        / "codex"
+         / "scripts"
+         / "create_worktree_with_build.sh"
+     )

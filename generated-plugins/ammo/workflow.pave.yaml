@@ -1,0 +1,1314 @@
+# AMMO campaign graph. Hand-written port of the ammo-server AMMO skill
+# (requirements decision 4: stages, audits, and gates 1:1 as nodes; no
+# ceremony removed). Stage node ids are "stage_" + the scripts/transitions.json
+# stage_ladder name, because a PAVE identifier cannot start with a digit
+# (pave-yaml.md section 6). That rule also explains why the ids keep their
+# sequence numbers: they must match the stage values in state.json. Outcome
+# codes are lowercase identifiers; extensions.ammo.outcome_tokens maps each one
+# to the uppercase source token, and each outcome meaning quotes it.
+pave:
+  version: "0.3.0"
+  name: ammo
+  status: delivered
+  purpose: >-
+    Make the frozen production inference target measurably faster on the
+    user's GPU host without breaking correctness: scaffold and preflight
+    one campaign, capture a clean baseline, mine the bottlenecks, debate
+    candidates, build each winner in its own worktree through five binding
+    gates, integrate the exact validated set, and loop round by round until
+    the mechanical stop rule fires, then write a fact-checked report. The
+    live run state is .ammo/<campaign-id>/state.json, governed by
+    schemas/state.schema.json and scripts/transitions.json through
+    scripts/ammo_state.py; this graph governs design and review, and
+    state.json governs a run.
+  entrypoints: [scaffold_target]
+
+  scope:
+    in:
+      - One campaign per invocation, host-local, inside a Pumice checkout at
+        <pumice-checkout>/.ammo/<campaign-id>/.
+      - Batch latency targets and serving targets (target.json.serving) on the
+        pumice-cuda runtime profile.
+      - Every stage, audit, binding gate, and the debate protocol of the
+        source skill, unchanged in meaning.
+    out:
+      - Changing a frozen target parameter without explicit user approval.
+      - Any runtime profile other than pumice-cuda; preflight refuses it.
+      - Building Pumice, its venv, or model weights; the user pre-builds them.
+      - Using a GPU that scripts/gpu_reservation.py did not lease to this
+        campaign, or killing a process the campaign does not own.
+
+  principles:
+    - The lead scaffolds, delegates, moderates, reconciles, updates state, and
+      enforces gates. It never implements an optimization and never judges
+      its own technical claim.
+    - Every user-set parameter is frozen at scaffold (model, hardware, dtype,
+      TP/DP/EP, ISL/OSL, batch sizes, maximum length, serving flags). Repairs
+      inside an approved candidate, including its declared mechanism flags,
+      stay authorized.
+    - Profiler-free timing is authoritative. A profiled run never supplies an
+      official E2E number.
+    - Only production-boundary magnitude enters expected-value ranking. Proxy
+      evidence can show feasibility or a bound, never production E2E magnitude.
+    - >-
+      Every rule has one owning document. When two documents disagree, the
+      higher one wins, in this order: the user-approved target and policy in
+      state.json; schemas/state.schema.json and scripts/transitions.json; the
+      topical references/*.md file; the stage's orchestration/*.md file; the
+      role's own agent file.
+    - Auditors, delegates, and monitors never write campaign evidence. The
+      independent audit is the semantic gate; hook validation is its
+      mechanical backstop.
+    - Stopping is mechanical. Time, difficulty, token use, and "good enough"
+      are never stop reasons (references/validation-defaults.md owns the
+      invalid-stop list).
+    - A serving target (target.json.serving) keeps every stage, role, audit,
+      and gate. references/serving-campaign.md owns its instrument, objective
+      units, evidence paths, and stop check; the batch sweep, serial Amdahl
+      projection, diluted pass, and single-track copy shortcut do not apply.
+    - Escalate to the user only for missing authority or an unrecoverable
+      conflict, never for an ordinary engineering fork; spawn ammo-investigator
+      for an unexplained failure or an unsettled consequential decision.
+
+  roles:
+    lead:
+      purpose: >-
+        The root orchestrator. Scaffolds the target, dispatches every seat,
+        moderates the debate, reconciles track state against primary gate
+        artifacts, writes state.json through scripts/ammo_state.py, runs the
+        mechanical checks, and routes outcomes. Sole writer of state.json and
+        target.json after scaffold.
+      forbidden_effects:
+        - implement or edit an optimization
+        - author a track verdict or an audit verdict
+        - edit evidence to manufacture a pass
+        - use an unreserved GPU or kill a process it does not own
+      independence:
+        - never judges its own technical claim
+    user:
+      purpose: >-
+        Owns the frozen target and policy. Starts the campaign with the target
+        parameters, approves any change to a frozen parameter or approved
+        scope, and may pause the campaign at any time.
+    ammo_researcher:
+      purpose: >-
+        One-shot subagent (agent ammo-researcher, no name). Stage 1 baseline
+        and attribution capture (task_type baseline) and Stage 2 bottleneck
+        mining (task_type mining); owns the mining derivation chain and
+        regenerates tables from primary data on repair.
+    ammo_champion:
+      purpose: >-
+        Named team member (agent ammo-champion). Proposes 2-3 grounded
+        candidates on its own, runs bounded micro-experiments, critiques one
+        rival candidate, and rebuts the critique of its own.
+      independence:
+        - never critiques its own candidate
+        - cannot close a scope objection against its own candidate
+    ammo_impl_champion:
+      purpose: >-
+        Named team member (agent ammo-impl-champion), one per winner, in its
+        own worktree and branch. Implements the selected candidate, runs gates
+        5.1a, 5.2, 5.3a, 5.1b, and 5.3b, and authors the track verdict in
+        validation_results.md. Also removes its own change in an isolated
+        repair worktree when the Stage 6-7 audit rejects a promotion.
+      forbidden_effects:
+        - write state.json
+        - loosen its own gate test to pass it
+    ammo_transcript_monitor:
+      purpose: >-
+        Named team member (agent ammo-transcript-monitor), paired one to one
+        with each impl champion for its full active lifetime. Reviews
+        methodology from the champion transcript and runs cross-track
+        collision checks.
+      forbidden_effects:
+        - implement
+        - author the track verdict
+        - write track or campaign evidence beyond its own monitor_audits record
+    ammo_resolver:
+      purpose: >-
+        One-shot subagent (agent ammo-resolver). Resolves merge conflicts and
+        semantic interactions between accepted tracks at Stage 6 without
+        weakening any track's accepted boundary, fallback, or rollback control.
+    merge_reviewer:
+      purpose: >-
+        A fresh, independent reviewer the lead spawns after every resolver
+        resolution. Challenges dispatch ordering, gate interactions,
+        environment namespace, compile behavior, and the preservation of both
+        tracks before the resolution is committed.
+      independence:
+        - never the resolver whose work it reviews
+    ammo_auditor:
+      purpose: >-
+        One-shot subagent (agent ammo-auditor), fresh for every gate and every
+        re-audit. Writes Phase 1 independent reconstruction from primary
+        evidence before it sees the checklist; the hook then delivers Phase 2;
+        writes the verdict PASS, BLOCKED, or NEEDS_INVESTIGATION.
+      forbidden_effects:
+        - modify source, campaign artifacts, or state.json
+        - read references/audit-invariants.md before Phase 1 is written
+      independence:
+        - never reused across gates or cycles
+        - never repairs its own finding
+    ammo_delegate:
+      purpose: >-
+        One-shot subagent (agent ammo-delegate) for one bounded evidence,
+        profiling, or micro-experiment task. Its answers are evidence for the
+        seat that spawned it to challenge, never verdicts.
+      forbidden_effects:
+        - write campaign evidence
+    ammo_investigator:
+      purpose: >-
+        One-shot subagent (agent ammo-investigator) for an ambiguous result, an
+        unexplained correctness, activation, measurement, or integration
+        failure, or a consequential decision with no established answer. Gets
+        the primary artifacts and one concrete decision question.
+    ammo_report_writer:
+      purpose: >-
+        One-shot subagent (agent ammo-report-writer), fresh at Stage 7b. Builds
+        REPORT.md and report_assets/ from campaign artifacts only and
+        discloses missing or failed evidence.
+    report_fact_checker:
+      purpose: >-
+        The fresh adversarial fact-checker that the report writer's Stop hook
+        runs. Traces every number, attribution, and method in REPORT.md to a
+        campaign artifact and returns ok:true or the list of violations.
+      independence:
+        - never the report writer
+
+  evidence:
+    target_contract:
+      kind: observation
+      produced_by: scaffold_target
+      subject: >-
+        The frozen target: model, hardware, dtype, parallelism, workload
+        matrix, bench runner, gating thresholds, engine root and venv, runtime
+        profile, and the campaign id that every session_id field carries.
+      artifacts:
+        - .ammo/<campaign-id>/target.json
+        - .ammo/<campaign-id>/rounds/1/constraints.md
+        - .ammo/active
+    campaign_state:
+      kind: observation
+      produced_by: scaffold_target
+      subject: >-
+        The live run state. Created at scaffold, then written by the lead at
+        every real transition through scripts/ammo_state.py and validated
+        against schemas/state.schema.json and scripts/transitions.json.
+      artifact: .ammo/<campaign-id>/state.json
+    preflight_record:
+      kind: observation
+      produced_by: preflight_engine
+      subject: >-
+        scripts/preflight_pumice.py exit status and output, the stack
+        fingerprint, the pin check, and the GPU and model-path probes; a
+        failure names each gap.
+      artifacts:
+        - .ammo/<campaign-id>/target.json
+        - .ammo/<campaign-id>/blockers/
+    baseline_capture:
+      kind: observation
+      produced_by: stage_1_baseline
+      subject: >-
+        Profiler-free production E2E baseline per workload bucket plus the
+        GSM8K golden references captured with it.
+      artifact: .ammo/<campaign-id>/rounds/<N>/sweeps/baseline/
+    attribution_profile:
+      kind: observation
+      produced_by: stage_1_baseline
+      subject: >-
+        The bounded attribution capture, separate from the baseline timing:
+        Nsys traces, and NCU data only where a claim needs counters.
+      artifact: .ammo/<campaign-id>/rounds/<N>/profiling/
+    bottleneck_analysis:
+      kind: derivation
+      produced_by: stage_2_bottleneck_mining
+      subject: >-
+        bottleneck_analysis.md with Technology Landscape, workload dilution,
+        component shares, physical bounds, and the mine_trace.py tables; the
+        lead's mining enrichment in state.json derives from it.
+      artifact: .ammo/<campaign-id>/rounds/<N>/mining/
+    debate_record:
+      kind: judgment
+      produced_by: stage_3_debate
+      subject: >-
+        Proposals, eligibility verdicts with op_ids, critiques, rebuttals, any
+        second round, micro-experiments, and the summary derived from state.
+      artifact: .ammo/<campaign-id>/rounds/<N>/debate/
+    selected_candidates_contract:
+      kind: judgment
+      produced_by: stage_3_debate
+      subject: >-
+        The typed campaign.rounds[N].debate.selected_candidates entries and
+        selected_winners: the implementation mandate each track executes.
+      artifact: .ammo/<campaign-id>/state.json
+    track_evidence:
+      kind: observation
+      produced_by: stage_4_5_parallel_tracks
+      subject: >-
+        Per op_id: commits and diff, evidence.json, validation_results.md,
+        gate 5.1a and 5.2 results, the opt, opt_correctness, and opt_profiling
+        sweep slots, and the generated validation_summary.json.
+      artifacts:
+        - .ammo/<campaign-id>/rounds/<N>/tracks/<op_id>/
+        - .ammo/<campaign-id>/rounds/<N>/sweeps/opt/<op_id>/
+        - .ammo/<campaign-id>/rounds/<N>/sweeps/opt_correctness/<op_id>/
+        - .ammo/<campaign-id>/rounds/<N>/sweeps/opt_profiling/<op_id>/
+    monitor_record:
+      kind: judgment
+      produced_by: stage_4_5_parallel_tracks
+      subject: >-
+        The paired monitor's observation log, transcript offsets, terminal
+        summary, and durable intervention records.
+      artifact: .ammo/<campaign-id>/rounds/<N>/tracks/<op_id>/monitor_audits/
+    cohort_gate_report:
+      kind: observation
+      produced_by: audit_s45
+      subject: >-
+        scripts/verify_validation_gates.py output for the whole cohort and the
+        projection-accuracy diagnostics, run by the lead before the S45
+        auditor is dispatched.
+      artifact: .ammo/<campaign-id>/rounds/<N>/validation_gate_report.json
+    integration_result:
+      kind: observation
+      produced_by: stage_6_integration
+      subject: >-
+        The exact validated composition: integration correctness and clean
+        E2E (or the single-pass copy), integration activation profile, the
+        promoted environment contract, and the post-SHIP golden capture.
+      artifacts:
+        - .ammo/<campaign-id>/rounds/<N>/sweeps/integration/
+        - .ammo/<campaign-id>/rounds/<N>/sweeps/integration_profiling/
+        - .ammo/<campaign-id>/rounds/<N>/sweeps/golden_capture/
+    audit_verdict:
+      kind: judgment
+      produced_by: [audit_s1, audit_s2, audit_s45, audit_s67]
+      subject: >-
+        The auditor's verdict file with Phase 1, the hook-delivered Phase 2,
+        reconciliation, and an explicit Overall line; re-audits add
+        _cycle_<C>.
+      artifact: .ammo/<campaign-id>/rounds/<N>/audits/
+    campaign_report:
+      kind: derivation
+      produced_by: stage_7b_report
+      subject: REPORT.md, its charts, and their generator scripts.
+      artifacts:
+        - .ammo/<campaign-id>/REPORT.md
+        - .ammo/<campaign-id>/report_assets/
+    blocker_record:
+      kind: observation
+      produced_by:
+        - preflight_engine
+        - stage_1_baseline
+        - stage_2_bottleneck_mining
+        - stage_3_debate
+        - stage_4_5_parallel_tracks
+        - stage_6_integration
+      subject: A campaign-scoped blocker or escalation with its evidence.
+      artifact: .ammo/<campaign-id>/blockers/
+
+  checks:
+    preflight_passed:
+      style: mechanical
+      question: >-
+        Did scripts/preflight_pumice.py exit 0 against the engine root and
+        model path in target.json, with the runtime profile pumice-cuda, the
+        engine commit and pins matching scripts/pumice_pins.py, pumice and
+        pumice_rust importable from the recorded venv, and at least one GPU
+        visible?
+      evaluated_by: lead
+      on_failure: >-
+        The campaign does not start Stage 1; the lead names every missing item
+        and waits for the user to fix the pre-built engine.
+      on_failure_route: paused_for_user
+    baseline_split_clean:
+      style: mechanical
+      question: >-
+        Did Stage 1 produce two logically separate captures, the profiler-free
+        production E2E baseline with golden references and a separate bounded
+        attribution profile, with no profiler flag on the baseline sweep?
+      evaluated_by: lead
+      on_failure_route: stage_1_baseline
+    audit_s1_passed:
+      style: mechanical
+      question: >-
+        Is audit.stage_1.passed_at recorded with its verdict_file, and does
+        that verdict hold Phase 1, Phase 2, reconciliation, and "Overall:
+        PASS" with no BLOCKING or HIGH finding? scripts/ammo_state.py refuses
+        current_stage 2_bottleneck_mining without it (audit_stage_key_map).
+      evaluated_by: lead
+      on_failure_route: audit_s1
+    audit_s2_passed:
+      style: mechanical
+      question: >-
+        Is audit.stage_2.passed_at recorded with a complete final-PASS verdict
+        file? scripts/ammo_state.py refuses current_stage 3_debate without it,
+        and refuses the post-SHIP move to 7_campaign_eval without it.
+      evaluated_by: lead
+      on_failure_route: audit_s2
+    audit_s45_passed:
+      style: mechanical
+      question: >-
+        Is audit.stage_45.passed_at recorded with a complete final-PASS verdict
+        file, and is every track still terminal (PASS, GATED_PASS, or FAIL)?
+        scripts/ammo_state.py refuses current_stage 6_integration otherwise.
+      evaluated_by: lead
+      on_failure_route: audit_s45
+    audit_s67_passed:
+      style: mechanical
+      question: >-
+        Is audit.stage_67.passed_at recorded with a complete final-PASS verdict
+        file, copied to the canonical stage_67.md? scripts/ammo_state.py
+        refuses current_stage 7_campaign_eval and any terminal status without
+        it.
+      evaluated_by: lead
+      on_failure_route: audit_s67
+    audit_cycle_bound:
+      style: mechanical
+      question: >-
+        Has this gate used fewer than three audit-fix cycles
+        (orchestration/audit-protocol.md, Repair and Re-audit)?
+      evaluated_by: lead
+      on_failure: >-
+        Blockers remain after the bounded loop and no narrower scoped
+        escalation was recorded, so the scope is uncertain and counts as
+        campaign-scoped.
+      on_failure_route: paused_for_user
+    mining_enrichment_recorded:
+      style: mechanical
+      question: >-
+        Does bottleneck_analysis.md carry its required sections, and has the
+        lead written the bottleneck_mining enrichment (top_bottleneck_share_pct,
+        top_component, top_addressable_e2e_pct, amdahl_ceiling, decode_frac,
+        component_breakdown, top_f_e2e_pct) from its structured f_e2e table,
+        or the serving mining record for a serving target?
+      evaluated_by: lead
+      on_failure_route: stage_2_bottleneck_mining
+    debate_warranted:
+      style: mechanical
+      question: >-
+        Is this round NOT a post-SHIP mining round whose fresh
+        top_addressable_e2e_pct is below min_e2e_improvement_pct? Exactly one
+        of this check and post_ship_floor_reached passes.
+      evaluated_by: lead
+    post_ship_floor_reached:
+      style: mechanical
+      question: >-
+        Does this round mine the promoted Stage 6 result of a material SHIP,
+        and is its fresh top_addressable_e2e_pct below
+        campaign.config.min_e2e_improvement_pct (for a serving target, does
+        the serving stop check support STOP)?
+      evaluated_by: lead
+    cohort_contract_met:
+      style: mechanical
+      question: >-
+        Are 2-3 unique winners recorded, do debate.selected_winners and the
+        typed selected_candidates op_ids match exactly, does every entry carry
+        its selection_mode, track_assignment, score_breakdown, obligations,
+        cited evidence, and proposal_file, does the EV identity hold with no
+        newly selected proxy scope, and is the debate roster retired?
+      evaluated_by: lead
+      on_failure_route: stage_3_debate
+    gate_5_1a:
+      style: mechanical
+      question: >-
+        Gate 5.1a: did the champion's plan-derived kernel correctness tests
+        pass at a tolerance justified by engine tests or measured baseline
+        spread (or recorded as not established), with no NaN or Inf and
+        shape and stride parity (gate_5_1a_results.json)?
+      evaluated_by: lead
+      on_failure_route: stage_4_5_parallel_tracks
+    gate_5_1b:
+      style: mechanical
+      question: >-
+        Gate 5.1b, the hard correctness gate: does the clean opt_correctness
+        slot's correctness_verdict.json show optimized GSM8K accuracy at or
+        above baseline accuracy minus the tolerance, against the Stage 1
+        golden references with matching metadata?
+      evaluated_by: lead
+      on_failure_route: stage_4_5_parallel_tracks
+    gate_5_2:
+      style: mechanical
+      question: >-
+        Gate 5.2: is there a reproducible positive delta at the declared
+        production boundary for at least one target bucket, measured under
+        production parity, with every negative bucket explained
+        (gate_5_2_results.json)? A contingent_host_spike also needs its
+        boundary arithmetic to reproduce a pass at the campaign floor.
+      evaluated_by: lead
+      on_failure_route: stage_4_5_parallel_tracks
+    gate_5_3a:
+      style: mechanical
+      question: >-
+        Gate 5.3a: does the separate opt_profiling capture, from a server
+        built from the track worktree (freshness.overridden false), show the
+        declared production activation signature?
+      evaluated_by: lead
+      on_failure_route: stage_4_5_parallel_tracks
+    gate_5_3b:
+      style: mechanical
+      question: >-
+        Gate 5.3b: did the clean opt sweep run only after 5.1b and 5.3a
+        passed, and does scripts/generate_validation_report.py classify it as
+        a passing track? That is one of: the per-BS ladder gives PASS (all
+        PASS or NOISE, at least one significant PASS); GATED_PASS after gating
+        (all PASS or NOISE, at least one bucket at the floor); or the
+        DILUTED_PASS ship path's conditions 0-6 all hold (status PASS,
+        diluted:true).
+      evaluated_by: lead
+      on_failure_route: stage_4_5_parallel_tracks
+    gating_validated:
+      style: mechanical
+      question: >-
+        Did the one gating attempt follow references/impl-track-rules.md
+        (feasibility, crossover probing, dispatch mechanism, flag defaulting
+        off) and re-run the kernel gates and 5.3a, 5.1b, and 5.3b on the
+        gated code?
+      evaluated_by: lead
+      on_failure_route: stage_4_5_parallel_tracks
+    fallback_ladder_exhausted:
+      style: reviewed
+      question: >-
+        Before FAIL, did the champion exhaust every applicable rung of PASS,
+        GATED_PASS, GATING_REQUIRED, RETRY_WITH_CONTINGENCY, the canonical
+        fallback path in references/impl-track-rules.md, and route an
+        unexplained failure to ammo-investigator?
+      evaluated_by: lead
+      on_failure_route: stage_4_5_parallel_tracks
+    track_state_reconciled:
+      style: mechanical
+      question: >-
+        Did the lead run scripts/generate_validation_report.py and
+        scripts/reconcile_track_state.py --write for this op_id, so the
+        state status and verdict agree with the gate files, and does the
+        track keep its champion and monitor pairing record?
+      evaluated_by: lead
+      on_failure_route: stage_4_5_parallel_tracks
+    pre_ship_checks_passed:
+      style: mechanical
+      question: >-
+        Do the pre-SHIP checks pass: no conflict residue, every sweep leg
+        succeeded, state.json is schema-valid, and no per-workload
+        regression?
+      evaluated_by: lead
+      on_failure_route: stage_6_integration
+    exact_composition_validated:
+      style: reviewed
+      question: >-
+        Is the shipped set exactly the set measured in the passing integration
+        run, or one byte-unchanged accepted track on the single-pass
+        short-circuit, or the diluted-track carve-out with its three
+        conditions, and are environment promotion and the golden capture done
+        from that set?
+      evaluated_by: lead
+      on_failure_route: stage_6_integration
+    merge_review_accepted:
+      style: reviewed
+      question: >-
+        When ammo-resolver changed code, did a fresh independent merge
+        reviewer accept the resolution before it was committed? The check
+        passes when no resolver ran.
+      evaluated_by: merge_reviewer
+      on_failure_route: stage_6_integration
+    next_round_opened:
+      style: mechanical
+      question: >-
+        Did scripts/ammo_state.py advance create round N+1 with audit {} at
+        the stage outcome_next_stage names (SHIP to 2_bottleneck_mining,
+        except an all-diluted SHIP which takes the EXHAUSTED route; EXHAUSTED
+        to 3_debate; EXHAUSTED with mining_invalidated:true to
+        2_bottleneck_mining), with the previous round's audit.stage_67 passed
+        and every track of the old cohort terminal?
+      evaluated_by: lead
+      on_failure_route: stage_7_campaign_eval
+    stop_rule_not_met:
+      style: mechanical
+      question: >-
+        Is the still-valid bottleneck_mining.top_addressable_e2e_pct at or
+        above campaign.config.min_e2e_improvement_pct (for a serving target,
+        does the serving stop check fail to support STOP)?
+      evaluated_by: lead
+      on_failure_route: stage_7_campaign_eval
+    stop_rule_met:
+      style: mechanical
+      question: >-
+        Stage 7 stop rule: is the current production baseline's
+        bottleneck_mining.top_addressable_e2e_pct a number below
+        campaign.config.min_e2e_improvement_pct? The value is the largest
+        measured f_e2e x removable_fraction across non-overlapping slices; a
+        material SHIP's pre-promotion mining and invalidated mining never
+        count. For a serving
+        target, the serving stop check in references/serving-campaign.md
+        decides: coverage_complete with known bounds must support STOP, and
+        UNRESOLVED never stops.
+      evaluated_by: lead
+      on_failure: The campaign continues; the lead re-evaluates Stage 7.
+      on_failure_route: stage_7_campaign_eval
+    terminal_token_valid:
+      style: mechanical
+      question: >-
+        Does the terminal token match how the round ended, as
+        scripts/ammo_state.py enforces? campaign_complete needs a SHIP
+        integration status (single_pass, combined, gated_pass) and
+        campaign_exhausted an exhausted or failed one, read from the previous
+        round in a post-SHIP mining round; audit.stage_67 of that round must
+        have passed.
+      evaluated_by: lead
+      on_failure_route: stage_7_campaign_eval
+    roster_drained:
+      style: reviewed
+      question: >-
+        Before the terminal token, did the lead enumerate the roster and drain
+        every remaining teammate per references/shutdown-protocol.md?
+      evaluated_by: lead
+      on_failure_route: stage_7_campaign_eval
+    report_fact_check_ok:
+      style: reviewed
+      question: >-
+        Did a fresh adversarial fact-checker return ok:true for REPORT.md,
+        with every number traced to a campaign artifact and no jargon leak,
+        wrong attribution, or invented method?
+      evaluated_by: report_fact_checker
+      on_failure_route: stage_7b_report
+    status_is_campaign_complete:
+      style: mechanical
+      question: Is state.json campaign.status campaign_complete?
+      evaluated_by: lead
+    status_is_campaign_exhausted:
+      style: mechanical
+      question: Is state.json campaign.status campaign_exhausted?
+      evaluated_by: lead
+
+  nodes:
+    scaffold_target:
+      intent: plan
+      purpose: >-
+        Freeze the target contract once. The lead collects every parameter
+        the user gave, checks the model architecture and GPU family against
+        references/workload-invocation.md, and runs scripts/new_target.py
+        once, omitting only the flags the user did not set. The scaffold
+        mints the campaign id, writes .ammo/<campaign-id>/ with target.json,
+        state.json, and rounds/1/constraints.md, writes the .ammo/active
+        marker, and refuses any runtime profile but pumice-cuda.
+      roles: [lead, user]
+      produces: [target_contract, campaign_state]
+      outcomes:
+        target_frozen:
+          meaning: The target contract and state skeleton exist and validate.
+          required_evidence: [target_contract, campaign_state]
+        target_unsupported:
+          meaning: >-
+            The model, GPU, or runtime profile cannot produce a Stage 1
+            baseline; the lead tells the user and does not scaffold.
+
+    preflight_engine:
+      intent: explore
+      purpose: >-
+        Prove the pre-built engine can run the campaign before any GPU work:
+        engine commit and pins, the cargo build, the venv with pumice and
+        pumice_rust, GPUs, and model access. Fails closed and names each gap.
+      roles: [lead]
+      consumes: [target_contract]
+      produces: [preflight_record]
+      outcomes:
+        engine_ready:
+          meaning: Every preflight item passed.
+          required_evidence: [preflight_record]
+        gap_found:
+          meaning: >-
+            At least one item failed; the lead records each gap under
+            blockers/ and names it to the user, who owns the pre-built engine,
+            venv, weights, and GPUs.
+
+    stage_1_baseline:
+      intent: explore
+      purpose: >-
+        Stage 1 (round 1 only): establish the production-parity ground truth.
+        The lead dispatches a fresh ammo-researcher with task_type baseline,
+        the artifact dir, the round, and the attempt. It runs exactly two
+        logically separate measurements through the target.json bench runner:
+        a profiler-free production E2E baseline with golden references, and a
+        bounded attribution capture with Nsys. The lead then runs the
+        mechanical gate and T_AUDIT_S1.
+      roles: [lead, ammo_researcher, ammo_investigator]
+      consumes: [target_contract, preflight_record]
+      produces: [baseline_capture, attribution_profile]
+      outcomes:
+        baseline_captured:
+          meaning: Both captures landed in their canonical slots.
+          required_evidence: [baseline_capture, attribution_profile]
+        baseline_invalid:
+          meaning: >-
+            A capture failed or is contaminated; the lead fixes the cause and
+            dispatches a fresh researcher attempt.
+        user_authority_needed:
+          meaning: >-
+            Missing authority or an unrecoverable conflict, such as a frozen
+            parameter that cannot produce a baseline.
+
+    audit_s1:
+      intent: review
+      purpose: >-
+        T_AUDIT_S1: a fresh ammo-auditor reconstructs the baseline from
+        primary evidence, then checks the hook-delivered Phase 2 list. The
+        lead verifies the verdict file and records the PASS fields. Every
+        blocker at this gate is campaign-scoped.
+      roles: [lead, ammo_auditor, ammo_delegate, ammo_investigator]
+      consumes: [baseline_capture, attribution_profile, target_contract]
+      produces: [audit_verdict]
+      outcomes:
+        pass:
+          meaning: "PASS: no BLOCKING or HIGH finding remains."
+          required_evidence: [audit_verdict]
+        blocked:
+          meaning: "BLOCKED: at least one BLOCKING finding; repair, then a fresh re-audit."
+        needs_investigation:
+          meaning: >-
+            NEEDS_INVESTIGATION: the lead dispatches a bounded investigator,
+            resolves severity, and re-audits with a fresh auditor.
+        escalated:
+          meaning: >-
+            Blockers remain after three audit-fix cycles; the lead sets
+            campaign.status paused with a campaign-scoped
+            campaign.auditor_escalation.
+
+    stage_2_bottleneck_mining:
+      intent: explore
+      purpose: >-
+        Stage 2: a fresh ammo-researcher with task_type mining mines the
+        production evidence already on disk and never recaptures it. In
+        round 1 that is the Stage 1 baseline and attribution; after a material
+        SHIP, the prior round's Stage 6 integration result plus the
+        attribution evidence that still applies; after invalidated mining, the
+        same measured baseline. It grounds every binding claim in primary
+        artifacts and writes bottleneck_analysis.md; the lead writes the
+        mining enrichment to state.json before advancing.
+      roles: [lead, ammo_researcher, ammo_investigator]
+      consumes: [baseline_capture, attribution_profile, integration_result]
+      produces: [bottleneck_analysis]
+      outcomes:
+        mining_grounded:
+          meaning: bottleneck_analysis.md is complete and grounded in primary artifacts.
+          required_evidence: [bottleneck_analysis]
+        mining_incomplete:
+          meaning: >-
+            The analysis is missing a required section or an ungrounded
+            claim; the researcher regenerates it from primary data.
+        user_authority_needed:
+          meaning: Missing authority or an unrecoverable conflict.
+
+    audit_s2:
+      intent: review
+      purpose: >-
+        T_AUDIT_S2: a fresh ammo-auditor independently confirms that the
+        measured bottleneck, the opportunity math, the code mapping, and the
+        candidate frontier are real before debate, or before the post-SHIP
+        stop check. Every blocker at this gate is campaign-scoped.
+      roles: [lead, ammo_auditor, ammo_delegate, ammo_investigator]
+      consumes: [bottleneck_analysis]
+      produces: [audit_verdict]
+      outcomes:
+        pass:
+          meaning: "PASS: no BLOCKING or HIGH finding remains."
+          required_evidence: [audit_verdict]
+        blocked:
+          meaning: >-
+            BLOCKED: mining findings go to ammo-researcher, which regenerates
+            the tables from primary data; then a fresh re-audit.
+        needs_investigation:
+          meaning: >-
+            NEEDS_INVESTIGATION: a bounded investigator resolves severity,
+            then a fresh re-audit.
+        escalated:
+          meaning: >-
+            Blockers remain after three audit-fix cycles; campaign-scoped
+            pause.
+
+    stage_3_debate:
+      intent: plan
+      purpose: >-
+        Stage 3 (orchestration/debate-protocol.md): 2-4 named ammo-champion
+        teammates propose 2-3 grounded candidates each on their own, with a
+        declaration block and evidence tier and scope; the lead records
+        eligibility and mints op_ids; every candidate gets one critique from a
+        champion who did not propose it and one rebuttal; a second round runs
+        only for a live measurement dispute a bounded experiment can settle.
+        The lead then picks 2-3 winners by EV = P/10 x projected E2E delta
+        with the portfolio rules, writes selected_candidates to state, writes
+        the summary, and retires the debate roster. After EXHAUSTED the round
+        reads exhausted_technologies and needs a genuine mechanism pivot.
+      roles: [lead, ammo_champion, ammo_delegate, ammo_investigator]
+      consumes: [bottleneck_analysis]
+      produces: [debate_record, selected_candidates_contract]
+      outcomes:
+        winners_selected:
+          meaning: 2-3 winners and their typed selected_candidates entries are recorded.
+          required_evidence: [debate_record, selected_candidates_contract]
+        replacement_proposals_needed:
+          meaning: >-
+            Fewer than two champions or candidates survive eligibility, so a
+            critique pairing is impossible; the lead asks the cohort for
+            replacement proposals.
+        user_authority_needed:
+          meaning: Missing authority or an unrecoverable conflict.
+
+    stage_4_5_parallel_tracks:
+      intent: execute
+      purpose: >-
+        Stages 4-5, one run per selected op_id (orchestration/parallel-tracks.md):
+        one ammo-impl-champion in its own worktree and branch and one paired
+        read-only ammo-transcript-monitor. The champion implements the typed
+        mandate and runs gates 5.1a, 5.2, 5.3a, 5.1b, then 5.3b, exhausting
+        fixes and the fallback ladder before FAIL; GATING_REQUIRED runs the
+        one gating attempt. The lead scaffolds evidence.json, reconciles the
+        track entry as artifacts land, and never authors the verdict.
+        DILUTED_PASS is found by scripts/generate_validation_report.py after
+        validation, never targeted.
+      roles:
+        - ammo_impl_champion
+        - ammo_transcript_monitor
+        - lead
+        - ammo_delegate
+        - ammo_investigator
+      instance_per: selected_candidates
+      consumes: [selected_candidates_contract, baseline_capture, bottleneck_analysis]
+      produces: [track_evidence, monitor_record]
+      outcomes:
+        pass:
+          meaning: >-
+            PASS: every gate passed. DILUTED_PASS is this outcome with
+            diluted:true; it contributes measured E2E only.
+          required_evidence: [track_evidence, monitor_record]
+          data_schema:
+            type: object
+            properties:
+              diluted:
+                type: boolean
+        gated_pass:
+          meaning: "GATED_PASS: GATING_REQUIRED resolved by one validated gating attempt."
+          required_evidence: [track_evidence, monitor_record]
+        fail:
+          meaning: "FAIL: authored only after every applicable fix and fallback rung."
+          required_evidence: [track_evidence, monitor_record]
+        gpu_blocked:
+          meaning: >-
+            GPU_BLOCKED: a lead-triage blocker, not a terminal verdict; the
+            track resumes once its GPUs are leased.
+        user_authority_needed:
+          meaning: >-
+            Missing authority or an unrecoverable conflict, such as a change
+            to a frozen parameter.
+
+    audit_s45:
+      intent: review
+      purpose: >-
+        T_AUDIT_S45, once every track is terminal: the lead re-reads every
+        track's primary evidence, resolves consequential monitor findings,
+        runs scripts/verify_validation_gates.py for the cohort and
+        scripts/check_projection_accuracy.py, then dispatches a fresh
+        ammo-auditor. Early per-track partials may only feed evidence; they
+        never render a verdict and are regathered before any re-audit.
+      roles: [lead, ammo_auditor, ammo_delegate, ammo_investigator]
+      consumes: [track_evidence, monitor_record, selected_candidates_contract]
+      produces: [cohort_gate_report, audit_verdict]
+      outcomes:
+        pass:
+          meaning: "PASS: no BLOCKING or HIGH finding remains."
+          required_evidence: [audit_verdict, cohort_gate_report]
+        blocked:
+          meaning: >-
+            BLOCKED: each finding goes to its narrowest fix owner, a track's
+            own champion for a track finding; then a fresh re-audit.
+        needs_investigation:
+          meaning: >-
+            NEEDS_INVESTIGATION: a bounded investigator resolves severity,
+            then a fresh re-audit.
+        tracks_quarantined:
+          meaning: >-
+            After three cycles every blocker names op_ids: those tracks are
+            quarantined as FAIL with an audit_escalation reason, and the
+            surviving scope is audited fresh.
+        escalated:
+          meaning: >-
+            A blocker touches shared baseline, environment, workflow,
+            decision, or campaign evidence, or its scope is uncertain;
+            campaign-scoped pause.
+
+    stage_6_integration:
+      intent: execute
+      purpose: >-
+        Stage 6 (orchestration/integration-logic.md): decide which accepted
+        tracks (PASS or GATED_PASS) ship together and validate that exact
+        composition. No accepted track exhausts the round; one unchanged
+        accepted track takes the single-pass short-circuit; several compatible
+        ones are composed and get full-model correctness, a clean E2E against
+        the right comparator, and activation proof; overlap or ambiguity uses
+        the dominance logic or ammo-resolver with an independent merge review.
+        On SHIP the lead runs the pre-SHIP checks, merges the exact validated
+        change, promotes its environment contract, clears the experimental
+        environment, and refreshes golden references. Also the repair target
+        of the Stage 6-7 audit: a rejected change is removed by its own
+        champion and the remaining scope is remeasured.
+      roles:
+        - lead
+        - ammo_resolver
+        - merge_reviewer
+        - ammo_impl_champion
+        - ammo_investigator
+      consumes: [track_evidence, audit_verdict, baseline_capture]
+      produces: [integration_result]
+      outcomes:
+        ship:
+          meaning: >-
+            SHIP: integration status single_pass, combined, or gated_pass;
+            the exact validated change is promoted.
+          required_evidence: [integration_result]
+        exhausted:
+          meaning: >-
+            EXHAUSTED: no accepted track or no defensible subset remains
+            (integration status exhausted or failed); the round records why
+            each track was rejected.
+        user_authority_needed:
+          meaning: Missing authority or an unrecoverable conflict.
+
+    audit_s67:
+      intent: review
+      purpose: >-
+        T_AUDIT_S67: after a SHIP (merge, environment promotion, golden
+        capture done) or a recorded EXHAUSTED, a fresh ammo-auditor checks the
+        exact integration, the promoted environment, the golden capture, the
+        shipped bookkeeping, and the campaign-evaluation inputs. Until it
+        passes, shipped identities are provisional.
+      roles: [lead, ammo_auditor, ammo_delegate, ammo_investigator]
+      consumes: [integration_result, track_evidence]
+      produces: [audit_verdict]
+      outcomes:
+        pass:
+          meaning: "PASS: no BLOCKING or HIGH finding remains."
+          required_evidence: [audit_verdict]
+        blocked:
+          meaning: >-
+            BLOCKED: the implicated change is removed or repaired and the
+            promoted scope rebuilt and remeasured; then a fresh re-audit.
+        needs_investigation:
+          meaning: >-
+            NEEDS_INVESTIGATION: a bounded investigator resolves severity,
+            then a fresh re-audit.
+        promotion_rejected:
+          meaning: >-
+            After three cycles a track-scoped blocker remains: the lead
+            records it in dropped and integration.final_decision, and the
+            implicated change and environment contract are removed and the
+            scope remeasured before re-audit. Marking the track FAIL is never
+            enough.
+        escalated:
+          meaning: >-
+            Safe attribution or reconstruction is unavailable, or a blocker
+            is campaign-scoped; campaign-scoped pause.
+
+    stage_7_campaign_eval:
+      intent: review
+      purpose: >-
+        Stage 7: autonomous and mechanical continue-or-stop from the current
+        opportunity, with no qualitative judgment. A material SHIP opens the
+        next round at Stage 2 to mine its promoted result. EXHAUSTED, or a
+        SHIP whose shipped tracks are all diluted:true, reuses the still-valid
+        mining, appends exhausted_technologies, and either stops or opens the
+        next round at Stage 3 with a genuine pivot. Mining proven wrong sets
+        mining_invalidated:true with a reason and re-enters Stage 2. Before a
+        terminal token the lead drains every teammate.
+      roles: [lead]
+      consumes: [campaign_state, bottleneck_analysis, integration_result, audit_verdict]
+      outcomes:
+        ship:
+          meaning: >-
+            SHIP (material): next round at 2_bottleneck_mining
+            (outcome_next_stage.SHIP).
+        exhausted:
+          meaning: >-
+            EXHAUSTED, or an all-diluted SHIP, with valid mining at or above
+            the floor: next round at 3_debate (outcome_next_stage.EXHAUSTED).
+        exhausted_mining_invalidated:
+          meaning: >-
+            EXHAUSTED_MINING_INVALIDATED: mining_invalidated:true; next round
+            at 2_bottleneck_mining on the same measured baseline.
+        campaign_complete:
+          meaning: >-
+            campaign_complete: the stop rule fired and the round ended in a
+            SHIP integration status.
+          required_evidence: [campaign_state]
+        campaign_exhausted:
+          meaning: >-
+            campaign_exhausted: the stop rule fired and the round ended
+            EXHAUSTED or failed.
+          required_evidence: [campaign_state]
+
+    stage_7b_report:
+      intent: execute
+      purpose: >-
+        Stage 7b, at campaign_complete or campaign_exhausted (and on resume
+        of a terminal campaign without REPORT.md): a fresh
+        ammo-report-writer builds every factual claim from campaign
+        artifacts, discloses missing or failed evidence, and gets ok:true
+        from a fresh adversarial fact-checker before it returns.
+      roles: [lead, ammo_report_writer, report_fact_checker]
+      consumes: [campaign_state, audit_verdict, integration_result, track_evidence]
+      produces: [campaign_report]
+      outcomes:
+        report_accepted:
+          meaning: REPORT.md exists and the fact-checker returned ok:true.
+          required_evidence: [campaign_report]
+
+  edges:
+    - id: target_frozen_to_preflight
+      from: scaffold_target.target_frozen
+      to: preflight_engine
+    - id: target_unsupported_to_blocked
+      from: scaffold_target.target_unsupported
+      to: blocked
+
+    - id: engine_ready_to_baseline
+      from: preflight_engine.engine_ready
+      to: stage_1_baseline
+      checks: [preflight_passed]
+    - id: preflight_gap_to_pause
+      from: preflight_engine.gap_found
+      to: paused_for_user
+      rationale: >-
+        Fail closed and keep the scaffolded campaign: once the user fixes the
+        gap, resume re-runs preflight.
+
+    - id: baseline_to_audit_s1
+      from: stage_1_baseline.baseline_captured
+      to: audit_s1
+      checks: [baseline_split_clean]
+    - id: baseline_retry
+      from: stage_1_baseline.baseline_invalid
+      to: stage_1_baseline
+    - id: baseline_authority_to_pause
+      from: stage_1_baseline.user_authority_needed
+      to: paused_for_user
+
+    - id: audit_s1_pass_to_mining
+      from: audit_s1.pass
+      to: stage_2_bottleneck_mining
+      checks: [audit_s1_passed]
+    - id: audit_s1_blocked_to_baseline
+      from: audit_s1.blocked
+      to: stage_1_baseline
+      checks: [audit_cycle_bound]
+    - id: audit_s1_investigate
+      from: audit_s1.needs_investigation
+      to: audit_s1
+      checks: [audit_cycle_bound]
+    - id: audit_s1_escalated_to_pause
+      from: audit_s1.escalated
+      to: paused_for_user
+
+    - id: mining_to_audit_s2
+      from: stage_2_bottleneck_mining.mining_grounded
+      to: audit_s2
+      checks: [mining_enrichment_recorded]
+    - id: mining_retry
+      from: stage_2_bottleneck_mining.mining_incomplete
+      to: stage_2_bottleneck_mining
+    - id: mining_authority_to_pause
+      from: stage_2_bottleneck_mining.user_authority_needed
+      to: paused_for_user
+
+    - id: audit_s2_pass_to_debate
+      from: audit_s2.pass
+      to: stage_3_debate
+      checks: [audit_s2_passed, debate_warranted]
+    - id: audit_s2_pass_post_ship_to_eval
+      from: audit_s2.pass
+      to: stage_7_campaign_eval
+      checks: [audit_s2_passed, post_ship_floor_reached]
+      rationale: >-
+        A material SHIP is judged on mining of its promoted result; when that
+        mining is below the floor, Stage 7 closes the campaign from the
+        audited SHIP without a debate.
+    - id: audit_s2_blocked_to_mining
+      from: audit_s2.blocked
+      to: stage_2_bottleneck_mining
+      checks: [audit_cycle_bound]
+    - id: audit_s2_investigate
+      from: audit_s2.needs_investigation
+      to: audit_s2
+      checks: [audit_cycle_bound]
+    - id: audit_s2_escalated_to_pause
+      from: audit_s2.escalated
+      to: paused_for_user
+
+    - id: winners_fan_out_to_tracks
+      from: stage_3_debate.winners_selected
+      to:
+        fan_out: stage_4_5_parallel_tracks
+        for_each: selected_candidates
+      checks: [cohort_contract_met]
+      rationale: >-
+        One isolated track per winner, keyed by its raw op_id; the champion
+        and its monitor are both roles of that one track run.
+    - id: debate_replacement_proposals
+      from: stage_3_debate.replacement_proposals_needed
+      to: stage_3_debate
+    - id: debate_authority_to_pause
+      from: stage_3_debate.user_authority_needed
+      to: paused_for_user
+
+    - id: track_pass_to_join
+      from: stage_4_5_parallel_tracks.pass
+      to: all_tracks_terminal
+      checks: [gate_5_1a, gate_5_2, gate_5_3a, gate_5_1b, gate_5_3b, track_state_reconciled]
+    - id: track_gated_pass_to_join
+      from: stage_4_5_parallel_tracks.gated_pass
+      to: all_tracks_terminal
+      checks: [gating_validated, gate_5_1a, gate_5_2, gate_5_3a, gate_5_1b, gate_5_3b, track_state_reconciled]
+    - id: track_fail_to_join
+      from: stage_4_5_parallel_tracks.fail
+      to: all_tracks_terminal
+      checks: [fallback_ladder_exhausted, track_state_reconciled]
+    - id: track_gpu_blocked_retry
+      from: stage_4_5_parallel_tracks.gpu_blocked
+      to: stage_4_5_parallel_tracks
+      rationale: The lead triages the lease; the same op_id track resumes.
+    - id: track_authority_to_pause
+      from: stage_4_5_parallel_tracks.user_authority_needed
+      to: paused_for_user
+
+    - id: audit_s45_pass_to_integration
+      from: audit_s45.pass
+      to: stage_6_integration
+      checks: [audit_s45_passed]
+    - id: audit_s45_blocked_to_track_repair
+      from: audit_s45.blocked
+      to:
+        fan_out: stage_4_5_parallel_tracks
+        for_each: audit_repair_tracks
+      checks: [audit_cycle_bound]
+      rationale: >-
+        Track findings reopen only the implicated op_ids, which rejoin the
+        cohort barrier. A lead-owned round-level finding is repaired by the
+        lead and reopens no track; with no track implicated the fan-out opens
+        no run, the barrier already holds, and the fresh re-audit follows.
+    - id: audit_s45_investigate
+      from: audit_s45.needs_investigation
+      to: audit_s45
+      checks: [audit_cycle_bound]
+    - id: audit_s45_quarantine_reaudit
+      from: audit_s45.tracks_quarantined
+      to: audit_s45
+    - id: audit_s45_escalated_to_pause
+      from: audit_s45.escalated
+      to: paused_for_user
+
+    - id: ship_to_audit_s67
+      from: stage_6_integration.ship
+      to: audit_s67
+      checks: [pre_ship_checks_passed, exact_composition_validated, merge_review_accepted]
+    - id: exhausted_to_audit_s67
+      from: stage_6_integration.exhausted
+      to: audit_s67
+    - id: integration_authority_to_pause
+      from: stage_6_integration.user_authority_needed
+      to: paused_for_user
+
+    - id: audit_s67_pass_to_eval
+      from: audit_s67.pass
+      to: stage_7_campaign_eval
+      checks: [audit_s67_passed]
+    - id: audit_s67_blocked_to_integration
+      from: audit_s67.blocked
+      to: stage_6_integration
+      checks: [audit_cycle_bound]
+    - id: audit_s67_investigate
+      from: audit_s67.needs_investigation
+      to: audit_s67
+      checks: [audit_cycle_bound]
+    - id: audit_s67_rejection_to_integration
+      from: audit_s67.promotion_rejected
+      to: stage_6_integration
+    - id: audit_s67_escalated_to_pause
+      from: audit_s67.escalated
+      to: paused_for_user
+
+    - id: eval_ship_to_next_round_mining
+      from: stage_7_campaign_eval.ship
+      to: stage_2_bottleneck_mining
+      checks: [next_round_opened]
+    - id: eval_exhausted_to_next_round_debate
+      from: stage_7_campaign_eval.exhausted
+      to: stage_3_debate
+      checks: [stop_rule_not_met, next_round_opened]
+    - id: eval_mining_invalidated_to_mining
+      from: stage_7_campaign_eval.exhausted_mining_invalidated
+      to: stage_2_bottleneck_mining
+      checks: [next_round_opened]
+    - id: eval_complete_to_report
+      from: stage_7_campaign_eval.campaign_complete
+      to: stage_7b_report
+      checks: [stop_rule_met, terminal_token_valid, roster_drained]
+    - id: eval_exhausted_stop_to_report
+      from: stage_7_campaign_eval.campaign_exhausted
+      to: stage_7b_report
+      checks: [stop_rule_met, terminal_token_valid, roster_drained]
+
+    - id: report_to_campaign_complete
+      from: stage_7b_report.report_accepted
+      to: campaign_complete
+      checks: [report_fact_check_ok, status_is_campaign_complete]
+    - id: report_to_campaign_exhausted
+      from: stage_7b_report.report_accepted
+      to: campaign_exhausted
+      checks: [report_fact_check_ok, status_is_campaign_exhausted]
+
+  control_nodes:
+    all_tracks_terminal:
+      kind: join
+      meaning: >-
+        The Stage 6 barrier: wait until every selected op_id track is PASS,
+        GATED_PASS, or FAIL (GATING_REQUIRED and GPU_BLOCKED are not
+        terminal) and every champion and monitor pairing is reconciled, even
+        when one track looks shippable early.
+      resume_at: audit_s45
+    campaign_complete:
+      kind: terminal
+      meaning: >-
+        The stop rule fired after an audited SHIP, and REPORT.md passed its
+        fact-check.
+      terminal_status: accepted
+    campaign_exhausted:
+      kind: terminal
+      meaning: >-
+        The stop rule fired after an EXHAUSTED or failed round, and REPORT.md
+        passed its fact-check.
+      terminal_status: exhausted
+    blocked:
+      kind: terminal
+      meaning: >-
+        Nothing was scaffolded: the model, GPU, or runtime profile cannot
+        produce a Stage 1 baseline, and the lead told the user why. No
+        campaign state exists, so there is nothing to resume.
+      terminal_status: blocked
+    paused_for_user:
+      kind: pause
+      meaning: >-
+        campaign.status is paused, because the user asked, preflight found a
+        gap in the pre-built engine, an audit escalation found a
+        campaign-scoped blocker, or a stage needs authority only the user
+        holds. State and artifacts are kept and
+        unfinished tracks do not become failures. Resume follows the lead
+        skill's Pause and Resume steps and continues from the last verified
+        gate.
+      resumable: true
+
+  state:
+    required:
+      - workflow_identity
+      - frozen_target
+      - campaign_state
+      - selected_candidates
+      - audit_repair_tracks
+      - active_node_runs
+      - completed_outcomes
+      - evidence_references
+      - traversal_history
+      - open_questions
+      - final_status
+    fields:
+      campaign_state:
+        meaning: >-
+          The live run state: .ammo/<campaign-id>/state.json, shaped by
+          schemas/state.schema.json, moved only along scripts/transitions.json
+          through scripts/ammo_state.py. It holds the stage, round, audit
+          stamps and cycles, per-track verdicts, exhaustion memory, shipped
+          identities, the environment contract, and the cumulative speedup.
+          Graph traversal history is read from it, never kept beside it.
+      frozen_target:
+        meaning: >-
+          target.json and rounds/1/constraints.md as scaffolded. Only the
+          lead's environment promotion on SHIP changes target.json; any other
+          change needs explicit user approval recorded in state.json.
+      selected_candidates:
+        meaning: >-
+          Fan-out collection: campaign.rounds[N].debate.selected_candidates,
+          one typed entry per winner, keyed by its raw op_id. The op_id is the
+          stable identity in state, track keys, agent names, and artifact
+          paths.
+      audit_repair_tracks:
+        meaning: >-
+          Derived per S45 audit cycle from the verdict file: the op_ids its
+          BLOCKING findings implicate. Never stored apart from the verdict.
+          Empty when every finding is lead-owned.
+      final_status:
+        meaning: >-
+          campaign.status campaign_complete or campaign_exhausted (the
+          terminal_statuses in scripts/transitions.json), or paused at a
+          resumable stop. The blocked endpoint has no campaign.status because
+          no campaign was scaffolded.
+    checkpoint:
+      after_every_consequential_transition: true
+
+  completion:
+    acceptance: >-
+      campaign_complete: the mechanical stop rule fired after an audited SHIP,
+      the cumulative speedup is the direct ratio of the round-1 baseline
+      latency to the current integrated latency, and REPORT.md has ok:true.
+    closure: >-
+      campaign_exhausted: the stop rule fired after an exhausted round, with
+      exhaustion memory recorded and REPORT.md at ok:true; or blocked before
+      scaffold, with the reason named.
+
+  extensions:
+    required: [ammo]
+    ammo:
+      live_state: .ammo/<campaign-id>/state.json
+      state_schema: schemas/state.schema.json
+      transitions: scripts/transitions.json
+      state_engine: scripts/ammo_state.py
+      stage_nodes:
+        1_baseline: stage_1_baseline
+        2_bottleneck_mining: stage_2_bottleneck_mining
+        3_debate: stage_3_debate
+        4_5_parallel_tracks: stage_4_5_parallel_tracks
+        6_integration: stage_6_integration
+        7_campaign_eval: stage_7_campaign_eval
+        7b_report: stage_7b_report
+      audit_nodes:
+        stage_1: audit_s1
+        stage_2: audit_s2
+        stage_45: audit_s45
+        stage_67: audit_s67
+      binding_gates:
+        "5.1a": gate_5_1a
+        "5.1b": gate_5_1b
+        "5.2": gate_5_2
+        "5.3a": gate_5_3a
+        "5.3b": gate_5_3b
+      outcome_tokens:
+        stage_4_5_parallel_tracks.pass: PASS
+        stage_4_5_parallel_tracks.gated_pass: GATED_PASS
+        stage_4_5_parallel_tracks.fail: FAIL
+        stage_4_5_parallel_tracks.gpu_blocked: GPU_BLOCKED
+        stage_6_integration.ship: SHIP
+        stage_6_integration.exhausted: EXHAUSTED
+        stage_7_campaign_eval.ship: SHIP
+        stage_7_campaign_eval.exhausted: EXHAUSTED
+        stage_7_campaign_eval.exhausted_mining_invalidated: EXHAUSTED_MINING_INVALIDATED
+        stage_7_campaign_eval.campaign_complete: campaign_complete
+        stage_7_campaign_eval.campaign_exhausted: campaign_exhausted
+        audit_s1.pass: PASS
+        audit_s1.blocked: BLOCKED
+        audit_s1.needs_investigation: NEEDS_INVESTIGATION
+        audit_s2.pass: PASS
+        audit_s2.blocked: BLOCKED
+        audit_s2.needs_investigation: NEEDS_INVESTIGATION
+        audit_s45.pass: PASS
+        audit_s45.blocked: BLOCKED
+        audit_s45.needs_investigation: NEEDS_INVESTIGATION
+        audit_s67.pass: PASS
+        audit_s67.blocked: BLOCKED
+        audit_s67.needs_investigation: NEEDS_INVESTIGATION
+      diluted_pass: >-
+        DILUTED_PASS is stage_4_5_parallel_tracks.pass with diluted:true
+        (references/validation-defaults.md); there is no separate outcome or
+        status value.

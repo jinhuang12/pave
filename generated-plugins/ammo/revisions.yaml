@@ -1,0 +1,19 @@
+entries:
+- revision: 0
+  kind: graph
+  applied_at: '2026-10-28T18:21:15Z'
+  digest_before: null
+  digest_after: sha256:ca4687d250562775bab77bf8efcd27c92eddcb93bd5dd20381d59803f917a4be
+  semantic_diff: null
+  approval: 'requirements.md decision 4 (2026-10-28): Stages and gates 1:1 as nodes:
+    7 stages, 4 audits, 5 binding gates, debate protocol, report + fact-check. No
+    ceremony removed.'
+  user_only_changes: null
+  plan_evidence: verified
+  usage_evidence: none
+  review: null
+  written_by: null
+  patch: null
+  commit: null
+  derived_from: null
+  run_id: null
