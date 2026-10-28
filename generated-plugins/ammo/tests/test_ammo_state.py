@@ -24,7 +24,7 @@ import pytest
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 _ENGINE = _SCRIPTS_DIR / "ammo_state.py"
-_SCHEMA = Path(__file__).resolve().parents[3] / "schemas" / "state.schema.json"
+_SCHEMA = Path(__file__).resolve().parents[1] / "schemas" / "state.schema.json"
 
 sys.path.insert(0, str(_SCRIPTS_DIR))
 import ammo_state  # noqa: E402
@@ -135,17 +135,39 @@ def _round_skel(round_id, max_rounds=4):
 
 
 def _write_state(tmp_path, state):
-    """Write a state.json inside a schemas-walkable artifact dir."""
+    """Write a state.json in a campaign dir <engine>/.ammo/t (no schema copy:
+    the engine resolves the schema through the plugin)."""
     root = tmp_path
     (root / ".git").mkdir(parents=True, exist_ok=True)
-    (root / ".claude" / "schemas").mkdir(parents=True, exist_ok=True)
-    (root / ".claude" / "schemas" / "state.schema.json").write_text(
-        _SCHEMA.read_text(encoding="utf-8"), encoding="utf-8")
-    art = root / "kernel_opt_artifacts" / "t"
+    art = root / ".ammo" / "t"
     art.mkdir(parents=True, exist_ok=True)
     sp = art / "state.json"
     sp.write_text(json.dumps(state, indent=2), encoding="utf-8")
     return sp
+
+
+class TestSchemaResolution:
+    """The schema ships with the plugin; no walk up from a campaign reaches it."""
+
+    def test_find_schema_returns_the_plugin_schema(self, tmp_path):
+        sp = _write_state(tmp_path, _base_state())
+        assert ammo_state.find_schema(sp) == _SCHEMA
+        assert ammo_state.find_schema(tmp_path / "anywhere") == _SCHEMA
+
+    def test_a_schema_copy_in_the_engine_tree_is_ignored(self, tmp_path):
+        decoy = tmp_path / ".claude" / "schemas" / "state.schema.json"
+        decoy.parent.mkdir(parents=True)
+        decoy.write_text("{}", encoding="utf-8")
+        sp = _write_state(tmp_path, _base_state())
+        assert ammo_state.find_schema(sp) == _SCHEMA
+
+    def test_validate_cli_finds_the_schema_for_a_campaign_state(self, tmp_path):
+        bad = _base_state()
+        bad["campaign"]["status"] = "not-a-status"
+        sp = _write_state(tmp_path, bad)
+        r = _run("validate", "--state", str(sp))
+        assert r.returncode == 1
+        assert "unavailable" not in (r.stdout + r.stderr)
 
 
 def _run(*argv):
@@ -1052,6 +1074,15 @@ class TestMiningContractFormat:
         )
         parsed = ammo_state.parse_mining_md(text)
         assert parsed["top_addressable_e2e_pct"] == pytest.approx(26.07)
+
+    def test_real_campaign_doc_parses_with_its_original_em_dashes(self):
+        """The fixture writes ` - ` where the campaign wrote an em dash (the
+        prose ban, tests/test_prose_bans.py). Restoring them, N/A table cells
+        included, must parse to the same fields."""
+        plain = _REAL_CAMPAIGN_MD.read_text(encoding="utf-8")
+        original = plain.replace(" - ", " \u2014 ")
+        assert original != plain
+        assert ammo_state.parse_mining_md(original) == ammo_state.parse_mining_md(plain)
 
     @pytest.mark.parametrize("times", ["x", "×", "✕", "✖"])
     def test_real_campaign_doc_parses_every_times_style(self, times):

@@ -2,6 +2,10 @@
 # PostToolUse hook — AMMO accelerator pool auto-release.
 # Detects the reservation pattern in completed commands and releases
 # all accelerator resources held by this session.
+#
+# Campaign scope (_find_campaign.sh): outside a campaign the hook exits 0 and
+# prints nothing. The release runs scripts/gpu_reservation.py from this
+# plugin through ammo_python.
 set -euo pipefail
 if ! command -v jq &>/dev/null; then exit 0; fi
 
@@ -11,17 +15,21 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // .input.command // empty'
 
 # Only release for commands that used the reservation pattern.
 # Pre-filter: match `gpu_reservation.py reserve` regardless of path prefix
-# (`python gpu_reservation.py reserve`, `python .claude/.../gpu_reservation.py reserve`, etc.)
+# (`scripts/ammo gpu_reservation.py reserve`, `python /abs/scripts/gpu_reservation.py reserve`, etc.)
 if ! echo "$COMMAND" | grep -Eq 'gpu_reservation\.py[[:space:]]+reserve([[:space:]]|$)'; then
     exit 0
 fi
 
 # Honor --no-auto-release: the reservation is lifecycle-bound, so skip release
 # entirely. Same whole-command containment check as the Codex twin
-# (.codex/hooks/post_tool_use_guard.py _release_reserved_gpus) — keep in parity.
+# (codex/hooks/post_tool_use_guard.py _release_reserved_gpus) — keep in parity.
 if echo "$COMMAND" | grep -qF -- '--no-auto-release'; then
     exit 0
 fi
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
 
 # Extract ALL --session-id values from the command (supports both `--session-id foo`
 # and `--session-id=foo` forms). Bounded char class stops at shell metachars like
@@ -39,17 +47,16 @@ import re, sys
 matches = re.findall(r"--session-id(?:=|\s+)([A-Za-z0-9_.:@/+\-]+)", sys.stdin.read())
 print("\n".join(dict.fromkeys(matches)))
 ' 2>/dev/null) || true
+# No --session-id: the reserve defaulted to AMMO_SESSION_ID (the campaign id,
+# set by _find_campaign), so release that, as the Codex twin does.
 if [ -z "$SESSION_IDS" ]; then
-    SESSION_IDS="${CLAUDE_SESSION_ID:-}"
+    SESSION_IDS="${AMMO_SESSION_ID:-${CLAUDE_SESSION_ID:-}}"
 fi
 [ -z "$SESSION_IDS" ] && exit 0
 
 GPU_RES_DIR="${AMMO_GPU_RES_DIR:-/tmp/ammo_gpu_res}"
 GPU_STATE="$GPU_RES_DIR/state.json"
 [ -f "$GPU_STATE" ] || exit 0
-
-SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" 2>/dev/null && pwd)" || \
-SCRIPTS_DIR="${CLAUDE_PROJECT_DIR:-.}/scripts"
 
 # Audit log — every release attempt is recorded so leak investigations can
 # distinguish "hook never fired" from "hook fired but extraction missed the id".
@@ -63,7 +70,7 @@ mkdir -p "$GPU_RES_DIR"
 while IFS= read -r SID; do
     [ -z "$SID" ] && continue
     printf '%s hook=PostToolUse sid=%s ' "$TS" "$SID" >> "$RELEASE_LOG"
-    if python3 "$SCRIPTS_DIR/gpu_reservation.py" release-session --session-id "$SID" >>"$RELEASE_LOG" 2>&1; then
+    if ammo_python gpu_reservation.py release-session --session-id "$SID" >>"$RELEASE_LOG" 2>&1; then
         printf ' ok\n' >> "$RELEASE_LOG"
     else
         printf ' fail\n' >> "$RELEASE_LOG"

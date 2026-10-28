@@ -26,12 +26,19 @@ SERVE_BLOB = '4d6fdbe22afa6544cd8ae764d26c7e5724463293'
 REQUEST_BLOB = 'db58f422b808c5da81d036556119c30249d5958a'
 # Installed-wheel releases qualified for preserve_request_ids, keyed by the
 # exact vllm.__version__. Values are the git-blob SHA-1s of
-# (vllm/benchmarks/serve.py, vllm/benchmarks/lib/endpoint_request_func.py),
-# measured in the image that ships the wheel. 0.30.0: pumice-cuda-base:local
-# sha256:b6334f8fe2c086f0f4adb0739cc31f92915d2a6ec587ca5eef6b9386327efe63.
+# (vllm/benchmarks/serve.py, vllm/benchmarks/lib/endpoint_request_func.py).
+# This is a pinned wheel digest table, so the release literal is allowed here.
+# 0.32.0 (the release Pumice REQUIRED_VLLM_VERSION names at the plugin's pin):
+# measured 2026-10-28 with `git hash-object` on the installed files and again
+# on the members of vllm-0.32.0-cp38-abi3-manylinux_2_28_x86_64.whl, sha256
+# 5e2ecdc5b0baf72921c288486417ca82778456a448e4fe60b62ee43c0dfc8611, the digest
+# GitHub lists for the v0.32.0 release asset
+# (https://github.com/vllm-project/vllm/releases/tag/v0.32.0). The interface
+# preserve_request_ids wraps (openai request function, request_id header,
+# calculate_metrics outputs, get_request) was checked in that wheel.
 WHEEL_BLOBS = {
-    '0.30.0': ('0292ff939a553fcc78f9048e6e22d95d46633a12',
-               '54c6ce63b0fa5b961fe4887aeff4d9ee5666edb2'),
+    '0.32.0': ('01a0f62aeee2569597696745073a3552d8dc7c3c',
+               '778a4e50d334752bff5be389e60899ad7fba3c8b'),
 }
 
 

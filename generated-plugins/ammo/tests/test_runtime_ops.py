@@ -21,6 +21,16 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 
+#: Every name campaign_paths.campaign_env() can derive (references/campaign-env.md §1).
+_CAMPAIGN_ENV_NAMES = (
+    "AMMO_ARTIFACT_DIR", "AMMO_SESSION_ID", "AMMO_ENGINE_ROOT", "AMMO_RUNTIME_SOURCE_DIR",
+    "AMMO_PYTHON", "CARGO_TARGET_DIR", "AMMO_GPU_RES_DIR", "AMMO_RUNTIME_PROFILE",
+    "AMMO_ACCELERATOR_KIND", "AMMO_TP_SIZE", "AMMO_DP_SIZE", "AMMO_STACK_FINGERPRINT",
+    "AMMO_INSTANCE_FAMILY", "AMMO_ACCELERATOR_NAME", "AMMO_SERVING_SETUP",
+    "AMMO_SERVING_MANIFEST", "AMMO_SERVING_MANIFEST_SHA256",
+)
+
+
 def _vendored_instruction_schema() -> Path:
     for parent in Path(__file__).resolve().parents:
         candidate = (
@@ -593,6 +603,9 @@ def test_neuron_event_normalization_emits_existing_interval_contract(tmp_path):
     ]
 
 
+# The vendored Neuron Explorer schema ships with the Neuron skills bundle, which
+# the plugin does not ship (requirements 13). Neuron paths are not tested in v1.
+@pytest.mark.neuron
 def test_neuron_event_normalization_accepts_vendored_timeline_timestamp_fields():
     from runtime_ops import normalize_neuron_events
 
@@ -763,3 +776,96 @@ def test_neuron_normalization_rejects_type_and_dtype_only_row():
             [{"timestamp": 10, "duration": 5, "type": "cc_op", "dtype": "bf16"}],
             source="cc_ops",
         )
+
+
+# --------------------------------------------------------------------------- CUDA-only gate (conventions §6)
+
+
+@pytest.mark.parametrize("env", [{}, {"AMMO_RUNTIME_PROFILE": ""}, {"AMMO_RUNTIME_PROFILE": " pumice-cuda "}])
+def test_require_supported_profile_accepts_pumice_cuda_and_its_default(env):
+    from runtime_ops import require_supported_profile
+
+    assert require_supported_profile(env=env) == "pumice-cuda"
+
+
+def test_require_supported_profile_accepts_cuda_accelerator_kind():
+    from runtime_ops import require_supported_profile
+
+    env = {"AMMO_RUNTIME_PROFILE": "pumice-cuda", "AMMO_ACCELERATOR_KIND": "cuda"}
+    assert require_supported_profile(env=env) == "pumice-cuda"
+
+
+@pytest.mark.parametrize("profile", ["pumice-neuron", "vllm-cuda", "vllm-neuron", "bogus"])
+def test_require_supported_profile_refuses_every_other_profile(profile):
+    from runtime_ops import require_supported_profile
+
+    with pytest.raises(ValueError) as excinfo:
+        require_supported_profile(env={"AMMO_RUNTIME_PROFILE": profile})
+    assert repr(profile) in str(excinfo.value)
+    assert "pumice-cuda" in str(excinfo.value)
+
+
+def test_require_supported_profile_explicit_argument_wins_over_env():
+    from runtime_ops import require_supported_profile
+
+    env = {"AMMO_RUNTIME_PROFILE": "pumice-cuda"}
+    with pytest.raises(ValueError, match="pumice-neuron"):
+        require_supported_profile("pumice-neuron", env=env)
+    assert require_supported_profile("pumice-cuda", env={"AMMO_RUNTIME_PROFILE": "x"}) == "pumice-cuda"
+
+
+def test_require_supported_profile_refuses_a_non_cuda_accelerator_kind():
+    from runtime_ops import require_supported_profile
+
+    env = {"AMMO_RUNTIME_PROFILE": "pumice-cuda", "AMMO_ACCELERATOR_KIND": "neuron"}
+    with pytest.raises(ValueError, match="AMMO_ACCELERATOR_KIND"):
+        require_supported_profile(env=env)
+
+
+def test_require_supported_profile_reads_os_environ_by_default(monkeypatch):
+    from runtime_ops import require_supported_profile
+
+    monkeypatch.setenv("AMMO_RUNTIME_PROFILE", "pumice-neuron")
+    monkeypatch.delenv("AMMO_ACCELERATOR_KIND", raising=False)
+    with pytest.raises(ValueError):
+        require_supported_profile()
+
+
+def test_fingerprint_cli_fills_campaign_env_through_the_layer(tmp_path, monkeypatch, capsys):
+    """runtime_ops.py fingerprint calls apply_env() first, so a run inside a
+    campaign records the campaign's runtime profile and engine root."""
+    import runtime_ops
+
+    engine = tmp_path / "engine"
+    campaign = engine / ".ammo" / "c1"
+    campaign.mkdir(parents=True)
+    (engine / ".ammo" / "active").write_text("c1\n", encoding="utf-8")
+    (campaign / "target.json").write_text(
+        json.dumps({"runtime": {"profile": "pumice-cuda"}}), encoding="utf-8"
+    )
+    monkeypatch.chdir(engine)
+    monkeypatch.setattr(runtime_ops, "_git_fingerprint", lambda path: None)
+    # apply_env() writes os.environ directly, and monkeypatch.delenv does not
+    # record an absent name, so snapshot the whole mapping and restore it.
+    import os
+
+    saved = dict(os.environ)
+    try:
+        for name in _CAMPAIGN_ENV_NAMES:
+            os.environ.pop(name, None)
+        assert runtime_ops._main(["fingerprint"]) == 0
+        source_dir = os.environ.get("AMMO_RUNTIME_SOURCE_DIR")
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["runtime_profile"] == "pumice-cuda"
+    assert source_dir == str(engine)
+
+
+def test_apply_env_is_the_first_statement_of_main():
+    source = (_SCRIPTS_DIR / "runtime_ops.py").read_text(encoding="utf-8")
+    body = source.split("\ndef _main(", 1)[1].split("\n", 1)[1]
+    first = next(line.strip() for line in body.splitlines() if line.strip())
+    assert first == "campaign_paths.apply_env()"

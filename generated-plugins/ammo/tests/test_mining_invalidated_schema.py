@@ -32,7 +32,7 @@ from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 _ENGINE = _SCRIPTS_DIR / "ammo_state.py"
-_SCHEMA = Path(__file__).resolve().parents[3] / "schemas" / "state.schema.json"
+_SCHEMA = Path(__file__).resolve().parents[1] / "schemas" / "state.schema.json"
 
 sys.path.insert(0, str(_SCRIPTS_DIR))
 import ammo_state  # noqa: E402
@@ -112,13 +112,11 @@ def _audited_round1_state():
 
 
 def _write_state(tmp_path, state):
-    """Write a state.json inside a schemas-walkable artifact dir."""
+    """Write a state.json in a campaign dir <engine>/.ammo/t (the engine
+    resolves the plugin schema)."""
     root = tmp_path
     (root / ".git").mkdir(exist_ok=True)
-    (root / ".claude" / "schemas").mkdir(parents=True, exist_ok=True)
-    (root / ".claude" / "schemas" / "state.schema.json").write_text(
-        _SCHEMA.read_text(encoding="utf-8"), encoding="utf-8")
-    art = root / "kernel_opt_artifacts" / "t"
+    art = root / ".ammo" / "t"
     art.mkdir(parents=True, exist_ok=True)
     sp = art / "state.json"
     sp.write_text(json.dumps(state, indent=2), encoding="utf-8")

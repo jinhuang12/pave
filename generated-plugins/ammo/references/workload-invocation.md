@@ -30,17 +30,21 @@ Pumice does not run every model on every GPU. Check both before you scaffold.
 A bad `--model-id` or `--hardware` gives a target that you cannot measure.
 
 - **Architectures** (HF `architectures[0]`, from `src/pumice/models/registry.py`
-  at Pumice 9d126713): `GptOssForCausalLM`, `Gemma4ForCausalLM`,
+  at the pinned Pumice commit): `GptOssForCausalLM`, `Gemma4ForCausalLM`,
   `Gemma4ForConditionalGeneration`, `DeepseekV4ForCausalLM`,
   `LagunaForCausalLM`, `GlmMoeDsaForCausalLM`. Draft heads:
   `Eagle3ForCausalLM`, `Gemma4AssistantForCausalLM`.
 - **Hardware**: confdb resolves backends per SM family. `sm90` is H100/H200,
   `sm100` is B200 and B300, `sm120` is consumer Blackwell. A model with no
-  section for the family of the GPU fails at server startup. The session
-  image adds an AMMO-local `[sm80]` row for gpt-oss only, so gpt-oss boots on
-  L40S (sm_89). Rows from that host are "harness validation only".
+  section for the family of the GPU fails at server startup. At the pinned
+  commit no confdb file has an `[sm80]` row, so A100 and L40S (sm_80, sm_89)
+  need an AMMO-local `[sm80]` row for the model in the engine checkout. The
+  user adds it and rebuilds before scaffold; agents do not edit the engine
+  base. The only such row today is for gpt-oss (`docker/pumice-sm80-gpt-oss.patch`
+  in the ammo-server repository). Rows from such a host are "harness
+  validation only".
 - **Model path**: pass a plain model directory that holds `config.json`, for
-  example `/hf/gpt-oss-20b`. The Rust loader rejects the HF cache layout.
+  example `<models dir>/gpt-oss-20b`. The Rust loader rejects the HF cache layout.
 - **Neuron** (`pumice-neuron`): the Pumice Neuron registry is llama3, gpt_oss,
   qwen3_moe, and qwen3_vl. TP must be a multiple of the LNC. Spec-decode and
   grammar tracks are off on Neuron.
@@ -51,8 +55,7 @@ Do not scaffold a target that cannot produce a Stage 1 baseline.
 ## Canonical Invocation
 
 ```bash
-.venv/bin/python scripts/new_target.py \
-  --artifact-dir .ammo/{model}_{hardware}_{dtype}_tp{tp} \
+scripts/ammo new_target.py \
   --model-id <MODEL_ID> --hardware <HW> --dtype <DTYPE> --tp <TP> \
   [--batch-sizes <BATCH_SIZES>] \
   [--input-len <INPUT_LEN> --output-len <OUTPUT_LEN>] \
@@ -61,8 +64,14 @@ Do not scaffold a target that cannot produce a Stage 1 baseline.
   [--max-num-batched-tokens <MAX_NUM_BATCHED_TOKENS>] \
   [--isl-osl <ISL:OSL,...>] \
   [--data-parallel-size <DP_SIZE>] \
-  [--enable-expert-parallel]
+  [--enable-expert-parallel] \
+  [--campaign-id <CAMPAIGN_ID>]
 ```
+
+Run it from the root of the Pumice checkout (the engine root). `new_target.py`
+mints the campaign id (`YYYYMMDD-HHMMSS-<6 hex>`) unless `--campaign-id` sets
+it, writes `target.json` and `state.json` under `<engine>/.ammo/<id>/`, and
+points `<engine>/.ammo/active` at it (`references/artifact-layout.md`).
 
 Take `<INPUT_LEN>` and `<OUTPUT_LEN>` from the user's prompt. If the user
 specifies neither, omit both flags; the scaffold then freezes the 64/512
@@ -167,7 +176,8 @@ RESOLVED values in `constraints.md`. Read them from the server log line
 `Backends from confdb`, or resolve them directly:
 
 ```bash
-.venv/bin/python -c "import pumice_rust; print(pumice_rust.resolve_config(['<Arch>'], (9, 0), '<quant>'))"
+# From the engine root, with the engine python (references/campaign-env.md):
+"${AMMO_PYTHON:-.venv/bin/python}" -c "import pumice_rust; print(pumice_rust.resolve_config(['<Arch>'], (9, 0), '<quant>'))"
 ```
 
 A backend change is a confdb edit. A confdb edit is a rebuild-required change;
@@ -207,10 +217,10 @@ includes the lockstep barrier.
 
 ## Pumice Preflight
 
-Run `.venv/bin/python scripts/preflight_pumice.py` once at
+Run `scripts/ammo preflight_pumice.py` once at
 campaign start and again after any engine change. It needs no GPU. It checks the
 proto fields, server flags, and metric names that the runner reads, the
-`shared/pumice_pins.py` versions when the runner kind is `vllm`, the cmb-api
+pinned versions in `scripts/pumice_pins.py` (vLLM only when the runner kind is `vllm`), the cmb-api
 patch in `$CARGO_HOME/config.toml`, and that the model path is a plain
 directory with `config.json`. Exit 1 lists each item to fix before you
 measure.

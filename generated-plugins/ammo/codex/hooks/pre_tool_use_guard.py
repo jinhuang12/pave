@@ -3,46 +3,25 @@ import glob,os,re,stat
 import shlex
 import sys
 from pathlib import Path
-from common import CampaignResolutionError
-from common import is_child_agent_payload, is_v1_session, tool_name_from_payload, v1_agent_binding, v1_registry
+from common import CampaignResolutionError, campaign_for_hook, codex_script_path, plugin_path, script_path
+from common import is_child_agent_payload, is_v1_session, normalize_role, tool_name_from_payload, v1_agent_binding, v1_registry
 from common import active_artifact_dir,additional_context,block_pretool,blocking_monitor_records,command_from_payload,command_invokes_gpu_heavy_tool,command_invokes_vllm_bench_latency,find_repo_root,format_monitor_records,is_ammo_context,is_static_inspection_command,load_json,pending_monitor_pairs,read_stdin_json,record_session_id,session_id_from_payload,spawn_role_and_name,state_session_id,task_names_equivalent
 
-# Always-on session provisioning guard. Install classification is the shared
-# tokenizer in scripts/hook_cmd_classify.py -- the shell hooks and
-# the Codex hooks must deny the same commands, so there is one implementation.
-# It parses shell command positions so path-qualified executables, wrappers,
-# legal global options, and nested `sh -c` forms are denied without matching
-# quoted grep/echo documentation text.
-#
-# Guarded like the re-export in common.py: this hook runs on EVERY tool call, so
-# an unguarded ImportError would replace every PreToolUse verdict with a
-# traceback and disable the whole layer, not just this one guard. Fail-OPEN on a
-# missing classifier -- the same direction ammo-pip-guard.sh declares for the
-# same file -- so the two runtimes still agree when degraded. The pip policy is
-# also carried in AGENTS.md prose and the .venv provisioning path.
-_CLASSIFY_SCRIPTS_DIR=str(Path(__file__).resolve().parents[1]/'skills'/'ammo'/'scripts')
-if _CLASSIFY_SCRIPTS_DIR not in sys.path: sys.path.insert(0,_CLASSIFY_SCRIPTS_DIR)
-try:
-    from hook_cmd_classify import command_installs as _command_installs
-except Exception as _installs_exc:
-    try:
-        sys.stderr.write(
-            'AMMO hooks DEGRADED: install classification unavailable '
-            '('+(str(_installs_exc) or _installs_exc.__class__.__name__)+'). '
-            'The pip/uv install deny is OFF (fail-open, matching '
-            'ammo-pip-guard.sh); every other PreToolUse guard still runs.\n'
-        )
-    except Exception:
-        pass
-    def _command_installs(command,depth=0): return False
-
-p=read_stdin_json(); cmd=command_from_payload(p); repo=find_repo_root(p.get('cwd'))
+# Outside a campaign every Codex hook exits 0 with empty stdout (conventions
+# section 7), so the guards below run only for AMMO campaign work. The
+# package-install deny and the sweep-script .venv guard were dropped with their
+# Claude twins (ammo-pip-guard.sh, ammo-venv-python-guard.sh; section 7 drop
+# list): the two runtimes keep denying the same commands, and the engine python
+# is whatever target.json engine.venv records, not a fixed .venv path.
+p=read_stdin_json()
+if campaign_for_hook(p) is None: raise SystemExit(0)
+cmd=command_from_payload(p); repo=find_repo_root(p.get('cwd'))
 def _guard_v1_identity():
     if not is_v1_session(): return
-    role=str(p.get('agent_type') or p.get('agentType') or '')
+    role=normalize_role(p.get('agent_type') or p.get('agentType'))
     ti=p.get('tool_input') or p.get('toolInput') or {}
     spawning=tool_name_from_payload(p) == 'spawn_agent'
-    spawn_role=str(ti.get('agent_type') or '') if isinstance(ti,dict) else ''
+    spawn_role=normalize_role(ti.get('agent_type')) if isinstance(ti,dict) else ''
     try:
         if is_child_agent_payload(p) and role.startswith('ammo-') and v1_agent_binding(p) is None:
             if cmd and is_static_inspection_command(cmd): return
@@ -64,21 +43,10 @@ except CampaignResolutionError as exc:
     if not is_static_inspection_command(cmd):
         block_pretool(f'AMMO campaign binding must be resolved before mutation: {exc}')
     raise SystemExit(0)
-def _guard_package_installs():
-    if not cmd or os.environ.get('AMMO_ALLOW_PIP') == '1':
-        return
-    if _command_installs(cmd):
-        block_pretool(
-            'BLOCKED: package install/uninstall is forbidden in AMMO sessions. '
-            'The session .venv is pre-provisioned; pip/uv pip mutation can invalidate '
-            'benchmark results. Source .venv/bin/activate instead. Provisioning may '
-            'set AMMO_ALLOW_PIP=1 explicitly.'
-        )
-        raise SystemExit(0)
 def _guard_session_identity_mutation():
     if os.environ.get('AMMO_ALLOW_ANCHOR_MUTATION') == '1': return
     haystack='\n'.join(_payload_texts())
-    if any(name in haystack for name in ('codex_hook_session.json','ammo-agent-registry.json','ammo-agent-registry.lock')) or re.search(
+    if any(name in haystack for name in ('codex_hook_session','ammo-agent-registry.json','ammo-agent-registry.lock')) or re.search(
         r'\b(?:rm|unlink|rmdir|shutil\.rmtree)\b[^\n]*(?:AMMO_GPU_RES_DIR|/tmp/ammo_gpu_res)',
         haystack,
     ):
@@ -153,19 +121,22 @@ def _edit_target_paths():
 def _guard_orchestrator_owned_ammo_files():
     if not _current_is_child_agent():
         return
-    protected=(
-        '/references/',
-        '/orchestration/',
-        '/agents/',
-        '/.codex/agents/',
+    # The plugin's own references/, orchestration/, agents/ and codex/agents/
+    # dirs (one prefix each, never a bare dir name, which would also match the
+    # engine's own references/ or agents/ dirs), plus installed Codex agent
+    # definitions in any .codex/agents/ dir.
+    protected=tuple(
+        os.path.realpath(str(plugin_path(*parts))).rstrip('/')+'/'
+        for parts in (('references',),('orchestration',),('agents',),('codex','agents'))
     )
     for path in _edit_target_paths():
         posix='/' + path.as_posix().lstrip('/')
-        if any(token in posix for token in protected):
+        real=os.path.realpath(str(path))
+        if real.startswith(protected) or '/.codex/agents/' in posix:
             block_pretool(
-                'Subagents may not edit '+str(path)+'. Files under '
-                'references/, orchestration/, '
-                'agents/, and .codex/agents/ are orchestrator-owned. '
+                'Subagents may not edit '+str(path)+'. Files under the AMMO plugin\'s '
+                'references/, orchestration/, agents/ and codex/agents/ ('+str(plugin_path())+'), '
+                'and under .codex/agents/, are orchestrator-owned. '
                 'Surface the proposed change to the lead instead.'
             )
             raise SystemExit(0)
@@ -178,12 +149,12 @@ def _guard_vllm_op_defaults():
 # PUMICE_* engine-env guard (twin of ammo-env-default-guard.sh). Pumice owns its
 # engine env names; on a .py or .rs edit, block a PUMICE_* name that is not on
 # the allowlist (a new engine env) or a default change to an allowlisted name.
-# The allowlist file sits next to this hook (rendered by render_ammo_variants.py).
+# The allowlist is the one the Claude twin reads: <plugin>/hooks/pumice_env_allowlist.txt.
 _PUMICE_ACCESSOR_RE=re.compile(r'getenv|environ|env::var|env::var_os|std::env|env!\s*\(')
 def _pumice_allowlist_names():
     names=set()
     try:
-        for raw in (Path(__file__).resolve().parent/'pumice_env_allowlist.txt').read_text().splitlines():
+        for raw in plugin_path('hooks','pumice_env_allowlist.txt').read_text().splitlines():
             line=raw.strip()
             if not line or line.startswith('#'): continue
             if line.startswith(('PUMICE_','VLLM_')): names.add(line)
@@ -298,32 +269,11 @@ def _guard_worktree_venv():
     detail=' Source '+str(worktree/'.venv'/'bin'/'activate')+' or invoke absolute executables under '+str(worktree/'.venv'/'bin')+'.'
     block_pretool('Python, pytest, pip, and uv commands inside .codex/worktrees must use the worktree virtualenv.'+detail)
     raise SystemExit(0)
-# Engine-dependent sweep/bench/profiling scripts that MUST run under a .venv
-# python: system python has no engine, so a bare invocation wastes a sweep slot
-# (or worse, picks up a wrong install). Fires on ANY cwd — the worktree guard
-# above only covers commands issued from inside .codex/worktrees/.
-_SWEEP_SCRIPTS_RE=r'(?:run_vllm_bench_latency_sweep|run_pumice_grpc_bench|ncu_sanity_driver)\.py'
-def _guard_sweep_script_venv():
-    if not cmd: return
-    if not re.search(r'python(?:\d+(?:\.\d+)?)?\s+\S*'+_SWEEP_SCRIPTS_RE,cmd): return
-    # Allow: an explicit .venv/bin/python prefix (relative or absolute).
-    if re.search(r'\.venv/bin/python(?:\d+(?:\.\d+)?)?\s+\S*'+_SWEEP_SCRIPTS_RE,cmd): return
-    # Allow: source .venv/bin/activate earlier in the command chain.
-    if re.search(r'(?:source|\.)\s+\S*\.venv/bin/activate\s*(?:&&|;)',cmd): return
-    block_pretool(
-        'Engine sweep/bench/profiling scripts must run under the session '
-        'virtualenv — system python has no engine. Use .venv/bin/python '
-        'scripts/run_pumice_grpc_bench.py ... or '
-        'source .venv/bin/activate first.'
-    )
-    raise SystemExit(0)
-_guard_package_installs()
 _guard_session_identity_mutation()
 _guard_vllm_op_defaults()
 _guard_pumice_env()
 _guard_orchestrator_owned_ammo_files()
 _guard_worktree_venv()
-_guard_sweep_script_venv()
 def _guard_monitor_pairing():
     pending_pairs=[record for record in pending_monitor_pairs(repo,p) if record.get('status') == 'pending']
     if not pending_pairs: return
@@ -384,7 +334,7 @@ def _monitor_ack_script_mentioned(command,depth=0):
     if depth > 2: return False
     try: parts=shlex.split(command)
     except ValueError: return False
-    canonical=Path(__file__).resolve().parents[1]/'skills'/'ammo'/'scripts'/'monitor_queue_ack.py'
+    canonical=codex_script_path('monitor_queue_ack.py')
     for token in parts:
         if Path(token).name == 'monitor_queue_ack.py': return True
         try:
@@ -455,7 +405,7 @@ def _is_monitor_ack_command(command,blocking_records):
         script=parts[1]; option_start=2
     else:
         return False
-    canonical=Path(__file__).resolve().parents[1]/'skills'/'ammo'/'scripts'/'monitor_queue_ack.py'
+    canonical=codex_script_path('monitor_queue_ack.py').resolve()
     try:
         if _resolve_monitor_ack_path(script) != canonical: return False
     except Exception:
@@ -557,7 +507,7 @@ if pending:
         first=str(blocking[0].get('_record_id') or '<record_id>')
         queue=str(blocking[0].get('_queue_path') or '<queue_path>')
         sid=record_session_id(blocking[0]) or session_id_from_payload(p,repo) or '<target_session_id>'
-        ack_script=Path(__file__).resolve().parents[1]/'skills'/'ammo'/'scripts'/'monitor_queue_ack.py'
+        ack_script=codex_script_path('monitor_queue_ack.py')
         ack_cmd='/usr/bin/python3 '+shlex.quote(str(ack_script))+' --session-id '+shlex.quote(sid)+' --queue '+shlex.quote(queue)+' --record-id '+shlex.quote(first)+' --note "<what changed or why rebutted>"'
         block_pretool('Pending AMMO monitor intervention requires acknowledgement before the next intercepted tool call.\n'+format_monitor_records(blocking,limit=2)+'\nTo acknowledge after reading, run: '+ack_cmd); raise SystemExit(0)
 if monitor_ack_allowed: raise SystemExit(0)
@@ -567,7 +517,7 @@ if cmd and _monitor_ack_script_mentioned(cmd):
 if not cmd: raise SystemExit(0)
 if not is_ammo_context(cmd,repo,p): raise SystemExit(0)
 if is_static_inspection_command(cmd): raise SystemExit(0)
-if '.claude/skills/ammo' in cmd or '.claude/worktrees' in cmd: block_pretool('Use .codex/skills/ammo and .codex/worktrees, not .claude paths.'); raise SystemExit(0)
+if '.claude/worktrees' in cmd: block_pretool('Use .codex/worktrees, not .claude/worktrees: those are a Claude Code campaign\'s track worktrees.'); raise SystemExit(0)
 warnings=[]
 if command_invokes_vllm_bench_latency(cmd) and 'run_vllm_bench_latency_sweep.py' not in cmd: warnings.append('AMMO reminder: raw vllm bench latency detected. Use run_vllm_bench_latency_sweep.py for official AMMO evidence.')
 def _is_neuron_runtime():
@@ -615,9 +565,9 @@ if command_invokes_gpu_heavy_tool(cmd) and 'gpu_reservation.py' not in cmd and n
         pass
     if first_notice:
         if _is_neuron_runtime():
-            reason='Accelerator-heavy AMMO command detected without reservation. For vLLM or serving-level profiling, use NVD=$(python scripts/gpu_reservation.py reserve --num-resources N) and NEURON_VISIBLE_DEVICES=$NVD. Direct single-process NKI/runtime commands may use the same range as NEURON_RT_VISIBLE_CORES. Empty Neuron visibility is not a no-core sentinel. Use AMMO_ALLOW_UNRESERVED_GPU=1 only with justification. This warning fires only once per session.'
+            reason='Accelerator-heavy AMMO command detected without reservation. For vLLM or serving-level profiling, use NVD=$(python '+shlex.quote(str(script_path('gpu_reservation.py')))+' reserve --num-resources N) and NEURON_VISIBLE_DEVICES=$NVD. Direct single-process NKI/runtime commands may use the same range as NEURON_RT_VISIBLE_CORES. Empty Neuron visibility is not a no-core sentinel. Use AMMO_ALLOW_UNRESERVED_GPU=1 only with justification. This warning fires only once per session.'
         else:
-            reason='GPU-heavy AMMO command detected without reservation. Use gpu_reservation.py reserve, CUDA_VISIBLE_DEVICES="" for explicit no-GPU commands, or AMMO_ALLOW_UNRESERVED_GPU=1 with justification. This warning fires only once per session.'
+            reason='GPU-heavy AMMO command detected without reservation. Use '+str(script_path('gpu_reservation.py'))+' reserve, CUDA_VISIBLE_DEVICES="" for explicit no-GPU commands, or AMMO_ALLOW_UNRESERVED_GPU=1 with justification. This warning fires only once per session.'
         if warnings:
             reason += '\n\n' + '\n'.join(warnings)
         block_pretool(reason)

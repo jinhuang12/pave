@@ -37,6 +37,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Sequence
 
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+import campaign_paths  # noqa: E402
+
 
 CUDA_PROFILE = "vllm-cuda"
 NEURON_PROFILE = "vllm-neuron"
@@ -408,12 +414,13 @@ class AcceleratorRuntime:
 
         * ``execution_source.cwd_git.commit``: HEAD of the working directory.
         * ``sources[<dir>].commit``: HEAD of each source directory named by
-          ``AMMO_RUNTIME_SOURCE_DIR`` (the session worktree) and of each
-          ``extra_source_dirs`` entry (the runner's ``--repo-root``).
-        * ``server_stack_fingerprint.pumice_commit``: the Pumice commit baked
-          into the server image (``shared/pumice_pins.py``). The session
-          worktree branches from it. It does not change when the worktree
-          gets new commits.
+          ``AMMO_RUNTIME_SOURCE_DIR`` (the §4 alias of ``AMMO_ENGINE_ROOT``,
+          the campaign engine root that ``campaign_paths.apply_env`` fills)
+          and of each ``extra_source_dirs`` entry (the runner's ``--repo-root``).
+        * ``server_stack_fingerprint``: ``AMMO_STACK_FINGERPRINT``, the stack
+          that ``preflight_pumice.py --write-fingerprint`` recorded in
+          ``target.json`` at scaffold. Its ``pumice_commit`` is the engine
+          HEAD then. It does not change when a track worktree gets new commits.
 
         Capture this when a measurement runs. A copy taken earlier describes
         the tree as it was then.
@@ -528,6 +535,39 @@ def resolve_runtime(
             + ", ".join(sorted(SUPPORTED_PROFILES))
         )
     return AcceleratorRuntime(profile, values)
+
+
+def require_supported_profile(
+    profile: Optional[str] = None,
+    env: Optional[Mapping[str, str]] = None,
+) -> str:
+    """Return the runtime profile this plugin runs, or raise ValueError.
+
+    The one CUDA-only gate (conventions §6). ``new_target.py`` and
+    ``preflight_pumice.py`` call it. The plugin runs only ``pumice-cuda``;
+    ``resolve_runtime`` above still accepts every profile so the Neuron
+    branches and old campaign records keep loading.
+
+    ``profile`` wins when given. Else ``AMMO_RUNTIME_PROFILE`` from *env*
+    (default ``os.environ``) is used; unset or empty means ``pumice-cuda``,
+    the default in references/campaign-env.md. A set ``AMMO_ACCELERATOR_KIND``
+    must be ``cuda``.
+    """
+    values = os.environ if env is None else env
+    raw = profile if profile is not None else values.get("AMMO_RUNTIME_PROFILE")
+    chosen = (raw or "").strip() or PUMICE_CUDA_PROFILE
+    if chosen != PUMICE_CUDA_PROFILE:
+        raise ValueError(
+            f"runtime profile {chosen!r} is not supported: this plugin runs "
+            f"only the {PUMICE_CUDA_PROFILE!r} profile"
+        )
+    kind = (values.get("AMMO_ACCELERATOR_KIND") or "").strip().lower()
+    if kind and kind != "cuda":
+        raise ValueError(
+            f"AMMO_ACCELERATOR_KIND={kind!r} is not supported: the "
+            f"{PUMICE_CUDA_PROFILE!r} profile runs on CUDA"
+        )
+    return PUMICE_CUDA_PROFILE
 
 
 def _visible_resource_ids(value: str, *, allow_ranges: bool) -> list[int]:
@@ -852,6 +892,7 @@ def build_neuron_explorer_capture_command(
 
 
 def _main(argv: Optional[Sequence[str]] = None) -> int:
+    campaign_paths.apply_env()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
 

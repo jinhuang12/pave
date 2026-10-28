@@ -34,7 +34,7 @@ One **wave** is one benchmark iteration: `batch_size` requests that the runner s
 
 `avg_latency` is the authoritative E2E scalar for every gate and every speedup calculation. The per-request stream timestamps also give the phase split: `prefill_s = first_token_ts - submit_ts` and `decode_s = last_token_ts - first_token_ts`. These fill `prefill_avg_s`, `decode_avg_s`, and `decode_share_of_e2e`.
 
-Every row also records `host`, `gpu`, `model_runner`, `vllm_version`, and `torch_version`. `model_runner` is the runner that confdb selected for the model (for gpt-oss on CUDA it is `vllm`, the embedded vLLM 0.30.0 runner). On Neuron, `model_runner` is `neuron` and `vllm_version` is null. Rows from an L40S (sm_89) host are labelled "harness validation only". Do not use them for a kernel speedup claim.
+Every row also records `host`, `gpu`, `model_runner`, `vllm_version`, and `torch_version`. `model_runner` is the runner that confdb selected for the model (for gpt-oss on CUDA it is `vllm`, the embedded vLLM runner at the pinned version). On Neuron, `model_runner` is `neuron` and `vllm_version` is null. Rows from an L40S (sm_89) host are labelled "harness validation only". Do not use them for a kernel speedup claim.
 
 ## Tool Selection
 
@@ -51,21 +51,21 @@ For all measurements reported in `validation_results.md` or used for profiling, 
 
 ## Quickstart
 
-Run the runner from the worktree root, and always pass the artifact directory explicitly:
+Run the runner from the root of the checkout under test (the engine root or a track worktree), and always pass the artifact directory explicitly. Inside a track worktree the launcher runs the worktree venv, so the server loads the track's Rust build:
 
 ```bash
 # Stage 1a: Clean E2E baseline (no profiling, authoritative timing)
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
   --artifact-dir {artifact_dir} --round 1 --slot baseline --labels baseline \
   --capture-golden-refs
 
 # Stage 1b: Profiling traces (separate invocation, so the overhead does not pollute the baseline)
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
   --artifact-dir {artifact_dir} --round 1 --slot profiling --labels baseline \
   --nsys-profile --nsys-mode node --warmup-waves 1 --profile-waves 1
 
 # Stage 5: Per-track validation sweep (opt-only vs Stage 1 baseline, isolated cache)
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
   --artifact-dir {artifact_dir} --round {N} --slot opt/{op_id} \
   --labels opt --baseline-from {artifact_dir}/rounds/{N}/sweeps/baseline --fresh-cache
 
@@ -73,12 +73,12 @@ Run the runner from the worktree root, and always pass the artifact directory ex
 # Round >= 2 MUST append `--baseline-from-arm opt` to the command below: the
 # comparator is then the promoted arm, not the stale pre-SHIP baseline arm of
 # that directory. Without it the measured delta is cumulative, not incremental.
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
   --artifact-dir {artifact_dir} --round {N} --slot integration \
   --labels opt --baseline-from {artifact_dir}/rounds/{N}/sweeps/baseline --fresh-cache
 
 # Post-SHIP: Golden-refs capture after environment promotion
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
   --artifact-dir {artifact_dir} --round {N} --slot golden_capture \
   --labels baseline --capture-golden-refs
 ```
@@ -106,13 +106,13 @@ REFUSING TO MEASURE: engine freshness check failed (...)
 This is not a harness bug. It tells you that your Rust or confdb edit is not in the binary. Rebuild and re-stage the engine from the worktree root:
 
 ```bash
-# CUDA sessions:
-pumice-stage-native.sh .venv/bin/python "$PWD" --features "nixl-stub cmb"
-# Neuron sessions:
-pumice-stage-native.sh .venv/bin/python "$PWD" --features nixl-stub
+# CUDA campaigns:
+scripts/ammo pumice-stage-native.sh "$PWD/.venv/bin/python" "$PWD" --features "nixl-stub cmb"
+# Neuron campaigns:
+scripts/ammo pumice-stage-native.sh "$PWD/.venv/bin/python" "$PWD" --features nixl-stub
 ```
 
-Use the same cargo features as the image build. If you leave out `cmb` on CUDA, the server ignores `--cmb-port`. The script runs `cargo build --release` for `pumice-rust/` and copies the new `pumice_rust` `.so` into the venv. The session bootstrap sets `CARGO_HOME`, `CARGO_TARGET_DIR`, `SCCACHE_DIR`, and `RUSTC_WRAPPER` for your session. Do not change them.
+Use the same cargo features as the engine build. If you leave out `cmb` on CUDA, the server ignores `--cmb-port`. The script runs `cargo build --release` for `pumice-rust/` and copies the new `pumice_rust` `.so` into the venv. Keep `CARGO_HOME`, `CARGO_TARGET_DIR`, `SCCACHE_DIR`, and `RUSTC_WRAPPER` as your environment and `references/campaign-env.md` set them. Do not change them.
 
 **cmb-api note.** `pumice-rust/Cargo.toml` depends on the internal crate `amzn-mantle-cmb-api`, and Pumice ships no `Cargo.lock`. So cargo must resolve this crate on every build, also when the `cmb` feature is off. The fix is a `[patch.crates-io]` entry in `$CARGO_HOME/config.toml`, not an edit to the Pumice `Cargo.toml`:
 
@@ -121,7 +121,7 @@ Use the same cargo features as the image build. If you leave out `cmb` on CUDA, 
 amzn-mantle-cmb-api = { path = "/home/ubuntu/AWSMantle/share/common/cmb-api" }
 ```
 
-The session image writes this entry into `/opt/cargo/config.toml`, and the bootstrap copies that file into your session `CARGO_HOME`. If cargo stops with `no matching package named amzn-mantle-cmb-api`, the patch is missing from the active `$CARGO_HOME/config.toml`. Outside the session image, write the same entry into your own `$CARGO_HOME/config.toml` before the first build. Never edit `Cargo.toml` to fix this, and never commit a `Cargo.lock` for it.
+Use the path of your own cmb-api checkout. The user writes this entry into `$CARGO_HOME/config.toml` before the first engine build, and `scripts/preflight_pumice.py` checks that it is there. If cargo stops with `no matching package named amzn-mantle-cmb-api`, the patch is missing from the active `$CARGO_HOME/config.toml`. Never edit `Cargo.toml` to fix this, and never commit a `Cargo.lock` for it.
 
 `--allow-stale-engine` is only for infrastructure debugging. It writes `freshness.overridden=true` into the output JSON, so the evidence shows the override. A number that you measure with it after a Rust or confdb edit is not evidence.
 
@@ -150,7 +150,7 @@ Sweep the **same bucket set** you profiled in Stage 1 and plan to enable in Stag
 The runner sweeps all buckets in one invocation and launches the server once per label. Pass `--round {N} --slot {SLOT}` so results land in the canonical round-scoped layout:
 
 ```bash
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
   --artifact-dir {artifact_dir} --round {CR} --slot baseline
 ```
 
@@ -216,7 +216,7 @@ The `[patch.crates-io]` entry is missing from the active `$CARGO_HOME/config.tom
 ### Server never becomes healthy (`HealthCheck` timeout)
 - Read the captured server log for the bucket. A startup crash is usually a config or backend problem, not a timeout.
 - `CUBLAS_STATUS_NOT_INITIALIZED` on the first cuBLAS call means that the major version of `CUDA_HOME` does not match `torch.version.cuda`.
-- Unsupported GPU: confdb resolves backends per SM family (`sm90`, `sm100` for B200 and B300, `sm120`). A family with no section for the model fails at startup. For gpt-oss on L40S (sm_89, family `sm80`), the session image applies an AMMO-local `[sm80]` row ("Ada/Ampere harness only"). Other models have no `sm80` row.
+- Unsupported GPU: confdb resolves backends per SM family (`sm90`, `sm100` for B200 and B300, `sm120`). A family with no section for the model fails at startup. For gpt-oss on L40S (sm_89, family `sm80`), the engine checkout needs the AMMO-local `[sm80]` row ("Ada/Ampere harness only"; see § Model and Hardware Support in `references/workload-invocation.md`). Other models have no `sm80` row.
 - A cold FlashInfer JIT cache can make the FIRST launch on a new host take about 11 minutes (SM100 MoE extension). Raise `--health-timeout-s` for that one launch. Later launches start in less than 30 s.
 
 ### Optimized path not activating

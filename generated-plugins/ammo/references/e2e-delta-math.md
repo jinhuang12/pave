@@ -184,7 +184,7 @@ Compare the corrected production-boundary projection with the campaign's configu
 The pass pipeline depends on the runner kind (the `model_runner` field of the bench row; see § Which Runner You Compile Under in `references/torch-compile-contract.md`). Enumerate the live passes; do not trust a roster in this file:
 
 ```bash
-# Runner vllm (gpt-oss on CUDA): the installed vLLM 0.30.0 package.
+# Runner vllm (gpt-oss on CUDA): the installed vLLM package (the pinned version).
 grep -rn "class .*FusionPass" "$(.venv/bin/python -c 'import vllm, os; print(os.path.dirname(vllm.__file__))')/compilation/"
 # Runner pumice: the pipeline in your worktree and its order.
 grep -n "Pass(" src/pumice/compilation/passes/pass_manager.py

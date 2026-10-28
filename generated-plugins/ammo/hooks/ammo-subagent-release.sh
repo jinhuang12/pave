@@ -13,6 +13,10 @@
 # It does not reap unowned resources through device-process heuristics. The
 # bounded lease remains the crash fallback on CUDA and Neuron.
 #
+# Campaign scope (_find_campaign.sh): outside a campaign the hook exits 0 and
+# prints nothing. The release runs scripts/gpu_reservation.py from this
+# plugin through ammo_python.
+#
 # Input JSON (docs):
 #   {
 #     "session_id": "<main-session-uuid>",
@@ -34,12 +38,13 @@ AGENT_TYPE=$(echo "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null)
 [ -z "$SESSION_ID" ] && SESSION_ID="${CLAUDE_SESSION_ID:-}"
 [ -z "$SESSION_ID" ] && exit 0
 
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
+
 GPU_RES_DIR="${AMMO_GPU_RES_DIR:-/tmp/ammo_gpu_res}"
 GPU_STATE="$GPU_RES_DIR/state.json"
 [ -f "$GPU_STATE" ] || exit 0
-
-SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" 2>/dev/null && pwd)" || \
-SCRIPTS_DIR="${CLAUDE_PROJECT_DIR:-.}/scripts"
 
 RELEASE_LOG="$GPU_RES_DIR/release.log"
 TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -58,7 +63,7 @@ for ENTRY in "${IDS[@]}"; do
     ARGS=(release-session --session-id "$SID")
     [ "$SCOPE" = "children" ] && ARGS+=(--include-children)
     printf '%s hook=SubagentStop agent_type=%s sid=%s scope=%s ' "$TS" "${AGENT_TYPE:-unknown}" "$SID" "$SCOPE" >> "$RELEASE_LOG"
-    if python3 "$SCRIPTS_DIR/gpu_reservation.py" "${ARGS[@]}" >>"$RELEASE_LOG" 2>&1; then
+    if ammo_python gpu_reservation.py "${ARGS[@]}" >>"$RELEASE_LOG" 2>&1; then
         printf ' ok\n' >> "$RELEASE_LOG"
     else
         printf ' fail\n' >> "$RELEASE_LOG"

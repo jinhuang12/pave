@@ -6,11 +6,21 @@
 # reliably delivers context to subagents in Claude Code <=2.1.144).
 # NOTE: PostToolUse "block" is informational only — the Write already succeeded.
 # One-shot guard prevents re-firing after Phase 2 appends to the same file.
+#
+# Auditor-only: any other writer (agent_type not ammo-auditor or the plugin
+# address ammo:ammo-auditor, or no agent_type: the lead) exits 0 silently and
+# writes no sentinel. Campaign scope (_find_campaign.sh): the verdict file must
+# be inside the campaign dir (ammo_in_campaign); outside a campaign the hook
+# exits 0 and prints nothing. The instructions name the plugin's own
+# references/audit-invariants.md.
 set -euo pipefail
 
 if ! command -v jq &>/dev/null; then exit 0; fi
 
 INPUT=$(cat)
+
+AGENT_TYPE=$(jq -r '.agent_type // empty' <<<"$INPUT")
+[[ "${AGENT_TYPE#ammo:}" == "ammo-auditor" ]] || exit 0
 
 FILE_PATH=$(jq -r '.tool_input.file_path // empty' <<<"$INPUT")
 
@@ -19,6 +29,11 @@ case "$FILE_PATH" in
   */rounds/*/audits/stage_*.md) ;;
   *) exit 0 ;;
 esac
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
+ammo_in_campaign "$FILE_PATH" || exit 0
 
 # ── SENTINEL NAME CONTRACT (shared with audit-phase2-guard.sh) ──
 # The sentinel path is EXACTLY:
@@ -43,14 +58,8 @@ SENTINEL="${SENTINEL_PREFIX}${SESSION_ID}__${AGENT_ID:-noagent}__${VERDICT_BASE}
 if [[ -e "$SENTINEL" ]]; then exit 0; fi
 touch "$SENTINEL"
 
-# Discover invariants path. Prefer CLAUDE_PROJECT_DIR; fallback to dirname walk-up.
-if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]] && [[ -f "${CLAUDE_PROJECT_DIR}/references/audit-invariants.md" ]]; then
-  INVARIANTS="${CLAUDE_PROJECT_DIR}/references/audit-invariants.md"
-else
-  # Walk up 6 levels: stage_*.md -> audits -> N -> rounds -> target -> kernel_opt_artifacts -> worktree
-  WORKTREE=$(dirname "$(dirname "$(dirname "$(dirname "$(dirname "$(dirname "$FILE_PATH")")")")")")
-  INVARIANTS="${WORKTREE}/references/audit-invariants.md"
-fi
+# The invariants are the plugin's own references/audit-invariants.md.
+INVARIANTS="$(cd "$HOOK_DIR/.." && pwd)/references/audit-invariants.md"
 
 # If invariants file doesn't exist, skip injection
 [[ ! -f "$INVARIANTS" ]] && exit 0

@@ -114,8 +114,13 @@ Writes into ``{artifact_dir}/{out_name}/``::
 
 Usage
 -----
-  .venv/bin/python scripts/run_pumice_grpc_bench.py \\
+  scripts/ammo run_pumice_grpc_bench.py \\
       --artifact-dir <dir> --round 1 --slot baseline --labels baseline
+
+``scripts/ammo`` runs the engine venv python. A track runs its worktree
+``.venv/bin/python`` instead, so the server imports the track's own build.
+``campaign_paths.apply_env()`` at the top of ``main()`` fills the campaign env
+names (references/campaign-env.md) before anything reads them.
 """
 
 from __future__ import annotations
@@ -145,6 +150,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+import campaign_paths  # noqa: E402  (the one place that knows where things are)
+
 PLACEHOLDER = "<FILL_ME>"
 
 #: ``bench.runner`` value this script implements.
@@ -161,8 +172,8 @@ EXECUTION_MODE = "grpc_server_sweep"
 #: the downstream contract: ``_metrics_from_bench_json`` maps ``"50"`` -> ``p50_s``.
 PERCENTILES: Tuple[int, ...] = (10, 25, 50, 75, 90, 99)
 
-#: Bundled GSM8K corpus, co-located with the skill (no network in sessions).
-_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+#: Bundled GSM8K corpus, shipped in the plugin (no network during a campaign).
+_DATA_DIR = campaign_paths.plugin_path("data")
 _GSM8K_FULL_PATH = _DATA_DIR / "gsm8k_full.json"
 _GSM8K_SUBSET_PATH = _DATA_DIR / "gsm8k_subset.json"
 
@@ -980,9 +991,8 @@ def _cargo_home_config_path() -> Optional[Path]:
     after a ``pumice-rust/src/*.rs`` edit. The gate reads whichever config
     file cargo would read at build time: ``$CARGO_HOME/config.toml`` when the
     var is set. When ``CARGO_HOME`` is unset the gate does not scan
-    ``~/.cargo/config.toml`` because a build outside the session images
-    might not use it, and a false-positive stale here would refuse valid
-    runs.
+    ``~/.cargo/config.toml``: an edit there that no build uses would make
+    a false-positive stale here and refuse valid runs.
     """
     home = os.environ.get("CARGO_HOME")
     if not home:
@@ -1025,12 +1035,16 @@ def newest_engine_source(repo_root: Path) -> Tuple[Optional[Path], Optional[floa
 def discover_staged_extensions(repo_root: Path) -> List[Path]:
     """Find the STAGED ``pumice_rust`` extension(s) in session venvs.
 
-    ``pumice-stage-native.sh`` (run by the session bootstrap and after every
+    ``scripts/pumice-stage-native.sh`` (run by the worktree-create hook and after every
     Rust or confdb edit) copies ``libpumice_rust.so`` out of the cargo target
     dir into the worktree venv's site-packages under its importable
     ``pumice_rust<EXT_SUFFIX>`` name. THAT copy — not anything under ``target/release`` — is what
     ``import pumice_rust`` actually loads when the engine serves, so the
     freshness gate must treat it as the artifact under test.
+
+    The engine venv can live outside the repo (target.json ``engine.venv``).
+    The server runs with this interpreter, so the extension it imports is
+    added too (``_imported_extension``), once.
     """
     staged: List[Path] = []
     for pattern in (
@@ -1038,7 +1052,27 @@ def discover_staged_extensions(repo_root: Path) -> List[Path]:
         ".venv/lib/python*/site-packages/pumice_rust*.dylib",
     ):
         staged.extend(p for p in sorted(repo_root.glob(pattern)) if p.is_file())
+    imported = _imported_extension()
+    if imported is not None and imported.is_file():
+        known = {p.resolve() for p in staged}
+        if imported.resolve() not in known:
+            staged.append(imported)
     return staged
+
+
+def _imported_extension() -> Optional[Path]:
+    """The compiled ``pumice_rust`` file this interpreter would import, else None."""
+    import importlib.machinery
+    import importlib.util
+
+    try:
+        spec = importlib.util.find_spec("pumice_rust")
+    except (ImportError, ValueError):
+        return None
+    origin = getattr(spec, "origin", None) if spec is not None else None
+    if not origin or not origin.endswith(tuple(importlib.machinery.EXTENSION_SUFFIXES)):
+        return None
+    return Path(origin)
 
 
 def discover_engine_artifacts(
@@ -1047,8 +1081,8 @@ def discover_engine_artifacts(
     """Find built Pumice engine artifacts (PyO3 extension + server binary).
 
     Looks in ``cargo_target_dir/release`` (explicit arg, else the
-    ``$CARGO_TARGET_DIR`` env var — the D3 session bootstrap builds OUTSIDE
-    the worktree, e.g. ``/workspace/cargo-target/<session_id>``), then
+    ``$CARGO_TARGET_DIR`` env var, which ``campaign_paths.apply_env`` sets to
+    ``<engine>/target`` unless you set it), then
     ``pumice-rust/target/release`` and ``target/release`` in-worktree
     fallbacks, plus a top-level ``pumice_rust*.so`` dropped by an editable
     install. Returns existing files only, de-duplicated, in discovery order.
@@ -1088,22 +1122,26 @@ def discover_engine_artifacts(
 def _rebuild_hint(repo_root: Path) -> str:
     """The rebuild-and-stage command a freshness failure tells the agent to run.
 
-    ``pumice-stage-native.sh`` (installed to ``/usr/local/bin`` in the session
-    images) runs ``cargo build --release`` and then copies the new
-    ``libpumice_rust.so`` into the venv site-packages. A plain ``cargo build``
-    does not stage, so the server would keep loading the old extension.
+    ``pumice-stage-native.sh`` runs ``cargo build --release`` and then copies
+    the new ``libpumice_rust.so`` into the venv site-packages. A plain
+    ``cargo build`` does not stage, so the server would keep loading the old
+    extension. The venv is the one this interpreter runs from: the server is
+    launched with the same python. The script ships in the plugin and runs
+    through the plugin launcher ``scripts/ammo``, which fills the campaign env.
     """
+    python = sys.executable
+    stage = f"{campaign_paths.plugin_path('scripts', 'ammo')} pumice-stage-native.sh"
     return (
-        f"  CUDA:   pumice-stage-native.sh {repo_root}/.venv/bin/python {repo_root} "
+        f"  CUDA:   {stage} {python} {repo_root} "
         '--features "nixl-stub cmb"\n'
-        f"  Neuron: pumice-stage-native.sh {repo_root}/.venv/bin/python {repo_root} "
+        f"  Neuron: {stage} {python} {repo_root} "
         "--features nixl-stub\n"
-        "The CUDA features keep the P/D path compiled in, as in the image build. "
+        "The CUDA features keep the P/D path compiled in, as the engine build does. "
         "The script runs cargo build --release "
         "and then copies libpumice_rust.so into the venv site-packages as "
-        "pumice_rust<EXT_SUFFIX>. Outside the session image, first add the "
-        "[patch.crates-io] entry for amzn-mantle-cmb-api to "
-        "$CARGO_HOME/config.toml (see references/impl-track-rules.md)."
+        "pumice_rust<EXT_SUFFIX>. A cmb build needs the "
+        "[patch.crates-io] entry for amzn-mantle-cmb-api in a cargo config "
+        "(see references/impl-track-rules.md); preflight_pumice.py checks it."
     )
 
 
@@ -1284,9 +1322,9 @@ def resolve_server_exe(spec: Any, repo_root: Path) -> List[str]:
     first: the release binary built in the worktree, then ``python
     rust_grpc_server.py`` under this interpreter (the session venv, whose
     ``pumice_rust`` is the worktree's cdylib; decision D3 / Option A). A
-    ``pumice-server`` found on PATH is the LAST resort: in the session image
-    that is ``/opt/pumice-venv/bin/pumice-server``, the base engine's binary,
-    which builds its own ``sys.path`` from its location and would run the
+    ``pumice-server`` found on PATH is the LAST resort: that is usually the
+    engine venv's ``bin/pumice-server``, the base engine's binary, which
+    builds its own ``sys.path`` from its location and would run the
     unmodified engine on both arms of every A/B. An operator who wants the
     binary sets ``bench.server_cmd`` to its path explicitly.
     """
@@ -1413,7 +1451,7 @@ def default_model_runner(env: Optional[Dict[str, str]] = None) -> Optional[str]:
 
     On Neuron, Pumice's confdb has no Neuron section: ``apply_model_config``
     defaults the compute capability to (9, 0) when CUDA is absent, so a model
-    whose ``[sm90]`` row sets ``model_runner = "vllm"`` (gpt_oss at 9d126713)
+    whose ``[sm90]`` row sets ``model_runner = "vllm"`` (gpt_oss at the pinned commit)
     selects the vLLM runner, and the Neuron image has no vLLM. The server then
     panics at init with "--model-runner=vllm requires vLLM in this environment"
     (found live on trn2-1). The explicit flag beats both
@@ -4641,6 +4679,7 @@ def _render_md(all_runs: Dict[str, Any], baseline_label: str, opt_label: str) ->
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    campaign_paths.apply_env()
     args = parse_args(argv)
 
     gate_warnings = enforce_gate_slot_invocation(args)

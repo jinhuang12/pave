@@ -244,6 +244,10 @@ def execute(spec: ServingSpec, arm: Arm, output: Path, kind: str,
 
 
 def main(argv=None) -> int:
+    # Fill AMMO_SESSION_ID, AMMO_RUNTIME_PROFILE, AMMO_GPU_RES_DIR from the
+    # campaign (references/campaign-env.md); explicit env wins.
+    from campaign_paths import apply_env
+    apply_env()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact-dir', required=True)
     parser.add_argument('--kind', choices=['baseline', 'candidate', 'integration', 'verify', 'promote'], required=True)

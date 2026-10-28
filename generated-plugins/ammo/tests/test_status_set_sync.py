@@ -29,8 +29,8 @@ from pathlib import Path
 
 _HERE = Path(__file__).resolve()
 _SCRIPTS_DIR = _HERE.parent.parent / "scripts"
-_CLAUDE_DIR = _HERE.parents[3]  # .../ai_cli_session/.claude
-_SCHEMA_PATH = _CLAUDE_DIR / "schemas" / "state.schema.json"
+_PLUGIN_ROOT = _HERE.parents[1]  # the plugin root holds schemas/ and scripts/
+_SCHEMA_PATH = _PLUGIN_ROOT / "schemas" / "state.schema.json"
 _TRANSITIONS_PATH = _SCRIPTS_DIR / "transitions.json"
 _ENGINE_PATH = _SCRIPTS_DIR / "ammo_state.py"
 _REPORT_PATH = _SCRIPTS_DIR / "generate_validation_report.py"

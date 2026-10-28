@@ -190,6 +190,32 @@ def test_outcome_tokens_match_the_source_names(pave):
         assert token in outcome_body["meaning"], source
 
 
+def test_roles_name_their_spawn_address(pave):
+    agent_files = sorted((ROOT / "agents").glob("*.md"))
+    assert agent_files, "agents/ holds no role file"
+    for path in agent_files:
+        role = path.stem.replace("-", "_")
+        assert role in pave["roles"], path.name
+        assert f"ammo:{path.stem}" in pave["roles"][role]["purpose"], role
+    assert "ammo:ammo-delegate" in pave["roles"]["report_fact_checker"]["purpose"]
+
+
+def test_report_gate_reads_the_lead_written_fact_check_record(pave):
+    record = pave["evidence"]["report_fact_check"]
+    assert record["artifact"].endswith("/report_assets/report_fact_check.json")
+    assert record["produced_by"] == "stage_7b_report"
+    accepted = pave["nodes"]["stage_7b_report"]["outcomes"]["report_accepted"]
+    assert "report_fact_check" in accepted["required_evidence"]
+    assert pave["checks"]["report_fact_check_ok"]["evaluated_by"] == "report_fact_checker"
+    assert pave["checks"]["report_fact_check_current"]["evaluated_by"] == "lead"
+    assert "report_sha256" in pave["checks"]["report_fact_check_current"]["question"]
+    edges = edges_from(pave, "stage_7b_report.report_accepted")
+    assert {destination(e) for e in edges} == {"campaign_complete", "campaign_exhausted"}
+    for edge in edges:
+        assert {"report_fact_check_ok", "report_fact_check_current"} <= set(edge["checks"]), edge["id"]
+    assert "stop hook" not in GRAPH.read_text(encoding="utf-8").lower()
+
+
 def newest_version_entry(text):
     """The VERSION text from the first `## ` heading to the second one."""
     headings = [m.start() for m in re.finditer(r"^## ", text, re.MULTILINE)]

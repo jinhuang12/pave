@@ -32,13 +32,13 @@ Workload:
 
 ### Phase decomposition (prefill/decode, same instrument)
 
-> Batch-mode phase timing from `RequestOutput.metrics` — the same fixed-batch measurement decomposed, NOT serving TTFT/ITL under load (no queueing/arrival dynamics). Informational triage only: flags never change a verdict. See `references/validation-defaults.md` § Phase Decomposition.
+> Batch-mode phase timing from `RequestOutput.metrics`: the same fixed-batch measurement decomposed, NOT serving TTFT/ITL under load (no queueing/arrival dynamics). Informational triage only: flags never change a verdict. See `references/validation-defaults.md` § Phase Decomposition.
 
 | Batch Size | Decode share | Prefill Δ | Decode (TPOT) Δ | Opt OTPS (tok/s) | Expected E2E Δ (phases) | Actual E2E Δ | Flag |
 |---:|---:|---:|---:|---:|---:|---:|---|
 | 1 | 0.1 | 0% | 4% |  | 0.4% | 0.4% | DILUTED-WIN |
 
-- **BS 1 DILUTED-WIN**: decode Δ 4% × share 0.1 ≈ E2E Δ 0.4% — Amdahl-consistent. The mechanism worked; the small E2E number is dilution by prefill share, not a failed optimization. If this track fails on the E2E floor, record `fail_reason` as "diluted (Amdahl-consistent)", not "ineffective".
+- **BS 1 DILUTED-WIN**: decode Δ 4% × share 0.1 ≈ E2E Δ 0.4%, Amdahl-consistent. The mechanism worked; the small E2E number is dilution by prefill share, not a failed optimization. If this track fails on the E2E floor, record `fail_reason` as "diluted (Amdahl-consistent)", not "ineffective".
 
 ## Decision
 

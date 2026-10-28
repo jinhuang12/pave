@@ -12,14 +12,16 @@ All are local foreground process groups. Readiness endpoints must use literal
 loopback addresses and separate ports. A listener already in use is rejected;
 AMMO never adopts or terminates a peer deployment.
 
-The existing session reservation covers the whole experiment, including both
-roles and all baseline/candidate windows. Resources must be disjoint and inside
-the server-assigned pool. Neuron role ranges must be contiguous. Neuron LNC must
-match the server-assigned value, remains frozen, and is included in timing proof.
+The campaign reservation (`references/gpu-pool.md`) covers the whole experiment,
+including both roles and all baseline/candidate windows. `deployment_ops.py`
+reserves it, starts every worker on this host, and tears them down. Resources
+must be disjoint and inside the host pool. Neuron role ranges must be contiguous.
+Neuron LNC must match the campaign value, remains frozen, and is included in
+timing proof.
 Startup failure tears down already-started groups. Teardown includes children
 whose launcher exited. Uncertain teardown raises `CleanupError` and does not
 release the claim. Serving claims use `release_policy: confirmed_cleanup`; expiry,
-parent-session release, and ordinary auto-release cannot reclaim them. Release
+release of the parent owner, and ordinary auto-release cannot reclaim them. Release
 requires the exact owner and confirmed cleanup. Operator recovery must first
 verify that the owned processes have stopped. This is a local reservation-store
 guarantee, not distributed fencing or protection against deleting the store.
@@ -43,7 +45,7 @@ observes them. A label copied from a manifest is not independent runtime proof.
 An arm names a clean source worktree and exact commit for every worker, plus its
 declared mechanism environment. Both arms use the frozen deployment environment.
 Ambient Python, loader, compiler, cache, and unrelated secret variables are not
-inherited. Only the trusted session identity and managed runtime/resource values
+inherited. Only the trusted campaign identity and managed runtime/resource values
 are injected. Keep required production variables explicit. Mechanism overrides
 cannot change ownership, LNC, PATH, Python import paths, or loader injection.
 
@@ -87,13 +89,14 @@ environment when constructing the command. Do not assume another release shares
 this internal interface. A runtime collector still must correlate these dispatched
 IDs with actual handoff observations; the benchmark does not invent that proof.
 
-The Pumice CUDA image (`pumice-cuda`) has no vLLM git checkout. It has the vLLM
-wheel that `shared/pumice_pins.py` pins (0.30.0) in `/opt/pumice-venv`. For that
-runtime, use the wheel form in place of `--vllm-source`:
+A Pumice CUDA engine venv (`pumice-cuda`) has no vLLM git checkout. It has the
+installed vLLM wheel at the pinned version (`pumice.config.REQUIRED_VLLM_VERSION`).
+For that runtime, use the wheel form in place of `--vllm-source`. The engine venv
+is `target.json` `engine.venv`, and the adapter is the plugin copy:
 
 ```text
-/opt/pumice-venv/bin/python /usr/local/share/ammo/pumice-pd/serving_benchmark_adapter.py
-  --vllm-wheel /opt/pumice-venv/lib/python3.12/site-packages
+<engine venv>/bin/python <plugin root>/scripts/serving_benchmark_adapter.py
+  --vllm-wheel <engine venv>/lib/python3.12/site-packages
   --request-id-prefix {request_id_prefix} -- bench serve ...
 ```
 
@@ -102,8 +105,8 @@ site-packages root, that `vllm.__version__` is in the adapter's pinned version
 table, and that the git blobs of `vllm/benchmarks/serve.py` and
 `vllm/benchmarks/lib/endpoint_request_func.py` equal the pinned pair for that
 version. The request ID, latency, and queue-time rules above are the same in
-both forms. The image installs the adapter next to `serving_contract.py`, which
-the adapter imports. Pin both image copies in the manifest `files`.
+both forms. The plugin ships the adapter next to `scripts/serving_contract.py`,
+which the adapter imports. Pin both plugin copies in the manifest `files`.
 
 ## Collector protocol
 
@@ -215,28 +218,28 @@ not maximum sustainable capacity; a capacity-search objective is not implemented
 
 ## Runner commands
 
-Use the rendered runtime path in the assigned session:
+Run these from the root of the Pumice checkout:
 
 ```bash
-.venv/bin/python scripts/run_serving_sweep.py \
+scripts/ammo run_serving_sweep.py \
   --artifact-dir "$ARTIFACT_DIR" --kind baseline --arm "$BASELINE_ARM"
 
-.venv/bin/python scripts/run_serving_sweep.py \
+scripts/ammo run_serving_sweep.py \
   --artifact-dir "$ARTIFACT_DIR" --kind promote --result "$BASELINE_RESULT"
 
-.venv/bin/python scripts/run_serving_sweep.py \
+scripts/ammo run_serving_sweep.py \
   --artifact-dir "$ARTIFACT_DIR" --kind candidate --arm "$CANDIDATE_ARM" \
   --round 1 --op-id OP-001
 
-.venv/bin/python scripts/run_serving_sweep.py \
+scripts/ammo run_serving_sweep.py \
   --artifact-dir "$ARTIFACT_DIR" --kind integration --arm "$INTEGRATED_ARM" \
   --composition "$COMPOSITION_JSON" --round 1 --op-id combined
 
-.venv/bin/python scripts/run_serving_sweep.py \
+scripts/ammo run_serving_sweep.py \
   --artifact-dir "$ARTIFACT_DIR" --kind verify \
   --result "$INTEGRATION_RESULT" --against "$EXACT_PREVIOUS_RESULT"
 
-.venv/bin/python scripts/run_serving_sweep.py \
+scripts/ammo run_serving_sweep.py \
   --artifact-dir "$ARTIFACT_DIR" --kind promote --result "$INTEGRATION_RESULT" \
   --expected-incumbent "$EXPECTED_EVIDENCE_SHA256"
 ```
@@ -249,11 +252,11 @@ remains separate. No runner command merges code or grants an AMMO audit/SHIP.
 
 ## Qualification before production use
 
-This repository includes CPU contract fixtures, not a qualified production
+The plugin tests include CPU contract fixtures, not a qualified production
 CUDA/NIXL or Neuron adapter package. Those fixtures must never serve as production
 collector inputs. To qualify one pinned deployment, supply real commands and
 collectors, independently inspect their observations, then exercise a full real
 baseline/candidate/integration campaign with startup failure, wrong-source,
-missing-handoff, fallback, cancellation, and regression tests. Keep the PR draft
-until that evidence and independent review exist. Multi-node use requires a
+missing-handoff, fallback, cancellation, and regression tests. Do not claim
+production P/D support until that evidence and independent review exist. Multi-node use requires a
 separate distributed ownership/fencing implementation and cross-node validation.

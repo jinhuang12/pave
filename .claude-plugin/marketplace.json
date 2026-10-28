@@ -16,6 +16,12 @@
       "source": "./generated-plugins/vllm-neuron-parity",
       "description": "pave-init-generated workflow: bring the vLLM-Neuron platform plugin fork to parity with upstream GPU vLLM through user-gated, evidence-backed campaigns. Ships the fifteen Neuron skills its campaign stages load inside the plugin (see its README).",
       "version": "1.10.0"
+    },
+    {
+      "name": "ammo",
+      "source": "./generated-plugins/ammo",
+      "description": "Hand-ported PAVE workflow: run a staged, multi-agent campaign that profiles and optimizes Pumice inference latency on your own NVIDIA GPU host, inside a local Pumice checkout, on Claude Code or Codex (see its README).",
+      "version": "1.0.0"
     }
   ]
 }

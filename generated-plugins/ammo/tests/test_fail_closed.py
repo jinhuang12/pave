@@ -26,7 +26,6 @@ import pytest
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 _ENGINE = _SCRIPTS_DIR / "ammo_state.py"
-_SCHEMA = Path(__file__).resolve().parents[3] / "schemas" / "state.schema.json"
 
 sys.path.insert(0, str(_SCRIPTS_DIR))
 import ammo_state  # noqa: E402
@@ -98,16 +97,12 @@ def _advanceable_state():
     return state
 
 
-def _write_state(tmp_path, state, with_schema=True):
-    """Write state.json in a .git-bounded artifact dir. with_schema=True drops a
-    schema copy where find_schema() will locate it; False leaves none."""
+def _write_state(tmp_path, state):
+    """Write state.json in a campaign dir <engine>/.ammo/t. find_schema()
+    resolves the plugin schema; a missing-schema case passes --schema."""
     root = tmp_path
     (root / ".git").mkdir(exist_ok=True)
-    if with_schema:
-        (root / ".claude" / "schemas").mkdir(parents=True, exist_ok=True)
-        (root / ".claude" / "schemas" / "state.schema.json").write_text(
-            _SCHEMA.read_text(encoding="utf-8"), encoding="utf-8")
-    art = root / "kernel_opt_artifacts" / "t"
+    art = root / ".ammo" / "t"
     art.mkdir(parents=True, exist_ok=True)
     sp = art / "state.json"
     sp.write_text(json.dumps(state, indent=2), encoding="utf-8")
@@ -202,7 +197,7 @@ def test_state_jsondecodeerror_failopen_with_env(tmp_path, capsys, monkeypatch):
 
 def test_missing_schema_file_blocks_default(tmp_path, capsys):
     """Valid state with no discoverable schema is unverifiable and blocks."""
-    sp = _write_state(tmp_path, _base_state(), with_schema=False)
+    sp = _write_state(tmp_path, _base_state())
     missing = tmp_path / "missing-state.schema.json"
     rc = ammo_state.cmd_validate(_args(sp, emit="hook", schema=missing))
     assert rc == 0
@@ -214,7 +209,7 @@ def test_missing_schema_file_blocks_default(tmp_path, capsys):
 
 def test_missing_schema_file_failopen_with_env(tmp_path, capsys, monkeypatch):
     monkeypatch.setenv("AMMO_VALIDATE_FAIL_OPEN", "1")
-    sp = _write_state(tmp_path, _base_state(), with_schema=False)
+    sp = _write_state(tmp_path, _base_state())
     missing = tmp_path / "missing-state.schema.json"
     rc = ammo_state.cmd_validate(_args(sp, emit="hook", schema=missing))
     assert rc == 0
@@ -297,7 +292,7 @@ def test_set_failopen_escape_hatch_allows_degraded_write(tmp_path, monkeypatch):
 
 def test_advance_blocks_on_schema_load_exception_and_leaves_state_untouched(tmp_path, capsys):
     sp = _write_state(tmp_path, _advanceable_state())
-    schema_path = tmp_path / ".claude" / "schemas" / "state.schema.json"
+    schema_path = tmp_path / "broken.schema.json"
     schema_path.write_text("{broken schema", encoding="utf-8")
     before = sp.read_text(encoding="utf-8")
     args = ammo_state.build_parser().parse_args(
@@ -319,7 +314,7 @@ def test_advance_schema_load_exception_escape_hatch_allows_degraded_write(
 ):
     monkeypatch.setenv("AMMO_VALIDATE_FAIL_OPEN", "1")
     sp = _write_state(tmp_path, _advanceable_state())
-    schema_path = tmp_path / ".claude" / "schemas" / "state.schema.json"
+    schema_path = tmp_path / "broken.schema.json"
     schema_path.write_text("{broken schema", encoding="utf-8")
     args = ammo_state.build_parser().parse_args(
         [

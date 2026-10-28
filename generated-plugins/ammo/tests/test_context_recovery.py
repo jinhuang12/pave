@@ -104,17 +104,24 @@ def test_unique_trusted_thread_recovers_without_explicit_binding(tmp_path):
     assert not (other / "compaction_checkpoint.json").exists()
 
 
-def test_ambiguous_trusted_campaigns_block_compaction_without_writing(tmp_path):
+def test_marker_picks_one_of_two_same_identity_campaigns(tmp_path):
+    # The server's discovery globbed every campaign root and refused two with
+    # one identity ("multiple campaigns"). The <engine>/.ammo/active marker
+    # names exactly one, so compaction checkpoints that one, never the other.
     repo = _hook_repo(tmp_path)
     artifact = _active_stage1_artifact(repo)
     other = artifact.with_name("other")
     shutil.copytree(artifact, other)
     env = _env(repo, artifact)
     env.pop("AMMO_ARTIFACT_DIR")
-    result = _run_hook("pre_compact.py", {"cwd": str(repo), "hook_event_name": "PreCompact"}, env)
-    assert json.loads(result.stdout)["continue"] is False
-    assert "multiple campaigns" in result.stdout
-    assert not list(repo.glob("**/compaction_checkpoint.json"))
+    for chosen, unchosen in ((artifact, other), (other, artifact)):
+        (repo / ".ammo" / "active").write_text(chosen.name + "\n")
+        for stale in repo.glob("**/compaction_checkpoint.json"):
+            stale.unlink()
+        result = _run_hook("pre_compact.py", {"cwd": str(repo), "hook_event_name": "PreCompact"}, env)
+        assert json.loads(result.stdout)["continue"] is True
+        assert (chosen / "compaction_checkpoint.json").is_file()
+        assert not (unchosen / "compaction_checkpoint.json").exists()
 
 
 def test_missing_explicit_state_does_not_fall_back(tmp_path):

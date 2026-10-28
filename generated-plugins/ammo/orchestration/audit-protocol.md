@@ -38,9 +38,10 @@ reuse an auditor. Never hand it an earlier audit's conclusions as facts.
 
 ```python
 Agent(
-    subagent_type="ammo-auditor",
+    subagent_type="ammo:ammo-auditor",
     run_in_background=True,
     prompt=f"""
+    plugin_root: {plugin_root}
     task: audit_gate
     artifact_dir: {artifact_dir}
     stage: {stage}       # stage_1 | stage_2 | stage_45 | stage_67
@@ -49,6 +50,10 @@ Agent(
     """,
 )
 ```
+
+On Codex, `references/harness-binding.md` gives the spawn form. Use the task
+name `audit_{stage}_r{round}_c{cycle}`, send the same lines, and add the
+`recovery_note_path` line that the binding names.
 
 Keep the prompt that thin. The auditor uses the exact supplied artifact directory
 and resolves canonical paths from it. Its authority and workflow come from
@@ -72,8 +77,10 @@ perform the gated transition.
 
 `audit.{stage}.started_at` and `.cycle` are stamped mechanically, not by the
 lead. The `PostToolUse` hook `ammo-audit-start-stamp.sh` reads this dispatch
-prompt the moment the `ammo-auditor` spawn succeeds and writes both fields —
-this is why the prompt format above is load-bearing. `passed_at` stays
+prompt the moment the `ammo-auditor` spawn succeeds and writes both fields.
+This is why the prompt format above must not change. On Codex,
+`codex/hooks/post_tool_use_guard.py` stamps the same fields from the dispatch
+fields or the audit task name. `passed_at` stays
 lead-written, after the lead verifies the final PASS verdict. For
 `schema_version >= 4.2`, state validation rejects a gate with `passed_at` set
 and `started_at` missing; backfill it with
@@ -186,11 +193,11 @@ normalization belongs to `scripts/ammo_state.py`, not this protocol.
 
 ## References
 
-- `agents/ammo-auditor.md` — independent reconstruction, delegate fanout,
+- `agents/ammo-auditor.md`: independent reconstruction, delegate fanout,
   severity, and verdict contract
-- `agents/ammo-delegate.md` — bounded evidence helper
-- `references/audit-invariants.md` — hook-delivered Phase 2 checklist
-- `references/artifact-layout.md` — canonical artifact locations
-- `scripts/ammo_state.py` — state validation, compatibility, and transitions
-- `hooks/inject-audit-phase2.sh` and `hooks/ammo-next-step-reminder.sh` — Phase 2 delivery and audit reminders
-- `hooks/ammo-audit-start-stamp.sh` — stamps `started_at`/`cycle` on auditor dispatch
+- `agents/ammo-delegate.md`: bounded evidence helper
+- `references/audit-invariants.md`: hook-delivered Phase 2 checklist
+- `references/artifact-layout.md`: canonical artifact locations
+- `scripts/ammo_state.py`: state validation, compatibility, and transitions
+- `hooks/inject-audit-phase2.sh` and `hooks/ammo-next-step-reminder.sh`: Phase 2 delivery and audit reminders
+- `hooks/ammo-audit-start-stamp.sh`: stamps `started_at`/`cycle` on auditor dispatch

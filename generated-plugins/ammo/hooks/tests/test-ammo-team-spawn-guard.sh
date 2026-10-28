@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test harness for ammo-team-spawn-guard.sh (PreToolUse hook, matcher=Agent)
-# Run: bash .claude/hooks/test-ammo-team-spawn-guard.sh
+# Run: bash hooks/tests/test-ammo-team-spawn-guard.sh
 #
 # CC 2.1.179 implicit-team model:
 #   - TeamCreate / TeamDelete are removed; there is no team-CRUD tool and no
@@ -28,16 +28,28 @@
 
 set -euo pipefail
 
-HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-team-spawn-guard.sh"
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' | grep -v '^AMMO_TEST_HOOK$' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
+
+HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-team-spawn-guard.sh}"
 PASS=0
 FAIL=0
 TOTAL=0
 
 TMPDIR=$(mktemp -d)
 cleanup() {
-    rm -rf "$TMPDIR" "$TMPDIR/hook-stdout" "$TMPDIR/hook-stderr" 2>/dev/null || true
+    rm -rf "$TMPDIR" "$NOCAMP" "$TMPDIR/hook-stdout" "$TMPDIR/hook-stderr" 2>/dev/null || true
 }
 trap cleanup EXIT
+
+# Campaign fixture: the hook finds the campaign from its own cwd ($PWD), since
+# these payloads carry no cwd. NOCAMP has no .ammo/active above it.
+ENGINE="$TMPDIR/engine"
+mkdir -p "$ENGINE/.ammo/tgt"
+printf 'tgt\n' > "$ENGINE/.ammo/active"
+NOCAMP=$(mktemp -d)
+cd "$ENGINE"
 
 # run_test:
 #   $1 name
@@ -181,6 +193,9 @@ run_test "T6 ammo-delegate WITH name → DENY (contract: one-shot, unnamed)" 0 d
 
 run_test "T6 ammo-delegate without name → ALLOW (one-shot subagent)" 0 allow \
     '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-delegate"}}'
+run_test "T6 deny names the plugin address ammo:ammo-delegate for the re-spawn" 0 deny \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo:ammo-delegate","name":"dl"}}' \
+    "subagent_type='ammo:ammo-delegate'"
 
 run_test "T6 ammo-auditor with name from lead → ALLOW (lead is not gated on one-shot names)" 0 allow \
     '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-auditor","name":"stage-1-cycle-1"}}'
@@ -320,6 +335,31 @@ run_test "Round 2 named impl-champion → ALLOW" 0 allow \
 run_test "Round 3 champion with empty name → DENY (needs name)" 0 deny \
     '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-champion","name":""}}' \
     "non-empty tool_input.name"
+
+# ══════════════════════════════════════════════
+echo ""; echo "== Plugin addresses: subagent_type ammo:<role> =="
+# ══════════════════════════════════════════════
+# Plugin roles spawn at ammo:<role>. The rules apply to the bare role name.
+TEST_HOME="$TMPDIR/ns" TEST_CONFIG_DIR=""
+run_test "ammo:ammo-champion with empty name → DENY" 0 deny \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo:ammo-champion","name":""}}' \
+    "non-empty tool_input.name"
+run_test "ammo:ammo-impl-champion named → ALLOW" 0 allow \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo:ammo-impl-champion","name":"impl-op001"}}'
+run_test "ammo:ammo-delegate named → DENY" 0 deny \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo:ammo-delegate","name":"d1"}}' \
+    "ammo-delegate must spawn without tool_input.name"
+run_test "ammo:ammo-auditor named from a subagent → DENY" 0 deny \
+    '{"tool_name":"Agent","agent_type":"ammo:ammo-champion","tool_input":{"subagent_type":"ammo:ammo-auditor","name":"a1"}}' \
+    "must not carry tool_input.name"
+
+# ══════════════════════════════════════════════
+echo ""; echo "== Campaign scope =="
+# ══════════════════════════════════════════════
+cd "$NOCAMP"
+run_test "no campaign: champion with empty name → silent" 0 no_output \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-champion","name":""}}'
+cd "$ENGINE"
 
 echo ""
 echo "================================"

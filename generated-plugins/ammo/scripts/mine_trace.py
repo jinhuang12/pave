@@ -21,7 +21,7 @@ Config (agent judgment only):
 
     {
       "round": 1,
-      "artifact_dir": "<campaign artifact dir>",
+      "artifact_dir": "<campaign artifact dir; default AMMO_ARTIFACT_DIR>",
       "arm": "baseline",
       "e2e_results": "rounds/1/sweeps/baseline/e2e_latency_results.json",
       "segmentation": {"policy": "max_gap"},
@@ -38,18 +38,28 @@ Create the normalized ``ammo_intervals/1`` file with ``runtime_ops.py
 normalize``. The interval math and every downstream AMMO criterion are shared.
 
 Usage:
-    python3 mine_trace.py --config rounds/1/mining/mine_config.json
-    python3 mine_trace.py --config <cfg> --out-json <path> --out-md <path>
+    scripts/ammo mine_trace.py --config rounds/1/mining/mine_config.json
+    scripts/ammo mine_trace.py --config <cfg> --out-json <path> --out-md <path>
+
+main() fills the campaign env through campaign_paths.apply_env() first, so a
+config without artifact_dir resolves its relative paths from the campaign dir.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sqlite3
 import sys
 from pathlib import Path
+
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+import campaign_paths  # noqa: E402
 
 SCHEMA = "mine_trace/1"
 KERNEL_TABLES = ("CUPTI_ACTIVITY_KIND_KERNEL", "CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL")
@@ -700,8 +710,13 @@ def _resolve(base, value):
     return path if path.is_absolute() else (Path(base) / path)
 
 
+def _artifact_dir(config):
+    """config artifact_dir, else the campaign dir (AMMO_ARTIFACT_DIR), else the cwd."""
+    return config.get("artifact_dir") or os.environ.get("AMMO_ARTIFACT_DIR") or "."
+
+
 def build(config, warnings):
-    artifact_dir = config.get("artifact_dir") or "."
+    artifact_dir = _artifact_dir(config)
     families = compile_families(config.get("families"))
     sweep_path = _resolve(
         artifact_dir, config.get("e2e_results") or config.get("e2e_latency_results") or ""
@@ -788,6 +803,7 @@ def build(config, warnings):
 
 
 def main(argv=None):
+    campaign_paths.apply_env()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", required=True, help="mine_config.json (agent judgment)")
     parser.add_argument("--out-json", help="default: {artifact_dir}/rounds/{N}/mining/mined.json")
@@ -804,7 +820,7 @@ def main(argv=None):
         print(f"FATAL: {exc}", file=sys.stderr)
         return 1
 
-    mining_dir = Path(config.get("artifact_dir") or ".") / "rounds" / str(
+    mining_dir = Path(_artifact_dir(config)) / "rounds" / str(
         config.get("round", 1)
     ) / "mining"
     out_json = Path(args.out_json) if args.out_json else mining_dir / "mined.json"

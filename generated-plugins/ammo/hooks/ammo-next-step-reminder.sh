@@ -25,6 +25,10 @@
 #
 # PREV_STATE (/tmp/ammo-state-prev-<SID>.json) is READ here and WRITTEN by
 # ammo-state-validate.sh — the blocking validator owns the ordering contract.
+#
+# Campaign scope: _find_campaign.sh finds the campaign (.ammo/active marker or
+# AMMO_ARTIFACT_DIR) and the state engine runs under the campaign python
+# (ammo_python). Outside a campaign the hook exits 0 and prints nothing.
 set -euo pipefail
 trap 'exit 0' ERR
 
@@ -32,10 +36,13 @@ if ! command -v jq &>/dev/null; then exit 0; fi
 
 INPUT=$(cat)
 
+HELPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HELPER_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
+
 # ── Skip subagents ──
 # Delegated to the shared _ammo_is_lead helper — same precedence as
 # ammo-stop-guard so the two hooks never disagree about who the lead is.
-HELPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HELPER_DIR/_ammo_is_lead.sh"
 if ! _ammo_is_lead "$INPUT"; then
     exit 0
@@ -64,30 +71,16 @@ esac
 
 SESSION_ID="${CLAUDE_SESSION_ID:-$(echo "$INPUT" | jq -r '.session_id // "default"' 2>/dev/null)}"
 
-# ── Resolve the state engine (hook-relative; the test harness copies neither
-#    scripts nor schemas into its tmp project dir, so hook-relative resolution
-#    is REQUIRED). Advisory hook → fail-open if python3 / engine is missing. ──
+# ── Resolve the state engine: the plugin's own scripts/ammo_state.py, run by
+#    ammo_python under the campaign python. Advisory hook → fail-open if
+#    python3 / engine is missing. ──
 ENGINE="$HELPER_DIR/../scripts/ammo_state.py"
-HOOK_PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-if [ -x "$HOOK_PROJ/.venv/bin/python" ]; then
-    ENGINE_PY="$HOOK_PROJ/.venv/bin/python"
-else
-    ENGINE_PY="python3"
-fi
-if ! command -v "$ENGINE_PY" &>/dev/null; then exit 0; fi
+if ! command -v python3 &>/dev/null; then exit 0; fi
 [ -f "$ENGINE" ] || exit 0
 
-# ── Find state.json (BEFORE throttle so we can detect terminal-status bypass) ──
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-STATE_FILE=""
-ARTIFACT_DIR=""
-for d in "$PROJECT_DIR"/kernel_opt_artifacts/*/; do
-    [ -f "$d/state.json" ] || continue
-    STATE_FILE="$d/state.json"
-    ARTIFACT_DIR="$d"
-    break
-done
-[ -z "$STATE_FILE" ] && exit 0
+# ── Campaign state.json (BEFORE throttle so we can detect terminal-status bypass) ──
+STATE_FILE="$AMMO_ARTIFACT_DIR/state.json"
+[ -f "$STATE_FILE" ] || exit 0
 
 # ── PREV_STATE: READ ONLY here ──
 # ammo-state-validate.sh (the BLOCKING validator) owns this snapshot: it reads
@@ -100,7 +93,7 @@ PREV_STATE="${AMMO_REMINDER_STATE_DIR:-/tmp}/ammo-state-prev-${SESSION_ID}.json"
 # ── Determine if this is a TERMINAL transition (bypasses throttle) ──
 # Ask the engine: terminal-transition detection requires PREV_STATE to exist
 # AND prev status to differ (first-fire fix — no edge without a baseline).
-IS_TERMINAL_TRANSITION=$("$ENGINE_PY" "$ENGINE" next-step --state "$STATE_FILE" --prev "$PREV_STATE" --print-terminal 2>/dev/null) || IS_TERMINAL_TRANSITION=0
+IS_TERMINAL_TRANSITION=$(ammo_python ammo_state.py next-step --state "$STATE_FILE" --prev "$PREV_STATE" --print-terminal 2>/dev/null) || IS_TERMINAL_TRANSITION=0
 [ "$IS_TERMINAL_TRANSITION" = "1" ] || IS_TERMINAL_TRANSITION=0
 
 # ── Throttle (15s per session). Terminal transitions bypass. ──
@@ -119,7 +112,7 @@ touch "$MARKER"
 # ── Generate the message via the engine (stage-ladder reminder + Socratic edges
 #    + threshold warning). The engine emits the compact hookSpecificOutput JSON
 #    on a non-empty message, or nothing when there is nothing to say. ──
-MSG_JSON=$("$ENGINE_PY" "$ENGINE" next-step --state "$STATE_FILE" --prev "$PREV_STATE" --emit hook 2>/dev/null) || MSG_JSON=""
+MSG_JSON=$(ammo_python ammo_state.py next-step --state "$STATE_FILE" --prev "$PREV_STATE" --emit hook 2>/dev/null) || MSG_JSON=""
 
 # No PREV_STATE write here — ammo-state-validate.sh refreshes it.
 

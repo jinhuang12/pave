@@ -47,7 +47,14 @@ except ImportError:  # pragma: no cover - exercised in environments without json
 
 
 _THIS_DIR = Path(__file__).resolve().parent
+# Sibling imports must work when this file is loaded by path
+# (importlib.util.spec_from_file_location), as the hooks and tests do.
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+from campaign_paths import plugin_path  # noqa: E402
+
 _TRANSITIONS_PATH = _THIS_DIR / "transitions.json"
+_STATE_SCHEMA = plugin_path("schemas", "state.schema.json")
 
 _AUDIT_STARTED_SCRIPT = "scripts/ammo_state.py"
 
@@ -61,24 +68,14 @@ def load_transitions():
 
 
 def find_schema(start_path):
-    """Walk up from `start_path` to locate schemas/state.schema.json,
-    stopping at a .git boundary — same algorithm as ammo-state-validate.sh.
-    Returns a Path or None.
+    """Return the plugin's schemas/state.schema.json, or None when it is missing.
+
+    The schema ships with the plugin. A campaign dir lives under the engine
+    checkout (<engine>/.ammo/<id>/), so no walk up from `start_path` reaches
+    the plugin, and a schema copy inside the engine tree is never used.
+    `start_path` stays for callers; it does not change the answer.
     """
-    d = Path(start_path).resolve()
-    if d.is_file():
-        d = d.parent
-    for _ in range(10):
-        candidate = d / ".claude" / "schemas" / "state.schema.json"
-        if candidate.is_file():
-            return candidate
-        parent = d.parent
-        if parent == d:
-            break
-        if (d / ".git").is_dir():
-            break
-        d = parent
-    return None
+    return _STATE_SCHEMA if _STATE_SCHEMA.is_file() else None
 
 
 def load_schema(start_path, explicit=None):

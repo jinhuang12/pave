@@ -1,13 +1,13 @@
 ---
 name: ammo-report
-description: Generate a standalone technical report from completed AMMO campaign artifacts, including measured results, charts, implementation details, failures, and reusable lessons.
+description: Generate a standalone technical report from completed AMMO campaign artifacts, including measured results, charts, implementation details, failures, and reusable lessons. Read by the ammo-report-writer role at Stage 7b of an ammo:ammo campaign; not for direct use.
 ---
 
 # AMMO Report Content Authority
 
-Write a publication-quality `{artifact_dir}/REPORT.md` for engineers deploying vLLM. The reader should not need to know AMMO's roles, stages, gates, or internal vocabulary. Explain the work as profiling, analysis, candidate evaluation, implementation, and validation.
+Write a publication-quality `{artifact_dir}/REPORT.md` for engineers deploying Pumice. The reader should not need to know AMMO's roles, stages, gates, or internal vocabulary. Explain the work as profiling, analysis, candidate evaluation, implementation, and validation.
 
-This file owns report content and source selection. The `ammo-report` role owns execution and the independent fact-check lifecycle.
+This file owns report content and source selection. The `ammo-report-writer` role (the Codex alias is `ammo-report`) owns execution. The lead owns the independent fact-check lifecycle (`skills/ammo/SKILL.md`, Stage 7b).
 
 ## Source Authority
 
@@ -52,16 +52,16 @@ Use the title and scope in the final track verdict for a candidate's final name.
 
 ## Required Report Structure
 
-1. **Executive Summary** — target, method in one sentence, dominant bottleneck, what shipped, measured E2E effect, important failures, and remaining opportunity.
-2. **Model and Hardware Context** — architecture facts supported by artifacts, workload, hardware table, and the relevant compute/memory regime.
-3. **Measurement Methodology** — production parity, clean timing versus profiling, benchmark configuration, correctness method, and baseline table.
-4. **Bottleneck Analysis** — component/kernel breakdown, occurrence-weighted E2E shares, physical limits, and the evidence that drove candidate generation.
-5. **Approaches Evaluated** — all serious candidates, their mechanism, evidence scope, projection, selection reason, and preimplementation disposition.
-6. **Implementation and Results** — shipped code, activation proof, correctness, boundary performance, clean E2E results, projection error, integration, enablement, and rollback.
-7. **What Failed** — include when any implemented track failed; explain cause and evidence without turning a hypothesis into fact.
-8. **Remaining Opportunities** — untried or unresolved addressable work and the mechanical reason the campaign ended.
-9. **Key Lessons** — three to five actionable lessons tied to specific evidence.
-10. **Appendix** — reproduction commands, source/commit identity, and complete relevant code listings when the artifacts and worktree still make them available.
+1. **Executive Summary**: target, method in one sentence, dominant bottleneck, what shipped, measured E2E effect, important failures, and remaining opportunity.
+2. **Model and Hardware Context**: architecture facts supported by artifacts, workload, hardware table, and the relevant compute/memory regime.
+3. **Measurement Methodology**: production parity, clean timing versus profiling, benchmark configuration, correctness method, and baseline table.
+4. **Bottleneck Analysis**: component/kernel breakdown, occurrence-weighted E2E shares, physical limits, and the evidence that drove candidate generation.
+5. **Approaches Evaluated**: all serious candidates, their mechanism, evidence scope, projection, selection reason, and preimplementation disposition.
+6. **Implementation and Results**: shipped code, activation proof, correctness, boundary performance, clean E2E results, projection error, integration, enablement, and rollback.
+7. **What Failed**: include when any implemented track failed; explain cause and evidence without turning a hypothesis into fact.
+8. **Remaining Opportunities**: untried or unresolved addressable work and the mechanical reason the campaign ended.
+9. **Key Lessons**: three to five actionable lessons tied to specific evidence.
+10. **Appendix**: reproduction commands, source/commit identity, and complete relevant code listings when the artifacts and worktree still make them available.
 
 Include a linked table of contents. Define technical terms on first use. Translate internal terms: say “candidate evaluation,” “independent audit,” and “validation step,” not “champion,” “debate,” or “Gate 5.x,” except in artifact citations where the literal name helps locate evidence.
 
@@ -104,9 +104,9 @@ Diagrams must be portable PNGs rather than renderer-specific Mermaid. Keep label
 
 ## Code and Reproduction
 
-Resolve code through the track's recorded worktree branch/commit and the integrated commit. Use `diff.patch` to identify scope, then read the actual files at that commit. Do not present a materialized `.venv` edit as shipped vLLM code; describe upstream dependency patches separately.
+Resolve code through the track's recorded worktree branch/commit and the integrated commit. Use `diff.patch` to identify scope, then read the actual files at that commit. Do not present a materialized `.venv` edit as shipped engine code; describe upstream dependency patches separately.
 
-Reproduction commands must use `.venv/bin/python`, the target workload, required environment flags, and the canonical round/slot paths. Include enable, disable, and rollback instructions. Do not claim a command was run unless an artifact records it.
+Reproduction commands must use the engine venv Python that `target.json` `engine.venv` records, the target workload, required environment flags, and the canonical round/slot paths. Include enable, disable, and rollback instructions. Do not claim a command was run unless an artifact records it.
 
 ## Quality Bar
 

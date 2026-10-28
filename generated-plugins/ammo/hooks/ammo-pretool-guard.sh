@@ -7,6 +7,12 @@
 # Accelerator pool guard: Blocks ONCE per session if a CUDA or Neuron command
 # lacks the matching reservation pattern.
 # Subsequent commands without the pattern are allowed through.
+#
+# Campaign scope (_find_campaign.sh): outside a campaign the hook exits 0 and
+# prints nothing. The classifier is this plugin's scripts/hook_cmd_classify.py,
+# run through ammo_python. The one-shot flags are keyed by the Claude session
+# (CLAUDE_SESSION_ID, else the hook input's session_id, else the campaign id);
+# ammo-postcompact.sh keeps the current key's flag.
 set -euo pipefail
 if ! command -v jq &>/dev/null; then exit 0; fi
 
@@ -15,13 +21,16 @@ INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // .input.command // empty' 2>/dev/null) || true
 [ -z "$COMMAND" ] && exit 0
 
-# Determine if an AMMO campaign is active
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-_CAMPAIGN_ACTIVE=false
-ls "$PROJECT_DIR"/kernel_opt_artifacts/*/state.json &>/dev/null && _CAMPAIGN_ACTIVE=true
-
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLASSIFY="$HOOK_DIR/../scripts/hook_cmd_classify.py"
+PLUGIN_ROOT="$(cd "$HOOK_DIR/.." && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+# Outside a campaign there is nothing to guard.
+_find_campaign "$INPUT" || exit 0
+
+CLASSIFY="$PLUGIN_ROOT/scripts/hook_cmd_classify.py"
+RESERVE="$PLUGIN_ROOT/scripts/ammo gpu_reservation.py reserve"
+GUARD_SID="${CLAUDE_SESSION_ID:-$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)}"
+GUARD_SID="${GUARD_SID:-${AMMO_SESSION_ID:-}}"
 
 # _is_inspection_only — true only when EVERY segment of $COMMAND is
 # inspection-class. The old test was an ANCHORED regex on the start of the
@@ -34,13 +43,13 @@ CLASSIFY="$HOOK_DIR/../scripts/hook_cmd_classify.py"
 # guards themselves stay one-shot and advisory-first.
 _is_inspection_only() {
     [ -f "$CLASSIFY" ] || return 1
-    command -v "$CLASSIFY_PY" &>/dev/null || return 1
-    "$CLASSIFY_PY" "$CLASSIFY" --mode readonly "$1" >/dev/null 2>&1
+    command -v python3 &>/dev/null || return 1
+    ammo_python hook_cmd_classify.py --mode readonly "$1" >/dev/null 2>&1
 }
 
 _is_accelerator_heavy() {
-    if [ -f "$CLASSIFY" ] && command -v "$CLASSIFY_PY" &>/dev/null; then
-        "$CLASSIFY_PY" "$CLASSIFY" --mode accelerator "$1" >/dev/null 2>&1
+    if [ -f "$CLASSIFY" ] && command -v python3 &>/dev/null; then
+        ammo_python hook_cmd_classify.py --mode accelerator "$1" >/dev/null 2>&1
         return $?
     fi
     # Partial-restore fallback. Keep the historical CUDA patterns and include
@@ -50,12 +59,6 @@ _is_accelerator_heavy() {
     echo "$1" | grep -Eq '(^|[[:space:];|&])(nsys|ncu|torchrun|vllm|pumice-server|rust_grpc_server\.py|run_pumice_grpc_bench\.py|neuron-profile|neuron-profiler|neuron-explorer|nki)([[:space:]]|$)' \
         || echo "$1" | grep -Eq '(^|[[:space:];|&])cargo[[:space:]]+build([[:space:]]|$)'
 }
-
-if [ -x "$HOOK_DIR/../../.venv/bin/python" ]; then
-    CLASSIFY_PY="$HOOK_DIR/../../.venv/bin/python"
-else
-    CLASSIFY_PY="python3"
-fi
 
 # Neuron detection keys first on AMMO_ACCELERATOR_KIND (set by the Pumice
 # images); the profile-name checks keep both the legacy vllm-neuron and the
@@ -69,50 +72,48 @@ if [ "${AMMO_ACCELERATOR_KIND:-}" = "neuron" ] || \
     _IS_NEURON_RUNTIME=true
 fi
 
-if [ "$_CAMPAIGN_ACTIVE" = "true" ]; then
-    # Suppress noisy warnings on read-only / inspection commands
-    if _is_inspection_only "$COMMAND"; then
-        exit 0
-    fi
+# Suppress noisy warnings on read-only / inspection commands
+if _is_inspection_only "$COMMAND"; then
+    exit 0
+fi
 
-    # N1: CUDA production-parity reminders. Neuron Gate 5.3a checks NEFF/bucket
-    # compilation and fallback evidence instead of CUDA graph flags.
-    if [ "$_IS_NEURON_RUNTIME" = "false" ]; then
-        if echo "$COMMAND" | grep -qP 'TORCH_COMPILE_DISABLE\s*=\s*1'; then
-            echo "AMMO REMINDER: TORCH_COMPILE_DISABLE=1 detected. AMMO non-negotiable N1 requires production parity (CUDA graphs + torch.compile). If this is a false positive (e.g., documentation or search), ignore this warning." >&2
-        fi
-        if echo "$COMMAND" | grep -qP '(--|=)enforce[_-]eager'; then
-            echo "AMMO REMINDER: --enforce-eager detected. AMMO non-negotiable N1 requires CUDA graphs to be enabled. If this is a false positive (e.g., documentation or search), ignore this warning." >&2
-        fi
-        if echo "$COMMAND" | grep -qP 'VLLM_TORCH_COMPILE_LEVEL\s*=\s*[01](\s|$|")'; then
-            echo "AMMO REMINDER: VLLM_TORCH_COMPILE_LEVEL < 2 detected. AMMO non-negotiable N1 requires torch.compile level ≥ 2. If this is a false positive (e.g., documentation or search), ignore this warning." >&2
-        fi
+# N1: CUDA production-parity reminders. Neuron Gate 5.3a checks NEFF/bucket
+# compilation and fallback evidence instead of CUDA graph flags.
+if [ "$_IS_NEURON_RUNTIME" = "false" ]; then
+    if echo "$COMMAND" | grep -qP 'TORCH_COMPILE_DISABLE\s*=\s*1'; then
+        echo "AMMO REMINDER: TORCH_COMPILE_DISABLE=1 detected. AMMO non-negotiable N1 requires production parity (CUDA graphs + torch.compile). If this is a false positive (e.g., documentation or search), ignore this warning." >&2
     fi
+    if echo "$COMMAND" | grep -qP '(--|=)enforce[_-]eager'; then
+        echo "AMMO REMINDER: --enforce-eager detected. AMMO non-negotiable N1 requires CUDA graphs to be enabled. If this is a false positive (e.g., documentation or search), ignore this warning." >&2
+    fi
+    if echo "$COMMAND" | grep -qP 'VLLM_TORCH_COMPILE_LEVEL\s*=\s*[01](\s|$|")'; then
+        echo "AMMO REMINDER: VLLM_TORCH_COMPILE_LEVEL < 2 detected. AMMO non-negotiable N1 requires torch.compile level ≥ 2. If this is a false positive (e.g., documentation or search), ignore this warning." >&2
+    fi
+fi
 
-    # N4: Sweep script mandate reminder
-    if echo "$COMMAND" | grep -qP 'vllm\s+bench\s+latency' && \
-       ! echo "$COMMAND" | grep -q 'run_vllm_bench_latency_sweep'; then
-        echo "AMMO REMINDER: Raw 'vllm bench latency' detected. AMMO non-negotiable N4 requires using the sweep script:" >&2
-        echo "  python scripts/run_vllm_bench_latency_sweep.py --artifact-dir <dir>" >&2
-        echo "If this is a false positive (e.g., documentation or search), ignore this warning." >&2
-    fi
+# N4: Sweep script mandate reminder
+if echo "$COMMAND" | grep -qP 'vllm\s+bench\s+latency' && \
+   ! echo "$COMMAND" | grep -q 'run_vllm_bench_latency_sweep'; then
+    echo "AMMO REMINDER: Raw 'vllm bench latency' detected. AMMO non-negotiable N4 requires using the sweep script:" >&2
+    echo "  $PLUGIN_ROOT/scripts/ammo run_vllm_bench_latency_sweep.py --artifact-dir \"\$AMMO_ARTIFACT_DIR\"" >&2
+    echo "If this is a false positive (e.g., documentation or search), ignore this warning." >&2
+fi
 
-    # N5: VLLM_OP* env contamination warning (warn-only, not blocking)
-    # Catches ad-hoc commands like `VLLM_OP001=1 python benchmark.py`.
-    # The sweep script's _sanitize_vllm_op_env() is the hard gate.
-    if echo "$COMMAND" | grep -qP 'VLLM_OP\d+=\s*(1|True|true)\b' && \
-       ! echo "$COMMAND" | grep -q 'run_vllm_bench_latency_sweep'; then
-        echo "AMMO REMINDER: VLLM_OP* env var set to True/1 detected in command." >&2
-        echo "  Cross-track contamination prevention: VLLM_OP* flags must default to off." >&2
-        echo "  The sweep script sanitizes VLLM_OP* from inherited env automatically." >&2
-        echo "  If setting for a specific benchmark, use opt_env in target.json instead." >&2
-    fi
+# N5: VLLM_OP* env contamination warning (warn-only, not blocking)
+# Catches ad-hoc commands like `VLLM_OP001=1 python benchmark.py`.
+# The sweep script's _sanitize_vllm_op_env() is the hard gate.
+if echo "$COMMAND" | grep -qP 'VLLM_OP\d+=\s*(1|True|true)\b' && \
+   ! echo "$COMMAND" | grep -q 'run_vllm_bench_latency_sweep'; then
+    echo "AMMO REMINDER: VLLM_OP* env var set to True/1 detected in command." >&2
+    echo "  Cross-track contamination prevention: VLLM_OP* flags must default to off." >&2
+    echo "  The sweep script sanitizes VLLM_OP* from inherited env automatically." >&2
+    echo "  If setting for a specific benchmark, use opt_env in target.json instead." >&2
 fi
 
 # ── Worktree venv activation guard ──
 # When the agent's cwd is inside .claude/worktrees/<name>/, any python/pip/pytest
-# invocation MUST run under that worktree's .venv. The main repo's .venv has an
-# editable-install .pth that resolves `import vllm` to the MAIN worktree's
+# invocation MUST run under that worktree's .venv. The engine's venv has an
+# editable install that resolves `import pumice` to the ENGINE checkout's
 # source tree — silently invalidating all profiling/benchmarks for the
 # isolated op worktree. One-shot block per session; trust agent judgment after.
 # Runs before the GPU-pool guard so a venv violation on a GPU command surfaces
@@ -129,12 +130,12 @@ case "$CWD" in
             echo "$COMMAND" | grep -qF "$EXPECTED_VENV/bin/python"          && _VENV_OK=true
             echo "$COMMAND" | grep -qF "$EXPECTED_VENV/bin/pytest"          && _VENV_OK=true
             echo "$COMMAND" | grep -qF "$EXPECTED_VENV/bin/pip"             && _VENV_OK=true
-            # Exempt: bare `import vllm` check (used to verify activation worked)
-            if echo "$COMMAND" | grep -qP '^\s*python3?\s+-c\s+["\x27]import\s+vllm["\x27;\s]*(print\(vllm\.__file__\))?\s*["\x27]?\s*$'; then
+            # Exempt: bare `import pumice` / `import vllm` check (used to verify activation worked)
+            if echo "$COMMAND" | grep -qP '^\s*python3?\s+-c\s+["\x27]import\s+(pumice|vllm)["\x27;\s]*(print\((pumice|vllm)\.__file__\))?\s*["\x27]?\s*$'; then
                 _VENV_OK=true
             fi
 
-            _SID_RAW="${CLAUDE_SESSION_ID:-}"
+            _SID_RAW="$GUARD_SID"
             if [ "$_VENV_OK" = "false" ] && [ -n "$_SID_RAW" ]; then
                 _GRD="${AMMO_GPU_RES_DIR:-/tmp/ammo_gpu_res}"
                 mkdir -p "$_GRD"
@@ -147,8 +148,8 @@ AMMO WORKTREE VENV: Python command in op worktree without activating the worktre
 You are in: $CWD
 Expected venv: $EXPECTED_VENV
 
-The main repo's .venv has an editable-install .pth that resolves 'import vllm'
-to the MAIN worktree's source tree — NOT your isolated edits. Running profiling
+The engine's venv has an editable install that resolves 'import pumice'
+to the ENGINE checkout's source tree — NOT your isolated edits. Running profiling
 or benchmarks under the wrong venv silently invalidates the results.
 
 Fix: prefix your command with
@@ -157,7 +158,7 @@ Fix: prefix your command with
 Or invoke python by absolute path: $EXPECTED_VENV/bin/python ...
 
 Verify once after activation:
-  python -c "import vllm; print(vllm.__file__)"
+  python -c "import pumice; print(pumice.__file__)"
   # The path MUST contain '/.claude/worktrees/'
 
 (This block fires only once per session.)
@@ -193,7 +194,7 @@ if echo "$COMMAND" | grep -Eq "CUDA_VISIBLE_DEVICES=(\"\"|'')"; then
 fi
 
 # Accelerator command without reservation pattern — one-shot warning
-SESSION_ID="${CLAUDE_SESSION_ID:-}"
+SESSION_ID="$GUARD_SID"
 if [ -z "$SESSION_ID" ]; then
     exit 0  # No session ID — fail-open
 fi
@@ -210,7 +211,7 @@ AMMO ACCELERATOR POOL: Neuron command detected without reservation.
 
 Use the accelerator pool pattern before Neuron execution or profiling:
 
-  NVD=\$(python scripts/gpu_reservation.py reserve --num-resources N) && NEURON_VISIBLE_DEVICES=\$NVD <your_vllm_or_profile_command>
+  NVD=\$($RESERVE --num-resources N) && NEURON_VISIBLE_DEVICES=\$NVD <your_vllm_or_profile_command>
 
 For a direct single-process NKI/runtime command only, assign the same printed
 range to NEURON_RT_VISIBLE_CORES. Do not use an empty Neuron visibility value
@@ -223,7 +224,7 @@ AMMO GPU POOL: GPU command detected without reservation.
 
 Use the GPU pool pattern to acquire GPUs before running GPU commands:
 
-  CVD=\$(python scripts/gpu_reservation.py reserve --num-gpus N) && CUDA_VISIBLE_DEVICES=\$CVD <your_command>
+  CVD=\$($RESERVE --num-gpus N) && CUDA_VISIBLE_DEVICES=\$CVD <your_command>
 
 Or set CUDA_VISIBLE_DEVICES="" if no GPU is needed.
 (This warning fires only once per session.)

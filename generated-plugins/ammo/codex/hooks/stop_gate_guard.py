@@ -12,6 +12,9 @@ from common import (
     CampaignResolutionError,
     active_artifact_dir,
     block_stop,
+    campaign_for_hook,
+    plugin_path,
+    script_path,
     find_repo_root,
     lifecycle_task_name,
     is_child_agent_payload,
@@ -70,13 +73,7 @@ def _server_session_id(state: Any) -> str:
 def _cleanup_session_gpus(session_id: str) -> None:
     if not session_id or session_id == "unknown":
         return
-    script = (
-        Path(__file__).resolve().parents[1]
-        / "skills"
-        / "ammo"
-        / "scripts"
-        / "gpu_reservation.py"
-    )
+    script = script_path("gpu_reservation.py")
     if not script.is_file():
         return
     try:
@@ -124,13 +121,14 @@ def _stop_nudge(artifact_dir: Path, state: Any) -> str | None:
         return (
             f"Campaign is {status} but REPORT.md has not been generated. "
             "Use spawn_agent with a fresh report agent, have it read "
-            "skills/ammo-report/SKILL.md, and generate "
+            f"{plugin_path('skills', 'ammo-report', 'SKILL.md')}, and generate "
             f"{artifact_dir / 'REPORT.md'}."
         )
 
     if isinstance(state, dict) and state.get("serving"):
         return (
-            "The serving campaign is still active. Follow references/serving-campaign.md: "
+            "The serving campaign is still active. Follow "
+            f"{plugin_path('references', 'serving-campaign.md')}: "
             "use sealed deployment results, objective-based mining and the existing "
             "stage/audit gates. Unknown opportunity is not zero. After SHIP re-mine "
             "the promoted incumbent before the objective-floor stop check."
@@ -211,7 +209,7 @@ def _stop_nudge(artifact_dir: Path, state: Any) -> str | None:
     if stage.startswith("7b_report") or "report_gen" in stage:
         return (
             "You are at Stage 7b (Report Generation). Use spawn_agent with a fresh "
-            "report agent, have it read skills/ammo-report/SKILL.md, and "
+            f"report agent, have it read {plugin_path('skills', 'ammo-report', 'SKILL.md')}, and "
             f"generate {artifact_dir / 'REPORT.md'} before stopping."
         )
     return f"AMMO campaign is still active at {stage}; complete or advance the stage before stopping."
@@ -220,6 +218,9 @@ def _stop_nudge(artifact_dir: Path, state: Any) -> str | None:
 def main() -> None:
     # No one-shot breaker: an active gate blocks every Stop; the escape hatch is AMMO_ALLOW_STOP=1.
     payload = read_stdin_json()
+    # Outside a campaign every Codex hook exits 0 with empty stdout (conventions section 7).
+    if campaign_for_hook(payload) is None:
+        raise SystemExit(0)
     if _is_subagent_payload(payload):
         raise SystemExit(0)
 

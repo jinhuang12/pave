@@ -2,9 +2,13 @@
 # SessionStart hook for AMMO orchestrator
 # Injects resume context after compaction. The briefing is for the lead.
 #
-# The matcher in settings.local.json is empty, so this hook fires on every
+# The matcher in hooks/hooks.json is empty, so this hook fires on every
 # SessionStart in every process: the lead, named teammates, and in-process
 # subagents of the lead when they compact.
+#
+# Outside a campaign (no <engine>/.ammo/active marker, no AMMO_ARTIFACT_DIR;
+# see _find_campaign.sh) the hook exits 0 and prints nothing: the plugin can
+# be enabled in every project, and a SessionStart there must stay untouched.
 #
 # Who can be told apart (Claude Code 2.1.281):
 #   - Teammates run in their own process with --agent-type, so SessionStart
@@ -35,6 +39,9 @@ emit_empty() {
 }
 
 HELPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HELPER_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
+SKILL_MD="$(cd "$HELPER_DIR/.." && pwd)/skills/ammo/SKILL.md"
 # shellcheck source=_ammo_is_lead.sh
 if [ -f "$HELPER_DIR/_ammo_is_lead.sh" ]; then
     source "$HELPER_DIR/_ammo_is_lead.sh"
@@ -73,22 +80,25 @@ SPAWNED_NOTE="**This message is for the AMMO lead only.** If another agent spawn
 
 # Clean up stale GPU reservation warning flags from previous sessions.
 # Preserve the current session's flag so post-compaction restarts don't
-# re-trigger the one-shot CVD warning.
-if [ -n "${CLAUDE_SESSION_ID:-}" ]; then
-    for _f in /tmp/ammo_gpu_res/.warned_*; do
+# re-trigger the one-shot CVD warning. The key is the one
+# ammo-pretool-guard.sh writes: CLAUDE_SESSION_ID, else the hook input's
+# session_id, else the campaign id.
+_WARN_SID="${CLAUDE_SESSION_ID:-$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)}"
+_WARN_SID="${_WARN_SID:-${AMMO_SESSION_ID:-}}"
+_GRD="${AMMO_GPU_RES_DIR:-/tmp/ammo_gpu_res}"
+if [ -n "$_WARN_SID" ]; then
+    for _f in "$_GRD"/.warned_*; do
         [ -f "$_f" ] || continue
-        [ "$_f" = "/tmp/ammo_gpu_res/.warned_${CLAUDE_SESSION_ID}" ] && continue
+        [ "$_f" = "$_GRD/.warned_${_WARN_SID}" ] && continue
         rm -f "$_f"
     done
-else
-    rm -f /tmp/ammo_gpu_res/.warned_* 2>/dev/null || true
 fi
 
 # Read only a fresh checkpoint. PreCompact writes it just before the
 # compaction that fires this hook, so an old one is from an earlier
 # compaction and the state.json branch below is more accurate.
 CHECKPOINT_MAX_AGE_MIN=30
-CHECKPOINT_FILES=$(find "$CLAUDE_PROJECT_DIR/kernel_opt_artifacts" -name "compaction_checkpoint.json" -mmin "-$CHECKPOINT_MAX_AGE_MIN" 2>/dev/null | head -1)
+CHECKPOINT_FILES=$(find "$AMMO_ARTIFACT_DIR" -maxdepth 1 -name "compaction_checkpoint.json" -mmin "-$CHECKPOINT_MAX_AGE_MIN" 2>/dev/null | head -1)
 
 if [ -n "$CHECKPOINT_FILES" ]; then
     STATE_DIR=$(dirname "$CHECKPOINT_FILES")
@@ -140,6 +150,7 @@ if [ -n "$CHECKPOINT_FILES" ]; then
     emit_context \
         --arg spawned_note "$SPAWNED_NOTE" \
         --arg state_file "$STATE_FILE" \
+        --arg skill_md "$SKILL_MD" \
         --arg extra "$EXTRA_CONTEXT" \
         --arg model "$MODEL" \
         --arg stage "$STAGE" \
@@ -154,7 +165,7 @@ if [ -n "$CHECKPOINT_FILES" ]; then
               + "## You Are The AMMO Lead Orchestrator\n\n"
               + "This session was compacted while orchestrating an AMMO optimization.\n\n"
               + "### Immediate Actions\n\n"
-              + "1. **Read the skill**: `skills/ammo/SKILL.md`\n"
+              + "1. **Read the skill**: `" + $skill_md + "`\n"
               + "2. **Load state**: `cat " + $state_file + "`\n"
               + "3. **Resume current stage** — spawn subagents as needed"
               + $extra + "\n\n"
@@ -167,7 +178,8 @@ if [ -n "$CHECKPOINT_FILES" ]; then
 
 else
     # No checkpoint — check for active state
-    STATE_FILES=$(find "$CLAUDE_PROJECT_DIR/kernel_opt_artifacts" -maxdepth 2 -name "state.json" 2>/dev/null | head -1)
+    STATE_FILES=""
+    [ -f "$AMMO_ARTIFACT_DIR/state.json" ] && STATE_FILES="$AMMO_ARTIFACT_DIR/state.json"
 
     if [ -n "$STATE_FILES" ]; then
         MODEL=$(jq -r '.target.model_id // "unknown"' "$STATE_FILES" 2>/dev/null)
@@ -176,6 +188,7 @@ else
         emit_context \
             --arg spawned_note "$SPAWNED_NOTE" \
             --arg state_file "$STATE_FILES" \
+            --arg skill_md "$SKILL_MD" \
             --arg model "$MODEL" \
             --arg stage "$STAGE" \
             '{
@@ -187,7 +200,7 @@ else
                   + "Existing optimization state at: `" + $state_file + "`\n"
                   + "Model: " + $model + " | Stage: " + $stage + "\n\n"
                   + "If continuing this optimization:\n"
-                  + "- Read the skill: `skills/ammo/SKILL.md`\n"
+                  + "- Read the skill: `" + $skill_md + "`\n"
                   + "- You are the lead orchestrator — scaffold, delegate, gate. Do not implement directly."
                 )
               }

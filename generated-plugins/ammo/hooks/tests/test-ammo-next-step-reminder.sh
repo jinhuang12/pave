@@ -4,8 +4,15 @@
 # Covers the 14-state lookup table (Stage 1-7 + terminal campaign states)
 # plus subagent filtering, throttling, and graceful degradation.
 #
-# Run: bash .claude/hooks/test-ammo-next-step-reminder.sh
+# Run: bash hooks/tests/test-ammo-next-step-reminder.sh
+#
+# A fixture project is an engine root: .ammo/active names campaign run1 and
+# the campaign dir is .ammo/run1/ (CLAUDE_PROJECT_DIR is the engine root).
 set -euo pipefail
+
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
 
 HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-next-step-reminder.sh"
 PASS=0
@@ -13,6 +20,7 @@ FAIL=0
 TOTAL=0
 
 TMPDIR=$(mktemp -d)
+cd "$TMPDIR"
 cleanup() {
     rm -rf "$TMPDIR" "$TMPDIR/hook-stdout" "$TMPDIR/hook-stderr" 2>/dev/null || true
     # Throttle + worktree dedup markers created during this run
@@ -109,8 +117,9 @@ make_proj() {
     local state_json="$1"
     local proj
     proj=$(mktemp -d -p "$TMPDIR" proj.XXXXXX)
-    mkdir -p "$proj/kernel_opt_artifacts/run1"
-    echo "$state_json" > "$proj/kernel_opt_artifacts/run1/state.json"
+    mkdir -p "$proj/.ammo/run1"
+    printf 'run1\n' > "$proj/.ammo/active"
+    echo "$state_json" > "$proj/.ammo/run1/state.json"
     echo "$proj"
 }
 
@@ -144,7 +153,7 @@ run_test_env() {
     # SOCRATIC transition explicitly pass their own forbid/need and clear this.
     local _sid _state
     _sid=$(echo "$input" | jq -r '.session_id // empty' 2>/dev/null) || _sid=""
-    _state="$proj/kernel_opt_artifacts/run1/state.json"
+    _state="$proj/.ammo/run1/state.json"
     if [ -n "$_sid" ] && [ -f "$_state" ]; then
         cp "$_state" "/tmp/ammo-state-prev-${_sid}.json" 2>/dev/null || true
     fi
@@ -257,7 +266,7 @@ run_test_env "[12] 7_campaign_eval → mechanical check" 0 "$P" \
 
 # 13) status=campaign_complete, REPORT.md present → session may stop
 SID=$(next_sid); P=$(make_proj "$(make_state_round1 7_campaign_eval campaign_complete true true round1-team 2 true true 1 2 true true)")
-touch "$P/kernel_opt_artifacts/run1/REPORT.md"
+touch "$P/.ammo/run1/REPORT.md"
 run_test_env "[13] campaign_complete + REPORT.md → session may stop" 0 "$P" \
     "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\"}" \
     "Session may stop"
@@ -302,10 +311,31 @@ run_test_env "[18] throttle (same session <30s) → suppressed" 0 "$P" \
     "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\"}" \
     "" "additionalContext"
 
-# No state.json at all → silent exit 0
+# No campaign at all → silent exit 0
 P_EMPTY=$(mktemp -d -p "$TMPDIR" empty.XXXXXX)
 SID=$(next_sid)
-run_test_env "[19] no state.json → exit 0 silent" 0 "$P_EMPTY" \
+run_test_env "[19] no campaign → exit 0 silent" 0 "$P_EMPTY" \
+    "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\"}" \
+    "" "additionalContext"
+if [ ! -s "$TMPDIR/hook-stdout" ] && [ ! -e "/tmp/ammo-reminder-last-$SID" ]; then
+    TOTAL=$((TOTAL + 1)); PASS=$((PASS + 1)); echo "  PASS [$TOTAL]: [19a] no campaign → empty stdout, no throttle marker"
+else
+    TOTAL=$((TOTAL + 1)); FAIL=$((FAIL + 1)); echo "  FAIL [$TOTAL]: [19a] no campaign → empty stdout, no throttle marker"
+fi
+
+# A state.json with no .ammo/active marker above it is not a campaign.
+P_OLD=$(mktemp -d -p "$TMPDIR" oldlayout.XXXXXX)
+mkdir -p "$P_OLD/artifacts/run1"
+make_state_round1 1_baseline active false > "$P_OLD/artifacts/run1/state.json"
+SID=$(next_sid)
+run_test_env "[19b] state.json without a campaign marker → silent" 0 "$P_OLD" \
+    "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\"}" \
+    "" "additionalContext"
+
+# Campaign dir with no state.json yet → silent exit 0
+SID=$(next_sid); P=$(make_proj "$(make_state_round1 1_baseline active false)")
+rm -f "$P/.ammo/run1/state.json"
+run_test_env "[19c] campaign without state.json → exit 0 silent" 0 "$P" \
     "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\"}" \
     "" "additionalContext"
 
@@ -369,13 +399,24 @@ run_test_env "[W6] campaign_complete in worktree → CWD DRIFT warn" 0 "$P" \
     "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\",\"cwd\":\"$WT_CWD\"}" \
     "CWD DRIFT"
 
-# W7: no state.json + worktree → still warn (runs before state.json lookup)
-P_EMPTY2=$(mktemp -d -p "$TMPDIR" empty-wt.XXXXXX)
-SID=$(next_sid)
+# W7: campaign without state.json + worktree → still warn (runs before the
+# state.json lookup). The worktree cwd walks up to the engine's marker.
+SID=$(next_sid); P_EMPTY2=$(make_proj "$(make_state_round1 1_baseline active false)")
+rm -f "$P_EMPTY2/.ammo/run1/state.json"
 WT_CWD="$P_EMPTY2/.claude/worktrees/op001/sub"
+mkdir -p "$WT_CWD"
 run_test_env "[W7] no state.json in worktree → CWD DRIFT warn" 0 "$P_EMPTY2" \
     "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\",\"cwd\":\"$WT_CWD\"}" \
     "CWD DRIFT"
+
+# W8: worktree of a project with no campaign → silent (no drift warning)
+P_NC=$(mktemp -d -p "$TMPDIR" nocampaign-wt.XXXXXX)
+SID=$(next_sid)
+WT_CWD="$P_NC/.claude/worktrees/op001/sub"
+mkdir -p "$WT_CWD"
+run_test_env "[W8] worktree outside a campaign → no CWD DRIFT warn" 0 "$P_NC" \
+    "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\",\"cwd\":\"$WT_CWD\"}" \
+    "" "CWD DRIFT"
 
 # Cleanup worktree markers used by this suite
 rm -f /tmp/ammo-worktree-warned-test-* 2>/dev/null || true

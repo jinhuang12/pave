@@ -3,25 +3,67 @@ set -euo pipefail
 
 # WorktreeCreate hook for the Pumice engine (plan WS3.4).
 # Creates a git worktree with native build artifacts and Python isolation
-# pre-populated. On a Pumice checkout the hook calls the shared
-# pumice-stage-native.sh so the worktree gets its own pumice_rust cdylib
-# and staged _ops .so files. The vLLM branch is kept for legacy sessions
+# pre-populated. On a Pumice checkout the hook runs the plugin's
+# scripts/pumice-stage-native.sh so the worktree gets its own pumice_rust
+# cdylib and staged _ops .so files. The vLLM branch is kept for legacy sessions
 # until WS10.
+#
+# Campaign scope (_find_campaign.sh). Inside a campaign the hook builds the
+# track: the worktree, its native artifacts, and a track .venv made from the
+# campaign's engine python (AMMO_PYTHON: target.json engine.venv, else the
+# engine root's .venv). Outside a campaign, WorktreeCreate cannot decline, so
+# it adds a plain worktree on branch worktree-<name> under the repository's
+# .claude/worktrees/, as Claude Code does by default; the PreToolUse
+# EnterWorktree call exits 0 and prints nothing.
 #
 # Input (stdin JSON):
 #   WorktreeCreate: { session_id, transcript_path, cwd, hook_event_name, name }
 #   PreToolUse:EnterWorktree: { session_id, cwd, hook_event_name, tool_name, tool_input: {name} }
-# Output (stdout): absolute path to the created worktree directory
-# All logging goes to stderr.
+# Output (stdout): absolute path to the created worktree directory, and
+# nothing else: Claude Code reads stdout as the path. All logging goes to
+# stderr (git output too: `>&2 2>&1`, never `2>&1 >&2`, which sends git's
+# stderr to stdout).
 
 # ── Read hook input ──
 INPUT=$(cat)
+EVENT=$(echo "$INPUT" | jq -r '.hook_event_name // empty')
 WORKTREE_NAME=$(echo "$INPUT" | jq -r '.tool_input.name // .name // empty')
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(cd "$HOOK_DIR/.." && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+IN_CAMPAIGN=1
+_find_campaign "$INPUT" || IN_CAMPAIGN=0
+
+# Outside a campaign the tool call does nothing; the WorktreeCreate event
+# that follows adds the plain worktree.
+if [ "$IN_CAMPAIGN" = 0 ] && [ "$EVENT" != "WorktreeCreate" ]; then
+    exit 0
+fi
+
 [ -z "$WORKTREE_NAME" ] && { echo "ERROR: No worktree name provided" >&2; exit 1; }
 
-MAIN_REPO="${CLAUDE_PROJECT_DIR:-$CWD}"
+# ── Outside a campaign: a plain worktree, no build ──
+if [ "$IN_CAMPAIGN" = 0 ]; then
+    PROJECT="${CLAUDE_PROJECT_DIR:-${CWD:-$PWD}}"
+    MAIN_REPO=$(git -C "$PROJECT" rev-parse --show-toplevel 2>/dev/null) || MAIN_REPO=""
+    [ -n "$MAIN_REPO" ] || { echo "ERROR: Not a git repository: $PROJECT" >&2; exit 1; }
+    WORKTREE_DIR="$MAIN_REPO/.claude/worktrees/$WORKTREE_NAME"
+    if [ ! -d "$WORKTREE_DIR" ]; then
+        mkdir -p "$MAIN_REPO/.claude/worktrees"
+        echo "Creating worktree '$WORKTREE_NAME' (no campaign: plain worktree)..." >&2
+        git -C "$MAIN_REPO" worktree add -b "worktree-${WORKTREE_NAME}" "$WORKTREE_DIR" HEAD >&2 2>&1 || \
+            git -C "$MAIN_REPO" worktree add "$WORKTREE_DIR" "worktree-${WORKTREE_NAME}" >&2 2>&1 || {
+                echo "ERROR: Failed to create worktree" >&2; exit 1
+            }
+    fi
+    echo "$WORKTREE_DIR"
+    exit 0
+fi
+
+# ── Inside a campaign: the track build ──
+MAIN_REPO="${CLAUDE_PROJECT_DIR:-${CWD:-${AMMO_ENGINE_ROOT:-}}}"
 if [ -z "${CLAUDE_PROJECT_DIR:-}" ] && [ -f "$MAIN_REPO/.git" ]; then
     MAIN_REPO=$(git -C "$MAIN_REPO" rev-parse --path-format=absolute --git-common-dir 2>/dev/null | sed 's|/\.git$||')
 fi
@@ -55,15 +97,24 @@ mkdir -p "$MAIN_REPO/.claude/worktrees"
 # Lock in session worktree (writable by session_user), NOT base repo (may be root-owned).
 # Cross-session concurrency is handled by git's own internal locking.
 LOCKFILE="$MAIN_REPO/.claude/worktrees/.create-lock"
-(
-    flock -x 200
+add_worktree() {
     echo "Creating worktree '$WORKTREE_NAME'..." >&2
-    git -C "$MAIN_REPO" worktree add -b "$BRANCH_NAME" "$WORKTREE_DIR" HEAD 2>&1 >&2 || \
-        git -C "$MAIN_REPO" worktree add "$WORKTREE_DIR" "$BRANCH_NAME" 2>&1 >&2 || \
-        git -C "$MAIN_REPO" worktree add "$WORKTREE_DIR" HEAD 2>&1 >&2 || {
+    git -C "$MAIN_REPO" worktree add -b "$BRANCH_NAME" "$WORKTREE_DIR" HEAD >&2 2>&1 || \
+        git -C "$MAIN_REPO" worktree add "$WORKTREE_DIR" "$BRANCH_NAME" >&2 2>&1 || \
+        git -C "$MAIN_REPO" worktree add "$WORKTREE_DIR" HEAD >&2 2>&1 || {
             echo "ERROR: Failed to create worktree" >&2; exit 1
         }
-) 200>"$LOCKFILE"
+}
+if command -v flock >/dev/null 2>&1; then
+    (
+        flock -x 200
+        add_worktree
+    ) 200>"$LOCKFILE"
+else
+    # No flock (macOS has none): the add runs unlocked. Two adds at the same
+    # moment can then fail on git's own lock, and the failed one reports it.
+    add_worktree
+fi
 [ ! -d "$WORKTREE_DIR" ] && { echo "ERROR: Worktree creation failed" >&2; exit 1; }
 
 # ── 2. Copy build artifacts ──
@@ -119,9 +170,18 @@ echo "  $COPIED gitignored runtime files copied${FAIL_MSG}" >&2
 # which takes ~50s configure + ~5s build (all ccache hits) on first use.
 
 # ── 3. Create per-worktree .venv for Python isolation ──
+# The track venv is made from the campaign's engine python (AMMO_PYTHON, set
+# by _find_campaign) and sees that venv's site-packages (MAIN_SP).
 echo "Creating worktree venv..." >&2
-PY_VERSION=$("$MAIN_REPO/.venv/bin/python" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-"$MAIN_REPO/.venv/bin/python" -m venv --without-pip "$WORKTREE_DIR/.venv" 2>&1 >&2 && {
+ENGINE_PY="${AMMO_PYTHON:-}"
+PY_VERSION=""
+ENGINE_PREFIX=""
+if [ -n "$ENGINE_PY" ] && [ -x "$ENGINE_PY" ]; then
+    PY_VERSION=$("$ENGINE_PY" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')") || PY_VERSION=""
+    ENGINE_PREFIX=$("$ENGINE_PY" -c "import sys; print(sys.prefix)") || ENGINE_PREFIX=""
+fi
+[ -n "$PY_VERSION" ] && [ -n "$ENGINE_PREFIX" ] && \
+"$ENGINE_PY" -m venv --without-pip "$WORKTREE_DIR/.venv" >&2 2>&1 && {
     SITE_PKGS="$WORKTREE_DIR/.venv/lib/python${PY_VERSION}/site-packages"
 
     # Add main venv packages (torch, numpy, etc.) via .pth
@@ -129,7 +189,7 @@ PY_VERSION=$("$MAIN_REPO/.venv/bin/python" -c "import sys; print(f'{sys.version_
     # so the main venv's editable install meta_path finder is NOT loaded
     # Main venv site-packages (torch, numpy, triton, flashinfer, xformers, ...) —
     # first line preserves prior direct-dir behavior.
-    MAIN_SP="$MAIN_REPO/.venv/lib/python${PY_VERSION}/site-packages"
+    MAIN_SP="$ENGINE_PREFIX/lib/python${PY_VERSION}/site-packages"
     echo "$MAIN_SP" > "$SITE_PKGS/main-venv.pth"
 
     # Materialize AMMO-editable optional GPU/runtime packages into the track venv
@@ -297,7 +357,9 @@ def install():
                 return
         sys.meta_path.append(WorktreeFinder)
 FINDER_EOF
-    sed -i "s|__WORKTREE_DIR__|$WORKTREE_DIR|g" "$SITE_PKGS/_worktree_finder.py"
+    # Portable in-place edit: BSD sed reads `-i` differently from GNU sed.
+    sed "s|__WORKTREE_DIR__|$WORKTREE_DIR|g" "$SITE_PKGS/_worktree_finder.py" > "$SITE_PKGS/_worktree_finder.py.tmp" && \
+        mv "$SITE_PKGS/_worktree_finder.py.tmp" "$SITE_PKGS/_worktree_finder.py"
 
     # Install via .pth import directive (processed during site init)
     echo "import _worktree_finder; _worktree_finder.install()" > "$SITE_PKGS/worktree.pth"
@@ -327,15 +389,16 @@ WRAPPER
     chmod +x "$WORKTREE_DIR/.venv/bin/pytest"
 
     echo "  .venv created (Python isolation active)" >&2
-} || echo "  WARN: venv creation failed" >&2
+} || echo "  WARN: venv creation failed (engine python: ${ENGINE_PY:-unset})" >&2
 
 # ── 4. Stage native Pumice artifacts (WS3.4) ──
-# When the base is a Pumice checkout (pumice-rust/Cargo.toml present) and
-# the shared stage script is on disk, call it so the worktree gets its own
+# When the base is a Pumice checkout (pumice-rust/Cargo.toml present), run
+# the plugin's stage script through the plugin launcher (ammo_python fills
+# the campaign env), from the worktree root, so the worktree gets its own
 # pumice_rust cdylib and staged _ops .so. Non-fatal: a failure logs and the
 # worktree stays usable for a Python-only edit.
-STAGE_NATIVE="/usr/local/bin/pumice-stage-native.sh"
-if [ -f "$WORKTREE_DIR/pumice-rust/Cargo.toml" ] && [ -x "$STAGE_NATIVE" ]; then
+STAGE_NATIVE="$PLUGIN_ROOT/scripts/pumice-stage-native.sh"
+if [ -f "$WORKTREE_DIR/pumice-rust/Cargo.toml" ] && [ -f "$STAGE_NATIVE" ]; then
     # Same cargo features as the image build: nixl-stub on Neuron, and
     # "nixl-stub cmb" on CUDA (without cmb, pumice-server ignores
     # --cmb-port). orchestration/worktree_manager.py uses the same rule.
@@ -345,8 +408,9 @@ if [ -f "$WORKTREE_DIR/pumice-rust/Cargo.toml" ] && [ -x "$STAGE_NATIVE" ]; then
         STAGE_FEATURES=(--features "nixl-stub cmb")
     fi
     echo "Staging pumice native artifacts..." >&2
-    "$STAGE_NATIVE" "$WORKTREE_DIR/.venv/bin/python" "$WORKTREE_DIR" \
-        "${STAGE_FEATURES[@]}" 2>&1 >&2 || \
+    TRACK_VENV="$WORKTREE_DIR/.venv"
+    (cd "$WORKTREE_DIR" && ammo_python "$STAGE_NATIVE" "$TRACK_VENV/bin/python" "$WORKTREE_DIR" \
+        "${STAGE_FEATURES[@]}") >&2 2>&1 || \
         echo "  WARN: pumice-stage-native.sh failed (worktree still usable for python edits)" >&2
 fi
 

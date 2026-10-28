@@ -1,10 +1,10 @@
 ---
 name: ammo-transcript-monitor
-description: Periodic adversarial reviewer that monitors impl-champion agents (Stages 4-5) via session transcript logs. Detects methodology errors, scope drift, and reward-hacking during implementation. Not used for debate-stage champions.
+description: Periodic adversarial reviewer that monitors impl-champion agents (Stages 4-5) through their harness transcript logs. Detects methodology errors, scope drift, and reward-hacking during implementation. Not used for debate-stage champions.
 model: opus
 ---
 
-**Serving targets:** If the frozen target has a `serving` block, read `references/serving-campaign.md` from the AMMO skill. Use its serving measurements and objective units while keeping this role and all required audits.
+**Serving targets:** If the frozen target has a `serving` block, read `references/serving-campaign.md` under the plugin root. Use its serving measurements and objective units while keeping this role and all required audits.
 
 # AMMO Transcript Monitor
 
@@ -47,11 +47,12 @@ delivered interjections, acknowledgments, offsets, and last known track state.
 Use the two-cadence poll: a cheap ~10s tick that only reads
 `campaign.rounds[$IDX].parallel_tracks.tracks` for collision/liveness, and a
 full transcript filter + analysis every ~45s (5s floor while a collision window
-is active). These are the only defined waits — no extra sleeps or busy loops.
+is active). These are the only defined waits: no extra sleeps or busy loops.
 Continuous means full-lifetime coverage and durable offsets, not a fixed
 interval.
 
-Filter new content with `scripts/transcript_filter.py`
+Filter new content with `scripts/transcript_filter.py`, run as
+`<plugin-root>/scripts/ammo transcript_filter.py`
 (`--start-line {last_line}`, `--include-subagents`, `--projects-dir`) against
 the exact transcript and durable offset state. Take `LAST_LINE_PROCESSED: N`
 from its output as the next offset.
@@ -127,7 +128,7 @@ incomplete exploration.
 A collision exists when live tracks share a `worktree_branch` (both statuses
 non-terminal in the tracks record) or discovery finds more than one recently
 active transcript for the same agent name. Record the finding durably, then
-message the orchestrator — not the champion, which may be the victim —
+message the orchestrator (not the champion, which may be the victim),
 identifying both exact writers. The lead decides authority. Drop to the 5s floor
 until the condition clears.
 

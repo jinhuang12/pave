@@ -111,6 +111,61 @@ def test_open_dirs_are_ancestors_of_real_slots(manifest):
 
 
 # ---------------------------------------------------------------------------
+# campaign root: where every slot template is rooted (conventions §3)
+# ---------------------------------------------------------------------------
+
+
+def test_campaign_root_names_the_campaign_workspace(manifest):
+    """Hooks and the Codex guard read this key instead of a root literal."""
+    assert manifest["campaign_root"] == ".ammo/{campaign_id}/"
+    assert "{campaign_id}" in manifest["placeholders"]
+
+
+def test_campaign_id_placeholder_matches_the_layer_id_rule(manifest):
+    """The placeholder accepts exactly the ids campaign_paths reads from the marker."""
+    import sys
+
+    scripts = _SKILL_ROOT / "scripts"
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    import campaign_paths
+
+    placeholder = re.compile("^(?:" + manifest["placeholders"]["{campaign_id}"] + ")$")
+    for value in ("20261028-120000-abc123", "gptoss-l40s-1", "c1", "a.b_c-d",
+                  "..", ".", "-lead", "a/b", "", "x y"):
+        layer = bool(campaign_paths._ID.fullmatch(value)) and value not in (".", "..")
+        assert bool(placeholder.match(value)) == layer, value
+
+
+def test_campaign_root_is_where_the_layer_finds_the_campaign(manifest, tmp_path):
+    import sys
+
+    scripts = _SKILL_ROOT / "scripts"
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    import campaign_paths
+
+    cid = "20261028-120000-abc123"
+    campaign = tmp_path / manifest["campaign_root"].replace("{campaign_id}", cid)
+    campaign.mkdir(parents=True)
+    (tmp_path / ".ammo" / "active").write_text(cid + "\n", encoding="utf-8")
+    assert campaign_paths.find_campaign_dir(tmp_path, env={}) == campaign.resolve()
+
+
+def test_slot_templates_are_relative_to_the_campaign_root(manifest):
+    """A template holding the root itself would match only a nested campaign."""
+    root = manifest["campaign_root"].split("/")[0]
+    templates = [slot["path_template"] for slot in manifest["slots"].values()]
+    templates += manifest.get("open_dirs", [])
+    rooted = [t for t in templates if t.startswith("/") or t.split("/")[0] == root]
+    assert not rooted, rooted
+
+
+def test_doc_names_the_campaign_root(manifest, doc):
+    assert manifest["campaign_root"].replace("{campaign_id}", "<id>") in doc
+
+
+# ---------------------------------------------------------------------------
 # forward: manifest -> doc
 # ---------------------------------------------------------------------------
 

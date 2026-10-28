@@ -1,162 +1,210 @@
+"""Package and Codex port checks for the ammo plugin.
+
+Covers the two manifests and the marketplace entry, the eleven Codex custom
+agents and their installer, the harness-neutral lead skill, the harness
+binding table, and the revision folder that README step 7 seeds.
+"""
+
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
 import tomllib
-from typing import Callable
 import unittest
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
-AGENT_NAMES = {
-    "vllm-neuron-parity:adjudicator",
-    "vllm-neuron-parity:adversarial-reviewer",
-    "vllm-neuron-parity:implementer",
-    "vllm-neuron-parity:investigator",
-    "vllm-neuron-parity:measurer",
-    "vllm-neuron-parity:rederiver",
+AGENTS_DIR = PLUGIN_ROOT / "agents"
+CODEX_AGENTS_DIR = PLUGIN_ROOT / "codex" / "agents"
+INSTALLER = PLUGIN_ROOT / "codex" / "install_agents.py"
+LEAD_SKILL = PLUGIN_ROOT / "skills" / "ammo" / "SKILL.md"
+HARNESS_BINDING = PLUGIN_ROOT / "references" / "harness-binding.md"
+
+# Codex-only alias TOMLs and the role file each one reads.
+CODEX_ALIASES = {
+    "ammo-implementer": "ammo-impl-champion",
+    "ammo-report": "ammo-report-writer",
 }
-ACTIVE_STATE: dict[str, object] = {
-    "workflow_identity": {"run_id": "codex-port-test"},
-    "pinned_release": None,
-    "requested_targets": [],
-    "instance_roster": [],
-    "cross_run_artifact_refs": {},
-    "ranked_backlog": None,
-    "approved_campaigns": [],
-    "campaign_states": {},
-    "campaign_target_pins": {},
-    "scheduling_holds": [],
-    "comparator_registrations": {},
-    "hardware_attempt_counts": {},
-    "hardware_lease_record": None,
-    "gate_approval_records": [],
-    "active_node_runs": [],
-    "completed_outcomes": [],
-    "evidence_references": {},
-    "open_questions": [],
-    "final_status": None,
-}
+# Tool names of either harness. The lead skill names none of them;
+# references/harness-binding.md owns the mapping.
+HARNESS_TOOL_NAMES = (
+    "spawn_agent", "followup_task", "wait_agent", "interrupt_agent",
+    "send_input", "close_agent", "resume_agent", "list_agents", "send_message",
+    "fork_turns", "fork_context", "multi_agent_v1", "exec_command",
+    "write_stdin", "apply_patch",
+    "SendMessage", "TaskStop", "ListAgents", "TeamCreate", "TeamDelete",
+    "run_in_background", "subagent_type", "Agent tool", "Agent(",
+    "EnterWorktree",
+)
+# Frontmatter fields that Claude Code ignores on plugin agents.
+PLUGIN_AGENT_IGNORED_FIELDS = ("hooks", "mcpServers", "permissionMode")
+
+
+def _declared_version() -> str:
+    first = (PLUGIN_ROOT / "VERSION").read_text(encoding="utf-8").splitlines()[0]
+    return first.partition(":")[2].strip()
+
+
+def _role_stems() -> list[str]:
+    return sorted(path.stem for path in AGENTS_DIR.glob("*.md"))
+
+
+def _frontmatter(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    match = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
+    assert match, f"{path}: no frontmatter"
+    return match.group(1)
+
+
+def _load_toml(path: Path) -> dict:
+    with path.open("rb") as handle:
+        return tomllib.load(handle)
+
+
+def _installer_module():
+    spec = importlib.util.spec_from_file_location("ammo_install_agents", INSTALLER)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class PackageStructureTests(unittest.TestCase):
-    def test_manifest_is_native_and_paths_resolve(self) -> None:
-        path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
-        manifest = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual(manifest["name"], PLUGIN_ROOT.name)
-        # Both manifests carry the release VERSION declares, so a bump cannot drift.
-        declared = (PLUGIN_ROOT / "VERSION").read_text(encoding="utf-8").splitlines()[0]
-        declared = declared.partition(":")[2].strip()
+    def test_manifests_are_native_and_carry_the_declared_version(self) -> None:
+        declared = _declared_version()
         self.assertRegex(declared, r"^\d+\.\d+\.\d+$")
-        self.assertEqual(manifest["version"], declared)
+        codex = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         claude = json.loads((PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(claude["version"], declared)
-        self.assertNotIn("hooks", manifest)
-        self.assertEqual(manifest["skills"], "./skills/")
-        self.assertTrue((PLUGIN_ROOT / manifest["skills"]).is_dir())
-        self.assertEqual(manifest["interface"]["displayName"], "vLLM-Neuron Parity")
+        for manifest in (codex, claude):
+            self.assertEqual(manifest["name"], "ammo")
+            self.assertEqual(manifest["version"], declared)
+        # Codex event names differ from hooks/hooks.json, so Codex registers
+        # its own file through the manifest key.
+        self.assertEqual(codex["hooks"], "./codex/hooks.json")
+        self.assertTrue((PLUGIN_ROOT / codex["hooks"]).is_file())
+        self.assertEqual(codex["skills"], "./skills/")
+        self.assertTrue((PLUGIN_ROOT / codex["skills"]).is_dir())
+        self.assertEqual(codex["interface"]["displayName"], "AMMO")
+        for skill in ("ammo", "ammo-report"):
+            self.assertTrue((PLUGIN_ROOT / "skills" / skill / "SKILL.md").is_file(), skill)
 
-    def test_hook_config_registers_the_disclosed_controls(self) -> None:
-        # One hooks.json serves both harnesses: Codex sets CLAUDE_PLUGIN_ROOT
-        # for compatibility, so every command resolves under that variable.
-        data = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text())
-        hooks = data["hooks"]
-        self.assertEqual(
-            set(hooks),
-            {"PreToolUse", "PostToolUse", "Stop", "SessionStart", "SubagentStart"},
-        )
-        handlers = [
-            handler
-            for groups in hooks.values()
-            for group in groups
-            for handler in group["hooks"]
-        ]
-        # twelve controls over eighteen handlers: the goal restatement registers
-        # under two events; the router runs one process per mode per event
-        self.assertEqual(len(handlers), 18)
-        self.assertTrue(all(handler["type"] == "command" for handler in handlers))
-        self.assertTrue(
-            all("${CLAUDE_PLUGIN_ROOT}" in handler["command"] for handler in handlers)
-        )
-        pre_commands = "\n".join(
-            handler["command"] for handler in hooks["PreToolUse"][0]["hooks"]
-        )
-        self.assertIn("pre_tool_use_router.py", pre_commands)
-        matchers = {group.get("matcher") for group in hooks["PreToolUse"]}
-        self.assertEqual(matchers, {"Bash", "Agent|Task", "Edit|Write|MultiEdit"})
-        self.assertIn(
-            "graph_edit_guard.sh",
-            "\n".join(handler["command"] for handler in handlers),
-        )
-        post_commands = "\n".join(
-            handler["command"]
-            for group in hooks["PostToolUse"]
-            for handler in group["hooks"]
-        )
-        self.assertIn("state-staleness-reminder.sh", post_commands)
-        self.assertIn("write-for-reader.sh", post_commands)
-        restate_commands = "\n".join(
-            handler["command"]
-            for group in hooks["SessionStart"] + hooks["SubagentStart"]
-            for handler in group["hooks"]
-        )
-        self.assertIn("goal-restate.sh", restate_commands)
-        self.assertEqual(hooks["SessionStart"][0]["matcher"], "resume|compact")
-        # Every registered script ships in the package.
-        for handler in handlers:
-            command = handler["command"]
-            start = command.index("${CLAUDE_PLUGIN_ROOT}/") + len("${CLAUDE_PLUGIN_ROOT}/")
-            end = command.index('"', start)
-            self.assertTrue((PLUGIN_ROOT / command[start:end]).is_file(), command)
+    def test_claude_compatibility_names_every_hook_event_and_role(self) -> None:
+        claude = json.loads((PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        compatibility = claude["compatibility"]
+        events = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+        for event in events:
+            self.assertIn(event, compatibility)
+        for stem in _role_stems():
+            self.assertIn(f"ammo:{stem}", compatibility)
+        self.assertIn("Python 3.11", compatibility)
 
-    def test_custom_agents_parse_and_cover_roles(self) -> None:
-        paths = sorted(
-            (PLUGIN_ROOT / "codex" / "agents").glob("vllm_neuron_parity_*.toml")
-        )
-        self.assertEqual(len(paths), 6)
-        names: set[str] = set()
+    def test_marketplace_lists_the_plugin(self) -> None:
+        marketplace = PLUGIN_ROOT.parents[1] / ".claude-plugin" / "marketplace.json"
+        if not marketplace.is_file():
+            self.skipTest("plugin is not inside the pave repo")
+        plugins = json.loads(marketplace.read_text(encoding="utf-8"))["plugins"]
+        entries = [entry for entry in plugins if entry["name"] == "ammo"]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["source"], "./generated-plugins/ammo")
+        self.assertEqual(entries[0]["version"], _declared_version())
+        self.assertEqual((marketplace.parents[1] / entries[0]["source"]).resolve(), PLUGIN_ROOT)
+
+    def test_plugin_agents_carry_no_ignored_frontmatter(self) -> None:
+        for path in sorted(AGENTS_DIR.glob("*.md")):
+            frontmatter = _frontmatter(path)
+            for field in PLUGIN_AGENT_IGNORED_FIELDS:
+                self.assertIsNone(
+                    re.search(rf"(?m)^{field}:", frontmatter), f"{path.name}: {field}"
+                )
+        # The auditor's Phase 2 delivery and stop check moved to hooks.json.
+        events = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+        commands = json.dumps(events)
+        self.assertIn("inject-audit-phase2.sh", commands)
+        self.assertIn("audit-phase2-guard.sh", commands)
+
+
+class CustomAgentTests(unittest.TestCase):
+    def test_custom_agents_parse_and_bootstrap_from_the_plugin_root(self) -> None:
+        paths = sorted(CODEX_AGENTS_DIR.glob("ammo-*.toml"))
+        self.assertEqual(len(paths), 11)
         for path in paths:
-            with path.open("rb") as handle:
-                data = tomllib.load(handle)
+            data = _load_toml(path)
             for field in ("name", "description", "developer_instructions"):
-                self.assertTrue(data.get(field), (path, field))
-            self.assertIn(data["model"], {"gpt-5.6-sol", "gpt-5.6-terra"})
+                self.assertTrue(data.get(field), (path.name, field))
+            self.assertEqual(data["name"], f"ammo:{path.stem}")
+            # Roles keep the root agent's model and set only their effort.
+            self.assertNotIn("model", data)
+            self.assertNotIn("model_provider", data)
             self.assertIn(data["model_reasoning_effort"], {"medium", "high", "xhigh"})
-            self.assertIn(data["sandbox_mode"], {"read-only", "workspace-write"})
             contract = data["developer_instructions"]
-            self.assertIn("VLLM_NEURON_PARITY_PLUGIN_ROOT", contract)
-            self.assertIn("VLLM_NEURON_PARITY_REVISION_FOLDER", contract)
-            self.assertIn("complete Codex role contract", contract)
-            for legacy in ("SendMessage", "named teammate", " opus", " fable", " sonnet"):
-                self.assertNotIn(legacy, contract)
-            names.add(data["name"])
-        self.assertEqual(names, AGENT_NAMES)
+            for phrase in (
+                "runtime bootstrap only",
+                "Do not add requirements from this TOML",
+                "`plugin_root:`",
+                "skills/ammo/SKILL.md",
+                f"agents/{CODEX_ALIASES.get(path.stem, path.stem)}.md",
+                "references/harness-binding.md",
+                "references/context-recovery.md under the plugin root",
+            ):
+                self.assertIn(phrase, contract, (path.name, phrase))
+            for legacy in ("skill root", ".codex/skills", "server", "session"):
+                self.assertNotIn(legacy, contract, (path.name, legacy))
 
-    def test_lead_uses_codex_runtime_binding(self) -> None:
-        skill = (
-            PLUGIN_ROOT / "skills" / "vllm-neuron-parity" / "SKILL.md"
-        ).read_text(encoding="utf-8")
-        self.assertIn("$vllm-neuron-parity:vllm-neuron-parity", skill)
+    def test_every_role_file_has_a_toml_twin(self) -> None:
+        stems = _role_stems()
+        self.assertEqual(len(stems), 9)
+        for stem in stems:
+            twin = CODEX_AGENTS_DIR / f"{stem}.toml"
+            self.assertTrue(twin.is_file(), f"agents/{stem}.md has no codex/agents/{stem}.toml")
+            self.assertIn(f"agents/{stem}.md", _load_toml(twin)["developer_instructions"])
+        # Every TOML reads a role file that exists; only the aliases share one.
+        for path in sorted(CODEX_AGENTS_DIR.glob("ammo-*.toml")):
+            role = CODEX_ALIASES.get(path.stem, path.stem)
+            self.assertIn(role, stems, path.name)
+
+    def test_installer_expects_exactly_the_shipped_agents(self) -> None:
+        module = _installer_module()
+        self.assertEqual(module.MANIFEST_NAME, ".ammo-codex-agents.json")
+        shipped = {path.name: f"ammo:{path.stem}" for path in CODEX_AGENTS_DIR.glob("ammo-*.toml")}
+        self.assertEqual(module.EXPECTED_AGENTS, shipped)
+
+    def test_lead_skill_names_no_harness_tool(self) -> None:
+        skill = LEAD_SKILL.read_text(encoding="utf-8")
+        frontmatter = _frontmatter(LEAD_SKILL)
+        self.assertRegex(frontmatter, r"(?m)^name: ammo$")
+        self.assertIn("Manual-only: use only when the user invokes /ammo:ammo.", frontmatter)
+        self.assertRegex(frontmatter, r"(?m)^metadata:\n  compatibility:")
+        self.assertIsNone(re.search(r"(?m)^hooks:", frontmatter))
+        self.assertIn("$ammo:ammo", skill)
         self.assertIn("hooks/hooks.json", skill)
-        self.assertIn("VLLM_NEURON_PARITY_REVISION_FOLDER", skill)
-        # The lead skill is harness-agnostic: no Codex or Claude tool names.
-        for tool_name in ("spawn_agent", "followup_task", "wait_agent",
-                          "interrupt_agent", "SendMessage", "TaskStop", "ListAgents"):
+        self.assertIn("`references/harness-binding.md`", skill)
+        for tool_name in HARNESS_TOOL_NAMES:
             self.assertNotIn(tool_name, skill)
-        self.assertNotIn("skill-frontmatter hooks", skill)
+
+    def test_harness_binding_maps_every_role_address(self) -> None:
+        binding = HARNESS_BINDING.read_text(encoding="utf-8")
+        for stem in _role_stems():
+            self.assertIn(f"| `agents/{stem}.md` | `ammo:{stem}` |", binding)
+        for alias in CODEX_ALIASES:
+            self.assertIn(f"`ammo:{alias}`", binding)
+        # Both Codex modes and both harnesses have a column.
+        self.assertIn("| Operation | Claude Code | Codex V2 | Codex V1 |", binding)
 
 
 class InstallerTests(unittest.TestCase):
-    def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
+    def _run(self, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            ["python3", str(PLUGIN_ROOT / "codex" / "install_agents.py"), *args],
+            [sys.executable, str(INSTALLER), *args],
             text=True,
             capture_output=True,
             check=False,
+            env=env,
         )
 
     def test_install_check_and_uninstall_are_owned(self) -> None:
@@ -166,19 +214,32 @@ class InstallerTests(unittest.TestCase):
             installed = self._run("--project", str(project))
             self.assertEqual(installed.returncode, 0, installed.stderr)
             target = project / ".codex" / "agents"
-            self.assertEqual(len(list(target.glob("vllm_neuron_parity_*.toml"))), 6)
+            self.assertEqual(len(list(target.glob("ammo-*.toml"))), 11)
+            self.assertTrue((target / ".ammo-codex-agents.json").is_file())
             checked = self._run("--project", str(project), "--check")
             self.assertEqual(checked.returncode, 0, checked.stderr)
+            self.assertIn("11 AMMO custom agents are current", checked.stdout)
             removed = self._run("--project", str(project), "--uninstall")
             self.assertEqual(removed.returncode, 0, removed.stderr)
             self.assertFalse(target.exists())
+
+    def test_check_fails_on_a_changed_agent(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "project"
+            project.mkdir()
+            self.assertEqual(self._run("--project", str(project)).returncode, 0)
+            changed = project / ".codex" / "agents" / "ammo-auditor.toml"
+            changed.write_text(changed.read_text(encoding="utf-8") + "\n# edit\n", encoding="utf-8")
+            checked = self._run("--project", str(project), "--check")
+            self.assertEqual(checked.returncode, 1)
+            self.assertIn("ammo-auditor.toml", checked.stderr)
 
     def test_installer_refuses_unowned_conflict(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp) / "project"
             target = project / ".codex" / "agents"
             target.mkdir(parents=True)
-            conflict = target / "vllm_neuron_parity_investigator.toml"
+            conflict = target / "ammo-investigator.toml"
             conflict.write_text("user-owned\n", encoding="utf-8")
             result = self._run("--project", str(project))
             self.assertEqual(result.returncode, 2)
@@ -190,288 +251,18 @@ class InstallerTests(unittest.TestCase):
             codex_home = Path(temp) / "custom-codex-home"
             env = os.environ.copy()
             env["CODEX_HOME"] = str(codex_home)
-            result = subprocess.run(
-                [
-                    "python3",
-                    str(PLUGIN_ROOT / "codex" / "install_agents.py"),
-                    "--user",
-                ],
-                text=True,
-                capture_output=True,
-                check=False,
-                env=env,
-            )
+            result = self._run("--user", env=env)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(
-                len(list((codex_home / "agents").glob("vllm_neuron_parity_*.toml"))),
-                6,
-            )
+            self.assertEqual(len(list((codex_home / "agents").glob("ammo-*.toml"))), 11)
 
 
-class HookSmokeTests(unittest.TestCase):
-    def _run_guard(
-        self,
-        guard: str,
-        command: str,
-        state: dict[str, object] | None,
-        prepare: Callable[[Path], None] | None = None,
-    ) -> subprocess.CompletedProcess[str]:
-        with tempfile.TemporaryDirectory() as temp:
-            project = Path(temp)
-            if prepare is not None:
-                prepare(project)
-            if state is not None:
-                state_path = project / "run-state.json"
-                state_path.write_text(json.dumps(state), encoding="utf-8")
-                (project / ".vllm-neuron-parity-run").write_text(
-                    str(state_path) + "\n", encoding="utf-8"
-                )
-            payload = {
-                "session_id": "codex-port-test",
-                "tool_name": "Bash",
-                "tool_input": {"command": command},
-                "cwd": str(project),
-            }
-            env = os.environ.copy()
-            env["PLUGIN_ROOT"] = str(PLUGIN_ROOT)
-            return subprocess.run(
-                [
-                    "python3",
-                    str(PLUGIN_ROOT / "hooks" / "pre_tool_use_router.py"),
-                    guard,
-                ],
-                input=json.dumps(payload),
-                text=True,
-                capture_output=True,
-                check=False,
-                cwd=project,
-                env=env,
-            )
+class RevisionFolderTests(unittest.TestCase):
+    """The package root is a revision folder: one live graph and its revision log.
 
-    def _run_alignment_hook(
-        self, name: str, command: str
-    ) -> subprocess.CompletedProcess[str]:
-        with tempfile.TemporaryDirectory() as temp:
-            payload = {
-                "session_id": "codex-port-test",
-                "tool_name": "Bash",
-                "tool_input": {"command": command},
-                "cwd": temp,
-            }
-            return subprocess.run(
-                [
-                    str(
-                        PLUGIN_ROOT
-                        / "skills"
-                        / "vllm-neuron-parity"
-                        / "hooks"
-                        / name
-                    )
-                ],
-                input=json.dumps(payload),
-                text=True,
-                capture_output=True,
-                check=False,
-                cwd=temp,
-            )
-
-    def test_blocking_guards_refuse_prohibited_commands(self) -> None:
-        cases = {
-            "protected-branch": "git push origin HEAD:main",
-            "compile-cache": "rm -rf ~/.cache/vllm/neuron/compile_cache",
-            "venv-opt": "cp -a /opt/venv /tmp/copied-venv",
-        }
-        for guard, command in cases.items():
-            with self.subTest(guard=guard):
-                result = self._run_guard(
-                    guard, command, dict(ACTIVE_STATE)
-                )
-                self.assertEqual(result.returncode, 2, result.stderr)
-                self.assertIn("BLOCKED", result.stderr)
-
-    def test_compile_cache_guard_covers_the_shared_kernel_cache(self) -> None:
-        # The kernel toolchain writes /var/tmp/nki-intermediate-cache outside
-        # every cache root the run can set, and it can hold another tenant's
-        # artifacts, so it is never a root you own: every destructive verb is
-        # refused there, the otherwise-sanctioned rename aside included.
-        for command in (
-            "rm -rf /var/tmp/nki-intermediate-cache",
-            "mv /var/tmp/nki-intermediate-cache /var/tmp/nki-cache.aside",
-        ):
-            with self.subTest(command=command):
-                blocked = self._run_guard(
-                    "compile-cache", command, dict(ACTIVE_STATE)
-                )
-                self.assertEqual(blocked.returncode, 2, blocked.stderr)
-                self.assertIn(
-                    "which can hold kernels of another tenant", blocked.stderr
-                )
-
-    def test_protected_branch_guard_refuses_every_release_branch(self) -> None:
-        # P1 protects release-<version> by pattern (release- then a digit), so
-        # the base branch of a new pin is covered with no list edit; main and
-        # mainline stay fixed names.
-        for command in (
-            "git push origin release-0.29.0.1.2.0",
-            "git push --force origin release-0.30.0.0.1.0",
-            "git branch -D release-0.24.0.1.1.0",
-            "git push origin HEAD:release-0.29.0.1.2.0",
-            "git push origin HEAD:refs/heads/release-0.29.0.1.2.0",
-            "git push origin --delete release-0.29.0.1.2.0",
-            "git push origin :release-0.29.0.1.2.0",
-            "git branch -f release-0.29.0.1.2.0 HEAD",
-            "git update-ref refs/heads/release-0.29.0.1.2.0 HEAD",
-            "git push origin HEAD:main",
-            "git push origin mainline",
-        ):
-            with self.subTest(command=command):
-                blocked = self._run_guard(
-                    "protected-branch", command, dict(ACTIVE_STATE)
-                )
-                self.assertEqual(blocked.returncode, 2, blocked.stderr)
-                self.assertIn(
-                    "Protected base branches (fork and upstream) are never "
-                    "mutated by this workflow: every release-<version> branch, "
-                    "main, and mainline.",
-                    " ".join(blocked.stderr.split()),
-                )
-
-    def test_protected_branch_guard_resolves_a_checked_out_release_branch(
-        self,
-    ) -> None:
-        # A push with no refspec pushes the current branch; the guard resolves
-        # it in the payload cwd and applies the same pattern.
-        def on_release_branch(project: Path) -> None:
-            subprocess.run(["git", "init", "-q", str(project)], check=True)
-            subprocess.run(
-                [
-                    "git", "-C", str(project), "symbolic-ref", "HEAD",
-                    "refs/heads/release-0.29.0.1.2.0",
-                ],
-                check=True,
-            )
-
-        blocked = self._run_guard(
-            "protected-branch", "git push", dict(ACTIVE_STATE), on_release_branch
-        )
-        self.assertEqual(blocked.returncode, 2, blocked.stderr)
-        self.assertIn("'release-0.29.0.1.2.0'", blocked.stderr)
-
-    def test_protected_branch_guard_allows_unprotected_branches(self) -> None:
-        # No digit after "release-" is not a release base; a campaign branch
-        # that merely contains a release name is not one either.
-        for command in (
-            "git push origin campaign/foo",
-            "git checkout -b release-notes-draft",
-            "git push origin release-notes-draft",
-            "git branch -D release-notes-draft",
-            "git push origin campaign/release-0.29.0.1.2.0-port",
-        ):
-            with self.subTest(command=command):
-                result = self._run_guard(
-                    "protected-branch", command, dict(ACTIVE_STATE)
-                )
-                self.assertEqual(result.returncode, 0, result.stderr)
-
-    def test_compile_cache_guard_refuses_the_whole_cache_family(self) -> None:
-        # P2 matches the family, not a list: any token that joins "cache" with
-        # "neuron", "nki" or "neff", plus the bare vLLM cache root. The native
-        # route's NEFF and precompile roots and both of its variables are in it.
-        for command in (
-            "rm -rf ~/.cache/neuron_libtorch",
-            "rm -rf $VLLM_CACHE_ROOT/neuron/native_neff_cache",
-            "mv ~/.cache/vllm/neuron/torch_compile /tmp/x",
-            'rm -rf "$TORCH_NEURONX_NEFF_CACHE_DIR"',
-            "rm -rf $NEURON_LIBTORCH_CACHE_ROOT",
-            # Shapes the fixed list refused; the family must keep them.
-            "rm -rf ~/.cache/vllm/neuron/compile_cache",
-            "rm -rf $VLLM_CACHE_ROOT/neuron/compile_cache",
-            "rm -rf /var/tmp/neuron-compile-cache",
-            "rm -rf $VLLM_CACHE_ROOT",
-            "rm -rf ${VLLM_CACHE_ROOT}/*",
-            "rm -rf $VLLM_CACHE_ROOT/neuron",
-            "find /var/tmp/neuron-compile-cache -delete",
-            "rsync -a --delete /tmp/empty/ ~/.cache/neuron_libtorch/",
-        ):
-            with self.subTest(command=command):
-                blocked = self._run_guard(
-                    "compile-cache", command, dict(ACTIVE_STATE)
-                )
-                self.assertEqual(blocked.returncode, 2, blocked.stderr)
-                flat = " ".join(blocked.stderr.split())
-                self.assertIn(
-                    'Protected: any path or variable that joins "cache" with '
-                    '"neuron", "nki" or "neff", and the vLLM cache root itself. '
-                    "The known roots are listed in references/artifact-layout.md "
-                    "section 4.10.",
-                    flat,
-                )
-                self.assertIn("shaped like the family above", flat)
-
-    def test_compile_cache_guard_allows_paths_outside_the_family(self) -> None:
-        for command in (
-            "rm -rf ~/.cache/huggingface",
-            "rm -rf $VLLM_CACHE_ROOT/logs",
-            "rm -rf /tmp/mycache",
-            "ls ~/.cache/neuron_libtorch",
-            "du -sh $VLLM_CACHE_ROOT/neuron/native_neff_cache",
-        ):
-            with self.subTest(command=command):
-                result = self._run_guard(
-                    "compile-cache", command, dict(ACTIVE_STATE)
-                )
-                self.assertEqual(result.returncode, 0, result.stderr)
-
-    def test_blocking_guards_allow_inactive_and_terminal_runs(self) -> None:
-        cases = {
-            "protected-branch": "git push origin HEAD:main",
-            "compile-cache": "rm -rf ~/.cache/vllm/neuron/compile_cache",
-            "venv-opt": "cp -a /opt/venv /tmp/copied-venv",
-        }
-        for guard, command in cases.items():
-            terminal_state = dict(ACTIVE_STATE)
-            terminal_state["final_status"] = {
-                "status": "accepted",
-                "endpoint": "done",
-            }
-            for state in (None, terminal_state, {"final_status": None}):
-                with self.subTest(guard=guard, state=state):
-                    result = self._run_guard(guard, command, state)
-                    self.assertEqual(result.returncode, 0, result.stderr)
-
-    def test_blocking_guards_allow_schema_invalid_marker(self) -> None:
-        invalid = dict(ACTIVE_STATE)
-        invalid["workflow_identity"] = "not-an-object"
-        result = self._run_guard(
-            "protected-branch", "git push origin HEAD:main", invalid
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-
-    def test_blocking_guards_allow_benign_command_during_active_run(self) -> None:
-        for guard in ("protected-branch", "compile-cache", "venv-opt"):
-            with self.subTest(guard=guard):
-                result = self._run_guard(
-                    guard,
-                    "git status --short",
-                    dict(ACTIVE_STATE),
-                )
-                self.assertEqual(result.returncode, 0, result.stderr)
-
-    def test_alignment_hooks_are_silent_without_run_marker(self) -> None:
-        for hook in ("state-staleness-reminder.sh", "stop-guard.sh"):
-            with self.subTest(hook=hook):
-                result = self._run_alignment_hook(hook, "git status --short")
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(result.stdout, "")
-
-
-class RevisionLedgerTests(unittest.TestCase):
-    """The package root is itself a revision folder: one live graph, one revision_log.
-
-    scripts/record_revision.py replaces the old workspace initializer -- a
-    project root is seeded with `install <root> --from <plugin-root>` and
-    checked with `verify <root>`. The tool needs pyyaml, so it runs under the
-    interpreter running these tests, not a bare python3.
+    README step 7 seeds a checkout's `.ammo/evolution` with
+    `record_revision.py install <root> --from <plugin-root>` and checks it with
+    `verify <root>`. The tool needs pyyaml, so it runs under the interpreter
+    that runs these tests.
     """
 
     def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
@@ -482,75 +273,41 @@ class RevisionLedgerTests(unittest.TestCase):
             check=False,
         )
 
-    def test_packaged_root_verifies(self) -> None:
-        # Head-agnostic on purpose: a pinned revision number would break at
-        # every future applying, which is a test that fails for being correct.
-        # The invariant is that verify agrees with the revision_log's last entry.
+    def test_packaged_root_verifies_at_the_log_head(self) -> None:
         import yaml
 
         result = self._run("verify", str(PLUGIN_ROOT))
         self.assertEqual(result.returncode, 0, result.stderr)
-        entries = yaml.safe_load((PLUGIN_ROOT / "revisions.yaml").read_text())["entries"]
+        entries = yaml.safe_load((PLUGIN_ROOT / "revisions.yaml").read_text(encoding="utf-8"))["entries"]
         head = entries[-1]
         self.assertIn(f"revision {head['revision']}", result.stdout)
         self.assertIn(head["digest_after"], result.stdout)
 
-    def test_install_seeds_a_project_root_that_verifies(self) -> None:
+    def test_install_seeds_a_folder_that_verifies(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            project = Path(temp) / "evo"
-            installed = self._run("install", str(project), "--from", str(PLUGIN_ROOT))
+            folder = Path(temp) / ".ammo" / "evolution"
+            installed = self._run("install", str(folder), "--from", str(PLUGIN_ROOT))
             self.assertEqual(installed.returncode, 0, installed.stderr)
             self.assertEqual(
-                (project / "workflow.pave.yaml").read_bytes(),
+                (folder / "workflow.pave.yaml").read_bytes(),
                 (PLUGIN_ROOT / "workflow.pave.yaml").read_bytes(),
             )
-            checked = self._run("verify", str(project))
+            checked = self._run("verify", str(folder))
             self.assertEqual(checked.returncode, 0, checked.stderr)
 
-    def test_packaged_ledger_holds_the_delivered_graph_and_the_lean_successors(self) -> None:
+    def test_revision_log_is_append_only_from_the_delivered_graph(self) -> None:
         import yaml
 
-        entries = yaml.safe_load((PLUGIN_ROOT / "revisions.yaml").read_text())["entries"]
-        # The revision_log is append-only and numbered from the delivered graph, so
-        # these hold at every head. An applied revision adds an entry; it never
-        # renumbers, reorders, or rewrites one.
-        revisions = [entry["revision"] for entry in entries]
-        self.assertEqual(revisions, list(range(len(entries))))
-        self.assertGreaterEqual(len(entries), 5)
+        entries = yaml.safe_load((PLUGIN_ROOT / "revisions.yaml").read_text(encoding="utf-8"))["entries"]
+        self.assertEqual([entry["revision"] for entry in entries], list(range(len(entries))))
         self.assertEqual(entries[0]["kind"], "graph")
-        for entry in entries:
-            self.assertIn(entry["kind"], {"graph", "run_setup"})
         self.assertIsNone(entries[0]["digest_before"])
         self.assertTrue(entries[0]["digest_after"].startswith("sha256:"))
-        # Each applying chains from the previous head.
+        for entry in entries:
+            self.assertIn(entry["kind"], {"graph", "run_setup"})
         for later in range(1, len(entries)):
             self.assertEqual(entries[later]["digest_before"], entries[later - 1]["digest_after"])
-        # History that cannot move: the delivered lean successors 1-4.
-        self.assertEqual(
-            [entry["kind"] for entry in entries[:5]],
-            ["graph", "graph", "run_setup", "graph", "run_setup"],
-        )
-        # Revision 2 is the field root's live graph (the 1.3.x root the README migrates).
-        self.assertEqual(
-            entries[2]["digest_after"],
-            "sha256:e9f063e2cde9752a0f530c4ceb9fe425873df2777f5c9dfa4135bc209e444e7c",
-        )
-        # Revision 4 is the gate-2 loop bound and its check_tools.
-        self.assertEqual(
-            entries[4]["digest_after"],
-            "sha256:a81bb97d1b6842cdaee8ea85b3325304e02a44d551180fc2b4cc50e598b613b3",
-        )
-        # Every applying keeps its patch, so any revision can be read back.
-        for entry in entries[1:]:
-            self.assertTrue(
-                (PLUGIN_ROOT / "history" / f"v{entry['revision']}.patch").is_file()
-            )
-        # The manifest and the freeze script the revision_log replaced are gone.
-        self.assertFalse((PLUGIN_ROOT / "workflow-manifest.yaml").exists())
-        self.assertFalse((PLUGIN_ROOT / "scripts" / "freeze_revision.py").exists())
-        self.assertFalse(
-            (PLUGIN_ROOT / "codex" / "init_evolution_workspace.py").exists()
-        )
+            self.assertTrue((PLUGIN_ROOT / "history" / f"v{entries[later]['revision']}.patch").is_file())
 
 
 if __name__ == "__main__":

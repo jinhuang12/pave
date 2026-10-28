@@ -121,11 +121,13 @@ def test_closed_and_reopened_native_thread_retains_same_binding(native):
         assert registry.binding_for(home, root, child) == binding
 
 
-def test_unbound_child_can_read_but_cannot_mutate_before_parent_completion(native):
+# `ammo:<role>` is the agent address on both harnesses (references/harness-binding.md).
+@pytest.mark.parametrize("role", ["ammo-investigator", "ammo:ammo-investigator"])
+def test_unbound_child_can_read_but_cannot_mutate_before_parent_completion(native, role):
     repo, _, root, home, env, spawn = native
-    child, payload = spawn()
+    child, payload = spawn(role=role)
     child_payload = {"cwd": str(repo), "session_id": root, "agent_id": child,
-                     "agent_type": "ammo-investigator", "hook_event_name": "SubagentStart"}
+                     "agent_type": role, "hook_event_name": "SubagentStart"}
     start = _run_hook("post_tool_use_guard.py", child_payload, env)
     assert "registration" in start.stdout.lower(), start.stderr
     pre = {**child_payload, "hook_event_name": "PreToolUse", "tool_name": "Bash",
@@ -137,6 +139,14 @@ def test_unbound_child_can_read_but_cannot_mutate_before_parent_completion(nativ
     assert "registered" in post.stdout.lower(), post.stderr
     assert registry.binding_for(home, root, child)
     assert "registration is pending" not in _run_hook("pre_tool_use_guard.py", pre, env).stdout
+
+
+def test_prefixed_spawn_role_is_validated_before_dispatch(native):
+    _, _, _, _, env, spawn = native
+    _, payload = spawn(role="ammo:ammo-investigator")
+    payload["tool_input"]["message"] = "Investigate OP-001."  # no AMMO_TASK line
+    pre = _run_hook("pre_tool_use_guard.py", dict(payload, hook_event_name="PreToolUse"), env)
+    assert "AMMO V1 agent binding must be resolved" in pre.stdout, pre.stdout + pre.stderr
 
 
 def test_child_first_implementer_and_monitor_pair_by_native_ids(native):

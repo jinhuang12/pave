@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test harness for ammo-monitor-reminder.sh (PostToolUse hook)
-# Run: bash .claude/hooks/test-ammo-monitor-reminder.sh
+# Run: bash hooks/tests/test-ammo-monitor-reminder.sh
 #
 # Tests all enforcement paths:
 #   1. Agent type filtering (only ammo-champion / ammo-impl-champion fire)
@@ -12,14 +12,26 @@
 #
 set -euo pipefail
 
-HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-monitor-reminder.sh"
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' | grep -v '^AMMO_TEST_HOOK$' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
+
+HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-monitor-reminder.sh}"
 PASS=0
 FAIL=0
 TOTAL=0
 
 TMPDIR=$(mktemp -d)
-cleanup() { rm -rf "$TMPDIR" "$TMPDIR/hook-stderr" "$TMPDIR/hook-stdout" 2>/dev/null || true; }
+cleanup() { rm -rf "$TMPDIR" "$NOCAMP" "$TMPDIR/hook-stderr" "$TMPDIR/hook-stdout" 2>/dev/null || true; }
 trap cleanup EXIT
+
+# Campaign fixture: the hook finds the campaign from its own cwd ($PWD), since
+# these payloads carry no cwd. NOCAMP has no .ammo/active above it.
+ENGINE="$TMPDIR/engine"
+mkdir -p "$ENGINE/.ammo/tgt"
+printf 'tgt\n' > "$ENGINE/.ammo/active"
+NOCAMP=$(mktemp -d)
+cd "$ENGINE"
 
 # Isolation: pin AMMO_GPU_RES_DIR to a throwaway dir for every hook invocation
 # so no hook write can reach the real reservation dir of a live session.
@@ -223,9 +235,9 @@ check_json_field "impl-champion-op003 → reminder mentions monitor-impl-champio
     "true"
 
 # Named agent: correct agent name in reminder (not transcript path)
-check_json_field "Named impl-champion → agentType=ammo-transcript-monitor in reminder" \
+check_json_field "Named impl-champion → the plugin address ammo:ammo-transcript-monitor in reminder" \
     "{\"tool_input\":{\"subagent_type\":\"ammo-impl-champion\",\"name\":\"impl-champion-op001\"},\"transcript_path\":\"$ORCH_T\"}" \
-    '.hookSpecificOutput.additionalContext | contains("ammo-transcript-monitor")' \
+    '.hookSpecificOutput.additionalContext | contains("subagent_type=ammo:ammo-transcript-monitor")' \
     "true"
 
 # Unnamed impl-champion (empty name) — fires with "unnamed" warning
@@ -465,6 +477,26 @@ else
     echo "  FAIL [$TOTAL]: hook wrote to $SENT_DIR: $(ls -A "$SENT_DIR")"
     FAIL=$((FAIL + 1))
 fi
+
+echo ""; echo "== Plugin address and campaign scope =="
+NS_T="$TMPDIR/ns-orch.jsonl"
+make_orchestrator_transcript "$NS_T"
+run_test "ammo:ammo-impl-champion → injects reminder" 0 \
+    "{\"tool_input\":{\"subagent_type\":\"ammo:ammo-impl-champion\",\"name\":\"impl-op001\"},\"transcript_path\":\"$NS_T\"}" \
+    "monitor-impl-op001"
+cd "$NOCAMP"
+run_test "no campaign: impl-champion spawn → no output" 0 \
+    "{\"tool_input\":{\"subagent_type\":\"ammo-impl-champion\",\"name\":\"impl-op001\"},\"transcript_path\":\"$NS_T\"}" \
+    "" "additionalContext"
+TOTAL=$((TOTAL + 1))
+if [ ! -s "$TMPDIR/hook-stdout" ]; then
+    echo "  PASS [$TOTAL]: no campaign: stdout empty"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: no campaign: stdout $(cat "$TMPDIR/hook-stdout")"
+    FAIL=$((FAIL + 1))
+fi
+cd "$ENGINE"
 
 echo ""
 echo "================================"

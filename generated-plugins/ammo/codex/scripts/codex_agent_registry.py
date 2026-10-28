@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sqlite3
+import sys
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
@@ -222,7 +223,24 @@ def list_bindings(home: Path, root: str) -> list[dict]:
     return sorted(results, key=lambda item: item["task_path"])
 
 
+def _apply_campaign_env() -> None:
+    """Fill AMMO_SESSION_ID (and the other layer names) from the campaign marker.
+
+    The hooks record each binding's server_session_id from that same fill, so a
+    CLI call from a shell with no AMMO_* names still matches its own campaign.
+    """
+    scripts = str(Path(__file__).resolve().parent.parent.parent / "scripts")
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    try:
+        import campaign_paths
+    except ImportError:
+        return
+    campaign_paths.apply_env()
+
+
 def main() -> int:
+    _apply_campaign_env()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["list"])
     parser.add_argument("--root-thread-id", required=True)

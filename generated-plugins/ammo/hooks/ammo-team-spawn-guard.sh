@@ -18,11 +18,19 @@
 #    `ammo-delegate` with a name and never received the answers. The lead
 #    saw them mid-turn instead.
 #
-# SKILL.md ("Team-member vs subagent contract", ~line 65) already declares
-# `ammo-delegate`, `ammo-researcher`, `ammo-auditor`, `ammo-investigator`,
-# `ammo-report-writer` and `ammo-resolver` to be one-shot subagents that
-# must be spawned with `subagent_type` + `prompt` only, no `name`. This
-# guard is the mechanical backstop for that contract.
+# skills/ammo/SKILL.md ("Team-member vs subagent contract") declares
+# `ammo-champion`, `ammo-impl-champion` and `ammo-transcript-monitor` the only
+# team members (named, addressable), and `ammo-delegate`, `ammo-researcher`,
+# `ammo-auditor`, `ammo-investigator`, `ammo-report-writer` and
+# `ammo-resolver` one-shot subagents that must be spawned with their role and
+# prompt only, no `name`. This guard is the mechanical backstop for that
+# contract, and that is why the plugin keeps it.
+#
+# Plugin roles spawn at their plugin address `ammo:<role>`; the rules below
+# match the role with that prefix removed, so both spellings are covered.
+#
+# Campaign scope (_find_campaign.sh): outside a campaign the hook exits 0 and
+# prints nothing.
 #
 # Rules:
 #   - Member type (ammo-champion / ammo-impl-champion / ammo-transcript-monitor)
@@ -55,6 +63,10 @@ fi
 
 INPUT=$(cat)
 
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
+
 # CALLER_IS_SUBAGENT: .agent_type at top level is populated when the hook
 # fires from inside a subagent process. Empty on the orchestrator (lead).
 # CC 2.1.281 also populates .agent_id on in-process subagents; either is a
@@ -67,6 +79,8 @@ if [ -n "$AGENT_TYPE" ] || [ -n "$AGENT_ID" ]; then
 fi
 
 SUBAGENT_TYPE=$(echo "$INPUT" | jq -r '.tool_input.subagent_type // ""' 2>/dev/null) || exit 0
+# The plugin address ammo:<role> names the same role.
+SUBAGENT_TYPE="${SUBAGENT_TYPE#ammo:}"
 NAME=$(echo "$INPUT" | jq -r '.tool_input.name // ""' 2>/dev/null) || exit 0
 
 emit_deny() {
@@ -101,7 +115,7 @@ case "$SUBAGENT_TYPE" in
         # back to the caller (the observed trn2 harness bug). Deny for every
         # caller — the lead already omits the name in all evidence.
         if [ -n "$NAME" ]; then
-            emit_deny "AMMO spawn-guard: ammo-delegate must spawn without tool_input.name so its final report returns to you. A named ammo-delegate joins the session's implicit team and its answer routes to the lead instead. Re-spawn with subagent_type='ammo-delegate' and prompt=... only; keep the identifier in the prompt if you need one for citation."
+            emit_deny "AMMO spawn-guard: ammo-delegate must spawn without tool_input.name so its final report returns to you. A named ammo-delegate joins the session's implicit team and its answer routes to the lead instead. Re-spawn with subagent_type='ammo:ammo-delegate' and prompt=... only; keep the identifier in the prompt if you need one for citation."
         fi
         exit 0
         ;;

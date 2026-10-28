@@ -114,7 +114,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import ast
 
-from runtime_ops import AcceleratorRuntime, resolve_runtime
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+import campaign_paths  # noqa: E402
+from runtime_ops import AcceleratorRuntime, resolve_runtime  # noqa: E402
 
 
 PLACEHOLDER = "<FILL_ME>"
@@ -3271,8 +3276,8 @@ def _build_cli_equivalent_args_for_inproc(
 
 # ---- GSM8K helpers (adapted from tests/evals/gsm8k/gsm8k_eval.py) ----
 
-_GSM8K_SUBSET_PATH = Path(__file__).parent.parent / "data" / "gsm8k_subset.json"
-_GSM8K_FULL_PATH = Path(__file__).parent.parent / "data" / "gsm8k_full.json"
+_GSM8K_SUBSET_PATH = campaign_paths.plugin_path("data", "gsm8k_subset.json")
+_GSM8K_FULL_PATH = campaign_paths.plugin_path("data", "gsm8k_full.json")
 _INVALID_ANSWER = -9999999
 
 
@@ -4906,6 +4911,7 @@ def _render_md_table(rows: List[Dict[str, Any]], baseline_label: str, opt_label:
 
 
 def main() -> None:
+    campaign_paths.apply_env()
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--artifact-dir", type=str, required=True)
     p.add_argument("--target-json", type=str, default=None, help="Path to target.json (default: {artifact_dir}/target.json)")

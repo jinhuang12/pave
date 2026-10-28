@@ -14,7 +14,7 @@ from jsonschema import Draft202012Validator
 # Reuse the explicitly synthetic subprocess driver, not model inference.
 from test_ammo_serving import (ROOT, source, spec, captured, run_fake, arm_for,
                               fake_reserve, FakeDeployment, fake_correctness)
-from serving_contract import Arm, ContractError, ServingSpec, digest, read_json, write_json
+from serving_contract import Arm, ContractError, ServingSpec, digest, load_spec, read_json, write_json
 from serving_evidence import promote, seal, verify_result
 from serving_campaign import (binding, synchronize, violation, file_ref, evidence_ref,
     mining_result, current_round, validation_report, write_track_report, round_baseline)
@@ -275,8 +275,11 @@ def test_full_serving_round_uses_existing_audits_and_remines_promoted_incumbent(
 
 
 def test_batch_cli_overrides_are_rejected_by_serving_scaffold(engine,spec,tmp_path,monkeypatch):
-    _,_,_,variant=engine;manifest=tmp_path/'manifest.json';write_json(manifest,spec.model_dump())
+    _,_,_,variant=engine;manifest=tmp_path/'manifest.json'
+    # new_target.py scaffolds only the pumice-cuda profile (conventions section 6).
+    write_json(manifest,dict(spec.model_dump(),runtime_profile='pumice-cuda'))
     monkeypatch.setenv('CUDA_VISIBLE_DEVICES','0,1')
+    monkeypatch.delenv('AMMO_RUNTIME_PROFILE',raising=False)
     scripts=ROOT/'scripts'
     result=subprocess.run([sys.executable,str(scripts/'new_target.py'),'--artifact-dir',str(tmp_path/'new'),
         '--serving-manifest',str(manifest),'--input-len','99'],text=True,capture_output=True)
@@ -285,14 +288,17 @@ def test_batch_cli_overrides_are_rejected_by_serving_scaffold(engine,spec,tmp_pa
 
 
 def test_serving_scaffold_selects_only_serving_measurement(engine,spec,tmp_path,monkeypatch):
-    _,_,_,variant=engine;manifest=tmp_path/'manifest.json';write_json(manifest,spec.model_dump())
+    _,_,_,variant=engine;manifest=tmp_path/'manifest.json'
+    # new_target.py scaffolds only the pumice-cuda profile (conventions section 6).
+    write_json(manifest,dict(spec.model_dump(),runtime_profile='pumice-cuda'))
     monkeypatch.setenv('CUDA_VISIBLE_DEVICES','0,1')
+    monkeypatch.delenv('AMMO_RUNTIME_PROFILE',raising=False)
     scripts=ROOT/'scripts'
     result=subprocess.run([sys.executable,str(scripts/'new_target.py'),'--artifact-dir',str(tmp_path/'new'),
         '--serving-manifest',str(manifest),'--hardware','CPU_TEST_ONLY','--gpu-model','CPU_TEST_ONLY'],text=True,capture_output=True)
     assert result.returncode==0,result.stderr
     state=read_json(tmp_path/'new/state.json');target=read_json(tmp_path/'new/target.json')
-    assert state['serving']==binding(spec) and 'bench' not in target and 'workload' not in target
+    assert state['serving']==binding(load_spec(manifest)) and 'bench' not in target and 'workload' not in target
 
 
 def test_terminal_hint_only_fires_on_a_real_edge(engine,campaign):

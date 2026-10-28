@@ -1,9 +1,10 @@
 #!/bin/bash
 # Test harness for ammo-state-validate.sh (PostToolUse Write|Edit hook)
-# Run: bash .claude/hooks/test-ammo-state-validate.sh
+# Run: bash hooks/tests/test-ammo-state-validate.sh
 #
 # Validates v2 state.schema.json enforcement via the PostToolUse hook:
 #   - Fast bail on non-state paths / missing files / missing schema
+#   - Campaign scope: only a state.json inside the campaign dir is validated
 #   - Top-level additionalProperties:false (v1 fields rejected)
 #   - campaign.required: [status, current_round, current_stage, config, rounds]
 #   - campaign.current_stage enum (7 real stages; no terminal pseudo-stages)
@@ -13,8 +14,17 @@
 #   - Pass-through on valid v2 state
 #
 # Canonical valid v2 state is produced by jq_base and mutated per-test via `jq`.
+#
+# TMPDIR is an engine root: .ammo/active names campaign test_target and the
+# campaign dir is .ammo/test_target/. The hook validates against the plugin's
+# own schemas/state.schema.json. Relative paths in Bash commands resolve
+# against CLAUDE_PROJECT_DIR (those payloads carry no cwd).
 
 set -euo pipefail
+
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' | grep -v '^AMMO_TEST_HOOK$' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
 
 # AMMO_TEST_HOOK lets a reviewer aim this harness at an ARCHIVED copy of the
 # hook (red->green evidence for the reconcile_track_state.py --write cases).
@@ -24,14 +34,19 @@ FAIL=0
 TOTAL=0
 
 TMPDIR=$(mktemp -d)
-ARTIFACT_DIR="$TMPDIR/kernel_opt_artifacts/test_target"
+cd "$TMPDIR"
+ARTIFACT_DIR="$TMPDIR/.ammo/test_target"
 mkdir -p "$ARTIFACT_DIR"
-mkdir -p "$TMPDIR/schemas"
+printf 'test_target\n' > "$TMPDIR/.ammo/active"
+PLUGIN_SRC="$(cd "$(dirname "$HOOK")/.." && pwd)"
 
-SCHEMA_SRC="$(cd "$(dirname "$0")/.." && pwd)/../schemas/state.schema.json"
-cp "$SCHEMA_SRC" "$TMPDIR/schemas/state.schema.json"
-
-mkdir -p "$TMPDIR/.git"
+# A plugin copy with no schemas/ dir: the missing-schema-FILE cases run its hook.
+stage_plugin_without_schema() {
+    local d
+    d=$(mktemp -d)
+    cp -R "$PLUGIN_SRC/hooks" "$PLUGIN_SRC/scripts" "$d/"
+    echo "$d"
+}
 
 STATE_FILE="$ARTIFACT_DIR/state.json"
 
@@ -206,7 +221,7 @@ fi
 # Test 3: state.json path but file doesn't exist → fast bail
 TOTAL=$((TOTAL + 1))
 actual_exit=0
-echo '{"tool_input": {"file_path": "'"$TMPDIR"'/kernel_opt_artifacts/nonexistent/state.json"}}' | \
+echo '{"tool_input": {"file_path": "'"$TMPDIR"'/.ammo/nonexistent/state.json"}}' | \
     bash "$HOOK" >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
 if [ "$actual_exit" -eq 0 ] && ! grep -q '"decision"' "$TMPDIR/hook-stdout"; then
     echo "  PASS [$TOTAL]: Nonexistent state.json is ignored (fast bail)"
@@ -723,18 +738,15 @@ echo ""
 echo "== Edge cases =="
 # ══════════════════════════════════════════════════
 
-# Test 41: No schema found → fast bail
-NOSCHEMA_DIR=$(mktemp -d)
-mkdir -p "$NOSCHEMA_DIR/.git"
-NOSCHEMA_STATE="$NOSCHEMA_DIR/kernel_opt_artifacts/noschema/state.json"
-mkdir -p "$(dirname "$NOSCHEMA_STATE")"
-cat > "$NOSCHEMA_STATE" << 'EOF'
+# Test 41: No schema found → fast bail (a plugin copy without schemas/)
+NOSCHEMA_DIR=$(stage_plugin_without_schema)
+cat > "$STATE_FILE" << 'EOF'
 {"target": {"model_id": "x"}, "campaign": {"status": "active", "current_round": 1}}
 EOF
 TOTAL=$((TOTAL + 1))
 actual_exit=0
-echo '{"tool_input": {"file_path": "'"$NOSCHEMA_STATE"'"}}' | \
-    bash "$HOOK" >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
+echo '{"tool_input": {"file_path": "'"$STATE_FILE"'"}}' | \
+    bash "$NOSCHEMA_DIR/hooks/ammo-state-validate.sh" >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
 if [ "$actual_exit" -eq 0 ] && ! grep -q '"decision"' "$TMPDIR/hook-stdout"; then
     echo "  PASS [$TOTAL]: Missing schema → fast bail (no block)"
     PASS=$((PASS + 1))
@@ -824,43 +836,43 @@ run_bash_test() {
 # Test 49: Bash command with jq redirect to state.json — valid state → passes
 write_state '.'
 run_bash_test "Bash jq redirect to state.json (valid) passes" 0 "false" \
-    "jq '.campaign.current_stage = \"3_debate\"' kernel_opt_artifacts/test_target/state.json > /tmp/s.json && mv /tmp/s.json kernel_opt_artifacts/test_target/state.json"
+    "jq '.campaign.current_stage = \"3_debate\"' .ammo/test_target/state.json > /tmp/s.json && mv /tmp/s.json .ammo/test_target/state.json"
 
 # Test 50: Bash command with jq redirect to state.json — invalid state → blocks
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "Bash jq redirect to state.json (invalid current_stage) blocks" 0 "true" \
-    "jq '.campaign.current_stage = \"campaign_complete\"' kernel_opt_artifacts/test_target/state.json > /tmp/s.json && mv /tmp/s.json kernel_opt_artifacts/test_target/state.json" \
+    "jq '.campaign.current_stage = \"campaign_complete\"' .ammo/test_target/state.json > /tmp/s.json && mv /tmp/s.json .ammo/test_target/state.json" \
     "is not one of"
 
 # Test 51: Bash command with Python open('w') to state.json — invalid → blocks
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "Bash Python open('w') to state.json (invalid) blocks" 0 "true" \
-    "python3 -c \"import json; state['campaign']['current_stage']='campaign_complete'; open('kernel_opt_artifacts/test_target/state.json','w').write(json.dumps(state))\"" \
+    "python3 -c \"import json; state['campaign']['current_stage']='campaign_complete'; open('.ammo/test_target/state.json','w').write(json.dumps(state))\"" \
     "is not one of"
 
 # Test 52: Bash command with json.dump to state.json — invalid → blocks
 write_state '.campaign.current_stage = "not_real_stage"'
 run_bash_test "Bash json.dump to state.json (invalid) blocks" 0 "true" \
-    "python3 -c \"import json; json.dump(data, open('kernel_opt_artifacts/test_target/state.json','w'))\"" \
+    "python3 -c \"import json; json.dump(data, open('.ammo/test_target/state.json','w'))\"" \
     "is not one of"
 
 # Test 53: Bash command that only reads state.json (grep) → fast bail (no block)
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "Bash read-only (grep state.json) is ignored" 0 "false" \
-    "grep current_stage kernel_opt_artifacts/test_target/state.json"
+    "grep current_stage .ammo/test_target/state.json"
 
 # Test 54: Bash command that only reads state.json (cat) → fast bail
 run_bash_test "Bash read-only (cat state.json) is ignored" 0 "false" \
-    "cat kernel_opt_artifacts/test_target/state.json | jq .campaign.status"
+    "cat .ammo/test_target/state.json | jq .campaign.status"
 
 # Test 55: Bash command that mentions state.json in jq without redirect → fast bail
 run_bash_test "Bash read-only (jq without redirect) is ignored" 0 "false" \
-    "jq '.campaign.current_round' kernel_opt_artifacts/test_target/state.json"
+    "jq '.campaign.current_round' .ammo/test_target/state.json"
 
 # Test 56: Bash command with mv into state.json — valid state → passes
 write_state '.'
 run_bash_test "Bash mv into state.json (valid) passes" 0 "false" \
-    "mv /tmp/state_update.json kernel_opt_artifacts/test_target/state.json"
+    "mv /tmp/state_update.json .ammo/test_target/state.json"
 
 # Test 57: Bash command unrelated to state.json → fast bail
 run_bash_test "Bash command not mentioning state.json is ignored" 0 "false" \
@@ -869,7 +881,7 @@ run_bash_test "Bash command not mentioning state.json is ignored" 0 "false" \
 # Test 58: Bash command with tee to state.json — invalid → blocks
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "Bash tee to state.json (invalid) blocks" 0 "true" \
-    "echo '{}' | tee kernel_opt_artifacts/test_target/state.json" \
+    "echo '{}' | tee .ammo/test_target/state.json" \
     "is not one of"
 
 # ══════════════════════════════════════════════════
@@ -878,27 +890,27 @@ echo "== Bash: multi-target and false-positive prevention =="
 # ══════════════════════════════════════════════════
 
 # Test 59: Write to target_A when target_B has invalid state → should NOT block
-mkdir -p "$TMPDIR/kernel_opt_artifacts/target_B"
+mkdir -p "$TMPDIR/.ammo/target_B"
 write_state '.'  # target_A is valid (test_target)
-base_v2 | jq '.campaign.current_stage = "campaign_complete"' > "$TMPDIR/kernel_opt_artifacts/target_B/state.json"
+base_v2 | jq '.campaign.current_stage = "campaign_complete"' > "$TMPDIR/.ammo/target_B/state.json"
 run_bash_test "Multi-target: write to valid target_A doesn't block on invalid target_B" 0 "false" \
-    "jq '.campaign.current_round = 3' kernel_opt_artifacts/test_target/state.json > /tmp/a.json && mv /tmp/a.json kernel_opt_artifacts/test_target/state.json"
-rm -rf "$TMPDIR/kernel_opt_artifacts/target_B"
+    "jq '.campaign.current_round = 3' .ammo/test_target/state.json > /tmp/a.json && mv /tmp/a.json .ammo/test_target/state.json"
+rm -rf "$TMPDIR/.ammo/target_B"
 
 # Test 60: Write to unrelated /tmp/state.json → should NOT trigger validation
 write_state '.campaign.current_stage = "campaign_complete"'
-run_bash_test "Unrelated /tmp/state.json write is ignored (no kernel_opt_artifacts path)" 0 "false" \
+run_bash_test "Unrelated /tmp/state.json write is ignored (not in the campaign)" 0 "false" \
     "echo '{}' > /tmp/unrelated_state.json"
 
-# Test 61: Write to /workspace/other/state.json (no kernel_opt_artifacts) → ignored
+# Test 61: Write to /srv/other/state.json (not in the campaign) → ignored
 run_bash_test "Non-artifact state.json write is ignored" 0 "false" \
-    "jq '.foo = 1' /workspace/other/state.json > /tmp/x.json && mv /tmp/x.json /workspace/other/state.json"
+    "jq '.foo = 1' /srv/other/state.json > /tmp/x.json && mv /tmp/x.json /srv/other/state.json"
 
 # Test 62: Failed Bash command (tool_response.status=error) → skip validation
 write_state '.campaign.current_stage = "campaign_complete"'
 TOTAL=$((TOTAL + 1))
 export CLAUDE_PROJECT_DIR="$TMPDIR"
-jq -c -n --arg cmd 'jq ".campaign.current_stage = \"bad\"" kernel_opt_artifacts/test_target/state.json > /tmp/s.json && mv /tmp/s.json kernel_opt_artifacts/test_target/state.json' \
+jq -c -n --arg cmd 'jq ".campaign.current_stage = \"bad\"" .ammo/test_target/state.json > /tmp/s.json && mv /tmp/s.json .ammo/test_target/state.json' \
     '{"tool_input": {"command": $cmd}, "tool_response": {"status": "error"}}' | \
     bash "$HOOK" >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || true
 unset CLAUDE_PROJECT_DIR
@@ -911,10 +923,10 @@ else
     PASS=$((PASS + 1))
 fi
 
-# Test 63: Multi-line python with json.dump writing to kernel_opt_artifacts state.json — blocks on invalid
+# Test 63: Multi-line python with json.dump writing to the campaign state.json — blocks on invalid
 write_state '.campaign.current_stage = "campaign_complete"'
-run_bash_test "Multi-line python json.dump detects kernel_opt_artifacts path" 0 "true" \
-    "python3 -c \"import json; state={'bad':1}; json.dump(state, open('kernel_opt_artifacts/test_target/state.json','w'), indent=2)\"" \
+run_bash_test "Multi-line python json.dump detects the campaign path" 0 "true" \
+    "python3 -c \"import json; state={'bad':1}; json.dump(state, open('.ammo/test_target/state.json','w'), indent=2)\"" \
     "is not one of"
 
 # ══════════════════════════════════════════════════
@@ -931,27 +943,27 @@ echo "== Bypass: reconcile_track_state.py --write is a first-party writer =="
 
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "reconcile_track_state.py --write (invalid) blocks" 0 "true" \
-    ".venv/bin/python scripts/reconcile_track_state.py --artifact-dir kernel_opt_artifacts/test_target --track-id op001 --write" \
+    "scripts/ammo reconcile_track_state.py --artifact-dir .ammo/test_target --track-id op001 --write" \
     "is not one of"
 
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "reconcile_track_state.py --artifact-dir=X --write (invalid) blocks" 0 "true" \
-    "python3 scripts/reconcile_track_state.py --artifact-dir=kernel_opt_artifacts/test_target --write --track-id op001" \
+    "python3 scripts/reconcile_track_state.py --artifact-dir=.ammo/test_target --write --track-id op001" \
     "is not one of"
 
 write_state '.'
 run_bash_test "reconcile_track_state.py --write (valid) passes" 0 "false" \
-    ".venv/bin/python scripts/reconcile_track_state.py --artifact-dir kernel_opt_artifacts/test_target --track-id op001 --write"
+    "scripts/ammo reconcile_track_state.py --artifact-dir .ammo/test_target --track-id op001 --write"
 
 # Dry-run has no --write, so it is not a write and must not be validated.
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "reconcile_track_state.py WITHOUT --write is ignored (read-only)" 0 "false" \
-    ".venv/bin/python scripts/reconcile_track_state.py --artifact-dir kernel_opt_artifacts/test_target --track-id op001"
+    "scripts/ammo reconcile_track_state.py --artifact-dir .ammo/test_target --track-id op001"
 
-# A --write outside kernel_opt_artifacts must not be validated.
+# A --write outside the campaign dir must not be validated.
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "reconcile_track_state.py --write on a non-artifact dir is ignored" 0 "false" \
-    ".venv/bin/python scripts/reconcile_track_state.py --artifact-dir /tmp/scratch --write"
+    "scripts/ammo reconcile_track_state.py --artifact-dir /tmp/scratch --write"
 
 # ══════════════════════════════════════════════════
 echo ""
@@ -1018,7 +1030,7 @@ write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "Heredoc path-var + NamedTemporaryFile + os.replace (invalid) blocks" 0 "true" \
     "python3 - <<'PY'
 import json, os, tempfile
-path = 'kernel_opt_artifacts/test_target/state.json'
+path = '.ammo/test_target/state.json'
 s = json.load(open(path))
 s['campaign']['current_stage'] = 'campaign_complete'
 tmp = tempfile.NamedTemporaryFile('w', dir=os.path.dirname(path), delete=False, suffix='.tmp')
@@ -1030,13 +1042,13 @@ PY" \
 # Test 63b: json.dump AFTER state.json mention (unordered) — invalid → blocks
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "json.dump after state.json mention (unordered) blocks" 0 "true" \
-    "python3 -c \"import json; p='kernel_opt_artifacts/test_target/state.json'; d=json.load(open(p)); json.dump(d, open(p,'w'))\"" \
+    "python3 -c \"import json; p='.ammo/test_target/state.json'; d=json.load(open(p)); json.dump(d, open(p,'w'))\"" \
     "is not one of"
 
 # Test 63c: pathlib write_text with path variable — invalid → blocks
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "pathlib write_text via path variable (invalid) blocks" 0 "true" \
-    "python3 -c \"import json, pathlib; p=pathlib.Path('kernel_opt_artifacts/test_target/state.json'); d=json.loads(p.read_text()); p.write_text(json.dumps(d))\"" \
+    "python3 -c \"import json, pathlib; p=pathlib.Path('.ammo/test_target/state.json'); d=json.loads(p.read_text()); p.write_text(json.dumps(d))\"" \
     "is not one of"
 
 # Test 63d: ammo_state.py set CLI invocation — invalid persisted state → blocks
@@ -1044,13 +1056,13 @@ run_bash_test "pathlib write_text via path variable (invalid) blocks" 0 "true" \
 # outer safety net — e.g. engine run with schema discovery failing)
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "ammo_state.py set CLI counts as a write (invalid state blocks)" 0 "true" \
-    "python3 scripts/ammo_state.py set --state kernel_opt_artifacts/test_target/state.json --field campaign.current_round --value 2" \
+    "python3 scripts/ammo_state.py set --state .ammo/test_target/state.json --field campaign.current_round --value 2" \
     "is not one of"
 
 # Test 63e: read-only commands stay ignored despite widened idioms
 write_state '.campaign.current_stage = "campaign_complete"'
 run_bash_test "Read-only json.load + print (no write idiom) still ignored" 0 "false" \
-    "python3 -c \"import json; print(json.load(open('kernel_opt_artifacts/test_target/state.json'))['campaign']['status'])\""
+    "python3 -c \"import json; print(json.load(open('.ammo/test_target/state.json'))['campaign']['status'])\""
 
 # ══════════════════════════════════════════════════
 echo ""
@@ -1188,16 +1200,13 @@ else
 fi
 
 # Test FC7: missing schema FILE → STILL NO block (fast-bail preserved; mirrors Test 41).
-# The :98 `[ -z "$SCHEMA" ] && exit 0` schema-file fast-bail is NOT a flip case.
-FC7_DIR=$(mktemp -d)
-mkdir -p "$FC7_DIR/.git"
-FC7_STATE="$FC7_DIR/kernel_opt_artifacts/noschema/state.json"
-mkdir -p "$(dirname "$FC7_STATE")"
-base_v2 > "$FC7_STATE"
+# The `[ -f "$SCHEMA" ] || exit 0` schema-file fast-bail is NOT a flip case.
+FC7_DIR=$(stage_plugin_without_schema)
+base_v2 | jq '.campaign.current_stage = "campaign_complete"' > "$STATE_FILE"
 TOTAL=$((TOTAL + 1))
 actual_exit=0
-echo '{"tool_input": {"file_path": "'"$FC7_STATE"'"}}' | \
-    bash "$HOOK" >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
+echo '{"tool_input": {"file_path": "'"$STATE_FILE"'"}}' | \
+    bash "$FC7_DIR/hooks/ammo-state-validate.sh" >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
 if [ "$actual_exit" -eq 0 ] && ! grep -q '"decision"' "$TMPDIR/hook-stdout"; then
     echo "  PASS [$TOTAL]: FC7 missing schema FILE → no block (fast-bail intact, NOT a flip)"
     PASS=$((PASS + 1))
@@ -1222,6 +1231,105 @@ else
     echo "        stdout: $(cat "$TMPDIR/hook-stdout")"
     FAIL=$((FAIL + 1))
 fi
+
+# ══════════════════════════════════════════════════
+echo ""
+echo "== Campaign scope =="
+# ══════════════════════════════════════════════════
+
+# _expect_silent NAME: last hook run exited 0 and printed nothing.
+_expect_silent() {
+    if [ "$actual_exit" -eq 0 ] && [ ! -s "$TMPDIR/hook-stdout" ]; then
+        echo "  PASS [$TOTAL]: $1"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL [$TOTAL]: $1"
+        echo "        stdout: $(cat "$TMPDIR/hook-stdout")"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# CS1: an invalid state.json with no .ammo/active marker above it is not a
+# campaign file → no block, no output.
+CS_DIR=$(mktemp -d)
+mkdir -p "$CS_DIR/artifacts/x"
+base_v2 | jq '.campaign.current_stage = "campaign_complete"' > "$CS_DIR/artifacts/x/state.json"
+TOTAL=$((TOTAL + 1))
+actual_exit=0
+echo '{"tool_input": {"file_path": "'"$CS_DIR"'/artifacts/x/state.json"}, "cwd": "'"$CS_DIR"'"}' | \
+    (cd "$CS_DIR" && bash "$HOOK") >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
+_expect_silent "CS1 Write of an invalid state.json outside any campaign → silent"
+
+# CS2: the same Bash write outside any campaign → silent.
+TOTAL=$((TOTAL + 1))
+actual_exit=0
+jq -c -n --arg cmd "jq '.x = 1' artifacts/x/state.json > /tmp/cs.json && mv /tmp/cs.json artifacts/x/state.json" --arg cwd "$CS_DIR" \
+    '{"tool_input": {"command": $cmd}, "cwd": $cwd}' | \
+    (cd "$CS_DIR" && bash "$HOOK") >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
+_expect_silent "CS2 Bash state.json write outside any campaign → silent"
+rm -rf "$CS_DIR"
+
+# CS3: the payload cwd is a track worktree under the engine; the relative
+# path resolves against that cwd, and the walk reaches the engine marker.
+write_state '.campaign.current_stage = "campaign_complete"'
+WT="$TMPDIR/.claude/worktrees/op-001"
+mkdir -p "$WT"
+TOTAL=$((TOTAL + 1))
+_clear_prev_snapshot
+actual_exit=0
+jq -c -n --arg cmd "jq '.x = 1' ../../../.ammo/test_target/state.json > /tmp/cs.json && mv /tmp/cs.json ../../../.ammo/test_target/state.json" --arg cwd "$WT" \
+    '{"tool_input": {"command": $cmd}, "cwd": $cwd}' | \
+    bash "$HOOK" >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
+if [ "$actual_exit" -eq 0 ] && grep -q '"decision"' "$TMPDIR/hook-stdout"; then
+    echo "  PASS [$TOTAL]: CS3 relative path from a track worktree cwd → validated (blocks)"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: CS3 relative path from a track worktree cwd → validated (blocks)"
+    echo "        stdout: $(cat "$TMPDIR/hook-stdout")"
+    FAIL=$((FAIL + 1))
+fi
+
+# CS4: $AMMO_ARTIFACT_DIR spelled in the command resolves to the campaign.
+write_state '.campaign.current_stage = "campaign_complete"'
+run_bash_test "CS4 \$AMMO_ARTIFACT_DIR/state.json write (invalid) blocks" 0 "true" \
+    'jq ".x = 1" "$AMMO_ARTIFACT_DIR/state.json" > /tmp/cs.json && mv /tmp/cs.json "${AMMO_ARTIFACT_DIR}/state.json"' \
+    "is not one of"
+
+# CS5: a state.json in a campaign dir the marker does not name is not the
+# campaign → ignored.
+mkdir -p "$TMPDIR/.ammo/old_campaign"
+base_v2 | jq '.campaign.current_stage = "campaign_complete"' > "$TMPDIR/.ammo/old_campaign/state.json"
+run_test "CS5 Write to a non-active campaign dir's state.json → ignored" 0 "false" "" \
+    "$TMPDIR/.ammo/old_campaign/state.json"
+
+# CS6: no python3 on PATH and the same non-active dir → silent (the marker
+# check, not a blanket fail-closed block on every state.json).
+NOPY=$(make_nopython_bin)
+TOTAL=$((TOTAL + 1))
+actual_exit=0
+echo '{"tool_input": {"file_path": "'"$TMPDIR"'/.ammo/old_campaign/state.json"}}' | \
+    PATH="$NOPY" bash "$HOOK" >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
+_expect_silent "CS6 no python3 + non-active campaign dir state.json → silent"
+rm -rf "$NOPY" "$TMPDIR/.ammo/old_campaign"
+
+# CS7: a Write from an unrelated cwd into the campaign's state.json finds the
+# campaign through the file's own dir.
+write_state '.campaign.current_stage = "campaign_complete"'
+OTHER=$(mktemp -d)
+TOTAL=$((TOTAL + 1))
+_clear_prev_snapshot
+actual_exit=0
+echo '{"tool_input": {"file_path": "'"$STATE_FILE"'"}, "cwd": "'"$OTHER"'"}' | \
+    (cd "$OTHER" && bash "$HOOK") >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
+if [ "$actual_exit" -eq 0 ] && grep -q '"decision"' "$TMPDIR/hook-stdout"; then
+    echo "  PASS [$TOTAL]: CS7 Write from an unrelated cwd → campaign found via the file dir (blocks)"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: CS7 Write from an unrelated cwd → campaign found via the file dir (blocks)"
+    echo "        stdout: $(cat "$TMPDIR/hook-stdout")"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$OTHER"
 
 # ══════════════════════════════════════════════════
 echo ""

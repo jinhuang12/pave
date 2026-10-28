@@ -35,6 +35,12 @@ if str(_SCRIPTS_DIR) not in sys.path:
 import run_pumice_grpc_bench as bench  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _no_interpreter_extension(monkeypatch):
+    """Keep the gate hermetic: by default this interpreter imports no pumice_rust."""
+    monkeypatch.setattr(bench, "_imported_extension", lambda: None, raising=False)
+
+
 # ---------------------------------------------------------------------------
 # Fake Pumice checkouts
 # ---------------------------------------------------------------------------
@@ -132,7 +138,7 @@ class TestFreshnessGate:
         assert "--allow-stale-engine" in report.detail
 
     def test_cargo_target_dir_searched(self, tmp_path):
-        """Sessions build with CARGO_TARGET_DIR=/workspace/cargo-target/<id> (D3)."""
+        """A shared CARGO_TARGET_DIR (campaign default <engine>/target) holds the build."""
         repo = _make_repo(tmp_path, source_mtime=_T0, artifact_mtime=None)
         shared = tmp_path / "cargo-target"
         _touch(shared / "release" / "libpumice_rust.so", _T0 + 100)
@@ -248,7 +254,7 @@ class TestServingArtifactSemantics:
         assert report.reason == "missing_artifact"
         assert "cargo build --release" in report.detail
         assert "site-packages" in report.detail  # re-staging step spelled out
-        assert f"pumice-stage-native.sh {repo}/.venv/bin/python {repo}" in report.detail
+        assert f"pumice-stage-native.sh {sys.executable} {repo}" in report.detail
         assert "patch.crates-io" in report.detail
 
 
@@ -343,6 +349,50 @@ class TestDiscoverStagedExtensions:
 
     def test_ignores_unstaged_repos(self, tmp_path):
         assert bench.discover_staged_extensions(tmp_path) == []
+
+    def test_includes_the_extension_this_interpreter_imports(self, tmp_path, monkeypatch):
+        """An engine venv outside the repo still has its served extension checked."""
+        repo = tmp_path / "pumice"
+        repo.mkdir()
+        served = _touch(tmp_path / "engine-venv" / "lib" / "python3.12" / "site-packages"
+                        / "pumice_rust.cpython-312-x86_64-linux-gnu.so", _T0)
+        monkeypatch.setattr(bench, "_imported_extension", lambda: served)
+        assert bench.discover_staged_extensions(repo) == [served]
+
+    def test_imported_extension_is_not_listed_twice(self, tmp_path, monkeypatch):
+        repo = tmp_path / "pumice"
+        so = _touch(repo / ".venv" / "lib" / "python3.12" / "site-packages"
+                    / "pumice_rust.cpython-312-x86_64-linux-gnu.so", _T0)
+        monkeypatch.setattr(bench, "_imported_extension", lambda: so)
+        assert bench.discover_staged_extensions(repo) == [so]
+
+    def test_rebuilt_but_not_restaged_outside_the_repo_is_refused(self, tmp_path, monkeypatch):
+        repo = _make_repo(tmp_path, source_mtime=_T0, artifact_mtime=_T0 + 100)
+        served = _touch(tmp_path / "engine-venv" / "lib" / "python3.12" / "site-packages"
+                        / "pumice_rust.cpython-312-x86_64-linux-gnu.so", _T0 + 50)
+        monkeypatch.setattr(bench, "_imported_extension", lambda: served)
+        report = bench.check_engine_freshness(repo)
+        assert report.ok is False
+        assert report.reason == "stale_staging"
+
+
+class TestImportedExtensionProbe:
+    @pytest.fixture(autouse=True)
+    def _real_probe(self, monkeypatch):
+        monkeypatch.undo()
+        monkeypatch.delitem(sys.modules, "pumice_rust", raising=False)
+
+    def test_returns_the_extension_file_on_sys_path(self, tmp_path, monkeypatch):
+        import importlib.machinery
+
+        so = _touch(tmp_path / f"pumice_rust{importlib.machinery.EXTENSION_SUFFIXES[0]}")
+        monkeypatch.syspath_prepend(str(tmp_path))
+        assert bench._imported_extension() == so
+
+    def test_returns_none_for_a_non_extension_module(self, tmp_path, monkeypatch):
+        _touch(tmp_path / "pumice_rust.py")
+        monkeypatch.syspath_prepend(str(tmp_path))
+        assert bench._imported_extension() is None
 
 
 # ---------------------------------------------------------------------------
@@ -689,11 +739,11 @@ class TestServerCommand:
     def test_resolve_server_exe_prefers_worktree_launcher_over_path(
         self, tmp_path, monkeypatch
     ):
-        # The engine venv's pumice-server on PATH is the image build; a
+        # The engine venv's pumice-server on PATH is the base build; a
         # track's Rust rebuild only restages pumice_rust into the venv.
         (tmp_path / "rust_grpc_server.py").write_text("", encoding="utf-8")
         monkeypatch.setattr(
-            bench.shutil, "which", lambda name: "/opt/neuron-venv/bin/pumice-server"
+            bench.shutil, "which", lambda name: "/home/ubuntu/neuron-venv/bin/pumice-server"
         )
         exe = bench.resolve_server_exe("pumice-server", tmp_path)
         assert exe[0] == sys.executable
@@ -716,19 +766,19 @@ class TestServerCommand:
     def test_resolve_server_exe_path_binary_loses_to_worktree_launcher(
         self, tmp_path, monkeypatch
     ):
-        """g6e-cdd 2026-09-24: /opt/pumice-venv/bin/pumice-server (the base
-        engine) is on PATH in every session; it must not win over the
+        """g6e-cdd 2026-09-24: the engine venv's pumice-server (the base
+        engine) is on PATH in every track; it must not win over the
         worktree's rust_grpc_server.py or both A/B arms run the base engine."""
         (tmp_path / "rust_grpc_server.py").write_text("", encoding="utf-8")
         monkeypatch.setattr(
-            bench.shutil, "which", lambda name: "/opt/pumice-venv/bin/pumice-server"
+            bench.shutil, "which", lambda name: "/home/ubuntu/pumice/.venv/bin/pumice-server"
         )
         exe = bench.resolve_server_exe("pumice-server", tmp_path)
         assert exe == [sys.executable, str(tmp_path / "rust_grpc_server.py")]
 
     def test_resolve_server_exe_path_binary_is_last_resort(self, tmp_path, monkeypatch):
         monkeypatch.setattr(
-            bench.shutil, "which", lambda name: "/opt/pumice-venv/bin/pumice-server"
+            bench.shutil, "which", lambda name: "/home/ubuntu/pumice/.venv/bin/pumice-server"
         )
         assert bench.resolve_server_exe("pumice-server", tmp_path) == ["pumice-server"]
 

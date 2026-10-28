@@ -11,16 +11,22 @@
 # call. Never deny — agents keep working with full awareness.
 #
 # Sources (merged, deduped):
-#   1. The sender-side mirror channel written by ammo-msg-mirror.sh
-#      (PostToolUse on SendMessage): <root>/<lead sid>/<me>.jsonl. The REPL
+#   1. The sender-side mirror channel <root>/<lead sid>/<me>.jsonl. The REPL
 #      poller never touches it, so it is the source that carries mid-turn
-#      messages.
+#      messages. Its writer, ammo-msg-mirror.sh (PostToolUse on SendMessage),
+#      is not part of this plugin (hooks/README.md, dropped hooks), so the
+#      channel is empty unless another writer fills it. Then, on 2.1.202+,
+#      this hook has no mid-turn source and messages arrive at the next turn
+#      boundary as Claude Code delivers them.
 #   2. The real team inbox <teams>/<team>/inboxes/<me>.json. Dead on 2.1.202+
 #      (pruned ~0.9 s after every send even while the recipient is inside a
 #      tool call; measured again on 2.1.281). Kept as a harmless secondary
 #      source for older CC versions.
 #
-# Identity + namespace: shared with the mirror hook — see _ammo_msg_identity.sh.
+# Campaign scope (_find_campaign.sh): outside a campaign the hook exits 0 and
+# prints nothing, before any identity work.
+#
+# Identity + namespace: see _ammo_msg_identity.sh.
 # The namespace key is the LEAD SESSION ID, read from this process's own spawn
 # argv (teammates) or from the hook input (lead). No team config is consulted
 # on the primary path.
@@ -40,7 +46,8 @@
 #
 # Eligibility: team-lead, champion-*, impl-champion-*, impl-*, monitor-*,
 # *champion*, *monitor*, or an argv --agent-type of ammo-champion,
-# ammo-impl-champion, ammo-transcript-monitor (see ammo_msg_eligible).
+# ammo-impl-champion, ammo-transcript-monitor, bare or with the plugin's
+# ammo: prefix (see ammo_msg_eligible).
 # Applies to all wired tool calls. Fail-open (exit 0 on any error).
 set -euo pipefail
 trap 'exit 0' ERR
@@ -57,8 +64,13 @@ INPUT=$(cat)
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || TOOL_NAME=""
 [ -z "$TOOL_NAME" ] && exit 0
 
-# ── Identity (shared with ammo-msg-mirror.sh) ──
+# ── Campaign scope ──
 HELPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "$HELPER_DIR/_find_campaign.sh" 2>/dev/null || exit 0
+_find_campaign "$INPUT" || exit 0
+
+# ── Identity ──
 # shellcheck source=/dev/null
 source "$HELPER_DIR/_ammo_msg_identity.sh" 2>/dev/null || exit 0
 ammo_msg_resolve_identity "$INPUT"

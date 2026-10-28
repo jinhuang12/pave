@@ -11,8 +11,9 @@ import sys
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[4]
-HOOKS = ROOT / ".codex" / "hooks"
+# The plugin root: hooks under codex/hooks, shared scripts under scripts/.
+ROOT = Path(__file__).resolve().parents[1]
+HOOKS = ROOT / "codex" / "hooks"
 
 
 def _run_hook(script: str, payload: dict, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
@@ -29,7 +30,7 @@ def _run_hook(script: str, payload: dict, env: dict[str, str]) -> subprocess.Com
 
 def _hook_repo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
-    (repo / ".codex" / "hooks").mkdir(parents=True, exist_ok=True)
+    repo.mkdir(parents=True, exist_ok=True)
     _write_stage_enum_schema(repo)
     return repo
 
@@ -49,11 +50,12 @@ def _env(repo: Path, artifact_dir: Path, **extra: str) -> dict[str, str]:
 
 
 def _active_stage1_artifact(repo: Path) -> Path:
-    artifact = repo / "kernel_opt_artifacts" / "campaign"
+    # <engine>/.ammo/<id>/: new_target.py also writes the <engine>/.ammo/active marker.
+    artifact = repo / ".ammo" / "campaign"
     result = subprocess.run(
         [
             sys.executable,
-            str(ROOT / ".codex" / "skills" / "ammo" / "scripts" / "new_target.py"),
+            str(ROOT / "scripts" / "new_target.py"),
             "--artifact-dir", str(artifact),
             "--model-id", "test-model",
             "--hardware", "H100",
@@ -125,9 +127,9 @@ def _write_validation_report(artifact: Path, round_id: int = 1, status: str = "P
 
 
 def _write_audit_invariants(repo: Path) -> None:
-    path = repo / ".codex" / "skills" / "ammo" / "references" / "audit-invariants.md"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("# Audit Invariants\n\n## Pre-Check\n", encoding="utf-8")
+    # The hook reads the plugin's own references/audit-invariants.md, never a
+    # copy in the engine checkout, so there is nothing to write: require it.
+    assert (ROOT / "references" / "audit-invariants.md").is_file()
 
 
 def test_stop_guard_active_campaign_cannot_bypass_by_retry(tmp_path):
@@ -340,7 +342,7 @@ def test_monitor_ack_allows_read_only_inspection(tmp_path):
     payload = {
         "cwd": str(repo),
         "session_id": "sess-test",
-        "tool_input": {"command": "rg current_stage kernel_opt_artifacts/campaign/state.json"},
+        "tool_input": {"command": "rg current_stage .ammo/campaign/state.json"},
     }
 
     result = _run_hook("pre_tool_use_guard.py", payload, env)
@@ -366,7 +368,9 @@ def test_monitor_ack_allows_claude_source_read_only_inspection(tmp_path):
     assert result.stdout.strip() == ""
 
 
-def test_claude_source_execution_still_blocked(tmp_path):
+def test_claude_worktree_execution_still_blocked(tmp_path):
+    # Both harnesses run the plugin's one scripts/ dir, so only the other
+    # harness's track worktrees stay off limits.
     repo = _hook_repo(tmp_path)
     artifact = _active_stage1_artifact(repo)
     env = _env(repo, artifact)
@@ -374,7 +378,7 @@ def test_claude_source_execution_still_blocked(tmp_path):
         "cwd": str(repo),
         "session_id": "sess-test",
         "tool_input": {
-            "command": "python scripts/gpu_reservation.py status"
+            "command": "python .claude/worktrees/op001/bench.py"
         },
     }
 
@@ -383,7 +387,20 @@ def test_claude_source_execution_still_blocked(tmp_path):
     assert result.returncode == 0
     body = json.loads(result.stdout)
     assert body["decision"] == "block"
-    assert "Use .codex/skills/ammo" in body["reason"]
+    assert "Use .codex/worktrees" in body["reason"]
+
+
+def test_plugin_script_execution_is_not_blocked_as_a_foreign_source(tmp_path):
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    env = _env(repo, artifact)
+    command = f"python {ROOT / 'scripts' / 'gpu_reservation.py'} status"
+    payload = {"cwd": str(repo), "session_id": "sess-test", "tool_input": {"command": command}}
+
+    result = _run_hook("pre_tool_use_guard.py", payload, env)
+
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
 
 
 def test_monitor_ack_still_blocks_mutating_command(tmp_path):
@@ -763,7 +780,7 @@ def test_v2_subagent_start_maps_round_task_slug_to_raw_op_id(tmp_path):
 
 
 def test_spawn_agent_post_hook_registered_for_codex_spawn_tool():
-    hooks_json = json.loads((ROOT / ".codex" / "hooks.json").read_text(encoding="utf-8"))
+    hooks_json = json.loads((ROOT / "codex" / "hooks.json").read_text(encoding="utf-8"))
     matchers = [
         entry.get("matcher", "")
         for entry in hooks_json["hooks"].get("PostToolUse", [])
@@ -851,7 +868,7 @@ def test_session_start_holds_paused_campaign_after_compaction(tmp_path):
 
 
 def test_lifecycle_hooks_do_not_register_codex_only_prompt_reminder():
-    hooks_json = json.loads((ROOT / ".codex" / "hooks.json").read_text(encoding="utf-8"))
+    hooks_json = json.loads((ROOT / "codex" / "hooks.json").read_text(encoding="utf-8"))
     session_start_hooks = hooks_json["hooks"].get("SessionStart", [])
     commands = [
         hook
@@ -1667,9 +1684,9 @@ def test_pretool_worktree_venv_guard_cannot_be_bypassed_by_retry(tmp_path):
 def test_pretool_blocks_child_edits_to_orchestrator_owned_ammo_files(tmp_path):
     repo = _hook_repo(tmp_path)
     artifact = _active_stage1_artifact(repo)
-    protected = repo / ".codex" / "skills" / "ammo" / "references" / "e2e-delta-math.md"
-    protected.parent.mkdir(parents=True, exist_ok=True)
-    protected.write_text("# protected\n", encoding="utf-8")
+    # The plugin's own reference; the hook only reads the payload, so the file is not touched.
+    protected = ROOT / "references" / "e2e-delta-math.md"
+    assert protected.is_file()
     env = _env(repo, artifact, CODEX_PROJECT_DIR=str(repo))
     payload = {
         "cwd": str(repo),
@@ -1704,23 +1721,17 @@ def test_pretool_allows_lead_edits_to_orchestrator_owned_ammo_files(tmp_path):
     assert result.stdout.strip() == ""
 
 
-def test_pretool_always_blocks_package_install_and_uninstall(tmp_path):
+def test_pretool_leaves_package_installs_to_the_user(tmp_path):
+    # The package-install deny was dropped with its Claude twin, ammo-pip-guard.sh
+    # (conventions section 7): the two runtimes deny the same commands.
     repo = _hook_repo(tmp_path)
     artifact = _active_stage1_artifact(repo)
     env = _env(repo, artifact)
     commands = [
         "pip install foo",
-        "pip3 uninstall foo",
         "uv pip install -e .",
         "python -m pip uninstall foo",
-        "cd /tmp && FEATURE=1 uv pip install foo",
-        "/usr/bin/pip3 install foo",
-        ".venv/bin/python -m pip install foo",
-        "env pip install foo",
-        "command pip install foo",
-        "pip --quiet install foo",
         "bash -c 'pip install foo'",
-        "sh -lc 'uv pip uninstall foo'",
     ]
 
     for command in commands:
@@ -1730,25 +1741,26 @@ def test_pretool_always_blocks_package_install_and_uninstall(tmp_path):
             env,
         )
         assert result.returncode == 0, command
-        body = json.loads(result.stdout)
-        assert body["decision"] == "block", command
-        assert "package install/uninstall" in body["reason"], command
+        assert result.stdout.strip() == "", command
+        assert "DEGRADED" not in result.stderr, result.stderr
 
 
-def test_pretool_pip_guard_is_active_without_ammo_campaign_context(tmp_path):
+def test_pretool_leaves_sweep_script_interpreter_to_the_engine_python(tmp_path):
+    # The sweep-script .venv guard was dropped with ammo-venv-python-guard.sh:
+    # the engine python is target.json engine.venv, not a fixed .venv path.
     repo = _hook_repo(tmp_path)
-    env = os.environ.copy()
-    env.update({"AMMO_GPU_RES_DIR": str(repo / "gpu_res")})
+    artifact = _active_stage1_artifact(repo)
+    env = _env(repo, artifact)
+    command = f"python3 {ROOT / 'scripts' / 'run_pumice_grpc_bench.py'} --help"
 
     result = _run_hook(
         "pre_tool_use_guard.py",
-        {"cwd": str(repo), "tool_input": {"command": "pip install foo"}},
+        {"cwd": str(repo), "tool_input": {"command": command}},
         env,
     )
 
     assert result.returncode == 0
-    body = json.loads(result.stdout)
-    assert body["decision"] == "block"
+    assert "virtualenv" not in result.stdout
 
 
 def test_pretool_pip_guard_allows_quoted_search_mentions_and_read_only_forms(tmp_path):
@@ -1772,21 +1784,6 @@ def test_pretool_pip_guard_allows_quoted_search_mentions_and_read_only_forms(tmp
         )
         assert result.returncode == 0, command
         assert result.stdout.strip() == "", command
-
-
-def test_pretool_pip_guard_honors_explicit_provisioning_escape_hatch(tmp_path):
-    repo = _hook_repo(tmp_path)
-    artifact = _active_stage1_artifact(repo)
-    env = _env(repo, artifact, AMMO_ALLOW_PIP="1")
-
-    result = _run_hook(
-        "pre_tool_use_guard.py",
-        {"cwd": str(repo), "tool_input": {"command": "uv pip install -e ."}},
-        env,
-    )
-
-    assert result.returncode == 0
-    assert result.stdout.strip() == ""
 
 
 def _write_stage_enum_schema(repo: Path) -> None:
@@ -1994,7 +1991,7 @@ def test_post_hook_validates_reconcile_write_explicit_non_active_artifact(tmp_pa
     active = _active_stage1_artifact(repo)
     other_doc = json.loads((active / "state.json").read_text(encoding="utf-8"))
     other_doc["campaign"]["current_stage"] = "invalid_stage"
-    other = repo / "kernel_opt_artifacts" / "other"
+    other = repo / ".ammo" / "other"
     other.mkdir(parents=True, exist_ok=True)
     (other / "state.json").write_text(json.dumps(other_doc), encoding="utf-8")
     env = _env(repo, active)
@@ -2052,7 +2049,7 @@ def test_post_hook_validates_apply_patch_state_mutation(tmp_path):
 def test_post_hook_validates_absolute_non_active_state_write(tmp_path):
     repo = _hook_repo(tmp_path)
     active = _active_stage1_artifact(repo)
-    other = repo / "kernel_opt_artifacts" / "other"
+    other = repo / ".ammo" / "other"
     other.mkdir(parents=True, exist_ok=True)
     other_state = other / "state.json"
     other_state.write_text(
@@ -2091,7 +2088,7 @@ def test_post_hook_concrete_valid_target_ignores_unrelated_invalid_active_state(
     valid_other_doc = json.loads(json.dumps(active_doc))
     active_doc["campaign"]["current_stage"] = "invalid_stage"
     active_state.write_text(json.dumps(active_doc), encoding="utf-8")
-    other = repo / "kernel_opt_artifacts" / "other"
+    other = repo / ".ammo" / "other"
     other.mkdir(parents=True, exist_ok=True)
     other_state = other / "state.json"
     other_state.write_text(json.dumps(valid_other_doc), encoding="utf-8")
@@ -2111,7 +2108,7 @@ def test_post_hook_concrete_valid_target_ignores_unrelated_invalid_active_state(
 def test_post_hook_expands_variable_target_for_non_active_state_write(tmp_path):
     repo = _hook_repo(tmp_path)
     active = _active_stage1_artifact(repo)
-    other = repo / "kernel_opt_artifacts" / "other"
+    other = repo / ".ammo" / "other"
     other.mkdir(parents=True, exist_ok=True)
     (other / "state.json").write_text(
         json.dumps(
@@ -2273,7 +2270,7 @@ def test_post_hook_mcp_move_away_blocks_missing_state(tmp_path):
 def test_post_hook_validates_new_target_first_party_writer(tmp_path):
     repo = _hook_repo(tmp_path)
     active = _active_stage1_artifact(repo)
-    generated = repo / "kernel_opt_artifacts" / "generated"
+    generated = repo / ".ammo" / "generated"
     generated.mkdir(parents=True, exist_ok=True)
     (generated / "state.json").write_text("{}", encoding="utf-8")
     env = _env(repo, active)
@@ -2334,7 +2331,7 @@ def test_post_hook_validates_python_open_write(tmp_path):
 def test_post_hook_validates_dot_relative_non_active_state_target(tmp_path):
     repo = _hook_repo(tmp_path)
     active = _active_stage1_artifact(repo)
-    other = repo / "kernel_opt_artifacts" / "other"
+    other = repo / ".ammo" / "other"
     other.mkdir(parents=True, exist_ok=True)
     (other / "state.json").write_text("{", encoding="utf-8")
     env = _env(repo, active)
@@ -2405,7 +2402,7 @@ def test_post_hook_schema_lookup_stops_at_nested_git_file_boundary(tmp_path):
     nested = repo / "nested"
     nested.mkdir()
     (nested / ".git").write_text("gitdir: /tmp/nonexistent", encoding="utf-8")
-    artifact = nested / "kernel_opt_artifacts" / "campaign"
+    artifact = nested / ".ammo" / "campaign"
     artifact.mkdir(parents=True, exist_ok=True)
     state_path = artifact / "state.json"
     state_path.write_text(json.dumps({"campaign": {"current_stage": "1_baseline"}}), encoding="utf-8")
@@ -2804,3 +2801,214 @@ def test_spawn_agent_post_hook_audit_stamp_is_idempotent_per_cycle(tmp_path):
     gate = _gate(artifact, "stage_2")
     assert gate["cycle"] == 2
     assert gate["started_at"].endswith("Z")
+
+
+# ---------------------------------------------------------------------------
+# Role addresses (references/harness-binding.md). Agents are addressed as
+# `ammo:<role>` on both harnesses, and ammo-impl-champion = ammo-implementer,
+# ammo-report-writer = ammo-report. The hook cases use task names with no role
+# prefix, so the role has to come from agent_type, the shipped Codex roster,
+# or the dispatch message, not from the name fallback.
+# ---------------------------------------------------------------------------
+
+import importlib.util  # noqa: E402
+
+import pytest  # noqa: E402
+
+
+def _common_module():
+    spec = importlib.util.spec_from_file_location("codex_hook_common_roles", HOOKS / "common.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("ammo:ammo-implementer", "ammo-implementer"),
+        ("ammo:ammo-impl-champion", "ammo-implementer"),
+        ("ammo-impl-champion", "ammo-implementer"),
+        ("ammo:ammo-report-writer", "ammo-report"),
+        ("ammo-report", "ammo-report"),
+        ("ammo:ammo-auditor", "ammo-auditor"),
+        (" ammo:ammo-transcript-monitor ", "ammo-transcript-monitor"),
+        ("ammo-investigator", "ammo-investigator"),
+        ("", ""),
+        (None, ""),
+    ],
+)
+def test_normalize_role_strips_the_address_prefix_and_folds_aliases(value, expected):
+    assert _common_module().normalize_role(value) == expected
+
+
+def test_role_markers_come_from_the_shipped_codex_roster():
+    markers = _common_module().role_markers()
+    assert set(markers) == {"ammo-implementer", "ammo-auditor", "ammo-transcript-monitor"}
+    docs, names = markers["ammo-implementer"]
+    # The plugin ships agents/ammo-impl-champion.md, not agents/ammo-implementer.md.
+    assert docs == {"agents/ammo-impl-champion.md"}
+    assert {"ammo-implementer.toml", "ammo-impl-champion.toml"} <= names
+    for role_docs, _ in markers.values():
+        for doc in role_docs:
+            assert (ROOT / doc).is_file(), doc
+
+
+@pytest.mark.parametrize("role", ["ammo:ammo-implementer", "ammo:ammo-impl-champion"])
+def test_prefixed_implementer_spawn_reminds_to_spawn_monitor(tmp_path, role):
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    payload = {
+        "cwd": str(repo),
+        "tool_name": "spawn_agent",
+        "tool_input": {"name": "track-op001", "agent_type": role},
+    }
+
+    result = _run_hook("post_tool_use_guard.py", payload, _env(repo, artifact))
+
+    assert result.returncode == 0, result.stderr
+    context = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert "AMMO MONITOR REMINDER" in context
+    assert "monitor_track_op001" in context
+
+
+@pytest.mark.parametrize(
+    "tool_input",
+    [
+        {"name": "track-op001", "message": f"Read {ROOT}/agents/ammo-impl-champion.md first."},
+        {"name": "track-op001", "agent_path": str(ROOT / "codex" / "agents" / "ammo-impl-champion.toml")},
+    ],
+    ids=["dispatch-doc", "roster-file"],
+)
+def test_roster_markers_identify_an_implementer_without_agent_type(tmp_path, tool_input):
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    payload = {"cwd": str(repo), "tool_name": "spawn_agent", "tool_input": tool_input}
+
+    result = _run_hook("post_tool_use_guard.py", payload, _env(repo, artifact))
+
+    assert result.returncode == 0, result.stderr
+    assert "AMMO MONITOR REMINDER" in result.stdout
+    assert "monitor_track_op001" in result.stdout
+
+
+def test_prefixed_roles_record_start_and_complete_the_monitor_pair(tmp_path):
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    state_path = artifact / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["campaign"]["rounds"][0]["parallel_tracks"]["tracks"] = {"OP-001": {"status": "IN_PROGRESS"}}
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    codex_home = repo / "codex_home"
+    codex_home.mkdir()
+    with sqlite3.connect(codex_home / "state_5.sqlite") as connection:
+        connection.execute("CREATE TABLE threads (id TEXT PRIMARY KEY, agent_path TEXT)")
+        connection.executemany(
+            "INSERT INTO threads (id, agent_path) VALUES (?, ?)",
+            [("track-thread", "/root/track_r1_op_001"), ("monitor-thread", "/root/monitor_track_r1_op_001")],
+        )
+    env = _env(repo, artifact, CODEX_HOME=str(codex_home), CODEX_SESSION_ID="root-thread")
+
+    def post_spawn(role, name):
+        return _run_hook("post_tool_use_guard.py", {
+            "cwd": str(repo), "session_id": "root-thread", "hook_event_name": "PostToolUse",
+            "tool_name": "spawn_agent",
+            "tool_input": {"agent_type": role, "task_name": name, "message": "OP_ID: OP-001"},
+        }, env)
+
+    def lifecycle(event, agent_id, role):
+        return _run_hook("post_tool_use_guard.py", {
+            "cwd": str(repo), "session_id": "root-thread", "hook_event_name": event,
+            "agent_id": agent_id, "agent_type": role,
+        }, env)
+
+    def pairs():
+        ledgers = list((repo / "gpu_res").glob("codex_monitor_pairs_*.json"))
+        assert len(ledgers) == 1
+        return json.loads(ledgers[0].read_text(encoding="utf-8"))["pending"]
+
+    # Pair recording on the implementer spawn.
+    assert post_spawn("ammo:ammo-impl-champion", "track_r1_op_001").returncode == 0
+    assert [(p["expected_monitor_name"], p["status"]) for p in pairs()] == [("monitor_track_r1_op_001", "pending")]
+    # The started implementer is recognized as the pair's own child.
+    child = lifecycle("SubagentStart", "track-thread", "ammo:ammo-impl-champion")
+    assert "AMMO MONITOR PAIRING" in child.stdout, child.stdout + child.stderr
+    assert "AMMO SUBAGENT START POLICY" not in child.stdout
+    # The monitor start activates the pair.
+    post_spawn("ammo:ammo-transcript-monitor", "monitor_track_r1_op_001")
+    monitor = lifecycle("SubagentStart", "monitor-thread", "ammo:ammo-transcript-monitor")
+    assert "AMMO SUBAGENT START POLICY" not in monitor.stdout
+    assert pairs()[0]["status"] == "active"
+    # The monitor stop completes it; the final INFO record names the emitter by address.
+    audit_dir = artifact / "rounds" / "1" / "tracks" / "OP-001" / "monitor_audits"
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    (audit_dir / "monitor_observations.md").write_text("# Monitor observations\n\nClean.\n", encoding="utf-8")
+    (artifact / "monitor_interventions.jsonl").write_text(json.dumps({
+        "emitter": "ammo:ammo-transcript-monitor", "severity": "INFO",
+        "target_rollout_id": "track-thread", "summary": "Final poll completed",
+    }) + "\n", encoding="utf-8")
+    stop = lifecycle("SubagentStop", "monitor-thread", "ammo:ammo-transcript-monitor")
+    assert '"decision":"block"' not in stop.stdout.replace(" ", ""), stop.stdout
+    assert pairs()[0]["status"] == "satisfied"
+
+
+def test_pretool_lets_a_prefixed_monitor_spawn_through_a_pending_pair(tmp_path):
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    state_path = artifact / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["campaign"]["rounds"][0]["parallel_tracks"]["tracks"] = {"OP-001": {"status": "IN_PROGRESS"}}
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    env = _env(repo, artifact)
+
+    def spawn(role, name):
+        return {"cwd": str(repo), "tool_name": "spawn_agent",
+                "tool_input": {"agent_type": role, "task_name": name, "message": "OP_ID: OP-001"}}
+
+    _run_hook("post_tool_use_guard.py", spawn("ammo:ammo-implementer", "track_op001"), env)
+    owed = _run_hook("pre_tool_use_guard.py", dict(spawn("ammo:ammo-investigator", "other"), hook_event_name="PreToolUse"), env)
+    assert "awaiting its mandatory paired transcript monitor" in owed.stdout, owed.stdout + owed.stderr
+
+    monitor = _run_hook(
+        "pre_tool_use_guard.py",
+        dict(spawn("ammo:ammo-transcript-monitor", "monitor_track_op001"), hook_event_name="PreToolUse"),
+        env,
+    )
+    assert monitor.returncode == 0
+    assert '"deny"' not in monitor.stdout, monitor.stdout
+
+
+def test_prefixed_auditor_spawn_stamps_audit_started(tmp_path):
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    payload = {
+        "cwd": str(repo),
+        "tool_name": "spawn_agent",
+        "tool_input": {
+            "task_name": "gate_review_c2",
+            "agent_type": "ammo:ammo-auditor",
+            "message": _audit_dispatch_message(artifact),
+        },
+    }
+
+    result = _run_hook("post_tool_use_guard.py", payload, _env(repo, artifact))
+
+    assert "AMMO AUDIT STARTED" in result.stdout, result.stdout + result.stderr
+    assert _gate(artifact, "stage_2")["cycle"] == 2
+
+
+def test_prefixed_auditor_gets_phase2_and_cannot_stop_without_it(tmp_path):
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    _write_audit_invariants(repo)
+    verdict = artifact / "rounds" / "1" / "audits" / "stage_1.md"
+    verdict.parent.mkdir(parents=True, exist_ok=True)
+    verdict.write_text("# Audit Verdict\n\n**Phase 1 preliminary**: BLOCKED\n\n## Phase 1 - Independent Reconstruction\nMissing baseline evidence.\n\n## Summary\nHALTED: one blocking finding.\n", encoding="utf-8")
+    env = _env(repo, artifact)
+    base = {"cwd": str(repo), "session_id": "sess-test", "agent_type": "ammo:ammo-auditor", "agent_id": "gate-reviewer"}
+
+    post = _run_hook("post_tool_use_guard.py", dict(base, tool_input={"file_path": str(verdict)}), env)
+    assert "Phase 1 written successfully" in post.stdout, post.stdout + post.stderr
+
+    blocked = _run_hook("post_tool_use_guard.py", dict(base, hook_event_name="SubagentStop"), env)
+    assert json.loads(blocked.stdout)["decision"] == "block"

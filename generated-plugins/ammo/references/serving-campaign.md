@@ -22,21 +22,24 @@ serving result cannot use the batch diluted-pass exception.
 
 ## Scaffold
 
-Prepare a versioned `ammo_serving/2` manifest using the deployment owner's pinned
-launch recipe and collectors. It must name the exact model revision, resources,
+Prepare a versioned `ammo_serving/2` manifest (`schemas/serving.schema.json`)
+using the deployment owner's pinned launch recipe and collectors. The user, as
+the deployment owner, supplies the manifest, its router and collector commands,
+and their files. The plugin does not prepare a deployment. It must name the exact model revision, resources,
 per-role engine/runtime/compiler/cache/transport identity, workload files,
 request rates, sample counts, SLOs, and complete benchmark argv. Commands are
 literal argument lists. They are not generated from undocumented runtime flags.
 
-Inside the server-assigned session:
+From the root of the Pumice checkout:
 
 ```bash
-.venv/bin/python scripts/new_target.py \
-  --artifact-dir "$ARTIFACT_DIR" --serving-manifest "$SERVING_MANIFEST"
+scripts/ammo new_target.py --serving-manifest "$SERVING_MANIFEST"
 ```
 
-For Codex, use the corresponding `scripts/` path. The scaffold
-checks assigned runtime, resources, and Neuron LNC. It refuses explicit batch,
+The scaffold records the manifest path and SHA256 in `target.json`, and the
+campaign layer derives `AMMO_SERVING_SETUP`, `AMMO_SERVING_MANIFEST`, and
+`AMMO_SERVING_MANIFEST_SHA256` from them (`references/campaign-env.md`). It
+checks the campaign runtime, resources, and Neuron LNC. It refuses explicit batch,
 parallelism, or gate flags alongside a serving manifest. Per-role settings come
 from the manifest, not the flat legacy TP field. It emits a closed serving state
 binding and no batch benchmark/workload block.
@@ -52,7 +55,7 @@ schema validation, legal transitions, cohort checks, monitor checks, and audit
 gates also apply to serving state. Add evidence with:
 
 ```bash
-.venv/bin/python scripts/ammo_state.py serving-sync \
+scripts/ammo ammo_state.py serving-sync \
   --state "$ARTIFACT_DIR/state.json" --kind baseline --from "$BASELINE_RESULT"
 ```
 
@@ -151,7 +154,7 @@ to bypass unresolved integration evidence.
 Use the normal explicit report entry point:
 
 ```bash
-.venv/bin/python scripts/generate_validation_report.py \
+scripts/ammo generate_validation_report.py \
   --artifact-dir "$ARTIFACT_DIR" --track OP-001
 ```
 
@@ -172,5 +175,5 @@ CPU fixture campaigns test software contracts, not inference performance or
 agent judgment. No production CUDA/NIXL or Neuron collector has been qualified
 in this change. No distributed lease/fencing binding or independently approved
 hardware run is included. These limits remain release blockers for a complete
-production P/D feature. See `docs/AMMO_PD_IMPLEMENTATION_STATUS.md` in the server
-repository; do not turn these limits into successful campaign evidence.
+production P/D feature. Do not turn these limits into successful campaign
+evidence.

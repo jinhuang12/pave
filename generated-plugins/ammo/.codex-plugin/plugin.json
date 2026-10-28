@@ -1,0 +1,34 @@
+{
+  "name": "ammo",
+  "version": "1.0.0",
+  "description": "Run a staged, multi-agent campaign that profiles and optimizes Pumice inference latency on your own NVIDIA GPU host, inside a local Pumice checkout, with no server, container, or web UI. The campaign keeps the seven stages (baseline, bottleneck mining, debate, isolated implementation and validation tracks, integration, campaign evaluation), the fact-checked report, four independent audits, and five binding gates, and ships only changes that are production-active, correct, and statistically faster. Ships the lead skill (ammo:ammo), the report sub-skill (ammo:ammo-report), nine role agents (ammo:<role>), and the campaign hooks.",
+  "author": {
+    "name": "jinhuang12"
+  },
+  "keywords": [
+    "pumice",
+    "cuda",
+    "gpu",
+    "inference",
+    "optimization",
+    "pave"
+  ],
+  "skills": "./skills/",
+  "hooks": "./codex/hooks.json",
+  "interface": {
+    "displayName": "AMMO",
+    "shortDescription": "Run staged Pumice latency optimization campaigns.",
+    "longDescription": "Profile a Pumice model on your GPU host, debate and build candidate optimizations in isolated worktrees, validate them through audits and binding gates, and write an evidence-backed report.",
+    "developerName": "jinhuang12",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Multi-agent orchestration",
+      "Repository write",
+      "Hooks"
+    ],
+    "defaultPrompt": [
+      "Start an AMMO campaign for this model and GPU target.",
+      "Resume the active AMMO campaign."
+    ]
+  }
+}

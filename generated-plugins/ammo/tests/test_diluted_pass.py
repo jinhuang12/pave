@@ -505,7 +505,7 @@ class TestLegacyByteIdentical:
 
 def test_schema_diluted_properties_dependency_is_explicit():
     schema = json.loads(
-        (Path(__file__).resolve().parents[3] / "schemas" / "state.schema.json").read_text(
+        (Path(__file__).resolve().parents[1] / "schemas" / "state.schema.json").read_text(
             encoding="utf-8"
         )
     )

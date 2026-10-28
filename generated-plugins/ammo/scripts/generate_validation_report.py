@@ -472,7 +472,7 @@ def _render_phase_section(phase_rows: List[Dict[str, Any]],
     lines: List[str] = []
     lines.append("### Phase decomposition (prefill/decode, same instrument)")
     lines.append("")
-    lines.append("> Batch-mode phase timing from `RequestOutput.metrics` — the same "
+    lines.append("> Batch-mode phase timing from `RequestOutput.metrics`: the same "
                  "fixed-batch measurement decomposed, NOT serving TTFT/ITL under load "
                  "(no queueing/arrival dynamics). Informational triage only: flags "
                  "never change a verdict. See `references/validation-defaults.md` "
@@ -498,7 +498,7 @@ def _render_phase_section(phase_rows: List[Dict[str, Any]],
                 f"- **BS {bs} DILUTED-WIN**: decode Δ "
                 f"{fmt(phase.get('decode_improvement_pct'), '%')} × share "
                 f"{fmt(phase.get('decode_share_of_e2e'))} ≈ E2E Δ "
-                f"{fmt(pr.get('improvement_pct'), '%')} — Amdahl-consistent. The "
+                f"{fmt(pr.get('improvement_pct'), '%')}, Amdahl-consistent. The "
                 f"mechanism worked; the small E2E number is dilution by prefill "
                 f"share, not a failed optimization. If this track fails on the "
                 f"E2E floor, record `fail_reason` as \"diluted (Amdahl-consistent)\", "
@@ -519,7 +519,7 @@ def _render_phase_section(phase_rows: List[Dict[str, Any]],
                 f"- **BS {bs} INCONSISTENT**: actual E2E Δ "
                 f"{fmt(pr.get('improvement_pct'), '%')} does not match the "
                 f"phase-decomposition expectation "
-                f"{fmt(flags.get('expected_e2e_from_phases_pct'), '%')} — the "
+                f"{fmt(flags.get('expected_e2e_from_phases_pct'), '%')}: the "
                 f"wall-clock latency and `RequestOutput.metrics` timestamps "
                 f"disagree. Investigate before trusting either number.")
 
@@ -668,10 +668,13 @@ def _track_context(evidence_path: Path,
         track_id = track_dir.name
 
     # v2: artifact/rounds/{N}/tracks/{op_id}/evidence.json
-    if (track_dir.parent.name == "tracks"
-            and track_dir.parent.parent.name.isdigit()
-            and track_dir.parent.parent.parent.name == "rounds"):
-        return track_dir.parents[3], int(track_dir.parent.parent.name), track_id
+    tracks_dir = track_dir.parent
+    round_dir = tracks_dir.parent
+    rounds_dir = round_dir.parent
+    if (tracks_dir.name == "tracks"
+            and round_dir.name.isdigit()
+            and rounds_dir.name == "rounds"):
+        return rounds_dir.parent, int(round_dir.name), track_id
 
     # Legacy: artifact/tracks/{op_id}/evidence.json
     if track_dir.parent.name == "tracks":

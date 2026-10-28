@@ -6,9 +6,10 @@ import tomllib
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[4]
-AGENTS = ROOT / ".codex" / "agents"
-AMMO_AGENT_DOCS = ROOT / ".codex" / "skills" / "ammo" / "agents"
+# The plugin root: Codex role TOMLs under codex/agents, the role prompts under agents/.
+ROOT = Path(__file__).resolve().parents[1]
+AGENTS = ROOT / "codex" / "agents"
+AMMO_AGENT_DOCS = ROOT / "agents"
 
 
 def _toml(name: str) -> dict:

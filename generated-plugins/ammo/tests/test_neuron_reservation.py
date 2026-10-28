@@ -20,6 +20,15 @@ if str(_SCRIPTS_DIR) not in sys.path:
 import gpu_reservation  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def clean_accelerator_env(monkeypatch):
+    # A host shell can carry the campaign env (campaign_paths.py env exports
+    # AMMO_ACCELERATOR_KIND=cuda); each test sets the binding it needs.
+    for name in ("AMMO_ACCELERATOR_KIND", "AMMO_RUNTIME_PROFILE", "AMMO_GPU_RES_DIR",
+                 "NEURON_VISIBLE_DEVICES", "NEURON_RT_VISIBLE_CORES", "CUDA_VISIBLE_DEVICES"):
+        monkeypatch.delenv(name, raising=False)
+
+
 @pytest.mark.parametrize(
     "visible,expected",
     [
@@ -219,8 +228,19 @@ def test_neuron_cli_release_handles_one_owner_with_disjoint_holds(tmp_path):
 
 
 def test_cuda_cli_output_and_state_shape_remain_compatible(tmp_path):
+    # The CUDA pool is every host GPU (conventions section 5); the caller's
+    # CUDA_VISIBLE_DEVICES only filters it. A stub nvidia-smi lists 8 GPUs.
     script = _SCRIPTS_DIR / "gpu_reservation.py"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "nvidia-smi").write_text(
+        "#!/bin/sh\n"
+        '[ "$*" = "--query-gpu=index --format=csv,noheader" ] && seq 0 7 && exit 0\n'
+        "exit 2\n"
+    )
+    (bin_dir / "nvidia-smi").chmod(0o755)
     env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
     env.pop("AMMO_RUNTIME_PROFILE", None)
     env.pop("AMMO_ACCELERATOR_KIND", None)
     env.pop("NEURON_VISIBLE_DEVICES", None)
@@ -244,5 +264,6 @@ def test_cuda_cli_output_and_state_shape_remain_compatible(tmp_path):
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "4,5"
     state = json.loads((tmp_path / "cuda-res" / "state.json").read_text())
-    assert state["gpu_count"] == 4
-    assert sorted(map(int, state["gpus"])) == [4, 5, 6, 7]
+    assert state["gpu_count"] == 8
+    assert sorted(map(int, state["gpus"])) == list(range(8))
+    assert state["gpus"]["4"]["session_id"] == "session-cuda"

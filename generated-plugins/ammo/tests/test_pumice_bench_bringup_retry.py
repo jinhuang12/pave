@@ -57,7 +57,7 @@ from test_pumice_bench_smoke import _make_artifact, _make_repo  # noqa: E402
 
 EXCERPT_125300 = r"""
 === launch 2026-09-24T12:51:39.046299+00:00 ===
-/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/.venv/bin/python /data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/rust_grpc_server.py --model /hf/gpt-oss-20b --port 43309 --max-model-len 8192 --tensor-parallel-size 8 --metrics-port 59895 --model-runner pumice --max-num-seqs 8
+/home/ubuntu/pumice/.venv/bin/python /home/ubuntu/pumice/rust_grpc_server.py --model /hf/gpt-oss-20b --port 43309 --max-model-len 8192 --tensor-parallel-size 8 --metrics-port 59895 --model-runner pumice --max-num-seqs 8
 09-24 12:51:51 INFO pumice.engine.neuron_model_runner: Gloo distributed initialized: global_rank=4, world_size=8, tp_size=8, dp_size=1, init_method=tcp://localhost:42687
 09-24 12:51:51 INFO pumice.engine.neuron_model_runner: Gloo distributed initialized: global_rank=0, world_size=8, tp_size=8, dp_size=1, init_method=tcp://localhost:42687
 09-24 12:51:51 INFO pumice.engine.neuron_model_runner: Gloo distributed initialized: global_rank=6, world_size=8, tp_size=8, dp_size=1, init_method=tcp://localhost:42687
@@ -74,13 +74,13 @@ Traceback (most recent call last):
     self.run()
   File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
     self._target(*self._args, **self._kwargs)
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 788, in __init__
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 788, in __init__
     self._tp_broadcast_mq = MessageQueue.create_from_handle(mq_handle, reader_rank)
                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/shm_broadcast.py", line 168, in create_from_handle
+  File "/home/ubuntu/pumice/src/pumice/engine/shm_broadcast.py", line 168, in create_from_handle
     self.buffer = ShmRingBuffer(*handle.buffer_handle)
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/shm_broadcast.py", line 78, in __init__
+  File "/home/ubuntu/pumice/src/pumice/engine/shm_broadcast.py", line 78, in __init__
     self.shared_memory = shared_memory.SharedMemory(name=name)
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/usr/lib/python3.12/multiprocessing/shared_memory.py", line 104, in __init__
@@ -114,13 +114,13 @@ Traceback (most recent call last):
     self.run()
   File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
     self._target(*self._args, **self._kwargs)
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 788, in __init__
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 788, in __init__
     self._tp_broadcast_mq = MessageQueue.create_from_handle(mq_handle, reader_rank)
                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/shm_broadcast.py", line 168, in create_from_handle
+  File "/home/ubuntu/pumice/src/pumice/engine/shm_broadcast.py", line 168, in create_from_handle
     self.buffer = ShmRingBuffer(*handle.buffer_handle)
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/shm_broadcast.py", line 78, in __init__
+  File "/home/ubuntu/pumice/src/pumice/engine/shm_broadcast.py", line 78, in __init__
     self.shared_memory = shared_memory.SharedMemory(name=name)
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/usr/lib/python3.12/multiprocessing/shared_memory.py", line 104, in __init__
@@ -148,35 +148,35 @@ Traceback (most recent call last):
     self.run()
   File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
     self._target(*self._args, **self._kwargs)
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 791, in __init__
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 791, in __init__
     self._full_init()        # Signal completion
     ^^^^^^^^^^^^^^^^^
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 832, in _full_init
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 832, in _full_init
     self._warmup()
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 1303, in _warmup
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 1303, in _warmup
     parallel_warmup(
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/neuron_inference_core/compile/warmup_orchestrator.py", line 70, in parallel_warmup
+  File "/home/ubuntu/pumice/src/pumice/neuron_inference_core/compile/warmup_orchestrator.py", line 70, in parallel_warmup
     extract_fn()
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 1471, in _extract_all_graphs
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 1471, in _extract_all_graphs
     _ = self.capture_backend_model(**model_kwargs)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 472, in __call__
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 472, in __call__
     return super().__call__(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
     return self._call_impl(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
     return forward_call(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1034, in compile_wrapper
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1034, in compile_wrapper
     raise e.with_traceback(None) from e.__cause__  # User compiler error
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 torch._dynamo.exc.Unsupported: Observed exception
 [rank0]: Traceback (most recent call last):
-[rank0]:   File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/rust_grpc_server.py", line 287, in <module>
+[rank0]:   File "/home/ubuntu/pumice/rust_grpc_server.py", line 287, in <module>
 [rank0]:     main()
-[rank0]:   File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/rust_grpc_server.py", line 282, in main
+[rank0]:   File "/home/ubuntu/pumice/rust_grpc_server.py", line 282, in main
 [rank0]:     pumice_rust.start_server(config)
 Process SpawnProcess-4:
 ERROR:pumice.vllm_adapter.multinode:TP worker SpawnProcess-1 exited unexpectedly with code 1; terminating local worker group
@@ -194,47 +194,47 @@ Traceback (most recent call last):
     self.run()
   File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
     self._target(*self._args, **self._kwargs)
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 791, in __init__
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 791, in __init__
     self._full_init()        # Signal completion
     ^^^^^^^^^^^^^^^^^
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 832, in _full_init
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 832, in _full_init
     self._warmup()
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 1303, in _warmup
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 1303, in _warmup
     parallel_warmup(
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/neuron_inference_core/compile/warmup_orchestrator.py", line 70, in parallel_warmup
+  File "/home/ubuntu/pumice/src/pumice/neuron_inference_core/compile/warmup_orchestrator.py", line 70, in parallel_warmup
     extract_fn()
-  File "/data/sessions/f354dcfe-3d55-4d9d-8ab3-7d714f2a0956/worktree/src/pumice/engine/neuron_model_runner.py", line 1471, in _extract_all_graphs
+  File "/home/ubuntu/pumice/src/pumice/engine/neuron_model_runner.py", line 1471, in _extract_all_graphs
     _ = self.capture_backend_model(**model_kwargs)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 472, in __call__
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 472, in __call__
     return super().__call__(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
     return self._call_impl(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
     return forward_call(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1024, in compile_wrapper
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1024, in compile_wrapper
     return fn(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 2316, in __call__
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 2316, in __call__
     result = self._torchdynamo_orig_backend(
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 729, in __call__
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 729, in __call__
     result = _compile(
              ^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1827, in _compile
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1827, in _compile
     guarded_code, tracer_output = compile_inner(code, one_graph, hooks)
                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_utils_internal.py", line 96, in wrapper_function
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_utils_internal.py", line 96, in wrapper_function
     return function(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^
 Traceback (most recent call last):
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1500, in compile_inner
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1500, in compile_inner
     return _compile_inner(code, one_graph, hooks)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1534, in _compile_inner
+  File "/home/ubuntu/neuron-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1534, in _compile_inner
 """
 
 

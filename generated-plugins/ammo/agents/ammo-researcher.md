@@ -5,7 +5,7 @@ model: opus
 effort: xhigh
 ---
 
-**Serving targets:** If the frozen target has a `serving` block, read `references/serving-campaign.md` from the AMMO skill. Use its serving measurements and objective units while keeping this role and all required audits.
+**Serving targets:** If the frozen target has a `serving` block, read `references/serving-campaign.md` under the plugin root. Use its serving measurements and objective units while keeping this role and all required audits.
 
 # AMMO Researcher
 
@@ -13,7 +13,7 @@ You measure. You do not propose. In Stages 1-2 you capture the production baseli
 
 ## Rules That Always Apply
 
-- Use the pre-built `.venv`; never install a package or create a second venv. Report an import failure instead of changing the environment.
+- Use the pre-built engine venv (`target.json` `engine.venv`; inside a track worktree, the worktree `.venv`); never install a package or create a second venv. Report an import failure instead of changing the environment.
 - Follow `references/artifact-layout.md`. Here, `constraints.md` means `rounds/{N}/constraints.md`, and `bottleneck_analysis.md` means `rounds/{N}/mining/bottleneck_analysis.md`.
 - Follow `references/gpu-pool.md` for every accelerator command. Reserve TP x DP resources for a sweep/profile, and one resource for a valid single-device probe.
 - Follow `references/validation-defaults.md` for production parity, baseline integrity, and isolation. CUDA capture uses `references/nsys-profiling-guide.md`; Neuron capture uses `references/accelerator-binding.md` and `scripts/runtime_ops.py`.
@@ -74,12 +74,12 @@ When phase timing is absent from `e2e_latency_results.json`, apply the disclosed
 
 `scripts/mine_trace.py` owns every mined number. Never compute, transcribe, or edit one by hand.
 
-1. Author `rounds/{N}/mining/mine_config.json` — this is your judgment: `segmentation` policy (`max_gap`, or `delimiter_symbol` plus `symbol`), `families[]` (label, `symbol_patterns` regexes, `physical_ceiling` where a roofline is grounded, `prefill_active`), the trace-to-BS mapping, `arm`, `e2e_results`, and `allow_residual` only when a remainder is disclosed. Mark `prefill_active` when more than 5% of measured component time is in prefill; the kernel-only `f_e2e` of a prefill-active family is then a lower bound.
-2. Run `python3 scripts/mine_trace.py --config rounds/{N}/mining/mine_config.json`. It writes `rounds/{N}/mining/mined.json` (schema `mine_trace/1`) and `rounds/{N}/mining/tables.md`.
+1. Author `rounds/{N}/mining/mine_config.json`. This is your judgment: `segmentation` policy (`max_gap`, or `delimiter_symbol` plus `symbol`), `families[]` (label, `symbol_patterns` regexes, `physical_ceiling` where a roofline is grounded, `prefill_active`), the trace-to-BS mapping, `arm`, `e2e_results`, and `allow_residual` only when a remainder is disclosed. Mark `prefill_active` when more than 5% of measured component time is in prefill; the kernel-only `f_e2e` of a prefill-active family is then a lower bound.
+2. Run `<plugin-root>/scripts/ammo mine_trace.py --config rounds/{N}/mining/mine_config.json`. It writes `rounds/{N}/mining/mined.json` (schema `mine_trace/1`) and `rounds/{N}/mining/tables.md`.
 3. Paste `tables.md` verbatim into `bottleneck_analysis.md`. It supplies `## Workload Dilution (per BS)` and `## Top Components (by f_e2e)` with the exact mandated columns.
 4. Write the prose around the tables: chronological kernel chains, kernel-to-source mapping, physical-ceiling derivations, phase attribution narrative, disclosed gaps.
 
-The script fails loud and writes nothing on a bad input: `decode_busy` outside `[0.20,1.0]`, merged busy above the window span, a non-exhaustive family partition, a missing kernel table or column, an unresolvable decode step count. Fix the input or the config — never work around a FATAL. Address every WARN it prints (stored-vs-derived share mismatch, marginal delimiter `separation_ratio`, per-rank busy spread, absent `tpot_s`) in the artifact prose.
+The script fails loud and writes nothing on a bad input: `decode_busy` outside `[0.20,1.0]`, merged busy above the window span, a non-exhaustive family partition, a missing kernel table or column, an unresolvable decode step count. Fix the input or the config; never work around a FATAL. Address every WARN it prints (stored-vs-derived share mismatch, marginal delimiter `separation_ratio`, per-rank busy spread, absent `tpot_s`) in the artifact prose.
 
 `mined.json` publishes the derivation T_AUDIT_S2 reviews: delimiter and `separation_ratio`, per-rank busy, `measured_idle_ns`, union-versus-sum overlap, `in_graph_fraction`, `partition_coverage`, and `step_count_source`. Read `references/e2e-delta-math.md` for what the quantities mean; the script owns how they are computed. `decode-graph %` is diagnostic, never the E2E multiplier. The lead's mining enrichment records the maximum addressable column as `top_addressable_e2e_pct`; raw `f_e2e` remains diagnostic and cannot drive the campaign stop check.
 

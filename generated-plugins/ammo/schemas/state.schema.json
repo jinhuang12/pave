@@ -364,7 +364,7 @@
         "string",
         "null"
       ],
-      "description": "Session UUID recorded at campaign start. Enables eval pipeline to extract timing and cost data."
+      "description": "Campaign id: the basename of the campaign dir <engine>/.ammo/<id>/ and the line in <engine>/.ammo/active. new_target.py records it at scaffold (YYYYMMDD-HHMMSS-<6 hex> unless --campaign-id names it). GPU leases are owned by this value."
     },
     "codex_thread_id": {
       "type": [
@@ -441,7 +441,7 @@
           ]
         },
         "stack_fingerprint": {
-          "description": "Self-digested runtime_ops.py fingerprint. new_target.py writes it at scaffold time. run_pumice_grpc_bench.py replaces it with the fingerprint of each successful --slot baseline run. execution_source.cwd_git.commit and sources[dir].commit are git HEAD when the fingerprint was taken. server_stack_fingerprint.pumice_commit is the Pumice commit baked into the server image; the session worktree branches from it.",
+          "description": "Self-digested runtime_ops.py fingerprint. new_target.py writes it at scaffold time. run_pumice_grpc_bench.py replaces it with the fingerprint of each successful --slot baseline run. execution_source.cwd_git.commit and sources[dir].commit are git HEAD when the fingerprint was taken. server_stack_fingerprint is the engine stack that preflight_pumice.py --write-fingerprint recorded in target.json runtime.stack_fingerprint at scaffold (AMMO_STACK_FINGERPRINT); its pumice_commit is the engine HEAD then. Track worktrees branch from the engine checkout.",
           "type": [
             "object",
             "null"
@@ -637,7 +637,7 @@
         },
         "agent_costs": {
           "type": "array",
-          "description": "Auto-populated by eval pipeline from session logs."
+          "description": "Agent cost records. new_target.py scaffolds it empty, and no plugin script writes it."
         },
         "rounds": {
           "type": "array",

@@ -9,7 +9,7 @@ This document defines 6 invariants. Each one gives the rule, what breaks if you 
 The six invariants hold for both Pumice CUDA runners, because the Pumice compile layer is a port of the vLLM design (`PumiceBackend`, then `PiecewiseBackend`, then deferred `standalone_compile`). The source paths and the log lines are different. Find the runner kind first:
 
 - The server log line `Backends from confdb` and the `model_runner` field of every bench row give the runner kind. confdb sets it per model and SM family (`model_runner = "vllm"` for gpt-oss in `pumice-rust/confdb/gpt_oss.toml`).
-- **Runner `vllm`** (gpt-oss on CUDA): the model runs in the embedded vLLM 0.30.0 runner. The compile stack is the vLLM one, under `vllm/compilation/` in the installed package (`$ENGINE_VENV/lib/python3.12/site-packages/vllm/`). That package is pinned (`shared/pumice_pins.py`) and is not in your worktree. Pumice passes compile settings to it through `compilation_config` (`src/pumice/vllm_adapter/bootstrap.py`: the confdb keys `max_cudagraph_capture_size`, `cudagraph_capture_sizes`, and `vllm_cudagraph_mode`). Every `vllm/...` path below applies. Verify each one in the installed 0.30.0 package, not from memory.
+- **Runner `vllm`** (gpt-oss on CUDA): the model runs in the embedded vLLM runner at the pinned version. The compile stack is the vLLM one, under `vllm/compilation/` in the installed package (`<engine venv>/lib/python3.12/site-packages/vllm/`, where the engine venv is `target.json` `engine.venv`). That package is pinned (`scripts/pumice_pins.py` checks it against `pumice.config.REQUIRED_VLLM_VERSION`) and is not in your worktree. Pumice passes compile settings to it through `compilation_config` (`src/pumice/vllm_adapter/bootstrap.py`: the confdb keys `max_cudagraph_capture_size`, `cudagraph_capture_sizes`, and `vllm_cudagraph_mode`). Every `vllm/...` path below applies. Verify each one in the installed package, not from memory.
 - **Runner `pumice`** (the native runner): the compile stack is in your worktree under `src/pumice/compilation/` and `src/pumice/engine/`. Each invariant below gives the Pumice path next to the vLLM path. Cite the path of the runner that the row used.
 - **Runner `neuron`**: torch-xla and neuronx-cc compile the graph. This contract does not apply; see `references/accelerator-binding.md`.
 
@@ -151,7 +151,7 @@ If your custom op IS in `splitting_ops` (or it triggers a code path that hits a 
 grep -n "splitting_ops\|_attention_ops" vllm/config/compilation.py
 ```
 
-**Pumice runner**: `PumiceBackend.splitting_ops` in `src/pumice/compilation/backend.py` (at 9d126713: `pumice::unified_attention` and `pumice::glm_mla_attention`). The default path is an FX split (`split_graph()`). `PUMICE_INDUCTOR_GRAPH_PARTITION=1` selects the Inductor partition path instead.
+**Pumice runner**: `PumiceBackend.splitting_ops` in `src/pumice/compilation/backend.py` (at the pinned commit: `pumice::unified_attention` and `pumice::glm_mla_attention`). The default path is an FX split (`split_graph()`). `PUMICE_INDUCTOR_GRAPH_PARTITION=1` selects the Inductor partition path instead.
 
 **Validate**: compare CUDA graph partition count before/after your change:
 ```bash
@@ -170,7 +170,7 @@ grep "Split graph into\|graphs captured" <server_log>
 
 Nothing breaks functionally. But batch sizes that land in the smaller range may show a latency regression from the mechanism itself, even if no kernel code changes apply to that range.
 
-**Pumice runner**: `compile_ranges` defaults to one `Range(1, max_num_batched_tokens)` (`src/pumice/engine/model_runner.py`). The only split at 9d126713 is the AllReduce+RMSNorm fusion range. Add an endpoint there only when you need one.
+**Pumice runner**: `compile_ranges` defaults to one `Range(1, max_num_batched_tokens)` (`src/pumice/engine/model_runner.py`). The only split at the pinned commit is the AllReduce+RMSNorm fusion range. Add an endpoint there only when you need one.
 
 **Validate**: run E2E latency at ALL batch sizes. If a BS in the "unmodified" range regresses by 0.5-1.0%, this is likely structural overhead from the range split itself, not a bug in your kernel code.
 
@@ -274,9 +274,9 @@ A warm compile cache can serve an artifact that was compiled before your edit.
 
 ## Source Files
 
-vLLM paths are relative to the installed vLLM 0.30.0 package. Pumice paths are relative to your worktree.
+vLLM paths are relative to the installed vLLM package (the pinned version). Pumice paths are relative to your worktree.
 
-| Component | vLLM runner (vLLM 0.30.0) | Pumice runner |
+| Component | vLLM runner (pinned vLLM) | Pumice runner |
 |-----------|---------------------------|---------------|
 | Single graph compiled per range | `vllm/compilation/piecewise_backend.py` | `src/pumice/compilation/backend.py` (`PiecewiseBackend.compile_all_ranges`) |
 | `pass_context(compile_range)` | `vllm/compilation/backends.py` | `src/pumice/compilation/backend.py` (`_compile_range`) |

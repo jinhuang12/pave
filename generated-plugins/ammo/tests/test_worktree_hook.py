@@ -192,19 +192,73 @@ def _run_codex_create(script_path, repo_dir, name):
     return result, repo_dir / ".codex" / "worktrees" / name
 
 
-def _run_claude_hook(hook_path, repo_dir, name):
-    """Invoke the Claude worktree-create hook; return (result, worktree_dir)."""
-    hook_input = json.dumps({
+def _clean_env(**extra):
+    """os.environ without a live campaign's names, plus extra."""
+    env = {
+        k: v for k, v in os.environ.items()
+        if not k.startswith("AMMO_") and k != "CLAUDE_PROJECT_DIR"
+    }
+    env.update(extra)
+    return env
+
+
+def _mark_campaign(engine, campaign_id="camp", target=None):
+    """Make engine an AMMO engine root: .ammo/active names campaign_id.
+
+    The marker is written after the fixture commit, so it stays untracked and
+    never lands in a worktree. target, when given, becomes the campaign's
+    target.json.
+    """
+    campaign = engine / ".ammo" / campaign_id
+    campaign.mkdir(parents=True, exist_ok=True)
+    (engine / ".ammo" / "active").write_text(campaign_id + "\n")
+    if target is not None:
+        (campaign / "target.json").write_text(json.dumps(target))
+    return campaign
+
+
+def _path_without(tmp_path, *names):
+    """A PATH dir that links every executable on PATH except names."""
+    shadow = tmp_path / "path-without"
+    shadow.mkdir()
+    for directory in os.environ.get("PATH", "").split(os.pathsep):
+        if not directory or not os.path.isdir(directory):
+            continue
+        for entry in os.listdir(directory):
+            link = shadow / entry
+            if entry in names or os.path.lexists(link):
+                continue
+            src = os.path.join(directory, entry)
+            if os.path.isfile(src) and os.access(src, os.X_OK):
+                os.symlink(src, link)
+    return str(shadow)
+
+
+def _run_claude_hook(hook_path, repo_dir, name, event="PreToolUse", campaign=True, path=None):
+    """Invoke the Claude worktree-create hook; return (result, worktree_dir).
+
+    campaign=True marks repo_dir as the engine root of campaign "camp" (the
+    hook builds a track venv only inside a campaign). event is PreToolUse
+    (the EnterWorktree tool call) or WorktreeCreate.
+    """
+    if campaign:
+        _mark_campaign(repo_dir)
+    payload = {
         "session_id": "test-session",
         "cwd": str(repo_dir),
-        "hook_event_name": "PreToolUse",
-        "tool_name": "EnterWorktree",
-        "tool_input": {"name": name},
-    })
+        "hook_event_name": event,
+    }
+    if event == "WorktreeCreate":
+        payload["name"] = name
+    else:
+        payload.update({"tool_name": "EnterWorktree", "tool_input": {"name": name}})
+    env = _clean_env(CLAUDE_PROJECT_DIR=str(repo_dir))
+    if path is not None:
+        env["PATH"] = path
     result = subprocess.run(
         ["bash", str(hook_path)],
-        input=hook_input, capture_output=True, text=True, timeout=60,
-        env={**os.environ, "CLAUDE_PROJECT_DIR": str(repo_dir)},
+        input=json.dumps(payload), capture_output=True, text=True, timeout=60,
+        env=env, cwd=str(repo_dir),
     )
     return result, repo_dir / ".claude" / "worktrees" / name
 
@@ -237,6 +291,8 @@ def _build_repo_with_fake_main_venv(tmp_path, vllm_source=None):
 def _create_worktree(kind, repo_dir, name):
     """Drive the requested worktree-creation script; return (result, worktree_dir)."""
     if kind == "codex":
+        if shutil.which("flock") is None:
+            pytest.skip("flock not available (required by the Codex helper)")
         return _run_codex_create(_get_codex_create_script_path(), repo_dir, name)
     if kind == "claude":
         if shutil.which("jq") is None:
@@ -346,8 +402,10 @@ class TestWorktreePthRedirect:
         )
         assert out.returncode == 0, out.stderr
         lines = out.stdout.splitlines()
-        assert str(site_packages / "flashinfer" / "__init__.py") == lines[0]
-        assert str(site_packages / "nvidia_cutlass_dsl" / "python_packages" / "cutlass" / "__init__.py") == lines[1]
+        # A venv may show site-packages through a lib64 link to lib: compare real paths.
+        assert os.path.realpath(lines[0]) == os.path.realpath(site_packages / "flashinfer" / "__init__.py")
+        assert os.path.realpath(lines[1]) == os.path.realpath(
+            site_packages / "nvidia_cutlass_dsl" / "python_packages" / "cutlass" / "__init__.py")
         assert lines[2] == "main-flashinfer main-cutlass"
 
         pth_lines = (site_packages / "main-venv.pth").read_text().splitlines()
@@ -682,6 +740,8 @@ class TestWorktreeHookLockPermission:
         """
         hook_path = _get_hook_path()
         session_wt = git_worktree_env["session_wt"]
+        # The lock and the build run only inside a campaign.
+        _mark_campaign(session_wt)
 
         # Prepare hook input JSON
         import json
@@ -698,10 +758,7 @@ class TestWorktreeHookLockPermission:
             input=hook_input,
             capture_output=True, text=True,
             timeout=30,
-            env={
-                **os.environ,
-                "CLAUDE_PROJECT_DIR": str(session_wt),
-            },
+            env=_clean_env(CLAUDE_PROJECT_DIR=str(session_wt)),
         )
 
         # The core assertion: no Permission denied from the lock file or mkdir
@@ -723,12 +780,101 @@ class TestWorktreeHookLockPermission:
 
 
 @pytest.mark.unit
+@pytest.mark.skipif(
+    shutil.which("git") is None or shutil.which("jq") is None,
+    reason="git or jq not available",
+)
+class TestWorktreeHookCampaignScope:
+    """Outside a campaign the hook adds a plain worktree on WorktreeCreate (the
+    event cannot decline) and does nothing on the EnterWorktree tool call.
+    Inside a campaign it builds the track venv from the campaign's engine
+    python (AMMO_PYTHON). On WorktreeCreate, stdout is the worktree path and
+    nothing else.
+    """
+
+    @staticmethod
+    def _plain_repo(tmp_path):
+        repo = tmp_path / "plain"
+        repo.mkdir()
+        subprocess.run(["git", "init", str(repo)], check=True, capture_output=True)
+        subprocess.run(
+            ["git", "-C", str(repo), "commit", "--allow-empty", "-m", "init"],
+            check=True, capture_output=True,
+            env={**os.environ, "GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "t@t",
+                 "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "t@t"},
+        )
+        return repo
+
+    def test_worktree_create_outside_a_campaign_adds_a_plain_worktree(self, tmp_path):
+        repo = self._plain_repo(tmp_path)
+        result, wt = _run_claude_hook(
+            _get_hook_path(), repo, "plain-wt", event="WorktreeCreate", campaign=False)
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.splitlines() == [str(wt)]
+        assert wt.is_dir()
+        branch = subprocess.run(
+            ["git", "-C", str(wt), "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        assert branch == "worktree-plain-wt"
+        assert not (wt / ".venv").exists(), "no track build outside a campaign"
+
+    def test_worktree_create_outside_a_campaign_reuses_an_existing_dir(self, tmp_path):
+        repo = self._plain_repo(tmp_path)
+        _run_claude_hook(_get_hook_path(), repo, "again", event="WorktreeCreate", campaign=False)
+        result, wt = _run_claude_hook(
+            _get_hook_path(), repo, "again", event="WorktreeCreate", campaign=False)
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.splitlines() == [str(wt)]
+
+    def test_enter_worktree_outside_a_campaign_is_silent(self, tmp_path):
+        repo = self._plain_repo(tmp_path)
+        result, wt = _run_claude_hook(
+            _get_hook_path(), repo, "plain-wt", event="PreToolUse", campaign=False)
+        assert result.returncode == 0, result.stderr
+        assert result.stdout == ""
+        assert not wt.exists(), "the tool call outside a campaign must not add a worktree"
+
+    def test_campaign_worktree_create_stdout_is_only_the_path(self, tmp_path):
+        repo = _build_repo_with_fake_main_venv(tmp_path)
+        result, wt = _run_claude_hook(_get_hook_path(), repo, "onlypath", event="WorktreeCreate")
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.splitlines() == [str(wt)], \
+            f"git or build output leaked onto stdout: {result.stdout!r}"
+        assert (wt / ".venv" / "bin" / "python").exists()
+
+    def test_campaign_track_venv_uses_the_engine_venv_from_target_json(self, tmp_path):
+        repo = _init_codex_worktree_test_repo(tmp_path)
+        shutil.rmtree(repo / ".venv")
+        engine_venv = tmp_path / "engine-venv"
+        subprocess.run(
+            [sys.executable, "-m", "venv", "--without-pip", str(engine_venv)],
+            check=True, capture_output=True,
+        )
+        _mark_campaign(repo, target={"engine": {"venv": str(engine_venv)}})
+        result, wt = _run_claude_hook(_get_hook_path(), repo, "enginevenv", event="WorktreeCreate")
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.splitlines() == [str(wt)]
+        pth = (_wt_site_packages(wt) / "main-venv.pth").read_text().splitlines()
+        assert pth[0] == str(engine_venv / "lib" / f"python{_py_version()}" / "site-packages")
+
+    def test_campaign_worktree_create_runs_without_flock(self, tmp_path):
+        repo = _build_repo_with_fake_main_venv(tmp_path)
+        result, wt = _run_claude_hook(
+            _get_hook_path(), repo, "noflock", event="WorktreeCreate",
+            path=_path_without(tmp_path, "flock"))
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.splitlines() == [str(wt)]
+        assert (wt / ".venv" / "bin" / "python").exists()
+
+
+@pytest.mark.unit
 class TestCodexWorktreeCreateRepair:
     """Codex worktree helper must preserve Claude hook parity for repair/setup."""
 
     @pytest.mark.skipif(
-        shutil.which("git") is None,
-        reason="git not available",
+        shutil.which("git") is None or shutil.which("flock") is None,
+        reason="git or flock not available (the Codex helper needs flock)",
     )
     def test_existing_codex_worktree_repairs_missing_venv_and_codex_template(self, tmp_path):
         """Existing track dirs must not skip repair of .venv or .codex config/hooks."""
@@ -758,8 +904,8 @@ class TestCodexWorktreeCreateRepair:
         assert not (worktree_dir / ".codex" / "worktrees").exists()
 
     @pytest.mark.skipif(
-        shutil.which("git") is None,
-        reason="git not available",
+        shutil.which("git") is None or shutil.which("flock") is None,
+        reason="git or flock not available (the Codex helper needs flock)",
     )
     def test_new_codex_worktree_copies_track_local_codex_hooks_and_config(self, tmp_path):
         """New child worktrees need the untracked project-local Codex config installed."""
@@ -789,8 +935,8 @@ class TestCodexWorktreeCreateRepair:
         assert not (worktree_dir / ".codex" / "worktrees").exists()
 
     @pytest.mark.skipif(
-        shutil.which("git") is None,
-        reason="git not available",
+        shutil.which("git") is None or shutil.which("flock") is None,
+        reason="git or flock not available (the Codex helper needs flock)",
     )
     def test_existing_codex_worktree_repairs_partial_venv_layout(self, tmp_path):
         """Existing .venv/bin/python is not enough; pth files and wrappers are repaired."""
@@ -832,9 +978,9 @@ class TestCodexWorktreeCreateRepair:
 class TestWorktreeHookPumiceWS34:
     """WS3.4: pumice-facing changes to the worktree-create hook.
 
-    These are static text checks that read fine on Darwin. The live
-    execution path is Linux-only (`flock`, `git worktree`, the shared
-    stage script at `/usr/local/bin/pumice-stage-native.sh`).
+    Static text checks, plus a run of the stage-native section: it runs the
+    plugin's own scripts/pumice-stage-native.sh through the plugin launcher
+    (ammo_python), from the worktree root.
     """
 
     def test_worktree_packages_includes_pumice(self):
@@ -894,6 +1040,15 @@ class TestWorktreeHookPumiceWS34:
         assert 'STAGE_FEATURES=(--features "nixl-stub cmb")' in content, (
             "the CUDA kind must pass the image's cargo features"
         )
+        assert 'STAGE_NATIVE="$PLUGIN_ROOT/scripts/pumice-stage-native.sh"' in content, (
+            "the hook must run the plugin's own stage script"
+        )
+        assert "/usr/local/bin/pumice-stage-native.sh" not in content, (
+            "the image path of the stage script is gone on a host install"
+        )
+        assert 'ammo_python "$STAGE_NATIVE"' in content, (
+            "the stage script runs through the plugin launcher"
+        )
 
     @staticmethod
     def _run_stage_section(tmp_path, kind):
@@ -906,13 +1061,15 @@ class TestWorktreeHookPumiceWS34:
         end = content.index('echo "Worktree ready."')
         stub = tmp_path / "stage-native-stub.sh"
         argv_log = tmp_path / "argv.txt"
+        cwd_log = tmp_path / "cwd.txt"
         stub.write_text(
             "#!/bin/bash\n"
             f"printf '%s\\n' \"$@\" > {argv_log}\n"
+            f"pwd -P > {cwd_log}\n"
         )
         stub.chmod(0o755)
         section = content[start:end].replace(
-            'STAGE_NATIVE="/usr/local/bin/pumice-stage-native.sh"',
+            'STAGE_NATIVE="$PLUGIN_ROOT/scripts/pumice-stage-native.sh"',
             f'STAGE_NATIVE="{stub}"',
         )
         assert str(stub) in section, "STAGE_NATIVE assignment not found"
@@ -920,17 +1077,23 @@ class TestWorktreeHookPumiceWS34:
         (worktree / "pumice-rust").mkdir(parents=True)
         (worktree / "pumice-rust" / "Cargo.toml").write_text("[package]\n")
         script = tmp_path / "section.sh"
+        # The real helper, so ammo_python is the real plugin launcher.
+        helper = _get_hook_path().parent / "_find_campaign.sh"
         script.write_text(
             "set -euo pipefail\n"
+            f'source "{helper}"\n'
             f'WORKTREE_DIR="{worktree}"\n' + section
         )
-        env = {k: v for k, v in os.environ.items() if k != "AMMO_ACCELERATOR_KIND"}
+        env = _clean_env()
         if kind is not None:
             env["AMMO_ACCELERATOR_KIND"] = kind
         result = subprocess.run(
             ["bash", str(script)], env=env, capture_output=True, text=True
         )
         assert result.returncode == 0, result.stderr
+        assert result.stdout == "", f"stage output leaked onto stdout: {result.stdout!r}"
+        assert cwd_log.read_text().strip() == os.path.realpath(worktree), \
+            "the stage script runs from the worktree root"
         return argv_log.read_text().splitlines()[2:]
 
     @pytest.mark.parametrize(

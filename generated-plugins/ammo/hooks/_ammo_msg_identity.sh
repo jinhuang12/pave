@@ -1,6 +1,8 @@
 #!/bin/bash
-# _ammo_msg_identity.sh — source-able helper shared by the AMMO message hooks
-# (ammo-msg-check.sh reader, ammo-msg-mirror.sh sender mirror).
+# _ammo_msg_identity.sh — source-able helper for the AMMO message hooks:
+# ammo-msg-check.sh, the reader. The sender mirror, ammo-msg-mirror.sh, used
+# it too; that hook is not part of this plugin (hooks/README.md), and the
+# namespace rules below still say what any channel writer must match.
 #
 # ── NAMESPACE KEY (sender and reader MUST agree) ─────────────────────────────
 # The side channel is namespaced by the LEAD SESSION ID:
@@ -285,8 +287,11 @@ ammo_msg_own_file() {
 #   hooks/ammo-team-spawn-guard.sh:75   examples champion-1, impl-op001, monitor-champion-1
 #   debate rounds                       champion-1..4, champion-001
 # $1 = agent name, $2 = argv --agent-type (authoritative for the role when set).
+# A plugin agent type carries the plugin prefix (ammo:ammo-champion); it is
+# stripped before the match.
 ammo_msg_eligible() {
     local name="${1:-}" atype="${2:-}"
+    atype="${atype#ammo:}"
     case "$atype" in
         ammo-champion|ammo-impl-champion|ammo-transcript-monitor) return 0 ;;
     esac

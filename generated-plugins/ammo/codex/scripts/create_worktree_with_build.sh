@@ -8,15 +8,24 @@ fi
 
 WORKTREE_NAME="$1"
 BRANCH_NAME="${2:-ammo/${WORKTREE_NAME}}"
-MAIN_REPO="${3:-$(git rev-parse --show-toplevel)}"
+# The engine checkout and its python come from the resolution layer
+# (target.json engine.root and engine.venv, conventions sections 2-4). Without a
+# campaign: the git toplevel of the current dir and its .venv.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CAMPAIGN_PATHS="$SCRIPT_DIR/../../scripts/campaign_paths.py"
+if [[ -f "$CAMPAIGN_PATHS" ]] && campaign_env="$(python3 "$CAMPAIGN_PATHS" env 2>/dev/null)"; then
+  eval "$campaign_env"
+fi
+MAIN_REPO="${3:-${AMMO_ENGINE_ROOT:-$(git rev-parse --show-toplevel)}}"
 MAIN_REPO="$(cd "$MAIN_REPO" && pwd)"
 WORKTREE_ROOT="$MAIN_REPO/.codex/worktrees"
 WORKTREE_DIR="$WORKTREE_ROOT/$WORKTREE_NAME"
 LOCKFILE="$WORKTREE_ROOT/.create-lock"
-MAIN_VENV="$MAIN_REPO/.venv"
+MAIN_PYTHON="${AMMO_PYTHON:-$MAIN_REPO/.venv/bin/python}"
+MAIN_VENV="$(dirname "$(dirname "$MAIN_PYTHON")")"
 
-if [[ ! -x "$MAIN_VENV/bin/python" ]]; then
-  echo "Missing main repo Python environment: $MAIN_VENV/bin/python" >&2
+if [[ ! -x "$MAIN_PYTHON" ]]; then
+  echo "Missing engine Python environment: $MAIN_PYTHON" >&2
   exit 1
 fi
 
@@ -36,14 +45,14 @@ install_worktree_venv() {
   local py_version site_packages
   if [[ ! -x "$WORKTREE_DIR/.venv/bin/python" ]]; then
     rm -rf "$WORKTREE_DIR/.venv"
-    "$MAIN_VENV/bin/python" -m venv --without-pip "$WORKTREE_DIR/.venv" >/dev/null 2>&1
+    "$MAIN_PYTHON" -m venv --without-pip "$WORKTREE_DIR/.venv" >/dev/null 2>&1
   fi
-  py_version="$($MAIN_VENV/bin/python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+  py_version="$("$MAIN_PYTHON" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
   site_packages="$WORKTREE_DIR/.venv/lib/python${py_version}/site-packages"
   mkdir -p "$site_packages"
 
   local main_sp pth line resolved
-  main_sp="$MAIN_REPO/.venv/lib/python${py_version}/site-packages"
+  main_sp="$MAIN_VENV/lib/python${py_version}/site-packages"
   printf '%s\n' "$main_sp" > "$site_packages/main-venv.pth"
 
   # Materialize AMMO-editable optional GPU/runtime packages into the track venv

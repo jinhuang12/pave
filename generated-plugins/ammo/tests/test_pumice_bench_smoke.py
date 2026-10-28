@@ -780,7 +780,7 @@ class TestWS46RowStamping:
             return {
                 "host": "g6e-cdd",
                 "gpu": "NVIDIA L40S",
-                "torch_version": "2.13.0+cu130",
+                "torch_version": "2.99.0+cu999",
                 "vllm_version": "0.29.0",
             }
 

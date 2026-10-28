@@ -12,7 +12,13 @@ import sys
 from pathlib import Path
 
 from common import (
+    CAMPAIGN_SEGMENT,
     CampaignResolutionError,
+    campaign_for_hook,
+    normalize_role,
+    path_in_campaign,
+    plugin_path,
+    script_path,
     CampaignStateError,
     active_artifact_dir,
     additional_context,
@@ -30,6 +36,8 @@ from common import (
     complete_monitor_pair,
     read_stdin_json,
     session_id_from_payload,
+    role_from_markers,
+    role_markers,
     spawn_role_and_name,
     start_monitor_pair,
     task_names_equivalent,
@@ -42,6 +50,10 @@ from common import (
 
 
 payload = read_stdin_json()
+# Outside a campaign every Codex hook exits 0 with empty stdout (conventions section 7).
+HOOK_CAMPAIGN = campaign_for_hook(payload)
+if HOOK_CAMPAIGN is None:
+    raise SystemExit(0)
 cmd = command_from_payload(payload)
 
 
@@ -56,14 +68,13 @@ def _spawn_role_and_name() -> tuple[str, str]:
     if inferred_role:
         return inferred_role, inferred_name
     tool_input = _tool_input()
-    explicit_role = str(
+    explicit_role = normalize_role(
         tool_input.get("agent_type")
         or tool_input.get("subagent_type")
         or tool_input.get("agentType")
         or payload.get("agent_type")
         or payload.get("subagent_type")
-        or ""
-    ).strip()
+    )
     task_name = str(
         tool_input.get("task_name")
         or tool_input.get("taskName")
@@ -88,16 +99,9 @@ def _spawn_role_and_name() -> tuple[str, str]:
         or tool_input.get("agentPath")
         or ""
     )
-    role_markers = {
-        "ammo-implementer": "agents/ammo-implementer.md",
-        "ammo-auditor": "agents/ammo-auditor.md",
-        "ammo-transcript-monitor": "agents/ammo-transcript-monitor.md",
-    }
-    for role, marker in role_markers.items():
-        if marker in message or Path(agent_path).name in {
-            f"{role}.toml", f"{role}.md"
-        }:
-            return role, task_name
+    marked_role = role_from_markers(message, agent_path)
+    if marked_role:
+        return marked_role, task_name
     lowered = task_name.lower().replace("-", "_")
     if lowered.startswith(("impl_", "implementer_", "ammo_implementer_")):
         return "ammo-implementer", task_name
@@ -266,10 +270,13 @@ def _candidate_paths(include_active_state: bool = True) -> list[Path]:
         value = tool_input.get(key)
         if isinstance(value, str) and value:
             paths.append(_resolve_payload_path(value))
+    # Campaign paths in command text: <engine>/.ammo/<id>/... (the layer's
+    # workspace dir name), relative or with any prefix.
+    segment = re.escape(CAMPAIGN_SEGMENT)
     command_path_patterns = [
-        r"(?:^|\s)(kernel_opt_artifacts/[^\s'\"`]+)",
-        r"([A-Za-z0-9_./-]*kernel_opt_artifacts/[A-Za-z0-9_./-]+/state\.json)",
-        r"^[+-]{3}\s+(?:a/|b/)?(kernel_opt_artifacts/[^\s]+)",
+        r"(?:^|\s)(" + segment + r"/[^\s'\"`]+)",
+        r"([A-Za-z0-9_./-]*" + segment + r"/[A-Za-z0-9_./-]+/state\.json)",
+        r"^[+-]{3}\s+(?:a/|b/)?(" + segment + r"/[^\s]+)",
         r"(?<!\S)((?:\.\.?/)+[^\s'\"`;|&]*state\.json)",
     ]
     for original_text in _payload_texts():
@@ -487,13 +494,15 @@ def _is_auditor_payload() -> bool:
         if tool_input.get(key):
             values.append(str(tool_input.get(key)))
     messages = [tool_input.get("message"), payload.get("message"), payload.get("prompt")]
-    if any("agents/ammo-auditor.md" in str(message) for message in messages if message):
+    auditor_docs, _ = role_markers()["ammo-auditor"]
+    if any(doc in str(message) for message in messages if message for doc in auditor_docs):
         return True
+    roles = [normalize_role(value) for value in values]
     return any(
-        value == "ammo-auditor"
-        or value.startswith("ammo-auditor-")
-        or value.lower().replace("-", "_").startswith(("audit_", "auditor_", "ammo_auditor_"))
-        for value in values
+        role == "ammo-auditor"
+        or role.startswith("ammo-auditor-")
+        or role.lower().replace("-", "_").startswith(("audit_", "auditor_", "ammo_auditor_"))
+        for role in roles
     )
 
 
@@ -550,7 +559,7 @@ def _audit_phase2_messages(repo: Path, paths: list[Path]) -> list[str]:
     messages: list[str] = []
     if not _is_auditor_payload():
         return messages
-    invariants = repo / ".codex" / "skills" / "ammo" / "references" / "audit-invariants.md"
+    invariants = plugin_path("references", "audit-invariants.md")
     if not invariants.exists():
         return messages
 
@@ -597,21 +606,33 @@ def _audit_phase2_messages(repo: Path, paths: list[Path]) -> list[str]:
     return messages
 
 
-def _is_kernel_artifact_path(path: Path) -> bool:
-    return "kernel_opt_artifacts" in path.parts
+def _campaign_root_of(path: Path) -> Path | None:
+    """The campaign dir that holds path, or None.
+
+    This hook's campaign first, through the layer's in_campaign() (it also
+    covers an AMMO_ARTIFACT_DIR outside any .ammo/ dir). Then any other
+    <dir>/.ammo/<id>/ above path: a write into another campaign's state.json
+    is validated too, as the server validated every campaign root.
+    """
+    if path_in_campaign(path, HOOK_CAMPAIGN):
+        return Path(os.path.realpath(HOOK_CAMPAIGN))
+    parts = Path(os.path.abspath(path)).parts
+    if CAMPAIGN_SEGMENT not in parts:
+        return None
+    idx = parts.index(CAMPAIGN_SEGMENT)
+    return Path(*parts[: idx + 2]) if len(parts) > idx + 1 else None
+
+
+def _is_campaign_path(path: Path) -> bool:
+    return _campaign_root_of(path) is not None
 
 
 _ERE_SPECIAL = set(r".^$*+?()[]{}|\\")
 
 
 def _layout_manifest_path() -> Path:
-    """Resolve scripts/artifact_layout.json next to this hook.
-
-    `hooks/../skills/...` holds in the repo tree AND in the managed bundle,
-    because the Dockerfile copies `.codex/.` wholesale into
-    /opt/codex-managed-hooks/ and so keeps hooks/ and skills/ siblings.
-    """
-    return Path(__file__).resolve().parents[1] / "skills" / "ammo" / "scripts" / "artifact_layout.json"
+    """The plugin's scripts/artifact_layout.json, the manifest the Claude twin reads."""
+    return script_path("artifact_layout.json")
 
 
 def _layout_template_to_regex(template: str, placeholders: dict[str, str]) -> str:
@@ -671,13 +692,12 @@ _LAYOUT_ALLOWED_PATTERNS = _load_layout_patterns()
 
 
 def _artifact_relative_path(path: Path) -> str | None:
-    parts = path.parts
-    if "kernel_opt_artifacts" not in parts:
+    """The path relative to the campaign dir that holds it; None outside one or for the dir itself."""
+    root = _campaign_root_of(path)
+    if root is None:
         return None
-    idx = parts.index("kernel_opt_artifacts")
-    if len(parts) <= idx + 2:
-        return None
-    return "/".join(parts[idx + 2 :])
+    rel = os.path.relpath(os.path.realpath(path), os.path.realpath(root))
+    return None if rel in {"", "."} or rel.startswith("..") else Path(rel).as_posix()
 
 
 def _layout_warning_messages(paths: list[Path]) -> list[str]:
@@ -696,7 +716,7 @@ def _layout_warning_messages(paths: list[Path]) -> list[str]:
             + rel
             + " is outside the canonical AMMO V2 layout. Expected: "
             + "rounds/{N}/{profiling|sweeps|mining|debate|tracks|audits|_archive}/... "
-            + "See references/artifact-layout.md § Prohibited Patterns."
+            + "See " + str(plugin_path("references", "artifact-layout.md")) + " § Prohibited Patterns."
         )
     return messages
 
@@ -747,7 +767,7 @@ def _state_engine_path() -> Path:
     override = os.environ.get("AMMO_STATE_ENGINE")
     if override:
         return Path(override).expanduser().resolve()
-    return Path(__file__).resolve().parents[1] / "skills" / "ammo" / "scripts" / "ammo_state.py"
+    return script_path("ammo_state.py")
 
 
 def _state_engine_failure(reason: str) -> list[str]:
@@ -1005,9 +1025,8 @@ def _stamp_audit_started(repo: Path) -> str | None:
         # Replayed completion events must preserve the original audit start.
         if _audit_gate_is_stamped(dispatch):
             return None
+        # The plugin's engine only: the engine checkout is agent-writable.
         engine = _state_engine_path()
-        if not engine.is_file():
-            engine = repo / ".codex" / "skills" / "ammo" / "scripts" / "ammo_state.py"
         if not engine.is_file():
             return None
         result = subprocess.run(
@@ -1122,7 +1141,7 @@ def _state_validation_messages(paths: list[Path]) -> list[str]:
     if not state_mutation:
         return messages
     for path in paths:
-        if path.name == "state.json" and _is_kernel_artifact_path(path):
+        if path.name == "state.json" and _is_campaign_path(path):
             if path.is_symlink() or not path.is_file():
                 messages.extend(
                     _state_engine_failure(
@@ -1159,8 +1178,7 @@ def _release_reserved_gpus(command: str) -> None:
     session_ids = _reservation_session_ids(command)
     if not session_ids:
         return
-    repo = find_repo_root(payload.get("cwd"))
-    script = repo / ".codex" / "skills" / "ammo" / "scripts" / "gpu_reservation.py"
+    script = script_path("gpu_reservation.py")
     if not script.exists():
         return
     log_dir = Path(os.environ.get("AMMO_GPU_RES_DIR", "/tmp/ammo_gpu_res")).resolve()
@@ -1188,8 +1206,7 @@ def _lifecycle_gpu_owner() -> str | None:
 
 
 def _release_lifecycle_gpus(owner: str) -> None:
-    repo = find_repo_root(payload.get("cwd"))
-    script = repo / ".codex" / "skills" / "ammo" / "scripts" / "gpu_reservation.py"
+    script = script_path("gpu_reservation.py")
     if not script.is_file():
         return
     log_dir = Path(os.environ.get("AMMO_GPU_RES_DIR", "/tmp/ammo_gpu_res")).resolve()
@@ -1213,7 +1230,7 @@ except CampaignResolutionError as exc:
     if isinstance(exc, CampaignStateError) and event == "PostToolUse":
         inspection = bool(cmd) and is_static_inspection_command(cmd)
         if not cmd and tool_name_from_payload(payload) != "spawn_agent":
-            inspection = not any(_is_kernel_artifact_path(path) for path in _candidate_paths())
+            inspection = not any(_is_campaign_path(path) for path in _candidate_paths())
             if tool_name_from_payload(payload).lower() in {"read", "mcp__filesystem__read_file"}:
                 inspection = True
         if inspection:
@@ -1231,7 +1248,7 @@ repo = find_repo_root(payload.get("cwd"))
 is_static_command = is_static_inspection_command(cmd)
 tool_name = tool_name_from_payload(payload)
 event_name = str(payload.get("hook_event_name") or payload.get("hookEventName") or "")
-if is_v1_session() and tool_name == "spawn_agent" and str(_tool_input().get("agent_type") or "").startswith("ammo-"):
+if is_v1_session() and tool_name == "spawn_agent" and normalize_role(_tool_input().get("agent_type")).startswith("ammo-"):
     try:
         registry = v1_registry()
         registered = registry.register_spawn(registry.codex_home(), payload)
@@ -1294,10 +1311,11 @@ if event_name == "SubagentStart":
             )
 if event_name == "SubagentStart" and is_v1_session():
     try:
-        if str(payload.get("agent_type") or "").startswith("ammo-") and v1_agent_binding(payload) is None:
+        if normalize_role(payload.get("agent_type")).startswith("ammo-") and v1_agent_binding(payload) is None:
             additional_context("SubagentStart", "\n\n".join(messages + [
                 "AMMO TASK REGISTRATION PENDING: Your parent is binding your native ID to the assigned task. "
-                "Read your role and references/codex-runtime.md. Wait before campaign writes, accelerator reservations, or further dispatch."
+                "Read your role and " + str(plugin_path("references", "codex-runtime.md")) + ". "
+                "Wait before campaign writes, accelerator reservations, or further dispatch."
             ]))
             raise SystemExit(0)
     except (ValueError, OSError, ImportError) as exc:
@@ -1381,12 +1399,12 @@ except Exception as exc:
 
 # The active state appended for conservative validation is not proof that an
 # unrelated command wrote a campaign artifact.
-has_artifact_write = any(_is_kernel_artifact_path(path) for path in _candidate_paths(include_active_state=False))
+has_artifact_write = any(_is_campaign_path(path) for path in _candidate_paths(include_active_state=False))
 is_ammo_command = (
     command_invokes_gpu_heavy_tool(cmd)
     or "gpu_reservation.py" in cmd
-    or ".codex/skills/ammo" in cmd
-    or "kernel_opt_artifacts" in cmd
+    or str(plugin_path()) in cmd
+    or CAMPAIGN_SEGMENT + "/" in cmd
 )
 
 pending = pending_monitor_records(repo, payload, {"WARNING", "CRITICAL", "HARD_GATE"})

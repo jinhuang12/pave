@@ -59,14 +59,19 @@ import sys
 import time
 from pathlib import Path
 
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+import campaign_paths  # noqa: E402
+
 
 def _load_bench_module():
     """Import ``run_pumice_grpc_bench`` from this script's own directory.
 
     The driver reuses the campaign runner's server launch, health-poll and
     wave-driving primitives so the profiled workload is the SAME code path the
-    sweep measures. Importing by path keeps the driver runnable from any cwd and
-    from either variant tree (`.claude/` or `.codex/`).
+    sweep measures. Importing by path keeps the driver runnable from any cwd.
     """
     here = Path(__file__).resolve().parent
     target = here / "run_pumice_grpc_bench.py"
@@ -110,6 +115,7 @@ def _pick_bucket(target: dict, batch_size: int) -> dict:
 
 
 def main() -> int:
+    campaign_paths.apply_env()
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--target-json", type=Path, required=True,
                    help="target.json — used for model_id, tp, max_model_len, workload shape.")

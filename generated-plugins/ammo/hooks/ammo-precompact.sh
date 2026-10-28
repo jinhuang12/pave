@@ -1,9 +1,22 @@
 #!/bin/bash
 # PreCompact hook for AMMO orchestrator
-# Saves orchestration context from kernel_opt_artifacts/*/state.json
+# Saves orchestration context from the campaign's state.json
+# (<engine>/.ammo/<campaign-id>/state.json, found by _find_campaign.sh).
 # Reads v2 state.json shape (round-centric).
+# Outside a campaign: exit 0, no output, nothing written.
 
-STATE_FILES=$(find "$CLAUDE_PROJECT_DIR/kernel_opt_artifacts" -maxdepth 2 -name "state.json" 2>/dev/null | head -1)
+INPUT=""
+if [ ! -t 0 ]; then
+    INPUT=$(cat)
+fi
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
+PLUGIN_ROOT="$(cd "$HOOK_DIR/.." && pwd)"
+
+STATE_FILES=""
+[ -f "$AMMO_ARTIFACT_DIR/state.json" ] && STATE_FILES="$AMMO_ARTIFACT_DIR/state.json"
 
 if [ -n "$STATE_FILES" ]; then
     STATE_DIR=$(dirname "$STATE_FILES")
@@ -48,6 +61,7 @@ if [ -n "$STATE_FILES" ]; then
         --arg campaign_status "$CAMPAIGN_STATUS" \
         --arg cumulative_speedup "$CUMULATIVE_SPEEDUP" \
         --arg state_file "$STATE_FILES" \
+        --arg skill_path "$PLUGIN_ROOT/skills/ammo/SKILL.md" \
         '{
           checkpoint_type: "pre_compaction",
           timestamp: $timestamp,
@@ -61,7 +75,7 @@ if [ -n "$STATE_FILES" ]; then
           campaign_status: $campaign_status,
           cumulative_speedup: ($cumulative_speedup | tonumber? // 1.0),
           state_file: $state_file,
-          skill_path: "skills/ammo/SKILL.md"
+          skill_path: $skill_path
         }' > "$CHECKPOINT_TMP" 2>/dev/null; then
         mv -f "$CHECKPOINT_TMP" "$CHECKPOINT_FILE"
     else

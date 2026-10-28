@@ -3,7 +3,8 @@
 #
 # Fires for the ORCHESTRATOR (not teammates) when campaign artifacts exist
 # and work remains. Exits silently when:
-#   - No state.json in kernel_opt_artifacts/
+#   - No campaign (_find_campaign.sh finds no .ammo/active marker and no
+#     AMMO_ARTIFACT_DIR), or the campaign dir has no state.json
 #   - Campaign is terminal (complete/exhausted) AND REPORT.md exists
 #
 # Nudges at:
@@ -22,18 +23,21 @@ if ! command -v jq &>/dev/null; then exit 0; fi
 
 INPUT=$(cat)
 
+# ── Outside a campaign: allow the stop, say nothing ──
+HELPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HELPER_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
+
 # ── Skip for subagents/teammates ──
 # Delegated to the shared _ammo_is_lead helper. Contract: returns 0 for the
 # lead orchestrator (or solo orchestrator fail-open), 1 for teammates /
 # subagents. See _ammo_is_lead.sh for precedence details.
-HELPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HELPER_DIR/_ammo_is_lead.sh"
 if ! _ammo_is_lead "$INPUT"; then
     exit 0
 fi
 
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' 2>/dev/null)
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 
 # ── Circuit breaker ──
 MARKER="/tmp/ammo-stop-nudged-${SESSION_ID}"
@@ -42,16 +46,10 @@ if [ -f "$MARKER" ]; then
     exit 0
 fi
 
-# ── Find campaign ──
-STATE_FILE=""
-ARTIFACT_DIR=""
-for d in "$PROJECT_DIR"/kernel_opt_artifacts/*/; do
-    [ -f "$d/state.json" ] || continue
-    STATE_FILE="$d/state.json"
-    ARTIFACT_DIR="$d"
-    break
-done
-[ -z "$STATE_FILE" ] && exit 0  # no campaign artifacts
+# ── Campaign state ──
+ARTIFACT_DIR="${AMMO_ARTIFACT_DIR%/}/"
+STATE_FILE="${ARTIFACT_DIR}state.json"
+[ -f "$STATE_FILE" ] || exit 0  # campaign dir without state yet
 
 # ── Fully done check: terminal status + report exists → nothing left to do ──
 STATUS=$(jq -r '.campaign.status // empty' "$STATE_FILE" 2>/dev/null)
@@ -84,11 +82,11 @@ Run the mechanical stop check from SKILL.md Stage 7: compare the current product
         else
             # Terminal status but no REPORT.md (we passed the fully-done check above)
             NUDGE="Campaign is $STATUS but REPORT.md has not been generated.
-Run Stage 7b now: spawn a fresh ammo-report-writer (subagent_type=ammo-report-writer) with artifact_dir=${ARTIFACT_DIR}; it reads skills/ammo-report/SKILL.md itself."
+Run Stage 7b now: spawn a fresh ammo-report-writer (subagent_type=ammo:ammo-report-writer) with artifact_dir=${ARTIFACT_DIR}; it reads skills/ammo-report/SKILL.md itself."
         fi
         ;;
     7b_report*|*report_gen*)
-        NUDGE="You are at Stage 7b (Report Generation). Spawn a fresh ammo-report-writer (subagent_type=ammo-report-writer) with the artifact_dir now; the session cannot end until REPORT.md exists."
+        NUDGE="You are at Stage 7b (Report Generation). Spawn a fresh ammo-report-writer (subagent_type=ammo:ammo-report-writer) with the artifact_dir now; the session cannot end until REPORT.md exists."
         ;;
 esac
 

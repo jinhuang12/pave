@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test harness for ammo-msg-check.sh (PreToolUse hook — inject-only)
-# Run: bash .claude/hooks/test-ammo-msg-check.sh
+# Run: bash hooks/tests/test-ammo-msg-check.sh
 #
 # Tests non-blocking mid-turn message injection for team member agents.
 #
@@ -13,16 +13,29 @@
 #     fake ancestor whose argv[0] is "claude" and whose argv carries the real
 #     spawn flags (--agent-id/--agent-name/--team-name/--parent-session-id/
 #     --agent-type). The namespace is the lead session id from that argv.
+#
+# Campaign scope: every case runs inside a campaign (AMMO_ARTIFACT_DIR names
+# CAMPAIGN below) except the C1-C2 cases, which check that the hook is silent
+# outside one and finds a marker-based campaign. The channel writer,
+# ammo-msg-mirror.sh, is not part of this plugin, so the cases write channel
+# entries directly (mirror_msg).
 
 set -euo pipefail
 
-HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-msg-check.sh"
-MIRROR_HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-msg-mirror.sh"
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' | grep -v '^AMMO_TEST_HOOK$' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
+
+HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-msg-check.sh}"
 PASS=0
 FAIL=0
 TOTAL=0
 
 TMPDIR=$(mktemp -d)
+# The hook acts only inside a campaign.
+CAMPAIGN="$TMPDIR/engine/.ammo/camp1"
+mkdir -p "$CAMPAIGN"
+export AMMO_ARTIFACT_DIR="$CAMPAIGN"
 # Isolate the mirror side channel: without this, a real channel on the
 # machine's /tmp could leak messages into skip-expectation tests.
 export AMMO_MSG_MIRROR_DIR="$TMPDIR/mirror-root"
@@ -1267,7 +1280,7 @@ clear_cursors
 # ════════════════════════════════════════════
 echo ""; echo "== R1-R7: mirror channel source (CC 2.1.202 drained inbox) =="
 # On CC 2.1.202+ the real inbox is pruned ~1s after every send, so the reader
-# merges the sender-side mirror channel written by ammo-msg-mirror.sh. The
+# merges the sender-side mirror channel (the shape ammo-msg-mirror.sh wrote). The
 # channel is namespaced by the LEAD SESSION ID; for these legacy fixtures
 # (no argv) that is test-team's config leadSessionId, "lead-session".
 
@@ -1535,14 +1548,12 @@ else echo "  FAIL [$TOTAL]: A5a cross-session leak: one=$(printf '%s' "$OUT1" | 
 OUT1=$(run_argv "$HOOK" "$A_HOME" "$(lead_json)")
 a_case "A5b session one deduped independently (own cursor)" no_output "$OUT1"
 
-# A6: monitor → impl-champion through the REAL mirror hook, then the reader
+# A6: monitor → impl-champion: a channel entry under the lead sid, then the
+# reader. The sender mirror hook that wrote it (A6a) is not in this plugin, so
+# the entry is written directly in the shape it wrote.
 rm -rf "$AMMO_MSG_MIRROR_DIR"; clear_cursors
-SEND_JSON=$(jq -cn --arg sid "$MATE_SID" --arg t "$MATE_T" '{tool_name:"SendMessage",session_id:$sid,transcript_path:$t,agent_type:"general-purpose",tool_input:{to:"impl-champion-OP-001",message:"DA-MONITOR: [CRITICAL] A6_MONITOR_CODEWORD stop the sweep",summary:"critical"},tool_response:{success:true,msg_id:"m-a6"}}')
-run_argv "$MIRROR_HOOK" "$A_HOME" "$SEND_JSON" "${MATE_ARGV[@]}" >/dev/null
-TOTAL=$((TOTAL + 1))
-if jq -e 'select(.from == "monitor-impl-champion-OP-001" and .to == "impl-champion-OP-001" and (.text | contains("A6_MONITOR_CODEWORD")))' "$AMMO_MSG_MIRROR_DIR/$LEAD_SID/impl-champion-OP-001.jsonl" >/dev/null 2>&1; then
-    echo "  PASS [$TOTAL]: A6a mirror hook (argv monitor) wrote <root>/<lead sid>/impl-champion-OP-001.jsonl"; PASS=$((PASS + 1))
-else echo "  FAIL [$TOTAL]: A6a mirror channel missing: $(find "$AMMO_MSG_MIRROR_DIR" -type f 2>/dev/null | tr '\n' ' ')"; FAIL=$((FAIL + 1)); fi
+mirror_msg "$LEAD_SID" "impl-champion-OP-001" "monitor-impl-champion-OP-001" \
+    "DA-MONITOR: [CRITICAL] A6_MONITOR_CODEWORD stop the sweep" "2026-04-03T18:25:00.000Z"
 OUT=$(run_argv "$HOOK" "$A_HOME" "$(printf '{"tool_name":"Bash","session_id":"%s","transcript_path":"%s","agent_type":"ammo-impl-champion"}' "$IMPL_SID" "$IMPL_T")" "${IMPL_ARGV[@]}")
 a_case "A6b reader (argv impl-champion) injects the monitor's codeword" "A6_MONITOR_CODEWORD" "$OUT"
 a_case "A6c injected block names the monitor as sender" 'from=\"monitor-impl-champion-OP-001\"' "$OUT"
@@ -1579,8 +1590,39 @@ elig_case "champion-001" "ammo-champion" inject
 elig_case "impl-champion-OP-002" "ammo-impl-champion" inject    # parallel-tracks.md:34
 elig_case "monitor-impl-champion-OP-002" "ammo-transcript-monitor" inject
 elig_case "watcher-7" "ammo-transcript-monitor" inject          # odd name, member type decides
+elig_case "watcher-8" "ammo:ammo-transcript-monitor" inject     # plugin address: prefix stripped
+elig_case "worker-9" "ammo:ammo-impl-champion" inject
+elig_case "researcher-2" "ammo:ammo-researcher" no_output
 elig_case "verifier-1" "general-purpose" no_output
 elig_case "researcher-1" "ammo-researcher" no_output
+
+# C1-C2: campaign scope. The fixture would inject (A6 shape); only the
+# campaign differs. run_scoped <cwd> <artifact dir or empty> <json> <argv...>
+run_scoped() {
+    local cwd="$1" art="$2" json="$3"; shift 3
+    (
+        cd "$cwd" || exit 0
+        if [ -n "$art" ]; then export AMMO_ARTIFACT_DIR="$art"; else unset AMMO_ARTIFACT_DIR; fi
+        env HOME="$A_HOME" A_HOOK="$HOOK" A_JSON="$json" \
+            "$FAKE_BIN/claude" -c 'printf "%s" "$A_JSON" | bash "$A_HOOK"' claude "$@" 2>/dev/null
+    ) || true
+}
+impl_json_at() { printf '{"tool_name":"Bash","session_id":"%s","transcript_path":"%s","cwd":"%s","agent_type":"ammo-impl-champion"}' "$IMPL_SID" "$IMPL_T" "$1"; }
+NOCAMP=$(mktemp -d)
+rm -rf "$AMMO_MSG_MIRROR_DIR"; clear_cursors
+mirror_msg "$LEAD_SID" "impl-champion-OP-001" "team-lead" "C_SCOPE_CODEWORD" "2026-04-03T18:25:00.000Z"
+OUT=$(run_scoped "$NOCAMP" "" "$(impl_json_at "$NOCAMP")" "${IMPL_ARGV[@]}")
+a_case "C1a no campaign (no AMMO_ARTIFACT_DIR, no marker) → no output" no_output "$OUT"
+TOTAL=$((TOTAL + 1))
+if [ ! -e "$AMMO_MSG_MIRROR_DIR/.cursor-$LEAD_SID-impl-champion-OP-001.ts" ]; then
+    echo "  PASS [$TOTAL]: C1b no campaign: cursor not written"; PASS=$((PASS + 1))
+else echo "  FAIL [$TOTAL]: C1b no campaign advanced the cursor"; FAIL=$((FAIL + 1)); fi
+MARKED="$TMPDIR/marked-engine"
+mkdir -p "$MARKED/.ammo/camp2"
+printf 'camp2\n' > "$MARKED/.ammo/active"
+OUT=$(run_scoped "$MARKED" "" "$(impl_json_at "$MARKED")" "${IMPL_ARGV[@]}")
+a_case "C2 campaign found by the .ammo/active marker at the cwd → INJECT" "C_SCOPE_CODEWORD" "$OUT"
+rm -rf "$NOCAMP"
 
 # A9: Fallback C must never take a TYPE for a NAME (no argv, no transcript identity)
 rm -rf "$AMMO_MSG_MIRROR_DIR"; clear_cursors
@@ -1592,28 +1634,28 @@ run_test "A9 agent_type=ammo-champion without argv/transcript identity → skip"
 rm -rf "$AMMO_MSG_MIRROR_DIR" "$A_HOME"
 
 echo ""
-echo "== settings.local.json wiring =="
+echo "== hooks/hooks.json wiring =="
 # The msg-check hook must be scoped to state-changing tools so it doesn't
-# add latency to every Read/Glob/Grep call. Verify the matcher in
-# settings.local.json pins the exact tool list the plan requires.
-SETTINGS="$(cd "$(dirname "$0")/../" && pwd)/settings.local.json"
+# add latency to every Read/Glob/Grep call. Verify the matcher in the
+# plugin's hooks/hooks.json pins the exact tool list the plan requires.
+HOOKS_JSON="$(cd "$(dirname "$0")/.." && pwd)/hooks.json"
 EXPECTED_MATCHER="Bash|Agent|Write|Edit|TaskCreate|TaskUpdate|TaskStop|SendMessage"
 
 TOTAL=$((TOTAL + 1))
-if [ ! -f "$SETTINGS" ]; then
-    echo "  FAIL [$TOTAL]: settings.local.json not found at $SETTINGS"
+if [ ! -f "$HOOKS_JSON" ]; then
+    echo "  FAIL [$TOTAL]: hooks.json not found at $HOOKS_JSON"
     FAIL=$((FAIL + 1))
 else
     ACTUAL_MATCHER=$(jq -r '
         .hooks.PreToolUse
-        | map(select(.hooks[]?.command // "" | contains("ammo-msg-check.sh")))
+        | map(select(any(.hooks[]?; (.command // "") | contains("ammo-msg-check.sh"))))
         | .[0].matcher // ""
-    ' "$SETTINGS" 2>/dev/null)
+    ' "$HOOKS_JSON" 2>/dev/null)
     if [ "$ACTUAL_MATCHER" = "$EXPECTED_MATCHER" ]; then
-        echo "  PASS [$TOTAL]: settings.local.json msg-check matcher = $EXPECTED_MATCHER"
+        echo "  PASS [$TOTAL]: hooks.json msg-check matcher = $EXPECTED_MATCHER"
         PASS=$((PASS + 1))
     else
-        echo "  FAIL [$TOTAL]: settings.local.json msg-check matcher mismatch"
+        echo "  FAIL [$TOTAL]: hooks.json msg-check matcher mismatch"
         echo "        expected: $EXPECTED_MATCHER"
         echo "        got:      $ACTUAL_MATCHER"
         FAIL=$((FAIL + 1))

@@ -18,8 +18,8 @@ A regex cannot express "every segment of this pipeline is inspection-class" or
 shells". A tokenizer can, and this module is it.
 
 This module is the ONLY implementation. The shell hooks call its CLI;
-`.codex/hooks/common.py` re-exports `is_static_inspection_command` and its
-helpers from here, and `.codex/hooks/pre_tool_use_guard.py` imports
+`codex/hooks/common.py` re-exports `is_static_inspection_command` and its
+helpers from here, and `codex/hooks/pre_tool_use_guard.py` imports
 `command_installs`. Nothing carries a second copy, so the two runtimes cannot
 drift apart. `test_hook_cmd_classify_parity.py` pins the verdicts.
 

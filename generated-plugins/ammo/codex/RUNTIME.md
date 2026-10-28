@@ -1,51 +1,70 @@
-# AMMO Codex runtime installation
+# AMMO on Codex
 
-This export is installed in two parts. **Copying only the skill directory is not
-runnable**: the AMMO workflow names custom agents and relies on lifecycle hooks,
-hook registration, and a trusted state schema that live outside the skill root.
+This file tells you how to install and configure AMMO for Codex. The root
+`README.md` gives the short install steps. This file gives the configuration,
+the parts that the plugin ships for Codex, and the dependencies.
 
-## Install both parts
+Codex needs two installs. `codex plugin add` installs the plugin with its
+skills, `$ammo:ammo` and `$ammo:ammo-report`. `codex/install_agents.py` installs
+the eleven custom agents into the Pumice checkout. The campaign does not run
+without the agents.
 
-Let `AMMO_EXPORT` be this export directory and `PROJECT` be the consuming Git
-project root.
+## Install
 
-1. Copy the export's skill content into
-   `$PROJECT/.codex/skills/ammo/`. The packaging-only `runtime-overlay/`
-   directory does not need to be nested inside the installed skill.
-2. Overlay `runtime-overlay/.codex/` onto `$PROJECT/.codex/`, preserving the
-   `agents/`, `hooks/`, and `schemas/` subdirectories and `hooks.json`.
-3. Start a fresh Codex project session (or reload the runtime) so the new agent
-   definitions and hook registration are discovered.
+Let `PLUGIN` be the plugin root and `CHECKOUT` be the Pumice checkout where the
+campaign runs.
 
-For example:
+1. Install the plugin from a Codex marketplace that lists it:
 
-```sh
-mkdir -p "$PROJECT/.codex/skills/ammo" "$PROJECT/.codex"
-rsync -a --exclude '/runtime-overlay/' "$AMMO_EXPORT/" "$PROJECT/.codex/skills/ammo/"
-cp -a "$AMMO_EXPORT/runtime-overlay/.codex/." "$PROJECT/.codex/"
-```
+   ```sh
+   codex plugin add ammo@<marketplace>
+   ```
 
-The example uses `rsync` only as an install-time copy tool; an equivalent copy
-that omits the packaging-only overlay from the skill destination is fine.
+2. Install the custom agents into the checkout:
 
-## Runtime configuration
+   ```sh
+   python3 "$PLUGIN/codex/install_agents.py" --project "$CHECKOUT"
+   ```
 
-Use Codex **0.153.4**. AMMO selects `gpt-6-astra` with a ChatGPT subscription or `openai.gpt-6-astra` on Amazon Bedrock, with high reasoning effort.
-AMMO role TOMLs omit `model` and `model_provider`; they inherit the consuming root's selection and keep their role-specific reasoning effort.
-A standalone consumer must select a model available through its own provider. Preserve its credentials and provider settings.
+   The installer copies the TOMLs in `codex/agents/` to
+   `$CHECKOUT/.codex/agents/` and records their hashes in
+   `.ammo-codex-agents.json` there. It does not overwrite a file that it did
+   not install or that was changed. `--user` installs into
+   `$CODEX_HOME/agents/` (default `~/.codex/agents/`) instead. `--uninstall`
+   removes only the files it owns. `--force` replaces or removes conflicting
+   files; use it only after you review them.
 
-AMMO server sessions select **AI access** at creation. Bedrock is the default;
-the access choice remains fixed on resume. The server uses its existing AWS
-credentials or ChatGPT login. It validates the native account/model metadata;
-Bedrock also requires an authenticated Mantle model-list read. No credential
-values enter the UI or session metadata.
+3. Trust the checkout. Accept the Codex trust prompt, or add this to
+   `~/.codex/config.toml`:
 
-The server generates both configuration layers from
-`orchestration/codex_runtime.py`. `AMMO_CODEX_BEDROCK_REGION` sets the region for
-new Bedrock sessions (default `us-west-2`); a saved session keeps its region.
-This does not change the AWS region used by other AMMO services.
+   ```toml
+   [projects."/absolute/path/to/pumice-checkout"]
+   trust_level = "trusted"
+   ```
 
-For a standalone Subscription export, use the packaged V2 settings:
+4. Add the settings in the next section to `$CHECKOUT/.codex/config.toml`.
+
+5. Verify the agents:
+
+   ```sh
+   python3 "$PLUGIN/codex/install_agents.py" --project "$CHECKOUT" --check
+   ```
+
+6. Restart Codex in the checkout. Open `/hooks`, review the campaign hooks, and
+   trust them when their paths point into this plugin.
+
+Run `install_agents.py` again after each plugin update, then run `--check`.
+
+## Configuration
+
+AMMO was tested with Codex 0.153.4. The tested model is `gpt-6-astra` with a
+ChatGPT subscription, or `openai.gpt-6-astra` on Amazon Bedrock, with high
+reasoning effort. The role TOMLs do not set `model` or `model_provider`. Each
+agent uses the root agent's model and keeps its own reasoning effort. If your
+provider does not offer that model, select one that it offers. Keep your own
+credentials and provider settings.
+
+**Subscription (V2 agent tools).** Use these settings:
 
 ```toml
 [features]
@@ -69,84 +88,87 @@ max_depth = 3
 job_max_runtime_seconds = 7200
 ```
 
-For a standalone Bedrock export, select `model = "openai.gpt-6-astra"`,
-`model_provider = "amazon-bedrock"`, and `model_providers.amazon-bedrock.aws.region`.
-Set `model_reasoning_summary = "none"`; Bedrock Astra rejects reasoning summaries.
-Set `features.multi_agent = true`, `features.multi_agent_v2.enabled = false`,
-and `features.context_management.experimental_mode = false`. Keep the other
-settings above. Launch with `AMMO_CODEX_AGENT_MODE=v1` and install
-`references/codex-runtime-v1.md` as `references/codex-runtime.md`.
+**Amazon Bedrock (V1 agent tools).** Start from the settings above, then make
+these changes:
 
-Subscription uses the supported experimental context configuration; Bedrock
-uses ordinary compaction. Both modes preserve the same AMMO workflow.
-Do not force private token-budget settings or a context-window size. Both paths use the file recovery contract in `references/context-recovery.md`.
+- Set `model = "openai.gpt-6-astra"` and `model_provider = "amazon-bedrock"`.
+- Set `model_providers.amazon-bedrock.aws.region` to your Bedrock region.
+- Set `model_reasoning_summary = "none"`. Bedrock rejects reasoning summaries
+  for this model.
+- Set `features.multi_agent = true` and
+  `features.multi_agent_v2.enabled = false`.
+- Set `features.context_management.experimental_mode = false`.
+- Start Codex with `AMMO_CODEX_AGENT_MODE=v1` in its environment.
 
-Tracked `exec_command` launches and final completion run the Bash hooks. AMMO uses `tty=false`, empty `write_stdin` polling, and owned interruption.
-The non-TTY rule is a workflow instruction: the hook payload exposes the command, not the TTY setting.
+Do not change the provider or the agent mode while a campaign is active. Do not
+set private token-budget settings or a context-window size. Subscription uses
+the experimental context management. Bedrock uses ordinary compaction. Both
+modes use the file recovery contract in `references/context-recovery.md`.
 
-## Managed server installation
+## Agent Operations
 
-The server image separately installs the complete `.codex` tree at `/opt/codex-managed-hooks` and `requirements.toml` at `/etc/codex/requirements.toml`.
-Managed requirements enable `unified_exec` and require managed hooks only. A project setting cannot override a conflicting managed requirement.
-Rebuild the image and verify those installed files as well as the project template and generated `CODEX_HOME/config.toml`.
+`references/codex-runtime.md` selects the execution guide for the agent mode:
+`references/codex-runtime-v2.md` for subscription or
+`references/codex-runtime-v1.md` for Bedrock. After a resume or a compaction,
+the `SessionStart` hook injects the selected guide. `references/harness-binding.md`
+maps each agent operation to both modes and to Claude Code.
+`references/context-recovery.md` owns task names, recovery notes, and long
+commands.
 
-Project hooks alone do not provide the server's root-owned enforcement boundary. A standalone managed installation must use a trusted owner, the complete hook dependency tree, and its actual Python/interpreter paths.
-Start a fresh Codex root after changing the runtime. Keep active campaigns on their installed runtime until a separate migration is validated.
+## What the Plugin Ships for Codex
 
-## Runtime manifest
-
-The overlay installs:
-
-- 11 custom-agent TOMLs under `.codex/agents/`: `ammo-auditor`,
+- Eleven custom-agent TOMLs in `codex/agents/`: `ammo-auditor`,
   `ammo-champion`, `ammo-delegate`, `ammo-impl-champion`, `ammo-implementer`,
   `ammo-investigator`, `ammo-report-writer`, `ammo-report`, `ammo-researcher`,
-  `ammo-resolver`, and `ammo-transcript-monitor`.
-- Six Python hook modules under `.codex/hooks/`: `common.py`,
-  `session_start.py`, `pre_compact.py`, `pre_tool_use_guard.py`,
-  `post_tool_use_guard.py`, and `stop_gate_guard.py`.
-- `.codex/hooks.json`, which registers `SessionStart`, `PreCompact`,
+  `ammo-resolver`, and `ammo-transcript-monitor`. Each installs as
+  `ammo:<file name>`, for example `ammo:ammo-auditor`.
+- The nine role files in `agents/`. Each TOML is a bootstrap that reads one
+  role file. `ammo-implementer` reads `agents/ammo-impl-champion.md`, and
+  `ammo-report` reads `agents/ammo-report-writer.md`.
+- Six Python hook modules in `codex/hooks/`: `common.py`, `session_start.py`,
+  `pre_compact.py`, `pre_tool_use_guard.py`, `post_tool_use_guard.py`, and
+  `stop_gate_guard.py`.
+- `codex/hooks.json`, which registers `SessionStart`, `PreCompact`,
   `PreToolUse`, `PostToolUse`, `SubagentStart`, `SubagentStop`, and `Stop`.
-- `.codex/schemas/state.schema.json`, loaded by the post-tool state guard from
-  the schema directory beside the installed hooks.
+  The `hooks` key in `.codex-plugin/plugin.json` registers this file with
+  Codex. `hooks/README.md` lists each hook.
+- Codex-only scripts in `codex/scripts/`:
+  - `create_worktree_with_build.sh`: the lead runs it to make a track worktree
+    under `$CHECKOUT/.codex/worktrees/` before it spawns the impl-champion.
+  - `remove_worktree_cleanup.sh`: removes a track worktree.
+  - `resolve_codex_transcript.py`: finds a champion's rollout file for its
+    monitor.
+  - `monitor_queue_ack.py`: marks transcript-monitor queue records as
+    acknowledged or resolved.
+  - `codex_agent_registry.py`: V1 only. It binds each logical task name and
+    recovery note to the native UUID. The hooks write the registry at
+    `$CODEX_HOME/ammo-agent-registry.json`, and Codex's own parent records
+    verify each binding.
+- `codex/instrumentation/sitecustomize.py`: added to `PYTHONPATH` for Nsight
+  children only.
 
-There are nine canonical role documents in the skill. The extra TOMLs are
-compatibility aliases: `ammo-impl-champion` reads
-`agents/ammo-implementer.md`, and `ammo-report-writer` reads
-`agents/ammo-report.md`. No duplicate alias Markdown files are required.
+The Codex hooks use the shared plugin files too: `scripts/ammo_state.py` and
+`schemas/state.schema.json` validate `state.json`, and `scripts/` holds the GPU
+reservation helper. Keep the plugin tree whole. A partial copy breaks these
+links.
 
-V1 additionally uses `scripts/codex_agent_registry.py` to bind logical task
-names and recovery notes to native UUIDs. The registry persists in
-`CODEX_HOME/ammo-agent-registry.json`; the hooks own writes. Native SQLite
-parent edges verify each binding. Copy the full scripts tree with the hooks.
+## Dependencies
 
-The hook-to-skill references close only when the two install parts use the
-documented layout. In particular, hooks resolve
-`scripts/ammo_state.py`, `gpu_reservation.py`, and
-`monitor_queue_ack.py`, as well as the skill's agent, orchestration, reference,
-and report contracts. Moving either tree independently breaks that closure.
+- A Codex release with plugins, project custom agents in `.codex/agents/`,
+  native multi-agent work, and lifecycle hooks, each turned on with the
+  settings above.
+- Python 3.11 or later. The installer needs `tomllib`.
+- A Git checkout. The hooks and the worktree scripts use `git`.
+- `/bin/sh` and `/usr/bin/env`. The hook registration runs the modules through
+  them.
+- The Python `jsonschema` package for full `state.json` validation. Without it
+  the hooks report that schema validation was skipped. That is degraded
+  operation.
+- The pre-built Pumice checkout, its venv, and the GPUs that the root `README.md`
+  lists. The plugin does not bundle them.
+- `references/campaign-env.md` lists each environment name that the hooks and
+  scripts read.
 
-## Operational dependencies
-
-- A Codex release that supports project-local skills, `.codex/agents/*.toml`,
-  native multi-agent execution, and Codex lifecycle hooks. Native multi-agent
-  support must be enabled in the consuming runtime using the configuration
-  appropriate to that Codex release.
-- A Git project root. Hook root discovery and AMMO worktree operations use
-  `git` and project-relative `.codex` paths.
-- `/bin/sh`, `/usr/bin/env`, and Python 3. The hook registration invokes the
-  scripts through these system tools.
-- The Python `jsonschema` package for full `state.schema.json` enforcement.
-  Hooks can report that schema validation was skipped when it is unavailable,
-  but that is degraded operation rather than semantic parity.
-- The installed AMMO skill scripts and their project Python environment. AMMO
-  worktree commands expect the worktree virtual environment; GPU benchmarks
-  additionally require the consuming project's CUDA, vLLM, and profiling
-  stack. Those workload dependencies are not bundled in this overlay.
-- Writable campaign artifact/worktree locations and temporary storage. GPU
-  sessions should provide their normal `CUDA_VISIBLE_DEVICES`,
-  `AMMO_SESSION_ID`, `AMMO_GPU_RES_DIR`, and `AMMO_PROJECT_DIR` integration
-  values; the package contains no site-specific values.
-
-For hardened deployments, install `.codex/hooks/` and `.codex/schemas/` as
-policy assets that campaign subagents cannot modify. In particular,
-`state.schema.json` must remain a regular, non-symlink file beside the hooks.
+The campaign can change files in the checkout. Install the plugin where
+campaign agents cannot change it, so that they cannot change its hooks or
+`schemas/state.schema.json`.

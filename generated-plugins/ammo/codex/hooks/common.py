@@ -4,6 +4,117 @@ from datetime import datetime, timezone
 import hashlib
 from pathlib import Path
 from typing import Any
+# Plugin layout: <plugin>/codex/hooks/common.py. Shared scripts live in
+# <plugin>/scripts (the resolution layer campaign_paths.py among them), the
+# Codex-only ones in <plugin>/codex/scripts. campaign_paths is imported by path,
+# the way hook_cmd_classify is below, and it is guarded the same way: every
+# Codex hook imports this module, so a missing layer must degrade, not raise.
+# Without the layer no marker is read, so outside AMMO_ARTIFACT_DIR there is no
+# campaign and every hook stays silent (fail-open, the conventions section 7
+# direction for "no campaign").
+_PLUGIN_ROOT=Path(__file__).resolve().parent.parent.parent
+_SCRIPTS_DIR=_PLUGIN_ROOT/'scripts'
+_CODEX_SCRIPTS_DIR=_PLUGIN_ROOT/'codex'/'scripts'
+if str(_SCRIPTS_DIR) not in sys.path: sys.path.insert(0,str(_SCRIPTS_DIR))
+try:
+    import campaign_paths
+except Exception as _layer_exc:
+    campaign_paths=None
+    try:
+        sys.stderr.write(
+            'AMMO hooks DEGRADED: '+str(_SCRIPTS_DIR)+'/campaign_paths.py unavailable ('
+            +(str(_layer_exc) or _layer_exc.__class__.__name__)+'). Only AMMO_ARTIFACT_DIR '
+            'binds a campaign; the .ammo/active marker is not read.\n'
+        )
+    except Exception:
+        pass
+# The campaign workspace dir name (".ammo"), from the layer's marker path.
+CAMPAIGN_SEGMENT=campaign_paths.MARKER.parent.name if campaign_paths is not None else '.ammo'
+def plugin_path(*parts):
+    """A file of this plugin: the layer's plugin_path(), or the same root without it."""
+    if campaign_paths is not None: return Path(campaign_paths.plugin_path(*parts))
+    return _PLUGIN_ROOT.joinpath(*parts)
+def script_path(name):
+    """A shared script under <plugin>/scripts."""
+    return plugin_path('scripts',name)
+def codex_script_path(name):
+    """A Codex-only script under <plugin>/codex/scripts."""
+    return plugin_path('codex','scripts',name)
+# Role addresses (references/harness-binding.md): agents are addressed as
+# `ammo:<role>` on both harnesses, and each alias pair names one role.
+ROLE_PREFIX='ammo:'
+ROLE_ALIASES={'ammo-impl-champion':'ammo-implementer','ammo-report-writer':'ammo-report'}
+def normalize_role(value):
+    """One role name for comparison: no `ammo:` prefix, alias spellings folded."""
+    role=str(value or '').strip()
+    if role.startswith(ROLE_PREFIX): role=role[len(ROLE_PREFIX):]
+    return ROLE_ALIASES.get(role,role)
+# The roles a hook infers from a spawn, in match order.
+_MARKED_ROLES=('ammo-implementer','ammo-auditor','ammo-transcript-monitor')
+_ROLE_MARKERS=None
+def role_markers():
+    """Role -> (role-doc markers, agent file names), read from the shipped codex/agents/*.toml.
+
+    A dispatch message that names a role doc (agents/<doc>.md), or an agent_path
+    whose file name is a roster entry, identifies the role. Each TOML names its
+    role doc; text search, because Python 3.9 hosts have no tomllib.
+    """
+    global _ROLE_MARKERS
+    if _ROLE_MARKERS is not None: return _ROLE_MARKERS
+    found={role:(set(),set()) for role in _MARKED_ROLES}
+    try: roster=sorted(plugin_path('codex','agents').glob('*.toml'))
+    except OSError: roster=[]
+    for toml in roster:
+        role=normalize_role(toml.stem)
+        if role not in found: continue
+        docs,names=found[role]
+        names.update({toml.name,toml.stem+'.md'})
+        try: text=toml.read_text(encoding='utf-8')
+        except OSError: continue
+        docs.update(re.findall(r'agents/ammo-[a-z0-9-]+\.md',text))
+    for role,(docs,names) in found.items():
+        if not names: names.update({role+'.toml',role+'.md'})
+        if not docs: docs.add('agents/'+role+'.md')
+    _ROLE_MARKERS={role:(frozenset(docs),frozenset(names)) for role,(docs,names) in found.items()}
+    return _ROLE_MARKERS
+def role_from_markers(message,agent_path):
+    """The role whose roster doc the message names or whose agent file agent_path is; else ''."""
+    agent_file=Path(str(agent_path or '')).name
+    for role,(docs,names) in role_markers().items():
+        if any(doc in message for doc in docs) or (agent_file and agent_file in names):
+            return role
+    return ''
+def hook_campaign_dir(cwd=None):
+    """The layer's campaign: AMMO_ARTIFACT_DIR, else the marker walk up from cwd. None outside."""
+    if campaign_paths is None:
+        explicit=(os.environ.get('AMMO_ARTIFACT_DIR') or '').strip()
+        return Path(os.path.abspath(os.path.expanduser(explicit))) if explicit else None
+    try: return campaign_paths.find_campaign_dir(Path(cwd) if cwd else None)
+    except Exception: return None
+def campaign_for_hook(payload):
+    """The campaign of this hook call, or None: then the hook exits 0 with empty stdout."""
+    cwd=payload.get('cwd') if isinstance(payload,dict) else None
+    return hook_campaign_dir(cwd if isinstance(cwd,str) and cwd else None)
+def path_in_campaign(path,campaign):
+    """The layer's in_campaign(): realpath containment, the one path classifier."""
+    if not campaign: return False
+    if campaign_paths is not None: return bool(campaign_paths.in_campaign(path,campaign))
+    try:
+        inner=os.path.realpath(os.path.expanduser(str(path))); outer=os.path.realpath(os.path.expanduser(str(campaign)))
+        return os.path.commonpath([inner,outer]) == outer
+    except (OSError,ValueError):
+        return False
+def _fill_campaign_env(campaign):
+    """Fill each unset or empty name the layer derives (explicit env wins).
+
+    AMMO_ARTIFACT_DIR is left alone: active_artifact_dir() treats that name as an
+    exact binding (conflicts raise), while the marker is a non-explicit one.
+    """
+    if campaign_paths is None: return
+    try: derived=campaign_paths.campaign_env(campaign)
+    except Exception: return
+    for key,value in derived.items():
+        if key != 'AMMO_ARTIFACT_DIR' and not os.environ.get(key): os.environ[key]=str(value)
 def read_stdin_json():
     try: raw=sys.stdin.read(); return json.loads(raw) if raw.strip() else {}
     except Exception: return {}
@@ -12,19 +123,22 @@ def block_pretool(reason): emit({"decision":"block","reason":reason,"hookSpecifi
 def block_stop(reason): emit({"decision":"block","reason":reason})
 def additional_context(event,text): emit({"hookSpecificOutput":{"hookEventName":event,"additionalContext":text}})
 def find_repo_root(cwd=None):
+    """The engine root of the campaign cwd is in; also fills the campaign env.
+
+    Inside a campaign this is the layer's engine_root() (the dir holding .ammo/),
+    and the names the layer derives from target.json are filled into os.environ,
+    so AMMO_SESSION_ID readers fall back to the marker id. Outside a campaign:
+    the git toplevel of cwd, else cwd itself.
+    """
     start=Path(cwd or os.getcwd()).resolve()
-    for p in [start,*start.parents]:
-        if (p/'.codex'/'hooks').exists(): return p
-        nested=p/'ai_cli_session'
-        if (nested/'.codex'/'hooks').exists(): return nested
+    campaign=hook_campaign_dir(start)
+    if campaign is not None:
+        _fill_campaign_env(campaign)
+        if campaign_paths is not None: return Path(campaign_paths.engine_root(campaign)).resolve()
+        return Path(campaign).parent.parent.resolve()
     try:
         out=subprocess.check_output(['git','-C',str(start),'rev-parse','--show-toplevel'],stderr=subprocess.DEVNULL,text=True).strip()
-        if out:
-            gitroot=Path(out).resolve()
-            for rel in (Path('ai_cli_session'),Path('KernelBench/scripts/cuda_eval_server_v2/ai_cli_session')):
-                candidate=gitroot/rel
-                if (candidate/'.codex'/'hooks').exists(): return candidate
-            if (gitroot/'.codex'/'hooks').exists(): return gitroot
+        if out: return Path(out).resolve()
     except Exception: pass
     return start
 def command_from_payload(payload):
@@ -45,9 +159,14 @@ def is_child_agent_payload(payload):
         or payload.get('agent_type') or payload.get('agentType')
         or os.environ.get('CODEX_SUBAGENT') == '1'
     )
-def _session_identity_path():
+def _session_identity_path(server_session_id=None):
+    # One file per campaign id: AMMO_GPU_RES_DIR is host-wide (conventions
+    # section 5), so one shared file would bind every campaign on the host to
+    # the first Codex thread that recorded it.
     root=Path(os.environ.get('AMMO_GPU_RES_DIR') or '/tmp/ammo_gpu_res').expanduser()
-    return root/'codex_hook_session.json'
+    server=server_session_id if server_session_id is not None else trusted_server_session_identity()
+    safe=hashlib.sha256(str(server or '').encode('utf-8')).hexdigest()[:24]
+    return root/f'codex_hook_session_{safe}.json'
 def trusted_server_session_identity(payload=None):
     payload=payload if isinstance(payload,dict) else {}
     for value in (os.environ.get('AMMO_SESSION_ID'),):
@@ -65,7 +184,7 @@ def record_trusted_session_identity(payload):
     server_session_id=trusted_server_session_identity(payload)
     codex_thread_id=trusted_codex_thread_identity(payload)
     if not server_session_id or not codex_thread_id: return ''
-    path=_session_identity_path(); path.parent.mkdir(parents=True,exist_ok=True)
+    path=_session_identity_path(server_session_id); path.parent.mkdir(parents=True,exist_ok=True)
     existing=load_json(path)
     if isinstance(existing,dict) and (
         existing.get('server_session_id') not in {None,server_session_id}
@@ -94,7 +213,7 @@ def is_v1_session():
 def v1_registry():
     # Loaded only for V1. Legacy/V2 hook installations keep their existing
     # dependency behavior, including the classifier's degradation contract.
-    scripts=str(Path(__file__).resolve().parents[1]/'skills'/'ammo'/'scripts')
+    scripts=str(_CODEX_SCRIPTS_DIR)
     if scripts not in sys.path: sys.path.insert(0,scripts)
     import codex_agent_registry
     return codex_agent_registry
@@ -129,7 +248,7 @@ def spawn_role_and_name(payload):
     """Infer an AMMO role and stable Codex task name from a spawn/lifecycle payload."""
     ti=payload.get('tool_input') or payload.get('toolInput') or {}
     if not isinstance(ti,dict): ti={}
-    role=str(ti.get('agent_type') or ti.get('subagent_type') or ti.get('agentType') or payload.get('agent_type') or payload.get('subagent_type') or '').strip()
+    role=normalize_role(ti.get('agent_type') or ti.get('subagent_type') or ti.get('agentType') or payload.get('agent_type') or payload.get('subagent_type'))
     name=str(ti.get('task_name') or ti.get('taskName') or payload.get('task_name') or payload.get('taskName') or ti.get('name') or payload.get('agent_name') or payload.get('agentName') or '').strip()
     event=str(payload.get('hook_event_name') or payload.get('hookEventName') or '')
     if not name and is_v1_session() and tool_name_from_payload(payload) == 'spawn_agent':
@@ -139,10 +258,7 @@ def spawn_role_and_name(payload):
         name=lifecycle_task_name(payload)
     message='\n'.join(str(value) for value in (ti.get('message'),payload.get('message'),payload.get('prompt')) if value)
     agent_path=str(payload.get('agent_path') or payload.get('agentPath') or ti.get('agent_path') or ti.get('agentPath') or '')
-    markers={'ammo-implementer':'agents/ammo-implementer.md','ammo-auditor':'agents/ammo-auditor.md','ammo-transcript-monitor':'agents/ammo-transcript-monitor.md'}
-    for candidate,marker in markers.items():
-        if marker in message or Path(agent_path).name in {f'{candidate}.toml',f'{candidate}.md'}:
-            role=candidate; break
+    role=role_from_markers(message,agent_path) or role
     lowered=name.lower().replace('-','_')
     if lowered.startswith(('impl_','implementer_','ammo_implementer_')): role='ammo-implementer'
     elif lowered.startswith(('audit_','auditor_','ammo_auditor_')): role='ammo-auditor'
@@ -291,7 +407,7 @@ def complete_monitor_pair(repo,payload,monitor_name,artifact_dir):
     for entry in read_monitor_jsonl(queue):
         record=entry.get('record')
         if not isinstance(record,dict): continue
-        if (record.get('emitter') == 'ammo-transcript-monitor'
+        if (normalize_role(record.get('emitter')) == 'ammo-transcript-monitor'
                 and str(record.get('severity') or '').upper() == 'INFO'
                 and str(record.get('target_rollout_id') or '') == str(target.get('implementer_agent_id') or '')
                 and 'poll' in str(record.get('summary') or '').lower()):
@@ -321,8 +437,8 @@ def _safe_campaign_state(directory):
     return candidate.parent, state
 
 
-def _campaign_identity_matches(state, payload, explicit=False):
-    server = trusted_server_session_identity(payload)
+def _campaign_identity_matches(state, payload, explicit=False, server=None):
+    server = trusted_server_session_identity(payload) if server is None else server
     thread = trusted_codex_thread_identity(payload)
     state_server = str(state.get('session_id') or state.get('sessionId') or '')
     state_thread = str(state.get('codex_thread_id') or '')
@@ -339,26 +455,20 @@ def _campaign_identity_matches(state, payload, explicit=False):
     )
 
 
-def _is_live_campaign_root(candidate, root):
-    """Only a `state.json` at the top of its own subtree marks a live campaign.
-
-    A copy below another campaign's root, or anywhere under the layout's
-    `rounds/{N}/_archive/` quarantine slot, is a snapshot (scaffold_initial,
-    a superseded baseline). Counting one as a second campaign made every hook
-    raise "multiple campaigns match" for the rest of the session, including
-    the Stop and PreCompact gates, so the agent could neither work nor recover.
-    """
-    rel = candidate.parent.relative_to(root)
-    if '_archive' in rel.parts:
-        return False
-    return not any(
-        (root.joinpath(*rel.parts[:depth]) / 'state.json').exists()
-        for depth in range(1, len(rel.parts))
-    )
-
-
 def active_artifact_dir(repo, payload=None):
-    """Resolve an exact binding or unique trusted identity; never use recency."""
+    """Resolve an exact binding or the marker's campaign; never use recency.
+
+    AMMO_ARTIFACT_DIR is an exact binding: it wins, and a conflicting trusted
+    identity raises. Otherwise the layer walks up from repo to the
+    <engine>/.ammo/active marker. The marker names one campaign dir, so a copy
+    of state.json in rounds/{N}/_archive/ or below the campaign root is never a
+    second campaign (session 858af077: one such copy made every hook raise
+    "multiple campaigns match"). The marker campaign binds only on a positive
+    identity match, with the campaign id standing in for an unset
+    AMMO_SESSION_ID (conventions section 3). An unreadable or mismatched marker
+    state resolves to None, as the server's discovery did, so a damaged state
+    never locks the session out of the command that repairs it.
+    """
     payload = payload if isinstance(payload, dict) else {}
     explicit = os.environ.get('AMMO_ARTIFACT_DIR')
     if explicit:
@@ -372,25 +482,25 @@ def active_artifact_dir(repo, payload=None):
             raise CampaignResolutionError('AMMO_ARTIFACT_DIR conflicts with trusted session/root identity')
         return directory
 
-    root = repo / 'kernel_opt_artifacts'
-    matches = []
-    for candidate in sorted(root.glob('**/state.json')):
-        if not _is_live_campaign_root(candidate, root):
-            continue
-        try:
-            record = _safe_campaign_state(candidate.parent)
-        except CampaignResolutionError:
-            continue
-        if record is None:
-            continue
-        directory, state = record
-        if isinstance(state.get('campaign'), dict) and _campaign_identity_matches(state, payload):
-            matches.append(directory)
-    if len(matches) > 1:
-        raise CampaignResolutionError(
-            'multiple campaigns match this session/root; set AMMO_ARTIFACT_DIR to the exact campaign'
-        )
-    return matches[0] if matches else None
+    if campaign_paths is None:
+        return None
+    try:
+        campaign = campaign_paths.find_campaign_dir(Path(repo), env={})
+    except Exception:
+        return None
+    if campaign is None:
+        return None
+    try:
+        record = _safe_campaign_state(campaign)
+    except CampaignResolutionError:
+        return None
+    if record is None:
+        return None
+    directory, state = record
+    server = trusted_server_session_identity(payload) or campaign_paths.campaign_id(campaign)
+    if isinstance(state.get('campaign'), dict) and _campaign_identity_matches(state, payload, server=server):
+        return directory
+    return None
 def load_json(p):
     try: return json.loads(p.read_text(encoding='utf-8'))
     except Exception: return None
@@ -402,7 +512,7 @@ def state_session_id(repo,payload=None):
             v=st.get(k)
             if v: return str(v)
     return ''
-def is_ammo_context(cmd,repo,payload=None): return ('.codex/skills/ammo' in cmd or 'kernel_opt_artifacts' in cmd or active_artifact_dir(repo,payload) is not None)
+def is_ammo_context(cmd,repo,payload=None): return (str(_PLUGIN_ROOT) in cmd or CAMPAIGN_SEGMENT+'/' in cmd or active_artifact_dir(repo,payload) is not None)
 # Shell-command classification lives in ONE place: the ammo skill's
 # hook_cmd_classify.py, which the shell hooks already call. Import it here so
 # the Codex hooks and the shell hooks cannot drift apart, and re-export the
@@ -414,11 +524,11 @@ def is_ammo_context(cmd,repo,payload=None): return ('.codex/skills/ammo' in cmd 
 # zero-byte or truncated file still parses -- would kill all five hooks with a
 # traceback and an empty stdout, so a missing or partial classifier would
 # silently disable the whole enforcement layer -- every PreToolUse deny and the
-# Stop gate at once. That is reachable: the Dockerfile ships hooks/ and
-# scripts/ as one `cp -a` tree, and a partial S3 worktree restore on
-# cross-pod resume can land one without the other, or truncate one of them. One
-# missing attribute degrades all five re-exports together, so the fail direction
-# below is the only degraded behavior either way.
+# Stop gate at once. That is reachable: the plugin ships codex/hooks/ and
+# scripts/ as one tree, and a partial copy or restore of the plugin can land one
+# without the other, or truncate one of them. One missing attribute degrades all
+# five re-exports together, so the fail direction below is the only degraded
+# behavior either way.
 #
 # Fail direction on failure, matching the shell hooks that guard the same file:
 #   is_static_inspection_command -> False   fail-CLOSED, as ammo-pretool-guard.sh
@@ -431,7 +541,7 @@ def is_ammo_context(cmd,repo,payload=None): return ('.codex/skills/ammo' in cmd 
 #       hard deny in pre_tool_use_guard.py for CUDA and Neuron execution tools
 #       without a reservation -- so that one guard is fail-OPEN when degraded:
 #       its deny becomes an allow. The stderr warning below discloses it.
-_CLASSIFY_SCRIPTS_DIR=str(Path(__file__).resolve().parents[1]/'skills'/'ammo'/'scripts')
+_CLASSIFY_SCRIPTS_DIR=str(_SCRIPTS_DIR)
 if _CLASSIFY_SCRIPTS_DIR not in sys.path: sys.path.insert(0,_CLASSIFY_SCRIPTS_DIR)
 try:
     import hook_cmd_classify as _cmd_classify

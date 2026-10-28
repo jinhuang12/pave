@@ -9,24 +9,24 @@ during long runs, and what to do with a review finding that arrives mid-track.
 
 Run every Python command inside `.claude/worktrees/<op_id>/` under the
 worktree-local `.venv`: activate it, or call `.venv/bin/python` directly. This
-includes pytest. The outer session venv can import the session source tree
-instead of your edits, and it does so silently — your correctness and
-performance evidence becomes worthless with no error to warn you.
+includes pytest. The engine venv imports the engine checkout instead of your
+edits, and it does so silently. Your correctness and performance evidence then
+becomes worthless with no error to warn you.
 
 Prove the environment before any GPU or validation work:
 
 ```bash
 source .venv/bin/activate
-python -c "import vllm; print(vllm.__file__)"
-# The path must contain '/.claude/worktrees/<op_id>/'
+python -c "import pumice, pumice_rust; print(pumice.__file__, pumice_rust.__file__)"
+# Both paths must contain '/.claude/worktrees/<op_id>/'
 ```
 
-The printed path must sit inside your assigned worktree. Check it again after
+The printed paths must sit inside your assigned worktree. Check it again after
 every resume. Never install a dependency and never build a second environment.
 
 ## Delegation
 
-Hand bounded work to `ammo-delegate` subagents (Agent tool,
+Hand bounded work to `ammo:ammo-delegate` subagents (Agent tool,
 `run_in_background=True`): extraction, source tracing, arithmetic, prior-art
 search, and experiment execution. Keep synthesis, interpretation, and verdicts
 for yourself.
@@ -38,8 +38,8 @@ independent delegates in parallel when that helps. Pass `model="opus"` when the
 work needs deeper reasoning, such as cross-system analysis or an ambiguous
 root-cause investigation.
 
-Spawn with `subagent_type` and `prompt` only. Omit `name`. A named delegate
-joins the session's implicit team and its final report routes to the lead
+Spawn with `subagent_type="ammo:ammo-delegate"` and `prompt` only. Omit `name`. A named delegate
+joins the lead's implicit team and its final report routes to the lead
 instead of back to you; the spawn guard denies a named `ammo-delegate` for
 that reason. Keep any identifier you need for citation in the prompt text.
 
@@ -75,7 +75,7 @@ evidence, not commands:
 
 Judge each finding from the evidence it cites: a real defect, or only work you
 have not finished yet. Verify simple facts yourself; hand an ambiguous
-cross-system claim to a fresh skeptical delegate (`ammo-delegate`, with
+cross-system claim to a fresh skeptical delegate (`ammo:ammo-delegate`, with
 `model="opus"` for cross-system reasoning). Escalate the same way once your
 response to the same issue has failed more than once, because a fresh-context
 agent reasons more clearly than a context-loaded one. You own the final
@@ -89,5 +89,5 @@ keeps its own read-only log.
 
 Report completed work with a normal return. Send a message only for a genuine
 blocker, a required proposal revision, or an acknowledged monitor handoff.
-Routine phase completion needs no status chatter — atomically published
+Routine phase completion needs no status chatter. Atomically published
 artifacts and durable state say it for you.

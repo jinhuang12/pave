@@ -162,7 +162,7 @@ record and structured exhaustion memory.
 - **Causality.** Stage timestamps, artifact mtimes, source commits, profiler
   captures, and verdict writes form a plausible order. Later evidence cannot
   validate earlier code without explicit rebinding.
-- **Same-run pairing.** Flag different sessions, worktrees, venvs, cache modes,
+- **Same-run pairing.** Flag different campaigns, worktrees, venvs, cache modes,
   or stale baseline reuse. Require a paired rerun when the difference can explain
   the measured effect.
 - **No contaminated authority.** Profiler, warmup, debug, partial, failed, and

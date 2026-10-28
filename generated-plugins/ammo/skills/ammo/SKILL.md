@@ -1,11 +1,30 @@
 ---
 name: ammo
-description: Profile and optimize vLLM inference on NVIDIA CUDA or AWS Neuron. Use when targeting a specific model, accelerator, dtype, parallelism, and workload to improve latency. Runs a staged multi-agent campaign (baseline, profiling, debate, isolated implementation tracks, integration, report) that takes hours; not for a one-off kernel question, a code review, or a single benchmark run, which a direct subagent handles.
+description: >-
+  Profile and optimize Pumice inference latency on NVIDIA GPUs, inside a local
+  Pumice checkout. Use when targeting a specific model, GPU, dtype,
+  parallelism, and workload. Runs a staged multi-agent campaign (baseline,
+  profiling, debate, isolated implementation tracks, integration, report)
+  that takes hours; not for a one-off kernel question, a code review, or a
+  single benchmark run, which a direct subagent handles.
+  Manual-only: use only when the user invokes /ammo:ammo.
+metadata:
+  compatibility: >-
+    Requires the harness's plugin hooks (hooks/hooks.json on Claude Code; the
+    trusted Codex hooks that hooks/README.md lists), the ammo:* role agents
+    (registered from agents/*.md on Claude Code; installed with
+    codex/install_agents.py, with multi-agent work turned on, on Codex), bash,
+    jq, flock, git, Python 3.11 or later, and a pre-built Pumice checkout at
+    the pinned commit with its venv, cargo build, model weights, and NVIDIA
+    GPUs. The test battery needs uv, or pytest, pyyaml, jsonschema, pydantic,
+    httpx, numpy, and psutil.
 ---
 
 # AMMO - Automated Model Micro-Optimizer
 
 AMMO is a staged, multi-agent accelerator optimization campaign. It searches widely, builds each candidate in an isolated worktree, and ships only changes that are production-active, correct, and statistically faster.
+
+Resolve the plugin root as the absolute directory that holds `skills/`, `agents/`, `orchestration/`, `references/`, `schemas/`, and `scripts/` (from `<root>/skills/ammo/SKILL.md`, use `<root>`). Every `agents/...`, `orchestration/...`, `references/...`, `schemas/...`, and `scripts/...` path in this file and in the files it links resolves under that root, never under the engine checkout. Run plugin scripts through the launcher, `<root>/scripts/ammo <script> [args]`: it finds the campaign and runs the script with the campaign's Python. Start every dispatch prompt with a `plugin_root: <absolute plugin root>` line, and give the absolute campaign dir on an `artifact_dir:` line. A child has no other way to find the plugin root. On Codex the same skill is `$ammo:ammo`.
 
 The Lead Role and stage-dispatch instructions apply to the root orchestrator. Child agents use the shared campaign constraints and their own role assignment. Reading this file does not change a child's role. Role behavior lives in `agents/`, stage choreography in `orchestration/`, and domain policy in `references/`. Open a linked file when its stage or decision becomes active. Do not preload the whole corpus.
 
@@ -25,9 +44,9 @@ Record an explicit user override and its scope. Never bend raw evidence to make 
 
 ## Accelerator Runtime Binding
 
-Read server-injected `AMMO_RUNTIME_PROFILE`: missing means `vllm-cuda`; otherwise use `vllm-neuron`. Do not ask the user to choose a backend. On `vllm-cuda`, use CUDA graphs, Nsys, and NCU as this skill's profiling references define. On `vllm-neuron` (the `pumice-neuron` profile), use the Pumice worktree, `scripts/run_pumice_grpc_bench.py` for timing, and `scripts/runtime_ops.py capture-neff`/`normalize` for attribution (the runner has no `--accelerator-profile`); `references/accelerator-binding.md` owns the details.
+Read the runtime profile from `target.json` `runtime.profile`. `new_target.py` writes it at scaffold, and the launcher and hooks export it as `AMMO_RUNTIME_PROFILE`. Do not ask the user to choose a backend. v1 ships and tests the CUDA path only: the profile is `pumice-cuda`, and scaffold and preflight refuse any other profile. The legacy names `vllm-cuda` and `vllm-neuron` map to `pumice-cuda` and `pumice-neuron`; the Neuron branches stay in `scripts/runtime_ops.py` but are not part of v1. On `pumice-cuda`, use CUDA graphs, Nsys, and NCU as this skill's profiling references define, and `scripts/run_pumice_grpc_bench.py` for timing. `references/accelerator-binding.md` owns the profile vocabulary.
 
-AMMO's seven stages, agents, audits, five binding gates, GSM8K accuracy rule, end-to-end speedup criteria, workloads, statistics, verdict semantics, and stop logic are identical on both runtimes. On both runtimes, profiler-free timing is authoritative. `vllm bench serve` is diagnostic only for batch targets. Serving targets use the managed runner under `references/serving-campaign.md`. The serialized status stays `GPU_BLOCKED` on both runtimes.
+AMMO's seven stages, agents, audits, five binding gates, GSM8K accuracy rule, end-to-end speedup criteria, workloads, statistics, verdict semantics, and stop logic do not depend on the runtime profile. Profiler-free timing is authoritative. `vllm bench serve` is diagnostic only for batch targets. Serving targets use the managed runner under `references/serving-campaign.md`. The serialized status stays `GPU_BLOCKED`.
 
 ## Serving Deployment Binding
 
@@ -41,14 +60,20 @@ You are the lead orchestrator. You scaffold, delegate, moderate, reconcile, upda
 - Read the relevant state at dispatch, transitions, reconciliation, context recovery, and when related state changes. Update stage, round, audit, and per-track fields when they actually change.
 - Freeze every parameter the user set: model, hardware, dtype, TP/DP/EP, ISL/OSL, batch, maximum length, and serving flags. Changes to frozen parameters or approved scope need explicit user approval. Repairs within an approved candidate, including its declared mechanism flags under `references/validation-defaults.md`, remain authorized.
 - Spawn `ammo-investigator` when evidence is ambiguous, a failure is unexplained, or a consequential decision has no established answer.
-- Talk to live teammates with `SendMessage`; plain text in the lead thread does not reach them. To retire a teammate, follow `references/shutdown-protocol.md`.
+- Talk to live team members through the harness's agent messaging; plain text in the lead thread does not reach them. To retire a team member, follow `references/shutdown-protocol.md`.
 - Never kill a process you do not own. Never use a GPU you have not reserved. `references/gpu-pool.md` is the only authority on GPU ownership.
+
+`references/harness-binding.md` maps every spawn, naming, messaging, waiting, release, and long-command idiom in this skill and its linked files to the tools of Claude Code and of Codex. Read it before the first dispatch. Every role spawns at its plugin address `ammo:<role>`, for example `ammo:ammo-auditor`.
 
 ## Invocation
 
-Collect every parameter the user gave. Scaffold once with `.venv/bin/python scripts/new_target.py`, and omit only the flags the user did not set. `references/workload-invocation.md` owns defaults, workload-matrix handling, `max_num_seqs`, DP/EP semantics, and the canonical command.
+The user starts the harness inside a Pumice checkout: the engine root. Before you scaffold, read `<engine>/.ammo/active`. If it names a campaign whose `state.json` `campaign.status` is not terminal, resume that campaign (§ Pause and Resume) instead of scaffolding a new one.
+
+Collect every parameter the user gave. Scaffold once with `<root>/scripts/ammo new_target.py`, run from the engine root, and omit only the flags the user did not set. `references/workload-invocation.md` owns defaults, workload-matrix handling, `max_num_seqs`, DP/EP semantics, and the canonical command. The scaffold mints the campaign id (or takes `--campaign-id`), writes the campaign workspace `<engine>/.ammo/<campaign-id>/`, and points the marker `<engine>/.ammo/active` at that id. Hooks, scripts, and a later resume find the campaign through that marker. The campaign dir is the `artifact_dir` of every dispatch, and the campaign id is the value of every `session_id` field and `--session-id` flag.
 
 After scaffolding, `target.json`, `state.json`, and `rounds/{N}/constraints.md` are the frozen target contract. `references/artifact-layout.md` owns artifact paths.
+
+Before any GPU work, run preflight from the engine root: `<root>/scripts/ammo preflight_pumice.py --model-path <the target model directory>`. A non-zero exit means the pre-built engine has a gap. Record each gap under `{artifact_dir}/blockers/`, name it to the user, pause the campaign, and do not start Stage 1. The user owns the engine build, the venv, the weights, and the GPUs.
 
 ## Stage and Agent Contract
 
@@ -64,22 +89,22 @@ Every stage and role below is mandatory when its trigger fires.
 | `7_campaign_eval` | lead | mechanical continue-or-stop from current opportunity | this file, Stage 7 |
 | `7b_report` | fresh `ammo-report-writer` + fresh adversarial fact-checker | artifact-grounded `REPORT.md` accepted with `ok:true` | `agents/ammo-report-writer.md` |
 
-`ammo-auditor` is mandatory after Stage 1 (`T_AUDIT_S1`), Stage 2 (`T_AUDIT_S2`), Stages 4-5 (`T_AUDIT_S45`), and Stages 6-7 (`T_AUDIT_S67`). Auditors may hand bounded evidence tasks to `ammo-delegate`. `ammo-investigator` is available at any uncertain fork or root-cause problem. The implementation role is registered as `ammo-impl-champion` and the report role as `ammo-report-writer`.
+`ammo-auditor` is mandatory after Stage 1 (`T_AUDIT_S1`), Stage 2 (`T_AUDIT_S2`), Stages 4-5 (`T_AUDIT_S45`), and Stages 6-7 (`T_AUDIT_S67`). Auditors may hand bounded evidence tasks to `ammo-delegate`. `ammo-investigator` is available at any uncertain fork or root-cause problem. The implementation role is registered as `ammo-impl-champion` and the report role as `ammo-report-writer`. Codex also installs the aliases `ammo-implementer` and `ammo-report`, which read the same role files.
 
-**Team-member vs subagent contract:** Only `ammo-champion`, `ammo-impl-champion`, and `ammo-transcript-monitor` are team members. Spawn each one with a unique `name` and `run_in_background=True`. The first named spawn forms the session's single implicit team, and later named spawns join it. Do not pass `team_name`; there is no TeamCreate tool. While a teammate's round is active, reuse it by addressing its `name` with `SendMessage`. Never re-spawn a `name` that is still on the roster. Put the campaign round and a bounded attempt suffix in any name that can recur. When a business identifier such as `OP-001` names a track, keep the raw `op_id` in state, prompts, monitor ledgers, and artifact paths. All other roles — `ammo-researcher`, `ammo-auditor`, `ammo-investigator`, `ammo-delegate`, `ammo-report-writer`, and `ammo-resolver` — are one-shot subagents: spawn them with `subagent_type` + `prompt` only, and no `name`. `state.json.team_name` is descriptive bookkeeping, never a runtime handle.
+**Team-member vs subagent contract:** Only `ammo-champion`, `ammo-impl-champion`, and `ammo-transcript-monitor` are team members. A team member is a named, reusable background agent: give each one a unique name, and while its round is active, reuse it by sending a message to that name. Never spawn a second agent under a name that is still live. Put the campaign round and a bounded attempt suffix in any name that can recur. When a business identifier such as `OP-001` names a track, keep the raw `op_id` in state, prompts, monitor ledgers, and artifact paths. All other roles (`ammo-researcher`, `ammo-auditor`, `ammo-investigator`, `ammo-delegate`, `ammo-report-writer`, and `ammo-resolver`) are one-shot subagents: spawn each one fresh with its role and its prompt, so that its final report returns to its caller. `state.json.team_name` is descriptive bookkeeping, never a runtime handle.
 
 ### Stage 1: Baseline Capture
 
 Dispatch a fresh `ammo-researcher` with `task_type: baseline`, `artifact_dir`, the round, and the attempt. It runs exactly two logically separate measurements:
 
 1. a profiler-free production E2E baseline plus golden references;
-2. a bounded runtime attribution capture: Nsys on `vllm-cuda`, or Neuron Profile and neuron-explorer evidence on `vllm-neuron`.
+2. a bounded runtime attribution capture with Nsys.
 
 Profiler-run timing is never the official E2E timing. When the researcher finishes, run the mechanical gate and `T_AUDIT_S1`. Fix every consequential finding before Stage 2.
 
 ### Stage 2: Bottleneck Mining
 
-Dispatch `ammo-researcher` with `task_type: mining`. It mines the production evidence that already exists; it never recaptures just to make a better story. In Round 1 that evidence is the Stage-1 baseline and attribution capture. After a material SHIP, the promoted E2E baseline is the prior round's Stage-6 integration result (a single-pass short-circuit writes its copy into that same slot), plus the attribution and activation evidence already on disk that still applies. Do not add a fresh post-SHIP baseline sweep, profiling pass, or provenance sidecar. Ground every binding claim in primary artifacts. NCU is CUDA-only. On Neuron, normalize Neuron Profile evidence through `scripts/runtime_ops.py` before existing mining math consumes it.
+Dispatch `ammo-researcher` with `task_type: mining`. It mines the production evidence that already exists; it never recaptures just to make a better story. In Round 1 that evidence is the Stage-1 baseline and attribution capture. After a material SHIP, the promoted E2E baseline is the prior round's Stage-6 integration result (a single-pass short-circuit writes its copy into that same slot), plus the attribution and activation evidence already on disk that still applies. Do not add a fresh post-SHIP baseline sweep, profiling pass, or provenance sidecar. Ground every binding claim in primary artifacts.
 
 Run `T_AUDIT_S2`. The audit must independently confirm that the measured bottleneck, the opportunity math, the code mapping, and the candidate frontier are real before debate starts.
 
@@ -93,9 +118,9 @@ Only production-boundary magnitude may enter expected-value ranking. Proxy or sy
 
 ### Stages 4-5: Parallel Tracks
 
-For each winner, spawn one `ammo-impl-champion` (`isolation: worktree`, so the Agent tool creates the track's own branch and worktree) and one read-only `ammo-transcript-monitor`. Record each track's stable identity in state. The monitor reviews methodology continuously and runs its own collision checks; it does not implement and does not author the track verdict.
+For each winner, give one `ammo-impl-champion` its own branch and worktree under the engine root, and pair it with one read-only `ammo-transcript-monitor`. `orchestration/parallel-tracks.md` owns how the worktree is made on each harness. Record each track's stable identity in state. The monitor reviews methodology continuously and runs its own collision checks; it does not implement and does not author the track verdict.
 
-Keep all five binding gates — 5.1a, 5.1b, 5.2, 5.3a, 5.3b — as defined in `references/validation-defaults.md`.
+Keep all five binding gates (5.1a, 5.1b, 5.2, 5.3a, 5.3b) as defined in `references/validation-defaults.md`.
 
 `references/validation-defaults.md` owns the exact comparator, tolerances, activation proof, production-parity rules, and verdict semantics. Before a track may report `FAIL`, the implementer must exhaust the applicable fixes and the canonical fallback path in `references/impl-track-rules.md`. Route unexplained failures to `ammo-investigator`. `DILUTED_PASS` is discovered only after validation; it stays canonical status `PASS` with `diluted:true` and contributes measured E2E only.
 
@@ -110,13 +135,13 @@ Follow `orchestration/integration-logic.md` and keep the whole decision matrix:
 - Multiple compatible passers: compose them, then rerun full-model correctness and a clean E2E.
 - Overlap, gating, or merge ambiguity: use the prescribed dominance logic, or spawn `ammo-resolver` plus an independent merge review.
 
-On SHIP: run the pre-ship mechanical checks, integrate the exact validated change, promote its environment contract, clear the experimental environment, refresh the golden references after promotion, and run `T_AUDIT_S67`. The canonical Stage-6 integration result becomes the new production baseline — a combined integration sweep supplies it when several tracks pass, and a single-pass short-circuit copies the validated Stage-5 result into the same integration slot. Compute cumulative gain as a direct ratio — original Round-1 baseline latency divided by current integrated latency — and never multiply round deltas.
+On SHIP: run the pre-ship mechanical checks, integrate the exact validated change, promote its environment contract, clear the experimental environment, refresh the golden references after promotion, and run `T_AUDIT_S67`. The canonical Stage-6 integration result becomes the new production baseline. A combined integration sweep supplies it when several tracks pass, and a single-pass short-circuit copies the validated Stage-5 result into the same integration slot. Compute cumulative gain as a direct ratio (original Round-1 baseline latency divided by current integrated latency) and never multiply round deltas.
 
 ### Stage 7: Campaign Evaluation
 
-Stage 7 is autonomous and mechanical: stop iff the current production baseline's `bottleneck_mining.top_addressable_e2e_pct` — the largest measured `f_e2e × removable_fraction` across non-overlapping slices — is below `min_e2e_improvement_pct`; otherwise continue. A material SHIP may never use its pre-promotion mining for this decision.
+Stage 7 is autonomous and mechanical: stop iff the current production baseline's `bottleneck_mining.top_addressable_e2e_pct` (the largest measured `f_e2e × removable_fraction` across non-overlapping slices) is below `min_e2e_improvement_pct`; otherwise continue. A material SHIP may never use its pre-promotion mining for this decision.
 
-When the stop condition fires, the terminal token records how the round ended: use `campaign_complete` after a SHIP integration status (`single_pass`, `combined`, or `gated_pass`) and `campaign_exhausted` after an EXHAUSTED/failed integration. Never pick between them by narrative preference. Before you set the terminal token (and before Stage 7b), enumerate the roster and drain every remaining teammate per `references/shutdown-protocol.md`.
+When the stop condition fires, the terminal token records how the round ended: use `campaign_complete` after a SHIP integration status (`single_pass`, `combined`, or `gated_pass`) and `campaign_exhausted` after an EXHAUSTED/failed integration. Never pick between them by narrative preference. Before you set the terminal token (and before Stage 7b), enumerate the roster and drain every remaining team member per `references/shutdown-protocol.md`.
 
 - After SHIP, if the change is material, create the next round at `2_bottleneck_mining` and mine the promoted prior-round Stage-6 integration/single-pass evidence. If the newly mined addressable impact is below the floor, terminate as `campaign_complete` from the audited SHIP outcome. Otherwise run the normal Stage-2 gate and `T_AUDIT_S2`, then enter `3_debate`.
 - After EXHAUSTED, reuse the mining that is still valid, append structured `exhausted_technologies`, and enter `3_debate` with a genuine mechanism pivot.
@@ -128,7 +153,13 @@ Do not stop for qualitative "good enough," time, difficulty, or token reasons. `
 
 ### Stage 7b: Report and Fact Check
 
-At `campaign_complete` or `campaign_exhausted`, spawn a fresh `ammo-report-writer`. It must build every factual claim from campaign artifacts, disclose missing or failed evidence, and get `ok:true` from a fresh adversarial fact-checker before returning the report.
+At `campaign_complete` or `campaign_exhausted`, spawn a fresh `ammo-report-writer`. It must build every factual claim from campaign artifacts and disclose missing or failed evidence. The writer does not check its own report. You run the fact-check gate:
+
+1. When the writer returns, spawn a fresh `ammo-delegate` as the adversarial fact-checker. Its prompt is the `plugin_root:` line, the `artifact_dir:` line, and the fact-check assignment in `agents/ammo-report-writer.md`, unchanged. Give it nothing else: no expected answers, and no request to confirm the report.
+2. Write its verdict to `{artifact_dir}/report_assets/report_fact_check.json` with `ok`, `findings` (its violations, empty when `ok` is true), and `report_sha256`, the SHA-256 of the exact `REPORT.md` bytes it reviewed.
+3. On `ok: false`, spawn a fresh `ammo-report-writer` with the findings, then a fresh fact-checker on the new report.
+
+Accept the report only when `report_fact_check.json` holds `ok: true` and its `report_sha256` matches the current `REPORT.md`. That file and the fact-checker exchange are the audit record; add no state field or other sidecar.
 
 ## Audit Gates
 
@@ -160,19 +191,19 @@ At each real transition:
 - write mining enrichment from the structured `f_e2e` table before advancing;
 - keep provenance, attempts, audit records, exhaustion memory, shipped identities, the environment contract, and the direct cumulative speedup.
 
-Use `scripts/ammo_state.py` for state operations and validation. Frontend fields consume campaign truth; they are never a second policy source.
+Use `scripts/ammo_state.py` for state operations and validation.
 
 ## Pause and Resume
 
-Pause only when the user asks or the audit escalation path requires it. A pause keeps state and artifacts; it does not turn unfinished tracks into failures.
+Pause only when the user asks, when preflight finds a gap, or when the audit escalation path requires it. A pause keeps state and artifacts; it does not turn unfinished tracks into failures.
 
-On resume:
+To resume, the user invokes the skill again in the same engine checkout. The `.ammo/active` marker names the campaign, and `state.json` says where it stands. On resume:
 
 1. Read this file, `state.json`, and the active round's primary artifacts.
 2. Confirm `campaign.status`, `campaign.current_round`, and `campaign.current_stage`.
-3. Inspect accelerator reservations and clear only stale reservations owned by the crashed session.
+3. Inspect GPU leases and clear only stale leases that this campaign id holds from a run that crashed.
 4. Reconcile debate or track state with on-disk artifacts; never infer completion from narrative alone.
-5. Reuse stable agent/task identities where possible and resume from the last verified gate.
+5. Reuse stable agent/task identities where the harness still holds them, and resume from the last verified gate.
 6. If the campaign is terminal and `REPORT.md` is absent, run Stage 7b.
 
 Repair malformed or legacy state through the schema/backfill path in `scripts/ammo_state.py`. Never rebuild it from guesses. Full artifact reconciliation lives in `orchestration/parallel-tracks.md`.
@@ -194,8 +225,10 @@ Read only what the active task requires.
 |---|---|
 | Workload/configuration | `references/workload-invocation.md` |
 | Artifact paths and authority | `references/artifact-layout.md` |
+| Campaign environment names | `references/campaign-env.md` |
+| Harness tools, spawn, and messaging | `references/harness-binding.md` |
 | Accelerator ownership/isolation | `references/gpu-pool.md` |
-| Profiling | `references/nsys-profiling-guide.md` on `vllm-cuda`; `scripts/runtime_ops.py` plus the Neuron profiling skills on `vllm-neuron` |
+| Profiling | `references/nsys-profiling-guide.md` |
 | Opportunity/projection math | `references/e2e-delta-math.md` |
 | Validation and verdicts | `references/validation-defaults.md` |
 | Implementation fallback/gating | `references/impl-track-rules.md` |
@@ -210,11 +243,14 @@ Read only what the active task requires.
 
 ## Active Helpers
 
-- `scripts/new_target.py`: scaffold target and state.
-- Authoritative baseline, opt, profiling, correctness, and integration runner: read `target.json` `bench.runner` first. Use `scripts/run_pumice_grpc_bench.py` for `pumice_grpc_bench` (every `pumice-*` profile). Use `scripts/run_vllm_bench_latency_sweep.py` for `vllm_bench_latency`.
-  The vLLM sweep exits with `Unsupported bench.runner` on any other value. `references/artifact-layout.md` § Bench Runner gives the Pumice invocation.
-- `scripts/check_projection_accuracy.py`: append `## Projection Accuracy` diagnostics.
-- `scripts/gpu_reservation.py status --table` / `scripts/gpu_reservation.py force-clear --all --session-id <crashed_session_id>`: inspect or clear owned stale reservations.
-- `scripts/ammo_state.py`: validate, update, transition, and backfill campaign state.
+Run each helper as `<root>/scripts/ammo <script> [args]`.
 
-Run Python helpers through the active worktree `.venv/bin/python`. Never modify a helper just to get past a failed semantic gate.
+- `new_target.py`: scaffold target and state.
+- `preflight_pumice.py`: check the pre-built engine before any GPU work.
+- Authoritative baseline, opt, profiling, correctness, and integration runner: read `target.json` `bench.runner` first. Use `run_pumice_grpc_bench.py` for `pumice_grpc_bench` (every `pumice-*` profile). Use `run_vllm_bench_latency_sweep.py` for `vllm_bench_latency`.
+  The vLLM sweep exits with `Unsupported bench.runner` on any other value. `references/artifact-layout.md` § Bench Runner gives the Pumice invocation.
+- `check_projection_accuracy.py`: append `## Projection Accuracy` diagnostics.
+- `gpu_reservation.py status --table` / `gpu_reservation.py force-clear --all --session-id <campaign_id>`: inspect leases, or clear the stale leases of this campaign after a crash.
+- `ammo_state.py`: validate, update, transition, and backfill campaign state.
+
+Inside a track worktree, run the engine's Python through the worktree `.venv/bin/python`. Never modify a helper just to get past a failed semantic gate.

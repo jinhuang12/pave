@@ -15,7 +15,7 @@ from jsonschema import Draft202012Validator
 
 _SKILL_ROOT = Path(__file__).resolve().parent.parent
 _NEW_TARGET = _SKILL_ROOT / "scripts" / "new_target.py"
-_SCHEMA = Path(__file__).resolve().parents[3] / "schemas" / "state.schema.json"
+_SCHEMA = Path(__file__).resolve().parents[1] / "schemas" / "state.schema.json"
 if str(_NEW_TARGET.parent) not in sys.path:
     sys.path.insert(0, str(_NEW_TARGET.parent))
 _spec = importlib.util.spec_from_file_location("new_target_runtime", str(_NEW_TARGET))

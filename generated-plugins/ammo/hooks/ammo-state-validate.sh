@@ -3,7 +3,13 @@
 #
 # Fires on Write|Edit (file_path match) AND on Bash (command-string detection).
 # Delegates schema + cross-field validation to scripts/ammo_state.py (validate
-# --emit hook). Blocks via decision:block on violations.
+# --emit hook), run under the campaign python (ammo_python). Blocks via
+# decision:block on violations.
+#
+# Campaign scope (_find_campaign.sh): only a state.json INSIDE the campaign dir
+# (<engine>/.ammo/<campaign-id>/, realpath containment via ammo_in_campaign) is
+# validated. The schema is the plugin's own schemas/state.schema.json. Outside
+# a campaign the hook exits 0 and prints nothing.
 set -euo pipefail
 trap 'exit 0' ERR
 
@@ -11,7 +17,47 @@ if ! command -v jq &>/dev/null; then exit 0; fi
 
 INPUT=$(cat)
 
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(cd "$HOOK_DIR/.." && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || true
+HOOK_CWD=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null) || HOOK_CWD=""
+# Relative paths in a command resolve against the tool call's cwd.
+REL_BASE="${HOOK_CWD:-${CLAUDE_PROJECT_DIR:-$PWD}}"
+
+# _abs PATH: expand a leading $AMMO_ARTIFACT_DIR / ${AMMO_ARTIFACT_DIR} and make
+# a relative path absolute against REL_BASE. Pure text; no filesystem access.
+_abs() {
+    local p="$1"
+    case "$p" in
+        '${AMMO_ARTIFACT_DIR}'*) p="${AMMO_ARTIFACT_DIR:-}${p#'${AMMO_ARTIFACT_DIR}'}" ;;
+        '$AMMO_ARTIFACT_DIR'*)   p="${AMMO_ARTIFACT_DIR:-}${p#'$AMMO_ARTIFACT_DIR'}" ;;
+    esac
+    case "$p" in
+        /*) printf '%s' "$p" ;;
+        *)  printf '%s/%s' "${REL_BASE%/}" "$p" ;;
+    esac
+}
+
+# _campaign_state PATH: true when PATH is a state.json inside the campaign.
+_campaign_state() {
+    [ "${1##*/}" = "state.json" ] && ammo_in_campaign "$1"
+}
+
+# No python3 means no campaign lookup (the helper is fail-open). The
+# fail-closed branch below must still fire for a write to a campaign's own
+# state.json, so this one case reads the marker contract directly:
+# <engine>/.ammo/active names <id>, and the file is <engine>/.ammo/<id>/state.json.
+# Parameter expansion only: a scrubbed PATH may lack basename and dirname.
+_marker_state_without_python() {
+    local d="${1%/*}" e
+    e="${d%/*}"
+    [ "${1##*/}" = "state.json" ] || return 1
+    [ "${e##*/}" = ".ammo" ] || return 1
+    [ -f "$e/active" ] || return 1
+    [ "$(head -n 1 "$e/active" 2>/dev/null)" = "${d##*/}" ]
+}
 
 # --- Bash detection path ---
 # When fired on Bash, tool_input has .command not .file_path.
@@ -31,9 +77,6 @@ if [ -z "$FILE_PATH" ]; then
         *'reconcile_track_state.py'*) ;;
         *) exit 0;;
     esac
-
-    # Bail if CLAUDE_PROJECT_DIR is not set (can't locate state.json reliably)
-    [ -z "${CLAUDE_PROJECT_DIR:-}" ] && exit 0
 
     # Exclude read-only commands (cat, grep, jq without redirect, head, tail, etc.)
     # Only proceed if the command looks like a write (>, mv, tee, open(...,'w'), json.dump)
@@ -70,10 +113,19 @@ if [ -z "$FILE_PATH" ]; then
     esac
     [ "$LOOKS_LIKE_WRITE" = "false" ] && exit 0
 
-    # Extract the actual target path from the command.
-    # Look for kernel_opt_artifacts/*/state.json patterns in the command text.
-    # Allow path chars including those inside quotes (Python open('path/state.json','w'))
-    EXTRACTED=$(echo "$COMMAND" | grep -oE '[A-Za-z0-9_./-]*kernel_opt_artifacts/[A-Za-z0-9_./-]+/state\.json' | head -1) || true
+    # Outside a campaign there is no campaign state.json to validate.
+    _find_campaign "$INPUT" || exit 0
+
+    # Extract the actual target path from the command: the first state.json
+    # token (absolute, relative to the tool cwd, or $AMMO_ARTIFACT_DIR-prefixed)
+    # that resolves inside the campaign dir. Path chars include those inside
+    # quotes (Python open('path/state.json','w')).
+    EXTRACTED=""
+    while IFS= read -r _tok; do
+        [ -n "$_tok" ] || continue
+        _cand=$(_abs "$_tok")
+        if _campaign_state "$_cand"; then EXTRACTED="$_cand"; break; fi
+    done < <(printf '%s\n' "$COMMAND" | grep -oE '(\$\{?AMMO_ARTIFACT_DIR\}?)?[A-Za-z0-9_./-]*state\.json' || true)
 
     # reconcile_track_state.py takes --artifact-dir, not a state.json path, so
     # derive state.json from the dir (matching the Codex twin's
@@ -82,83 +134,64 @@ if [ -z "$FILE_PATH" ]; then
     if [ -z "$EXTRACTED" ]; then
         case "$COMMAND" in
             *'reconcile_track_state.py'*)
-                _AD=$(echo "$COMMAND" | grep -oE -- '--artifact-dir[= ]+[A-Za-z0-9_./-]+' | head -1 | sed -E 's/^--artifact-dir[= ]+//') || true
-                [ -n "$_AD" ] && EXTRACTED="${_AD%/}/state.json"
+                _AD=$(echo "$COMMAND" | grep -oE -- '--artifact-dir[= ]+(\$\{?AMMO_ARTIFACT_DIR\}?)?[A-Za-z0-9_./-]*' | head -1 | sed -E 's/^--artifact-dir[= ]+//') || true
+                if [ -n "$_AD" ]; then
+                    _cand="$(_abs "$_AD")"
+                    _cand="${_cand%/}/state.json"
+                    _campaign_state "$_cand" && EXTRACTED="$_cand"
+                fi
                 ;;
         esac
     fi
 
-    if [ -n "$EXTRACTED" ]; then
-        # Resolve relative path against CLAUDE_PROJECT_DIR
-        if [[ "$EXTRACTED" = /* ]]; then
-            FILE_PATH="$EXTRACTED"
-        else
-            FILE_PATH="$CLAUDE_PROJECT_DIR/$EXTRACTED"
-        fi
-    else
-        # Command mentions state.json + looks like a write but path doesn't contain
-        # kernel_opt_artifacts — this is an unrelated state.json write. Bail.
-        exit 0
-    fi
-
+    # Command mentions state.json + looks like a write but names no state.json
+    # inside the campaign: an unrelated state.json write. Bail.
+    [ -n "$EXTRACTED" ] || exit 0
+    FILE_PATH="$EXTRACTED"
     [ -f "$FILE_PATH" ] || exit 0
 else
-    # --- Write/Edit path (original logic) ---
-    case "$FILE_PATH" in
-        */kernel_opt_artifacts/*/state.json) ;;
-        *) exit 0;;
-    esac
+    # --- Write/Edit path ---
+    [ "${FILE_PATH##*/}" = "state.json" ] || exit 0
     [ -f "$FILE_PATH" ] || exit 0
+    if command -v python3 &>/dev/null; then
+        # The tool cwd finds the campaign; a write from elsewhere into a
+        # campaign's dir finds it from the file's own dir.
+        _find_campaign "$INPUT" \
+            || _find_campaign "$(jq -cn --arg c "$(dirname "$FILE_PATH")" '{cwd: $c}')" \
+            || exit 0
+        _campaign_state "$FILE_PATH" || exit 0
+    else
+        _marker_state_without_python "$FILE_PATH" || exit 0
+    fi
 fi
 
-# Walk up from state.json to find the schema.
-# Stop at .git boundary to avoid picking up unrelated schemas.
-DIR=$(dirname "$FILE_PATH")
-SCHEMA=""
-for _ in 1 2 3 4 5 6 7 8 9 10; do
-    if [ -f "$DIR/schemas/state.schema.json" ]; then
-        SCHEMA="$DIR/schemas/state.schema.json"
-        break
-    fi
-    PARENT=$(dirname "$DIR")
-    [ "$PARENT" = "$DIR" ] && break
-    # Stop at git root — don't walk above the worktree
-    [ -d "$DIR/.git" ] && break
-    DIR="$PARENT"
-done
-
-[ -z "$SCHEMA" ] && exit 0
+# The schema is the plugin's own. A missing schema FILE stays fail-open (the
+# deliberate vanished-schema carve-out; see the fail-closed note below).
+SCHEMA="$PLUGIN_ROOT/schemas/state.schema.json"
+[ -f "$SCHEMA" ] || exit 0
 
 # Delegate ALL validation (schema + cross-field Stage-6 guard + audit gates +
 # new-round-start gate) to the python state engine. The engine emits compact
 # block JSON on a violation (silent on pass) and always exits 0; we echo its
 # output so the PostToolUse hook surfaces the decision:block to Claude Code.
 #
-# Resolve the engine relative to THIS hook's own dir (not CWD) — the test
-# harness runs the hook from a tmp project dir, so a CWD-relative path would
-# miss it.
-ENGINE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../scripts/ammo_state.py"
-
-# Interpreter: prefer the session worktree venv (guaranteed to have jsonschema)
-# over bare python3 — a jsonschema-less system python3 would degrade every
-# validation into a fail-closed block (the "VALIDATION FOOTGUN" from live runs).
-HOOK_PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-if [ -x "$HOOK_PROJ/.venv/bin/python" ]; then
-    ENGINE_PY="$HOOK_PROJ/.venv/bin/python"
-else
-    ENGINE_PY="python3"
-fi
+# The engine is the plugin's own scripts/ammo_state.py, resolved from THIS
+# hook's dir (never from the cwd or the campaign tree, which agents write).
+# ammo_python runs it under the campaign python: target.json engine.venv, else
+# AMMO_PYTHON, else the venv in the engine root, else python3. A python without
+# jsonschema makes the engine block (fail-closed, below).
+ENGINE="$PLUGIN_ROOT/scripts/ammo_state.py"
 
 # P4#6 FAIL-CLOSED POINT (DEFAULT-ON): if python3 or the engine is unavailable,
 # validation CANNOT run. Emit a decision:block so the PostToolUse hook surfaces
 # it (exit-code is NOT the enforcement mechanism — the block JSON is). Escape
 # hatch AMMO_VALIDATE_FAIL_OPEN=1 reverts to the legacy fail-open for degraded
 # environments. NOTE: this is the python3/engine-missing branch only — the
-# missing-schema-FILE fast-bail at the `[ -z "$SCHEMA" ] && exit 0` line above
+# missing-schema-FILE fast-bail at the `[ -f "$SCHEMA" ] || exit 0` line above
 # stays fail-open (deliberate vanished-schema carve-out).
-if ! command -v "$ENGINE_PY" &>/dev/null || [ ! -f "$ENGINE" ]; then
+if ! command -v python3 &>/dev/null || [ ! -f "$ENGINE" ]; then
     if [ "${AMMO_VALIDATE_FAIL_OPEN:-}" = "1" ]; then exit 0; fi
-    REASON="state.json validation could not run (python3 or the AMMO state engine is unavailable) — restore the session .venv/python3 or set AMMO_VALIDATE_FAIL_OPEN=1 to bypass (degraded)."
+    REASON="state.json validation could not run (python3 or the AMMO state engine is unavailable) — restore python3 and the campaign venv, or set AMMO_VALIDATE_FAIL_OPEN=1 to bypass (degraded)."
     jq -cn --arg r "$REASON" '{"decision":"block","reason":$r,"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":$r}}'
     exit 0
 fi
@@ -190,7 +223,7 @@ PREV_ARGS=()
 # JSON won't parse, the engine itself emits decision:block (fail-closed,
 # default-on, honoring AMMO_VALIDATE_FAIL_OPEN). --fail-closed documents intent
 # (default is already on). We echo the engine's stdout so the block surfaces.
-OUT=$("$ENGINE_PY" "$ENGINE" validate --state "$FILE_PATH" --schema "$SCHEMA" "${PREV_ARGS[@]}" --emit hook --fail-closed 2>/dev/null) || true
+OUT=$(ammo_python ammo_state.py validate --state "$FILE_PATH" --schema "$SCHEMA" "${PREV_ARGS[@]}" --emit hook --fail-closed 2>/dev/null) || true
 
 # Refresh the snapshot AFTER validate, so at validate time it still held the
 # pre-write state. Written atomically (tmp + mv) so a concurrent reader never

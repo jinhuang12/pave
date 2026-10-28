@@ -91,7 +91,9 @@ def test_semantic_contract_suite_still_binds_stage_graph_and_roles() -> None:
             "ammo-auditor",
             "ammo-champion",
             "ammo-delegate",
-            "ammo-implementer",
+            # The plugin ships the Claude twin of the contract suite, which
+            # binds the Claude role name for the implementer seat.
+            "ammo-impl-champion",
             "ammo-investigator",
             "ammo-researcher",
             "ammo-resolver",

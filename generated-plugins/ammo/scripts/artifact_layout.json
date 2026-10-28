@@ -1,8 +1,11 @@
 {
-  "_comment": "Machine-readable AMMO V2 artifact-path manifest. Sole source of the PATH FACTS that references/artifact-layout.md states in prose and that both variants' layout warn hooks enforce. Consumers: .claude/hooks/ammo-artifact-layout-warn.sh and .codex/hooks/post_tool_use_guard.py both derive their allowlist from `slots[].path_template` + `placeholders`; neither restates a path. Judgment (disambiguation rules, prohibited-pattern rationale, resolution order) stays prose in artifact-layout.md. tests/test_artifact_layout_manifest.py holds doc<->manifest parity.",
+  "_comment": "Machine-readable AMMO V2 artifact-path manifest. Sole source of the PATH FACTS that references/artifact-layout.md states in prose and that both variants' layout warn hooks enforce. Consumers: hooks/ammo-artifact-layout-warn.sh and codex/hooks/post_tool_use_guard.py both derive their allowlist from `slots[].path_template` + `placeholders`; neither restates a path. Every template is relative to `campaign_root`. Judgment (disambiguation rules, prohibited-pattern rationale, resolution order) stays prose in artifact-layout.md. tests/test_artifact_layout_manifest.py holds doc<->manifest parity.",
   "version": 1,
   "doc": "references/artifact-layout.md",
+  "campaign_root": ".ammo/{campaign_id}/",
+  "_campaign_root_comment": "The campaign dir, relative to the engine root (conventions §3). Hooks and the Codex guard read this key instead of restating the root name; scripts/campaign_paths.py in_campaign() is the path classifier. {campaign_id} accepts exactly the ids campaign_paths.py reads from the .ammo/active marker.",
   "placeholders": {
+    "{campaign_id}": "[A-Za-z0-9][A-Za-z0-9._-]*",
     "{N}": "[0-9]+",
     "{D}": "[0-9]+",
     "{C}": "[0-9]+",

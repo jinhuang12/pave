@@ -2,7 +2,7 @@
 # PostToolUse hook — stamps audit.{stage}.started_at + cycle when the
 # orchestrator dispatches an ammo-auditor.
 #
-# Matcher: Agent (configured in settings.local.json).
+# Matcher: Agent (hooks/hooks.json).
 #
 # Why PostToolUse and not PreToolUse: PreToolUse fires before the permission
 # decision, so a DENIED spawn would still stamp a start time for an audit that
@@ -24,7 +24,10 @@
 #   - tool_response reports an error → exit 0. PostToolUse fires for failed
 #     tool calls too, and a spawn that never launched must not attest that an
 #     auditor started (the same reason PreToolUse was rejected).
-#   - tool_input.subagent_type != "ammo-auditor" → exit 0.
+#   - tool_input.subagent_type is not "ammo-auditor" (the plugin address
+#     "ammo:ammo-auditor" counts as the same role) → exit 0.
+#   - Not in a campaign (_find_campaign.sh), or artifact_dir is not inside the
+#     campaign dir (ammo_in_campaign) → exit 0.
 #   - Parses task / artifact_dir / stage / round / cycle out of
 #     tool_input.prompt (the canonical dispatch block in
 #     orchestration/audit-protocol.md). Leading whitespace and
@@ -60,7 +63,10 @@ SPAWN_ERR=$(jq -r '
 if [ "${SPAWN_ERR:-0}" != "0" ]; then exit 0; fi
 
 SUBAGENT_TYPE=$(jq -r '.tool_input.subagent_type // ""' <<<"$INPUT" 2>/dev/null) || exit 0
-if [ "$SUBAGENT_TYPE" != "ammo-auditor" ]; then exit 0; fi
+if [ "${SUBAGENT_TYPE#ammo:}" != "ammo-auditor" ]; then exit 0; fi
+
+source "$HELPER_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
 
 PROMPT=$(jq -r '.tool_input.prompt // ""' <<<"$INPUT" 2>/dev/null) || exit 0
 if [ -z "$PROMPT" ]; then exit 0; fi
@@ -98,6 +104,8 @@ if ! printf '%s' "$ROUND" | grep -qE '^[1-9][0-9]*$'; then exit 0; fi
 if ! printf '%s' "$CYCLE" | grep -qE '^[1-9][0-9]*$'; then exit 0; fi
 
 if [ -z "$ARTIFACT_DIR" ] || [ ! -d "$ARTIFACT_DIR" ]; then exit 0; fi
+# Only the campaign's own dir: a prompt cannot point the stamp elsewhere.
+ammo_in_campaign "$ARTIFACT_DIR" || exit 0
 
 # Resolve the state engine relative to THIS hook's own dir, the same way
 # ammo-state-validate.sh does. Never walk up from artifact_dir: artifact_dir
@@ -108,8 +116,9 @@ if [ ! -f "$ENGINE" ]; then exit 0; fi
 
 # Swallow the exit code: the engine already exits 0 on both fail-open no-ops
 # (round absent, round with no audit key), and a real error must not surface
-# here — the stamp is advisory.
-python3 "$ENGINE" audit-started \
+# here — the stamp is advisory. ammo_python runs the engine above (the
+# plugin's scripts/ammo_state.py) under the campaign python.
+ammo_python ammo_state.py audit-started \
     --artifact-dir "$ARTIFACT_DIR" \
     --stage "$STAGE" \
     --round "$ROUND" \

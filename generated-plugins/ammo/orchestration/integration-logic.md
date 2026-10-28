@@ -47,7 +47,7 @@ establish dominance, validate the plausible composition rather than guessing.
 ## Single-Track Short-Circuit
 
 When exactly one accepted track remains, and its patch and environment have not
-changed since Stage 5, it ships on its Stage 5 evidence — integration would add
+changed since Stage 5, it ships on its Stage 5 evidence: integration would add
 no new technical information. Preserve its PASS versus GATED_PASS semantics and promote
 the result it already validated. Materialize that evidence in the canonical
 integration slot when the mechanical pre-ship checks require it there; do not
@@ -120,7 +120,8 @@ additivity.
 
 ## Pre-SHIP Mechanical Checks
 
-Before merging to the session mainline, run the existing fail-closed mechanical
+Before merging to the campaign mainline, the branch checked out at the engine
+root, run the existing fail-closed mechanical
 checks for conflict residue, successful sweep legs, schema-valid state, and
 per-workload regressions. These checks enforce recorded invariants; the lead's
 technical review still owns compatibility and the final evidence judgment.
@@ -129,7 +130,7 @@ technical review still owns compatibility and the final evidence judgment.
 
 After a passing integration decision:
 
-1. Merge or cherry-pick the exact validated patch set onto the session
+1. Merge or cherry-pick the exact validated patch set onto the campaign
    mainline and record its final commit identity.
 2. Promote the environment contract. The new baseline environment is **the
    prior baseline environment plus only the selected accepted flags and values
@@ -168,7 +169,7 @@ promotion record, not a reportable final ship. A Stage-67 rejection immediately
 removes the implicated code, environment keys, current integration/shipped and
 global shipped identities before remeasurement; record the rejection in
 `dropped`, `integration.final_decision`, and the round summary. Preserve the
-isolated Stage-5 verdict as history—Stage 67 rejects promotion/composition, not
+isolated Stage-5 verdict as history. Stage 67 rejects promotion/composition, not
 the fact that the earlier isolated gate passed.
 
 ## Authority Pointers

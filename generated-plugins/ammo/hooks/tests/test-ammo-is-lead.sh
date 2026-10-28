@@ -17,7 +17,7 @@
 #   - function does not exit the caller
 #   - sourcing twice is idempotent
 #
-# Run: bash .claude/hooks/test-ammo-is-lead.sh
+# Run: bash hooks/tests/test-ammo-is-lead.sh
 set -euo pipefail
 
 # AMMO_TEST_HOOK lets a reviewer aim this harness at an ARCHIVED copy of the

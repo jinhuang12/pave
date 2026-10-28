@@ -2,33 +2,53 @@
 
 Verifies that the hook blocks Edit/Write calls that register VLLM_OP*
 env vars with default True/1 in envs.py files, and allows all other edits.
+The hook acts only inside a campaign: every payload carries the cwd of an
+engine fixture whose .ammo/active marker names a campaign dir.
 """
 import json
 import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 HOOK = ROOT / "hooks" / "ammo-env-default-guard.sh"
-SETTINGS = ROOT / "ai_cli_session" / ".claude" / "settings.local.json"
+HOOKS_JSON = ROOT / "hooks" / "hooks.json"
+CODEX_GUARD = ROOT / "codex" / "hooks" / "pre_tool_use_guard.py"
 
-# Environment for the hook subprocess. None means inherit the test env.
+# Engine fixture: <E>/.ammo/active names campaign tgt at <E>/.ammo/tgt/.
+_ENGINE_TMP = tempfile.TemporaryDirectory(prefix="ammo-env-guard-")
+E = os.path.realpath(_ENGINE_TMP.name)
+os.makedirs(os.path.join(E, ".ammo", "tgt"))
+Path(E, ".ammo", "active").write_text("tgt\n")
+
+# Environment for the hook subprocess. None means the test env minus any live
+# campaign names (see _clean_env).
 # TestEnvDefaultGuardHookPlainSystemTools sets a PATH with only the system
 # tools, so a GNU-only grep flag fails there the same way it fails in a
 # real hook run on macOS (BSD grep in /usr/bin).
 _HOOK_ENV = None
 
 
-def _run_hook(tool_input: dict, tool_name: str = "Edit") -> subprocess.CompletedProcess:
+def _clean_env(base):
+    """Drop names that would point the hook at a live campaign."""
+    return {
+        k: v for k, v in base.items()
+        if not k.startswith("AMMO_") and k != "CLAUDE_PROJECT_DIR"
+    }
+
+
+def _run_hook(tool_input: dict, tool_name: str = "Edit", cwd: str = E) -> subprocess.CompletedProcess:
     """Run the hook with a simulated PreToolUse JSON payload."""
     payload = {
         "session_id": "test-session",
         "hook_event_name": "PreToolUse",
         "tool_name": tool_name,
+        "cwd": cwd,
         "tool_input": tool_input,
     }
     return subprocess.run(
@@ -37,7 +57,8 @@ def _run_hook(tool_input: dict, tool_name: str = "Edit") -> subprocess.Completed
         capture_output=True,
         text=True,
         timeout=10,
-        env=_HOOK_ENV,
+        cwd=cwd,
+        env=_clean_env(os.environ if _HOOK_ENV is None else _HOOK_ENV),
     )
 
 
@@ -53,7 +74,7 @@ class TestEnvDefaultGuardHook:
     def test_blocks_vllm_op_equals_true(self):
         """VLLM_OP001 = True in envs.py must be blocked."""
         result = _run_hook({
-            "file_path": "/workspace/vllm/vllm/envs.py",
+            "file_path": f"{E}/vllm/envs.py",
             "old_string": "# placeholder",
             "new_string": '    "VLLM_OP001": lambda: bool(os.getenv("VLLM_OP001", "1") == "1"),  # default True\n    VLLM_OP001: bool = True',
         })
@@ -63,7 +84,7 @@ class TestEnvDefaultGuardHook:
     def test_blocks_vllm_op_default_1(self):
         """VLLM_OP002 with default="1" must be blocked."""
         result = _run_hook({
-            "file_path": "/workspace/vllm/vllm/envs.py",
+            "file_path": f"{E}/vllm/envs.py",
             "old_string": "# old",
             "new_string": '    "VLLM_OP002": lambda: os.getenv("VLLM_OP002", "1"),',
         })
@@ -71,7 +92,7 @@ class TestEnvDefaultGuardHook:
         # but the regex needs VLLM_OP\d+ followed by True/1
         # Let's test the explicit pattern
         result2 = _run_hook({
-            "file_path": "/workspace/vllm/vllm/envs.py",
+            "file_path": f"{E}/vllm/envs.py",
             "old_string": "# old",
             "new_string": "    VLLM_OP002: bool = 1",
         })
@@ -81,7 +102,7 @@ class TestEnvDefaultGuardHook:
         """Write tool creating envs.py with VLLM_OP003=True must be blocked."""
         result = _run_hook(
             {
-                "file_path": "/workspace/vllm/vllm/envs.py",
+                "file_path": f"{E}/vllm/envs.py",
                 "content": 'VLLM_OP003: bool = True\nVLLM_USE_V1: bool = True\n',
             },
             tool_name="Write",
@@ -91,7 +112,7 @@ class TestEnvDefaultGuardHook:
     def test_blocks_comma_true_pattern(self):
         """envs.py dict entry like ("VLLM_OP004", True) must be blocked."""
         result = _run_hook({
-            "file_path": "/workspace/vllm/vllm/envs.py",
+            "file_path": f"{E}/vllm/envs.py",
             "old_string": "# old",
             "new_string": '    "VLLM_OP004", True',
         })
@@ -102,7 +123,7 @@ class TestEnvDefaultGuardHook:
     def test_allows_vllm_op_equals_false(self):
         """VLLM_OP001 = False in envs.py must be allowed."""
         result = _run_hook({
-            "file_path": "/workspace/vllm/vllm/envs.py",
+            "file_path": f"{E}/vllm/envs.py",
             "old_string": "# old",
             "new_string": '    VLLM_OP001: bool = False',
         })
@@ -111,7 +132,7 @@ class TestEnvDefaultGuardHook:
     def test_allows_vllm_op_default_0(self):
         """VLLM_OP001 with default="0" must be allowed."""
         result = _run_hook({
-            "file_path": "/workspace/vllm/vllm/envs.py",
+            "file_path": f"{E}/vllm/envs.py",
             "old_string": "# old",
             "new_string": '    "VLLM_OP001": lambda: bool(os.getenv("VLLM_OP001", "0") == "1"),',
         })
@@ -120,7 +141,7 @@ class TestEnvDefaultGuardHook:
     def test_allows_non_envs_py_files(self):
         """Edits to files other than envs.py must always be allowed."""
         result = _run_hook({
-            "file_path": "/workspace/vllm/vllm/config.py",
+            "file_path": f"{E}/vllm/config.py",
             "old_string": "# old",
             "new_string": "VLLM_OP001 = True  # this is fine in config.py",
         })
@@ -129,7 +150,7 @@ class TestEnvDefaultGuardHook:
     def test_allows_non_op_vllm_vars_true(self):
         """Non-VLLM_OP* vars like VLLM_USE_V1=True must be allowed in envs.py."""
         result = _run_hook({
-            "file_path": "/workspace/vllm/vllm/envs.py",
+            "file_path": f"{E}/vllm/envs.py",
             "old_string": "# old",
             "new_string": "VLLM_USE_V1: bool = True",
         })
@@ -138,11 +159,22 @@ class TestEnvDefaultGuardHook:
     def test_allows_empty_content(self):
         """Edit with empty new_string must be allowed."""
         result = _run_hook({
-            "file_path": "/workspace/vllm/vllm/envs.py",
+            "file_path": f"{E}/vllm/envs.py",
             "old_string": "VLLM_OP001: bool = True",
             "new_string": "",
         })
         assert result.returncode == 0, "Should allow empty content (deletion)"
+
+    def test_silent_outside_a_campaign(self, tmp_path):
+        """No .ammo/active above the cwd: even a blocking edit exits 0, silent."""
+        nocamp = os.path.realpath(tmp_path)
+        result = _run_hook({
+            "file_path": f"{nocamp}/vllm/envs.py",
+            "old_string": "# old",
+            "new_string": "VLLM_OP001: bool = True",
+        }, cwd=nocamp)
+        assert result.returncode == 0, f"Should stay silent outside a campaign. stderr: {result.stderr}"
+        assert result.stdout == "" and result.stderr == ""
 
 
 class TestPumiceEnvGuard:
@@ -151,7 +183,7 @@ class TestPumiceEnvGuard:
     def test_blocks_new_pumice_env_in_py(self):
         """A PUMICE_* name not in the allowlist is a new engine env → block."""
         result = _run_hook({
-            "file_path": "/workspace/pumice/src/pumice/config.py",
+            "file_path": f"{E}/src/pumice/config.py",
             "old_string": "# old",
             "new_string": 'x = os.getenv("PUMICE_NEW_CAMPAIGN_FLAG", "1")',
         })
@@ -161,7 +193,7 @@ class TestPumiceEnvGuard:
     def test_blocks_default_change_to_allowlisted_pumice_env(self):
         """Supplying a default for a known PUMICE_* env is a default change → block."""
         result = _run_hook({
-            "file_path": "/workspace/pumice/src/pumice/config.py",
+            "file_path": f"{E}/src/pumice/config.py",
             "old_string": "# old",
             "new_string": 'x = os.getenv("PUMICE_CACHE_ROOT", "/tmp/new")',
         })
@@ -171,7 +203,7 @@ class TestPumiceEnvGuard:
     def test_blocks_new_pumice_env_in_rust(self):
         """A new PUMICE_* env read via std::env::var in a .rs file → block."""
         result = _run_hook({
-            "file_path": "/workspace/pumice/pumice-rust/src/foo.rs",
+            "file_path": f"{E}/pumice-rust/src/foo.rs",
             "old_string": "// old",
             "new_string": 'let v = std::env::var("PUMICE_MADE_UP_THING");',
         })
@@ -181,7 +213,7 @@ class TestPumiceEnvGuard:
     def test_allows_pumice_models_registry_dict(self):
         """PUMICE_MODELS is the _PUMICE_MODELS registry dict, not an env — never flagged."""
         result = _run_hook({
-            "file_path": "/workspace/pumice/src/pumice/models/registry.py",
+            "file_path": f"{E}/src/pumice/models/registry.py",
             "old_string": "# old",
             "new_string": '_PUMICE_MODELS = { "gpt_oss": GptOss }',
         })
@@ -190,7 +222,7 @@ class TestPumiceEnvGuard:
     def test_allows_allowlisted_pumice_read_without_default(self):
         """Reading a known PUMICE_* env with no default is not a change → allow."""
         result = _run_hook({
-            "file_path": "/workspace/pumice/src/pumice/config.py",
+            "file_path": f"{E}/src/pumice/config.py",
             "old_string": "# old",
             "new_string": 'x = os.environ["PUMICE_CACHE_ROOT"]',
         })
@@ -199,7 +231,7 @@ class TestPumiceEnvGuard:
     def test_allows_new_pumice_env_in_non_code_file(self):
         """The PUMICE_* rule only inspects .py and .rs files."""
         result = _run_hook({
-            "file_path": "/workspace/pumice/docs/readme.md",
+            "file_path": f"{E}/docs/readme.md",
             "old_string": "# old",
             "new_string": 'os.getenv("PUMICE_MADE_UP_THING", "1")',
         })
@@ -210,8 +242,6 @@ class TestPumiceEnvAllowlistFile:
     """The seeded allowlist counts are pinned (WS5.1)."""
 
     ALLOWLIST = ROOT / "hooks" / "pumice_env_allowlist.txt"
-    CLAUDE_COPY = ROOT / "hooks" / "pumice_env_allowlist.txt"
-    CODEX_COPY = ROOT / "ai_cli_session" / ".codex" / "hooks" / "pumice_env_allowlist.txt"
 
     def _names(self, path):
         pumice, vllm = [], []
@@ -226,27 +256,28 @@ class TestPumiceEnvAllowlistFile:
         return pumice, vllm
 
     def test_canonical_counts(self):
-        """134 PUMICE_* names (seed grep at 9d126713) plus 8 VLLM_* names."""
+        """144 PUMICE_* names (seed grep at the pinned commit) plus 8 VLLM_* names."""
         assert self.ALLOWLIST.is_file(), f"Missing allowlist: {self.ALLOWLIST}"
         pumice, vllm = self._names(self.ALLOWLIST)
-        assert len(pumice) == 134, f"expected 134 PUMICE_* names, got {len(pumice)}"
+        assert len(pumice) == 144, f"expected 144 PUMICE_* names, got {len(pumice)}"
         assert len(vllm) == 8, f"expected 8 VLLM_* names, got {len(vllm)}"
-        assert len(set(pumice)) == 134, "PUMICE_* names must be unique"
+        assert len(set(pumice)) == 144, "PUMICE_* names must be unique"
         assert "PUMICE_MODELS" not in pumice, "PUMICE_MODELS is the registry dict, not an env"
 
-    def test_runtime_copies_match_canonical(self):
-        """render_ammo_variants.py keeps the .claude and .codex copies byte-identical."""
-        canonical = self.ALLOWLIST.read_bytes()
-        assert self.CLAUDE_COPY.read_bytes() == canonical, "claude copy drifted; run render_ammo_variants.py"
-        assert self.CODEX_COPY.read_bytes() == canonical, "codex copy drifted; run render_ammo_variants.py"
+    def test_codex_guard_reads_this_file(self):
+        """One allowlist: the Codex guard reads <plugin>/hooks/pumice_env_allowlist.txt by path."""
+        source = CODEX_GUARD.read_text()
+        assert "plugin_path('hooks','pumice_env_allowlist.txt')" in source.replace(" ", ""), (
+            "codex/hooks/pre_tool_use_guard.py must read hooks/pumice_env_allowlist.txt"
+        )
 
 
 class TestSettingsRegistration:
-    """Verify the hook is registered in settings.local.json."""
+    """Verify the hook is registered in the plugin's hooks/hooks.json."""
 
     def test_env_guard_registered_in_settings(self):
-        """settings.local.json must have PreToolUse hook for Edit|Write."""
-        with open(SETTINGS) as f:
+        """hooks/hooks.json must have PreToolUse hook for Edit|Write."""
+        with open(HOOKS_JSON) as f:
             settings = json.load(f)
 
         pre_tool_hooks = settings.get("hooks", {}).get("PreToolUse", [])
@@ -254,7 +285,7 @@ class TestSettingsRegistration:
             h for h in pre_tool_hooks if h.get("matcher") in ("Edit|Write", "Edit", "Write")
         ]
         assert len(edit_write_hooks) >= 1, (
-            "settings.local.json must have a PreToolUse hook for Edit|Write"
+            "hooks/hooks.json must have a PreToolUse hook for Edit|Write"
         )
         hook_cmds = [
             cmd.get("command", "")
@@ -281,6 +312,8 @@ class TestPretoolGuardN5Warning:
 
 class _PlainSystemToolsMixin:
     """Run every inherited case again with PATH=/usr/bin:/bin plus jq only.
+
+    python3 must be in /usr/bin or /bin: the campaign lookup needs it.
 
     The hook runs in a plain bash subprocess, which does not inherit shell
     functions or aliases (for example a grep function that routes to ugrep).

@@ -1,14 +1,19 @@
 #!/bin/bash
 # PostToolUse hook — non-blocking warning when files land outside the
-# canonical AMMO V2 artifact layout under kernel_opt_artifacts/.
+# canonical AMMO V2 artifact layout under the campaign dir.
 #
-# Spec: docs/superpowers/specs/2026-05-12-ammo-artifact-layout-design.md
 # Reference: references/artifact-layout.md
 #
-# Matchers (configured in settings.local.json): Write, Edit, Bash.
+# Matchers (hooks/hooks.json): Write, Edit, Bash.
 #   - Write/Edit: extracts tool_input.file_path
-#   - Bash: scans command for `> path`, `mkdir -p path`, `--out PATH`, etc.,
-#     limited to paths containing kernel_opt_artifacts/.
+#   - Bash: scans the command for path tokens that name the campaign dir: the
+#     campaign_root form from scripts/artifact_layout.json (for example an
+#     engine-relative token), or a $AMMO_ARTIFACT_DIR / ${AMMO_ARTIFACT_DIR}
+#     prefix.
+#
+# Campaign scope (_find_campaign.sh): a path is checked only when it resolves
+# inside the campaign dir (ammo_in_campaign), and is checked relative to it.
+# Outside a campaign the hook exits 0 and prints nothing.
 #
 # Non-blocking: only emits additionalContext warnings. Never returns
 # {"decision": "block"} — layout drift is an organizational hazard, not a
@@ -23,6 +28,17 @@ if ! command -v jq &>/dev/null; then exit 0; fi
 INPUT=$(cat)
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || true
 [ -z "$TOOL" ] && exit 0
+case "$TOOL" in
+    Write|Edit|MultiEdit|Bash) ;;
+    *) exit 0 ;;
+esac
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(cd "$HOOK_DIR/.." && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
+HOOK_CWD=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null) || HOOK_CWD=""
+REL_BASE="${HOOK_CWD:-${CLAUDE_PROJECT_DIR:-$PWD}}"
 
 # Allowed regex patterns relative to {artifact_dir}/, DERIVED from the shared
 # manifest scripts/artifact_layout.json. No path fact is restated
@@ -34,10 +50,14 @@ TOOL=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || true
 # exact pattern for every proper directory ancestor, so a bare `rounds/3/sweeps`
 # token reads as a directory reference and not as drift.
 #
-# Fail-open and LOUD: a missing or corrupt manifest disables checking with a
-# stderr diagnostic. It never degrades to an empty allowlist, which would warn
-# on every correct write.
-LAYOUT_MANIFEST="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../scripts/artifact_layout.json"
+# The first output line is "ROOT <regex>": the campaign_root key compiled the
+# same way. The Bash extractor uses it to find campaign path tokens, so the
+# root name is read from the manifest and never restated here.
+#
+# Fail-open and LOUD: a missing or corrupt manifest (or one without the
+# campaign_root key) disables checking with a stderr diagnostic. It never
+# degrades to an empty allowlist, which would warn on every correct write.
+LAYOUT_MANIFEST="$PLUGIN_ROOT/scripts/artifact_layout.json"
 
 PATTERN_TEXT=$(AMMO_LAYOUT_MANIFEST="$LAYOUT_MANIFEST" python3 -c '
 import json, os, sys
@@ -70,6 +90,11 @@ slots = manifest["slots"]
 if not slots:
     raise SystemExit("empty slots")
 
+root = manifest["campaign_root"]
+if not isinstance(root, str) or not root.strip("/"):
+    raise SystemExit("no campaign_root")
+sys.stdout.write("ROOT " + compile_template(root, tokens, placeholders) + "\n")
+
 templates = [slot["path_template"] for slot in slots.values()]
 templates += manifest.get("open_dirs", [])
 
@@ -90,10 +115,19 @@ if [ -z "$PATTERN_TEXT" ]; then
     exit 0
 fi
 
+ROOT_RE=""
 ALLOWED_PATTERNS=()
 while IFS= read -r line; do
-    [ -n "$line" ] && ALLOWED_PATTERNS+=("$line")
+    case "$line" in
+        "ROOT "*) ROOT_RE="${line#ROOT }" ;;
+        ?*) ALLOWED_PATTERNS+=("$line") ;;
+    esac
 done <<< "$PATTERN_TEXT"
+
+if [ -z "$ROOT_RE" ]; then
+    echo "LAYOUT WARN HOOK DISABLED: layout manifest ${LAYOUT_MANIFEST} has no campaign_root." >&2
+    exit 0
+fi
 
 if [ "${#ALLOWED_PATTERNS[@]}" -eq 0 ]; then
     echo "LAYOUT WARN HOOK DISABLED: layout manifest ${LAYOUT_MANIFEST} produced no patterns." >&2
@@ -104,7 +138,7 @@ fi
 emit_warn() {
     local rel="$1"
     local msg
-    msg="LAYOUT WARN: ${rel} is outside the canonical AMMO V2 layout. Expected: rounds/{N}/{profiling|sweeps|mining|debate|tracks|audits|_archive}/... See references/artifact-layout.md § Prohibited Patterns."
+    msg="LAYOUT WARN: ${rel} is outside the canonical AMMO V2 layout. Expected: rounds/{N}/{profiling|sweeps|mining|debate|tracks|audits|_archive}/... See ${PLUGIN_ROOT}/references/artifact-layout.md § Prohibited Patterns."
     jq -c -n --arg msg "$msg" '
     {
         hookSpecificOutput: {
@@ -114,26 +148,37 @@ emit_warn() {
     }'
 }
 
-# Helper: classify one absolute path. Returns 0 (conforming) or 1 (warn-worthy).
+# Helper: resolve path tokens (one per line on stdin). A leading
+# $AMMO_ARTIFACT_DIR / ${AMMO_ARTIFACT_DIR} expands to the campaign dir; a
+# relative token resolves against REL_BASE (the tool call's cwd). Prints
+# "<realpath>\t<path relative to the campaign dir>" per token; tokens that
+# leave the campaign dir print nothing. ammo_in_campaign still decides.
+resolve_paths() {
+    AMMO_LAYOUT_BASE="$REL_BASE" python3 -c '
+import os, sys
+camp = os.path.realpath(os.environ["AMMO_ARTIFACT_DIR"])
+base = os.environ["AMMO_LAYOUT_BASE"]
+for raw in sys.stdin.read().splitlines():
+    p = raw.strip()
+    if not p:
+        continue
+    for var in ("${AMMO_ARTIFACT_DIR}", "$AMMO_ARTIFACT_DIR"):
+        if p.startswith(var):
+            p = os.environ["AMMO_ARTIFACT_DIR"] + p[len(var):]
+            break
+    real = os.path.realpath(os.path.join(base, os.path.expanduser(p)))
+    rel = os.path.relpath(real, camp)
+    if rel == "." or rel == ".." or rel.startswith("../"):
+        continue
+    print(real + "\t" + rel)
+' 2>/dev/null || true
+}
+
+# Helper: classify one resolved path. Returns 0 (conforming) or 1 (warn-worthy).
 # Prints the relative path on warning.
 check_path() {
-    local p="$1"
-    # Accept both absolute paths and repo-relative tokens: the Bash extractor at
-    # :111 yields `kernel_opt_artifacts/...` with no leading slash, which a
-    # `*/kernel_opt_artifacts/*` guard alone would skip silently.
-    case "$p" in
-        */kernel_opt_artifacts/*) ;;
-        kernel_opt_artifacts/*) p="/$p";;
-        *) return 0;;
-    esac
-
-    # Strip the longest prefix up to and including kernel_opt_artifacts/{target}/.
-    # The {target} segment is whatever follows kernel_opt_artifacts/.
-    local tail="${p##*/kernel_opt_artifacts/}"
-    # Drop the {target}/ segment, leaving the artifact-relative path.
-    local rel="${tail#*/}"
-    # If tail has no slash (path was just kernel_opt_artifacts/{file}), skip.
-    [ "$rel" = "$tail" ] && return 0
+    local p="$1" rel="$2"
+    ammo_in_campaign "$p" || return 0
 
     # Walk allowed patterns. A bare directory token — which the Bash extractor
     # below yields from ordinary `ls`/`grep` commands — matches either its own
@@ -154,23 +199,28 @@ case "$TOOL" in
     Write|Edit|MultiEdit)
         FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || true
         [ -z "$FILE_PATH" ] && exit 0
-        check_path "$FILE_PATH" || true
+        PATHS="$FILE_PATH"
         ;;
     Bash)
         CMD=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || true
         [ -z "$CMD" ] && exit 0
-        # Extract candidate paths under kernel_opt_artifacts/. We grep for
-        # tokens that match `[^ ]*kernel_opt_artifacts/[^ ]+`, dedup, and
-        # check each. Quotes are handled by the tokenizer below.
-        # Use Python to pull out plausible path tokens robustly.
-        PATHS=$(printf '%s' "$CMD" | python3 -c '
-import sys, re
+        # Extract candidate path tokens that name the campaign dir: the
+        # campaign_root form (ROOT_RE, from the manifest) anywhere in the
+        # token, or a $AMMO_ARTIFACT_DIR / ${AMMO_ARTIFACT_DIR} prefix. Dedup,
+        # then resolve and check each. Quotes are handled by the tokenizer.
+        PATHS=$(printf '%s' "$CMD" | AMMO_LAYOUT_ROOT_RE="$ROOT_RE" python3 -c '
+import os, sys, re
 text = sys.stdin.read()
-# Match tokens that contain kernel_opt_artifacts/ and look like paths.
+root = os.environ["AMMO_LAYOUT_ROOT_RE"]
 # Stop at whitespace, backticks, or quote boundaries.
+stop = r"[^\s`\"'\''<>|;)]"
+token = re.compile(
+    r"(?:\$\{AMMO_ARTIFACT_DIR\}|\$AMMO_ARTIFACT_DIR)/" + stop + r"+"
+    + r"|[^\s`\"'\''<>|;]*(?:" + root + r")" + stop + r"+"
+)
 seen = set()
 out = []
-for m in re.finditer(r"[^\s`\"'\''<>|;]*kernel_opt_artifacts/[^\s`\"'\''<>|;)]+", text):
+for m in token.finditer(text):
     p = m.group(0).rstrip("/.,;:")
     if p and p not in seen:
         seen.add(p)
@@ -178,16 +228,14 @@ for m in re.finditer(r"[^\s`\"'\''<>|;]*kernel_opt_artifacts/[^\s`\"'\''<>|;)]+"
 for p in out:
     print(p)
 ' 2>/dev/null) || true
-        if [ -n "$PATHS" ]; then
-            while IFS= read -r p; do
-                [ -z "$p" ] && continue
-                check_path "$p" || true
-            done <<< "$PATHS"
-        fi
-        ;;
-    *)
-        exit 0
         ;;
 esac
+
+if [ -n "$PATHS" ]; then
+    while IFS=$'\t' read -r abs rel; do
+        [ -n "$abs" ] && [ -n "$rel" ] || continue
+        check_path "$abs" "$rel" || true
+    done < <(printf '%s\n' "$PATHS" | resolve_paths)
+fi
 
 exit 0

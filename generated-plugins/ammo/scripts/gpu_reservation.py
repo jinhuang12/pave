@@ -14,9 +14,14 @@ Neuron IDs in this file are host-global IDs from the server-provided visible
 range. The child process sees them as application-local IDs starting at zero,
 which is the Neuron Runtime isolation contract.
 
-State lives under the backward-compatible ``AMMO_GPU_RES_DIR`` when set.
-Otherwise it falls back to a runtime-specific ``/tmp/ammo_*_res_<hash>`` path,
-so sessions with different visible accelerator pools do not share state.
+State lives under ``AMMO_GPU_RES_DIR`` when set. Otherwise CUDA uses the one
+host-wide lease table ``/tmp/ammo_gpu_res``, so two campaigns on one host can
+never hold the same physical GPU. The CUDA pool is every GPU that
+``nvidia-smi --query-gpu=index --format=csv,noheader`` lists (a torch device
+count is the fallback). ``reserve`` takes only GPUs that the caller's
+``CUDA_VISIBLE_DEVICES`` names, when it names any. Leases are owned by the
+session id, which is the campaign id. The Neuron binding keeps its
+visibility-hash state dir.
 
 Agents dynamically request N GPUs from the pool:
     CVD=$(python gpu_reservation.py reserve --num-gpus 2 \
@@ -100,8 +105,7 @@ def _discover_gpu_count() -> int:
     """Return the number of NVIDIA GPUs visible to nvidia-smi.
 
     Returns 0 on any failure (nvidia-smi not found, no GPUs, etc.).
-    NOTE: This function sees ALL host GPUs, ignoring session boundaries.
-    Use _discover_session_gpus() for session-scoped reservation pools.
+    The reservation pool comes from _discover_session_gpus().
     """
     try:
         result = subprocess.run(
@@ -117,36 +121,75 @@ def _discover_gpu_count() -> int:
 
 
 def _discover_session_gpus() -> list[int]:
-    """Discover which physical GPU IDs this session owns via CUDA_VISIBLE_DEVICES.
+    """Return the host GPU pool: every physical GPU ID on this host.
 
-    Parses the CUDA_VISIBLE_DEVICES environment variable to get the exact
-    physical GPU IDs allocated to this session by the server.
-
-    Critical for multi-session isolation: nvidia-smi sees all host GPUs,
-    but CUDA_VISIBLE_DEVICES reflects only THIS session's allocation.
-    Since CVD is non-composable (child CVD overrides parent entirely),
-    returned IDs are physical host IDs that must be used directly.
+    The pool is host-wide on purpose. ``nvidia-smi`` ignores
+    CUDA_VISIBLE_DEVICES, so every caller sees the same IDs, and the one
+    lease table keeps two campaigns off one GPU. When nvidia-smi is missing
+    or fails, a torch device count runs with CUDA_VISIBLE_DEVICES cleared,
+    so it also counts every GPU. The caller's own visibility is applied at
+    reserve time (_caller_visible_gpus()).
 
     Returns:
-        Sorted list of integer GPU IDs, e.g. [4, 5, 6, 7].
-        Empty list if CUDA_VISIBLE_DEVICES is unset, empty, or "-1".
+        Sorted list of integer GPU IDs, e.g. [0, 1, 2, 3].
+        Empty list when neither nvidia-smi nor torch reports a GPU.
     """
-    cvd = os.environ.get("CUDA_VISIBLE_DEVICES", "")
-    if not cvd or cvd == "-1":
-        return []
-    gpu_ids = []
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=index", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            ids = sorted({int(line.strip()) for line in result.stdout.splitlines()
+                          if line.strip().isdigit()})
+            if ids:
+                return ids
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return _torch_gpu_ids()
+
+
+def _torch_gpu_ids() -> list[int]:
+    """Fallback pool: torch's device count with CUDA_VISIBLE_DEVICES cleared."""
+    env = {k: v for k, v in os.environ.items() if k != "CUDA_VISIBLE_DEVICES"}
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c",
+             "import torch; print(torch.cuda.device_count())"],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env=env,
+        )
+        count = int(result.stdout.strip()) if result.returncode == 0 else 0
+    except (OSError, subprocess.SubprocessError, ValueError):
+        count = 0
+    return list(range(count))
+
+
+def _caller_visible_gpus() -> set[int] | None:
+    """Return the GPU IDs the caller's CUDA_VISIBLE_DEVICES allows.
+
+    None means no filter: the variable is unset or empty. Otherwise the set
+    holds its integer IDs. "-1", or a list with no integer ID, allows none.
+    GPU-/MIG- UUID entries cannot be matched to pool indices and are skipped.
+    """
+    cvd = os.environ.get("CUDA_VISIBLE_DEVICES", "").strip()
+    if not cvd:
+        return None
+    visible: set[int] = set()
     for x in cvd.split(","):
         x = x.strip()
         if x.isdigit():
-            gpu_ids.append(int(x))
+            visible.add(int(x))
         elif x.startswith("GPU-") or x.startswith("MIG-"):
             logger.warning(
-                f"Non-integer GPU ID in CUDA_VISIBLE_DEVICES: {x} — skipping. "
+                f"Non-integer GPU ID in CUDA_VISIBLE_DEVICES: {x}, skipping. "
                 "gpu_reservation.py requires integer GPU IDs."
             )
-    if gpu_ids:
-        logger.info(f"GPU reservation pool initialized with physical IDs: {gpu_ids}")
-    return sorted(gpu_ids)
+    return visible
 
 
 def _accelerator_kind() -> str:
@@ -204,10 +247,20 @@ def _discover_session_neuron_cores() -> list[int]:
     return list(range(start, end + 1))
 
 
-def _discover_session_resources() -> list[int]:
+def _discover_pool() -> list[int]:
+    """The resource table a fresh state file is created with."""
     if _accelerator_kind() == "neuron":
         return _discover_session_neuron_cores()
     return _discover_session_gpus()
+
+
+def _discover_session_resources() -> list[int]:
+    """Resources this caller may use: the pool seen through its visibility."""
+    if _accelerator_kind() == "neuron":
+        return _discover_session_neuron_cores()
+    pool = _discover_session_gpus()
+    visible = _caller_visible_gpus()
+    return pool if visible is None else [gid for gid in pool if gid in visible]
 
 
 def _resource_name(*, plural: bool = True) -> str:
@@ -240,13 +293,10 @@ def _format_released_resources(resource_ids: list[int]) -> str:
 def _compute_state_dir() -> Path:
     """Compute the state directory path at call time.
 
-    Uses AMMO_GPU_RES_DIR env var if set (injected by the server at session
-    creation for per-session isolation).
-
-    Falls back to /tmp/ammo_gpu_res_{sha256(CVD)[:12]}/ using a SHA256 hash
-    of CUDA_VISIBLE_DEVICES. This is deterministic across processes (unlike
-    hash() which is randomized by PYTHONHASHSEED) and provides isolation
-    between sessions with different GPU allocations.
+    Uses the AMMO_GPU_RES_DIR env var if set. Otherwise CUDA uses the
+    host-wide /tmp/ammo_gpu_res, whatever CUDA_VISIBLE_DEVICES says, so all
+    campaigns on one host share one lease table. Neuron keeps a hash of its
+    visible range.
     """
     env_dir = os.environ.get("AMMO_GPU_RES_DIR")
     if env_dir:
@@ -258,30 +308,33 @@ def _compute_state_dir() -> Path:
         )
         hash_suffix = hashlib.sha256(visible.encode()).hexdigest()[:12]
         return Path(f"/tmp/ammo_neuron_res_{hash_suffix}")
-    cvd = os.environ.get("CUDA_VISIBLE_DEVICES", "")
-    hash_suffix = hashlib.sha256(cvd.encode()).hexdigest()[:12]
-    return Path(f"/tmp/ammo_gpu_res_{hash_suffix}")
+    return Path(DEFAULT_GPU_RES_DIR)
 
 
 # Delays between successive flock attempts (seconds).  4 delays -> 5 attempts.
+DEFAULT_GPU_RES_DIR = "/tmp/ammo_gpu_res"
 STATE_DIR: Path = _compute_state_dir()
 BACKOFF_DELAYS: list[float] = [0.1, 0.2, 0.4, 0.8]
 
 
 def _init_state() -> dict:
-    """Create and persist initial state from the session accelerator pool.
+    """Create and persist initial state from the accelerator pool.
 
-    CUDA uses session-owned physical IDs from ``CUDA_VISIBLE_DEVICES``. Neuron
-    uses the exclusive host-global range from ``NEURON_VISIBLE_DEVICES`` (with
-    ``NEURON_RT_VISIBLE_CORES`` accepted for standalone legacy commands).
+    CUDA uses every physical GPU on the host (_discover_session_gpus()).
+    Neuron uses the exclusive host-global range from ``NEURON_VISIBLE_DEVICES``
+    (with ``NEURON_RT_VISIBLE_CORES`` accepted for standalone legacy commands).
+
+    An empty pool is returned but not written, so one call on a host without
+    a GPU tool cannot freeze the shared table empty. The first write never
+    replaces a table another process wrote first (_create_state()).
     """
-    STATE_DIR.mkdir(parents=True, exist_ok=True)
     accelerator_kind = _accelerator_kind()
-    resource_ids = _discover_session_resources()
+    resource_ids = _discover_pool()
     state: dict = {
         "gpu_count": len(resource_ids) if accelerator_kind == "cuda" else 0,
         "runtime_profile": (
-            "vllm-neuron" if accelerator_kind == "neuron" else "vllm-cuda"
+            "vllm-neuron" if accelerator_kind == "neuron"
+            else os.environ.get("AMMO_RUNTIME_PROFILE") or "pumice-cuda"
         ),
         "accelerator_kind": accelerator_kind,
         "resource_unit": (
@@ -297,8 +350,34 @@ def _init_state() -> dict:
     }
     table_name = "resources" if accelerator_kind == "neuron" else "gpus"
     state[table_name] = {str(resource_id): None for resource_id in resource_ids}
-    _write_state(state)
-    return state
+    if not resource_ids:
+        return state
+    return _create_state(state)
+
+
+def _create_state(state: dict) -> dict:
+    """Write state.json only if it does not exist yet; return what is on disk.
+
+    ``status`` reads without the lock, so two first calls can race. A hard
+    link refuses to replace an existing file, so a fresh empty table never
+    overwrites a lease another process just wrote.
+    """
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    target = _state_path()
+    fd, tmp_path = tempfile.mkstemp(dir=STATE_DIR, suffix=".json.tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(state, f, indent=2)
+        try:
+            os.link(tmp_path, target)
+        except FileExistsError:
+            return json.loads(target.read_text())
+        return state
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
 
 def _acquire_flock() -> IO:
@@ -519,10 +598,14 @@ def reserve(
 
         # --- Find free GPUs ---
         # Iterate the actual pool keys (physical IDs), not range(gpu_count).
-        # This is critical for multi-session isolation: physical IDs may be
-        # non-contiguous (e.g. [4,5,6,7]), and range(gpu_count) would wrongly
-        # return 0-based indices that map to different physical GPUs.
-        all_pool_ids = sorted(int(k) for k in resources.keys())
+        # Physical IDs may be non-contiguous (e.g. [4,5,6,7]), and
+        # range(gpu_count) would wrongly return 0-based indices that map to
+        # different physical GPUs. A caller restricted by CUDA_VISIBLE_DEVICES
+        # gets only GPUs it can see.
+        visible = _caller_visible_gpus() if _accelerator_kind() == "cuda" else None
+        all_pool_ids = sorted(
+            int(k) for k in resources.keys() if visible is None or int(k) in visible
+        )
         free_set = set()
         for gpu_id in all_pool_ids:
             if resources.get(str(gpu_id)) is None:
@@ -599,8 +682,10 @@ def reserve(
 def _default_session_id() -> str:
     """Return the portable default reservation owner.
 
-    The server injects AMMO_SESSION_ID for every CLI tool. CLAUDE_SESSION_ID is
-    the Claude-runtime fallback. 'cli' is the last resort for manual use.
+    AMMO_SESSION_ID is the campaign id; inside a campaign the CLI fills it
+    from the .ammo/active marker (campaign_paths.apply_env()).
+    CLAUDE_SESSION_ID is the Claude-runtime fallback. 'cli' is the last resort
+    for manual use.
     """
     return (
         os.environ.get("AMMO_SESSION_ID")
@@ -821,7 +906,21 @@ def print_table(state: dict) -> None:
 # CLI interface
 # ---------------------------------------------------------------------------
 
+def _apply_campaign_env() -> None:
+    """Fill the campaign names (AMMO_SESSION_ID, AMMO_GPU_RES_DIR, ...) that
+    are unset, then recompute STATE_DIR from them. Explicit env wins."""
+    global STATE_DIR
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import campaign_paths
+    except ImportError:
+        return
+    campaign_paths.apply_env()
+    STATE_DIR = _compute_state_dir()
+
+
 if __name__ == "__main__":
+    _apply_campaign_env()
     parser = argparse.ArgumentParser(
         description="AMMO accelerator reservation pool manager"
     )

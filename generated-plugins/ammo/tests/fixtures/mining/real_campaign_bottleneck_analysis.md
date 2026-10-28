@@ -1,4 +1,4 @@
-# Bottleneck Analysis (Stage 2, Round 1) — Qwen/Qwen3.5-4B, L40S, bf16, TP=1
+# Bottleneck Analysis (Stage 2, Round 1) - Qwen/Qwen3.5-4B, L40S, bf16, TP=1
 
 Mining of EXISTING Stage-1 evidence only (no re-run). All timings are *measured*
 from the Stage-1 clean E2E sweep and the bounded nsys node-mode traces; all
@@ -9,7 +9,7 @@ SM 8.9 / `memoryBandwidth = 864.096 GB/s` / 142 SMs / 96 MiB L2).
 ## Evidence Sources (primary artifacts)
 
 - Clean E2E baseline (AUTHORITATIVE, profiler-free):
-  `rounds/1/sweeps/baseline/e2e_latency_results.json` — BS=32, IL=64, OL=512,
+  `rounds/1/sweeps/baseline/e2e_latency_results.json` - BS=32, IL=64, OL=512,
   num_iters=10, `CompilationMode.VLLM_COMPILE` + `CUDAGraphMode.FULL_AND_PIECEWISE`.
 - nsys node-mode traces at three decode depths (bottleneck attribution;
   profiler latency here is contaminated and NOT used for timing):
@@ -40,7 +40,7 @@ capture-window transient" note.
 **decode_busy is measured, not assumed.** Within the isolated steady-state step
 the kernels run essentially gap-free: busy/span = **0.9985** at every depth
 (idle 29.6 µs / 19.7 ms at step 512). This is the signature of full CUDA-graph
-replay — there is almost no intra-step host/launch gap. The dilution `decode_busy`
+replay - there is almost no intra-step host/launch gap. The dilution `decode_busy`
 below is computed at the E2E level (mean per-step kernel busy / measured tpot),
 which is the E2E-relevant quantity.
 
@@ -104,8 +104,8 @@ Final column `f_e2e × (1 - 1/ceiling)` is the physically addressable E2E impact
 | flash_combine (FA2 splitkv combine) | 32 | 0.13 | 0.0013 | (disclosed) | (disclosed) | Yes |
 | kv_cache_write (reshape_and_cache + slot_mapping) | 32 | 0.08 | 0.0008 | (disclosed) | (disclosed) | Yes |
 | gather_index | 32 | 0.01 | 0.0001 | (disclosed) | (disclosed) | Yes |
-| **inter_kernel_slack** | 32 | — | 0.00362 | 1.0 | 0.00362 | — |
-| **prefill (all)** | 32 | — | 0.0108 | (disclosed) | (disclosed) | (is prefill) |
+| **inter_kernel_slack** | 32 | - | 0.00362 | 1.0 | 0.00362 | - |
+| **prefill (all)** | 32 | - | 0.0108 | (disclosed) | (disclosed) | (is prefill) |
 
 Notes:
 - `dense_proj_GEMM` aggregates every dense projection across all 32 layers:
@@ -130,7 +130,7 @@ Distinct CUDA kernels inside the family (from `demangledName` + grid dims):
 | `ampere_bf16_s16816gemm_bf16_64x128_ldg8_f2f_stages_64x3_tn` | 32 | 5898 | 184.3 | g288 / r158 | largest proj family (1/layer) |
 | `cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32` (bimodal) | 88 | 4236 | 2.5 & 48–94 | g8x10 / r90 | multiple proj GEMMs/layer |
 | `ampere_bf16_s16816gemm_bf16_128x64_ldg8_f2f_stages_64x3_tn` | 32 | 3230 | 100.9 | g96/g80 / r158 | proj family (1/layer) |
-| `cublasLt::splitKreduce_kernel` | 56 | 91 | 1.6 | — | split-K epilogue reduce |
+| `cublasLt::splitKreduce_kernel` | 56 | 91 | 1.6 | - | split-K epilogue reduce |
 
 All dispatch through `torch.nn.functional.linear` →
 `UnquantizedLinearMethod.apply` → `dispatch_unquantized_gemm()` →
@@ -143,7 +143,7 @@ Within one steady-state decode step (step 512, timestamp order):
 
 **Linear-attention (GDN) layer (×24):**
 `[triton fused add+rms_norm]` → `in_proj_qkvz GEMM (ampere s16816)` →
-`triton fused (to_copy/cat/rms/split — QKV+conv prep)` → `_causal_conv1d_update`
+`triton fused (to_copy/cat/rms/split - QKV+conv prep)` → `_causal_conv1d_update`
 → `fused_recurrent_gated_delta_rule_packed_decode` (grid 4×1024×1, 209 regs) →
 `triton fused mul/silu gate + RMSNormGated` → `out_proj GEMM` → residual add →
 `[rms_norm]` → `gate_up GEMM` → `triton_poi_fused_mul_silu` → `down GEMM`.
@@ -209,7 +209,7 @@ shape class inherits only its sub-share.
 Weight-read floor = 1471 µs. Measured = 1968 µs. Ceiling = 1968 / 1471 = **1.337×**.
 - compute floor: 40.7 GFLOP → 112 µs, again far below the BW floor → BW-bound.
 
-**GDN_recurrent — disclosed, no clean closed-form ceiling asserted.** The
+**GDN_recurrent - disclosed, no clean closed-form ceiling asserted.** The
 temporal SSM state is **fp32** (HF `text_config.mamba_ssm_dtype = "float32"`,
 applied by vLLM `Qwen3_5ForConditionalGenerationConfig.verify_and_update_config`,
 `vllm/model_executor/models/config.py:613-616`; conv state bf16). Per-step state
@@ -222,10 +222,10 @@ of the 96 MiB L2) is not pinned down from nsys alone. **A hardware-counter
 (achieved-bandwidth) NCU measurement would be required to assert a GDN physical
 ceiling; I did not run one because no top-3 addressable ranking depends on it**
 (GDN removable fraction is undetermined, so it cannot be the max-addressable
-slice regardless). Grid = 4×1024×1, 209 regs/thread — high register pressure is
+slice regardless). Grid = 4×1024×1, 209 regs/thread - high register pressure is
 observable but an occupancy-limited claim would also need NCU.
 
-**flash_attn — disclosed.** FA2 splitkv, grows with KV depth (132 → 502 → 867 µs
+**flash_attn - disclosed.** FA2 splitkv, grows with KV depth (132 → 502 → 867 µs
 across steps 2/256/512), so its share is depth-dependent; only 0.7%→4.4% of
 decode. head_dim=256 (grid 1×2×128). No ceiling asserted; a bandwidth ceiling for
 paged-KV read would need NCU counters and is not top-3 addressable.
@@ -251,7 +251,7 @@ Top-3 addressable kernel opportunities by `f_e2e × removable_fraction`:
 ### dense_proj_GEMM (all dense projections; `torch.nn.functional.linear` → cuBLAS/cuBLASLt)
 - Authoring class: **library:cuBLAS/cuBLASLt** (via PyTorch `F.linear`). Symbols
   are `ampere_bf16_s16816gemm_*` and `cutlass_80_wmma_tensorop_bf16_*` +
-  `cublasLt::splitKreduce_kernel` — cuBLASLt-selected Ampere/CUTLASS bf16 tensor-op
+  `cublasLt::splitKreduce_kernel` - cuBLASLt-selected Ampere/CUTLASS bf16 tensor-op
   GEMMs.
 - Evidence: dispatch `vllm/model_executor/layers/linear.py:225`
   (`dispatch_unquantized_gemm()`) → `vllm/model_executor/layers/utils.py:332`
@@ -260,10 +260,10 @@ Top-3 addressable kernel opportunities by `f_e2e × removable_fraction`:
 - SM generation (this deployment): **SM89** (L40S / AD102, from trace `TARGET_INFO_GPU`).
 - Op character: **structured tensor-core** GEMV/skinny-GEMM (BS=32 tokens ×
   weight matrices), memory-bandwidth-bound at this batch size (AI≈32 ≪ ridge 419).
-- Library coverage for this op+shape+dtype: mature — cuBLASLt is the incumbent
+- Library coverage for this op+shape+dtype: mature - cuBLASLt is the incumbent
   tuned path for bf16 dense GEMM on SM89; CUTLASS provides the wmma kernels
   already dispatched. No FP8/INT quant is in play (bf16 frozen), so quant-GEMM
-  libraries (DeepGEMM — not importable here; Marlin/machete) do not apply without
+  libraries (DeepGEMM - not importable here; Marlin/machete) do not apply without
   changing dtype. This is a memory-bound bf16 GEMM family; the removable fraction
   is bounded by the 1.619× BW-floor ceiling.
 
@@ -279,7 +279,7 @@ Top-3 addressable kernel opportunities by `f_e2e × removable_fraction`:
 - Op character: **structured tensor-core** GEMM, `[32 × 2560] × [2560 × 248320]`,
   memory-bandwidth-bound (1.184 GiB weight read dominates; compute floor 112 µs
   ≪ BW floor 1471 µs).
-- Library coverage for this op+shape+dtype: mature — CUTLASS/cuBLASLt bf16 GEMM.
+- Library coverage for this op+shape+dtype: mature - CUTLASS/cuBLASLt bf16 GEMM.
   The large vocab makes the weight read the floor; only a dtype change (weight
   quant) or vocab-partition/argmax-fusion changes the byte traffic. `logits_processor`
   already offers a vocab-parallel argmax path (`get_top_tokens`) that avoids
@@ -294,7 +294,7 @@ Top-3 addressable kernel opportunities by `f_e2e × removable_fraction`:
   (the 24 linear-attention layers), grid 4×1024×1, 209 regs. bf16 I/O, **fp32
   temporal state**.
 - SM generation (this deployment): **SM89**.
-- Op character: **novel algorithm / irregular** — gated-delta-rule linear-attention
+- Op character: **novel algorithm / irregular** - gated-delta-rule linear-attention
   recurrent state update (Mamba-style SSM scan), not a standard GEMM or softmax
   attention. State-bound (fp32 temporal state R/W dominates).
 - Library coverage for this op+shape+dtype: the vendored FLA Triton kernels ARE

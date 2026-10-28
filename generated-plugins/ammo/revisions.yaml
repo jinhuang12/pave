@@ -17,3 +17,42 @@ entries:
   commit: null
   derived_from: null
   run_id: null
+- revision: 1
+  kind: graph
+  applied_at: '2026-10-28T21:43:27Z'
+  digest_before: sha256:ca4687d250562775bab77bf8efcd27c92eddcb93bd5dd20381d59803f917a4be
+  digest_after: sha256:0cb5e922e1a8b74c8baef6dfe6c5b2eba3a8e80ed6ce65f11711d5e7d0d1f6ba
+  semantic_diff: 'Base: revision 0, digest sha256:ca4687d250562775bab77bf8efcd27c92eddcb93bd5dd20381d59803f917a4be.
+    Post-wave-1 name re-diff of the graph against the final skills/ammo/SKILL.md,
+    orchestration/*.md, agents/*.md, and scripts/transitions.json. Counts: 13 nodes,
+    47 edges, 45 outcomes, 13 roles, 5 control nodes unchanged; checks 30 become 31;
+    evidence definitions 15 become 16. 10 hunks, 69 added lines against 27 removed;
+    1314 lines become 1356. Every stage, audit, gate, outcome token, and status name
+    was already 1:1; the drift was in role text only. (1) Spawn addresses: the nine
+    agent-backed role purposes name the plugin address ammo:<role> (references/harness-binding.md),
+    for example ammo:ammo-auditor. (2) Stage 7b fact-check: the report writer no longer
+    runs it. The lead spawns a fresh ammo-delegate as the fact-checker after the writer
+    returns, with only the plugin_root line, the artifact_dir line, and the unchanged
+    assignment in agents/ammo-report-writer.md, and writes report_assets/report_fact_check.json
+    with ok, findings, and report_sha256 (SKILL.md Stage 7b). Role report_fact_checker
+    now says so; ammo_report_writer gains two forbidden effects (spawn the fact-checker,
+    write the record); ammo_delegate names the separate fact-check seat. New evidence
+    report_fact_check, produced by stage_7b_report and required by report_accepted.
+    Check report_fact_check_ok keeps its evaluator and gains the ok:false repair loop
+    as on_failure. New lead check report_fact_check_current (ok true, empty findings,
+    report_sha256 equal to the current REPORT.md bytes) guards both report_accepted
+    edges.'
+  approval: 'team-lead subtask, post-wave-1 re-diff (2026-10-28): fix any name drift
+    against the final SKILL.md, orchestration, and agents files; update the report_fact_checker
+    role and the Stage 7b text to the lead-run fact-check; use the ammo:<role> address
+    where the graph names a spawn address.'
+  user_only_changes: none
+  plan_evidence: verified
+  usage_evidence: none
+  review: Submitted to da-2 after apply as re-diff round 1; the verdict is in the
+    DONE report to team-lead.
+  written_by: unverified
+  patch: history/v1.patch
+  commit: null
+  derived_from: null
+  run_id: null

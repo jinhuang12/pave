@@ -1,13 +1,22 @@
 #!/bin/bash
 # Test harness for ammo-pretool-guard.sh (PreToolUse hook)
-# Run: bash .claude/hooks/test-ammo-pretool-guard.sh
+# Run: bash hooks/tests/test-ammo-pretool-guard.sh
 #
 # Tests:
 #   Bug S7a — Explicit CVD bypass: CUDA_VISIBLE_DEVICES=0 should NOT skip reservation check
 #   Bug S7b — Prefixed vllm/torchrun detection: CUDA_VISIBLE_DEVICES=0 vllm bench latency
 #   Regression — Existing functionality preserved
+#   Campaign scope — silent outside a campaign; one-shot key falls back to the
+#   hook input's session_id; worktree venv guard names `import pumice`
+#
+# TMPDIR is an engine root: .ammo/active names campaign test_target. Hooks
+# run with CLAUDE_PROJECT_DIR=$TMPDIR, so _find_campaign walks to the marker.
 
 set -euo pipefail
+
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' | grep -v '^AMMO_TEST_HOOK$' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
 
 # AMMO_TEST_HOOK lets a reviewer aim this harness at an ARCHIVED copy of the
 # hook to see which cases the archived version fails. Used to demonstrate
@@ -19,12 +28,14 @@ TOTAL=0
 
 # Create temporary test environment
 TMPDIR=$(mktemp -d)
-ARTIFACT_DIR="$TMPDIR/kernel_opt_artifacts/test_target"
+cd "$TMPDIR"
+ARTIFACT_DIR="$TMPDIR/.ammo/test_target"
 mkdir -p "$ARTIFACT_DIR"
+printf 'test_target\n' > "$TMPDIR/.ammo/active"
+NOCAMP=$(mktemp -d)
 
-# Create minimal state.json so AMMO campaign is detected as active.
-# ammo-pretool-guard.sh only globs for state.json file existence; field content
-# is not parsed. Seeded with v2 shape for consistency with the rest of the suite.
+# Minimal state.json. The campaign is found through the marker; the hook does
+# not parse state. Seeded with v2 shape for consistency with the rest of the suite.
 cat > "$ARTIFACT_DIR/state.json" << 'EOF'
 {
   "target": {"model_id": "test-model", "hardware": "H100", "dtype": "bf16", "tp": 1, "ep": 1, "component": "auto"},
@@ -56,7 +67,7 @@ GPU_RES_DIR="$TMPDIR/gpu_res"
 mkdir -p "$GPU_RES_DIR"
 
 cleanup() {
-    rm -rf "$TMPDIR"
+    rm -rf "$TMPDIR" "$NOCAMP"
     rm -f "$TMPDIR/hook-stderr"
 }
 trap cleanup EXIT
@@ -92,6 +103,31 @@ run_test() {
     else
         echo "  FAIL [$TOTAL]: $test_name (expected=$expected_exit, got=$actual_exit)"
         echo "        stderr: $(head -3 "$TMPDIR/hook-stderr" 2>/dev/null || echo '(none)')"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# run_raw PROJECT_DIR JSON [ENV-ARGS...]: run the hook from PROJECT_DIR with
+# an explicit input; ENV-ARGS go first to env (-u NAME, NAME=value). Sets
+# actual_exit; stdout/stderr land in $TMPDIR/hook-{stdout,stderr}.
+run_raw() {
+    local proj="$1" json="$2"
+    shift 2
+    actual_exit=0
+    rm -f "$GPU_RES_DIR/.warned_"* 2>/dev/null || true
+    echo "$json" | (cd "$proj" && env "$@" HOME="$TMPDIR" CLAUDE_PROJECT_DIR="$proj" AMMO_GPU_RES_DIR="$GPU_RES_DIR" \
+        bash "$HOOK") >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
+}
+
+check() {
+    TOTAL=$((TOTAL + 1))
+    if [ "$2" = "yes" ]; then
+        echo "  PASS [$TOTAL]: $1"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL [$TOTAL]: $1 (exit=$actual_exit)"
+        echo "        stdout: $(head -3 "$TMPDIR/hook-stdout" 2>/dev/null)"
+        echo "        stderr: $(head -3 "$TMPDIR/hook-stderr" 2>/dev/null)"
         FAIL=$((FAIL + 1))
     fi
 }
@@ -210,7 +246,48 @@ run_test "cat | grep | wc → allow (every segment inspection-class)" 0 \
     'cat state.json | grep status | wc -l'
 
 run_test "ls && git status → allow (both segments inspection-class)" 0 \
-    'ls kernel_opt_artifacts && git status'
+    'ls .ammo && git status'
+
+# ══════════════════════════════════════════════════
+echo ""
+echo "== Campaign scope =="
+# ══════════════════════════════════════════════════
+
+# No .ammo/active above the project dir or the input cwd: silent, exit 0,
+# no one-shot flag written.
+run_raw "$NOCAMP" "$(jq -n --arg c "$NOCAMP" '{hook_event_name:"PreToolUse",tool_name:"Bash",cwd:$c,tool_input:{command:"vllm bench latency --model /m"}}')" \
+    CLAUDE_SESSION_ID=test-session
+check "no campaign: GPU command without reservation → exit 0, silent" \
+    "$([ "$actual_exit" -eq 0 ] && [ ! -s "$TMPDIR/hook-stdout" ] && [ ! -s "$TMPDIR/hook-stderr" ] && echo yes || echo no)"
+check "no campaign: no one-shot flag written" \
+    "$(ls "$GPU_RES_DIR"/.warned_* >/dev/null 2>&1 && echo no || echo yes)"
+
+# No CLAUDE_SESSION_ID in env: the one-shot key is the hook input's session_id.
+run_raw "$TMPDIR" "$(jq -n '{hook_event_name:"PreToolUse",tool_name:"Bash",session_id:"payload-sid",tool_input:{command:"vllm bench latency --model /m"}}')" \
+    -u CLAUDE_SESSION_ID
+check "no CLAUDE_SESSION_ID: pool guard still fires (exit 2)" \
+    "$([ "$actual_exit" -eq 2 ] && echo yes || echo no)"
+check "no CLAUDE_SESSION_ID: flag keyed by input session_id" \
+    "$([ -f "$GPU_RES_DIR/.warned_payload-sid" ] && echo yes || echo no)"
+check "pool guard message names the plugin's reserve command" \
+    "$(grep -qF "$(cd "$(dirname "$HOOK")/.." && pwd)/scripts/ammo gpu_reservation.py reserve" "$TMPDIR/hook-stderr" && echo yes || echo no)"
+
+# Worktree venv guard: python in a track worktree without its venv → one-shot
+# block that tells the agent to check `import pumice`.
+WT="$TMPDIR/.claude/worktrees/op001"
+mkdir -p "$WT"
+run_raw "$TMPDIR" "$(jq -n --arg c "$WT" '{hook_event_name:"PreToolUse",tool_name:"Bash",cwd:$c,tool_input:{command:"python analyze.py"}}')" \
+    CLAUDE_SESSION_ID=test-session
+check "worktree venv: python without the worktree venv → exit 2" \
+    "$([ "$actual_exit" -eq 2 ] && grep -q 'AMMO WORKTREE VENV' "$TMPDIR/hook-stderr" && echo yes || echo no)"
+check "worktree venv: message checks import pumice" \
+    "$(grep -q 'import pumice; print(pumice.__file__)' "$TMPDIR/hook-stderr" && echo yes || echo no)"
+run_raw "$TMPDIR" "$(jq -n --arg c "$WT" '{hook_event_name:"PreToolUse",tool_name:"Bash",cwd:$c,tool_input:{command:"python -c \"import pumice; print(pumice.__file__)\""}}')" \
+    CLAUDE_SESSION_ID=test-session
+# The venv guard is exempt; the pool guard after it may still fire, as the
+# classifier decides, so only the venv message is checked.
+check "worktree venv: bare import pumice check is exempt from the venv guard" \
+    "$(grep -q 'AMMO WORKTREE VENV' "$TMPDIR/hook-stderr" && echo no || echo yes)"
 
 # ══════════════════════════════════════════════════
 echo ""

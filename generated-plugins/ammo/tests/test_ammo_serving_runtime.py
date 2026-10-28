@@ -25,6 +25,8 @@ def reservation(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'STATE_DIR', tmp_path/'claims')
     monkeypatch.setenv('AMMO_RUNTIME_PROFILE', 'vllm-cuda')
     monkeypatch.setenv('CUDA_VISIBLE_DEVICES', '0,1')
+    # The pool is every host GPU (conventions section 5), not the caller's CVD.
+    monkeypatch.setattr(module, '_discover_session_gpus', lambda: [0, 1])
     module.read_state()
     return module
 

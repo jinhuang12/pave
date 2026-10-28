@@ -7,7 +7,9 @@ Section 3 (AMMO Skill) + Section 5 (Change Summary).
 Covers:
   - --data-parallel-size flag on new_target.py
   - --enable-expert-parallel flag on new_target.py
-  - Injection of --distributed-executor-backend external_launcher when DP > 1
+  - Injection of --distributed-executor-backend external_launcher when DP > 1,
+    on the vllm-* runner only. pumice-* profiles never get it: neither Pumice
+    server parser knows the flag (planning-records pumice-delta section 8C).
   - Backward compatibility: defaults produce empty bench.extra_args
 """
 
@@ -15,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -56,12 +59,12 @@ def _make_fields(**overrides):
     return _default_target_fields(ns)
 
 
-def _target_extra_args(**overrides):
+def _target_extra_args(runtime_profile=None, **overrides):
     """Build TargetFields + run _target_json, return bench.extra_args list."""
     from new_target import _target_json
 
     fields = _make_fields(**overrides)
-    out = _target_json(fields, Path("/tmp/fake_artifact_dir"))
+    out = _target_json(fields, Path("/tmp/fake_artifact_dir"), runtime_profile)
     return out["bench"]["extra_args"]
 
 
@@ -91,6 +94,27 @@ class TestDpInjection:
         """Higher DP values stringify correctly."""
         assert _target_extra_args(data_parallel_size=4) == [
             "--data-parallel-size", "4",
+            "--distributed-executor-backend", "external_launcher",
+        ]
+
+
+class TestPumiceDp:
+    """pumice-* profiles keep the DP flag and drop the vLLM-only backend flag."""
+
+    @pytest.mark.parametrize("profile", ["pumice-cuda", "pumice-neuron"])
+    def test_pumice_dp_has_no_backend_flag(self, profile):
+        assert _target_extra_args(profile, data_parallel_size=2) == [
+            "--data-parallel-size", "2",
+        ]
+
+    def test_pumice_dp_and_ep_compose(self):
+        assert _target_extra_args(
+            "pumice-cuda", data_parallel_size=4, enable_expert_parallel=True
+        ) == ["--data-parallel-size", "4", "--enable-expert-parallel"]
+
+    def test_vllm_profile_keeps_backend_flag(self):
+        assert _target_extra_args("vllm-cuda", data_parallel_size=2) == [
+            "--data-parallel-size", "2",
             "--distributed-executor-backend", "external_launcher",
         ]
 
@@ -133,6 +157,12 @@ class TestExistingFieldsUnaffected:
         ]
 
 
+def _default_profile_env():
+    env = dict(os.environ)
+    env.pop("AMMO_RUNTIME_PROFILE", None)
+    return env
+
+
 class TestArgparseIntegration:
     """End-to-end: run new_target.py as a subprocess to catch argparse wiring bugs.
 
@@ -155,13 +185,13 @@ class TestArgparseIntegration:
             "--data-parallel-size", "2",
             "--enable-expert-parallel",
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, env=_default_profile_env())
         assert result.returncode == 0, f"stderr: {result.stderr}"
 
+        # The CLI default profile is pumice-cuda: no vLLM backend flag.
         target = json.loads((artifact_dir / "target.json").read_text())
         assert target["bench"]["extra_args"] == [
             "--data-parallel-size", "2",
-            "--distributed-executor-backend", "external_launcher",
             "--enable-expert-parallel",
         ]
 
@@ -207,7 +237,7 @@ class TestStateJsonDpPersistence:
         assert state["target"]["tp"] == 2
 
     def test_state_schema_allows_legacy_missing_dp_but_defines_optional_dp(self):
-        schema_path = _SCRIPTS_DIR.parents[2] / "schemas" / "state.schema.json"
+        schema_path = _SCRIPTS_DIR.parent / "schemas" / "state.schema.json"
         schema = json.loads(schema_path.read_text())
         target_schema = schema["properties"]["target"]
         assert "dp" not in target_schema["required"]

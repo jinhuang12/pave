@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from common import (
-    CampaignResolutionError, active_artifact_dir, emit, find_repo_root,
+    CampaignResolutionError, active_artifact_dir, campaign_for_hook, emit, find_repo_root,
     is_child_agent_payload, load_json, read_stdin_json,
 )
 
@@ -164,6 +164,9 @@ def _stop(reason: str) -> None:
 
 def main() -> None:
     payload = read_stdin_json()
+    # Outside a campaign every Codex hook exits 0 with empty stdout (conventions section 7).
+    if campaign_for_hook(payload) is None:
+        return
     if payload.get("hook_event_name") != "PreCompact" or is_child_agent_payload(payload):
         _allow()
         return

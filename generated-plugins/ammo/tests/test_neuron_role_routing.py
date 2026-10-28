@@ -10,23 +10,29 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
 
+# A Neuron-path contract: v1 ships pumice-cuda only, and conventions §6
+# deselects `neuron` by default.
+pytestmark = pytest.mark.neuron
+
+
+# The plugin root. It ships the Claude dialect: role prompts in agents/, the
+# lead skill in skills/ammo/ (the Codex roles are TOML under codex/agents/).
 AMMO = Path(__file__).resolve().parents[1]
-CLI_ROOT = AMMO.parents[1]
-IS_CODEX = CLI_ROOT.name == ".codex"
-ROLE_ROOT = AMMO / "agents" if IS_CODEX else CLI_ROOT / "agents"
+SKILL = AMMO / "skills" / "ammo" / "SKILL.md"
+ROLE_ROOT = AMMO / "agents"
 ROLE_FILES = {
     "researcher": "ammo-researcher.md",
     "champion": "ammo-champion.md",
-    "implementer": "ammo-implementer.md" if IS_CODEX else "ammo-impl-champion.md",
+    "implementer": "ammo-impl-champion.md",
     "monitor": "ammo-transcript-monitor.md",
     "investigator": "ammo-investigator.md",
     "auditor": "ammo-auditor.md",
     "delegate": "ammo-delegate.md",
 }
-# The vendored Neuron skills a Neuron session ships. Session setup removes every
-# other vendored Neuron skill (orchestration/cli_tool_manager.py
-# NEURON_CAMPAIGN_SKILL_DIRS), so prompt text may name only these.
+# The vendored Neuron skills a Neuron campaign may name. Prompt text may name
+# only these (the server's NEURON_CAMPAIGN_SKILL_DIRS list).
 SHIPPED_NEURON_SKILLS = {
     "neuron-nki-docs",
     "neuron-nki-writing",
@@ -65,7 +71,7 @@ def _role(name: str) -> str:
 
 
 def test_single_entrypoint_selects_the_server_runtime_automatically() -> None:
-    entry = _text(AMMO / "SKILL.md")
+    entry = _text(SKILL)
     assert "AMMO_RUNTIME_PROFILE" in entry
     assert "`vllm-cuda`" in entry
     assert "`vllm-neuron`" in entry
@@ -77,7 +83,7 @@ def test_single_entrypoint_selects_the_server_runtime_automatically() -> None:
 
 def test_cuda_profiler_contract_remains_explicit() -> None:
     corpus = "\n".join(
-        [_text(AMMO / "SKILL.md")] + [_role(name) for name in ROLE_FILES]
+        [_text(SKILL)] + [_role(name) for name in ROLE_FILES]
     )
     for marker in ("Nsys", "NCU", "CUDA graphs", "vllm-cuda"):
         assert marker in corpus
@@ -119,12 +125,13 @@ def test_binding_says_how_to_load_a_skill() -> None:
     binding = _text(AMMO / "references" / "accelerator-binding.md")
     assert "Skill tool" in binding
     assert "`$<name>`" in binding
-    assert "Session setup removes the other vendored Neuron skills" in binding
+    # The server's session setup that pruned vendored Neuron skills is gone
+    # (conventions §8), so the binding no longer states it.
 
 
 def test_prompt_text_names_only_shipped_neuron_skills() -> None:
     binding = _text(AMMO / "references" / "accelerator-binding.md")
-    corpus = "\n".join([binding, _text(AMMO / "SKILL.md")] + [_role(name) for name in ROLE_FILES])
+    corpus = "\n".join([binding, _text(SKILL)] + [_role(name) for name in ROLE_FILES])
     named = set(_SKILL_NAME.findall(corpus))
     assert named <= SHIPPED_NEURON_SKILLS, sorted(named - SHIPPED_NEURON_SKILLS)
     # Every shipped skill is routed somewhere in the binding, so nothing ships
@@ -143,7 +150,7 @@ def test_champion_and_monitor_route_to_their_binding_sections() -> None:
 
 
 def test_vendored_neuron_guidance_cannot_override_ammo_policy() -> None:
-    entry = _text(AMMO / "SKILL.md")
+    entry = _text(SKILL)
     implementer = _role("implementer")
     for marker in (
         "seven stages",

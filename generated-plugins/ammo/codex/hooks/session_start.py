@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Restore root campaign context from the exact current state."""
 
-from pathlib import Path
-
 from common import (
-    CampaignResolutionError, active_artifact_dir, additional_context,
+    CampaignResolutionError, active_artifact_dir, additional_context, campaign_for_hook, plugin_path,
     find_repo_root, is_child_agent_payload, load_json, read_stdin_json,
     record_trusted_session_identity,
     is_v1_session,
@@ -18,6 +16,9 @@ def main() -> None:
     # Codex does not dispatch child SessionStart on compaction. If a caller
     # supplies one, never inject the lead contract into that child.
     if is_child_agent_payload(payload):
+        return
+    # Outside a campaign every Codex hook exits 0 with empty stdout (conventions section 7).
+    if campaign_for_hook(payload) is None:
         return
     repo = find_repo_root(payload.get("cwd"))
     try:
@@ -39,6 +40,7 @@ def main() -> None:
     campaign = state.get("campaign") or {}
     status = campaign.get("status", "unknown")
     source = payload.get("source", "startup")
+    skill_path = plugin_path("skills", "ammo", "SKILL.md")
     position = (
         f"State: `{state_file}`. Round: {campaign.get('current_round', 'unknown')} | "
         f"Stage: {campaign.get('current_stage', 'unknown')} | Campaign: {status}."
@@ -56,7 +58,7 @@ def main() -> None:
             "SessionStart",
             "# AMMO Campaign Terminal\n\n" + position + "\n"
             "Do not restart completed stages. Check only outstanding terminal report and "
-            "fact-check requirements in `skills/ammo/SKILL.md`; the Stop gate "
+            f"fact-check requirements in `{skill_path}`; the Stop gate "
             "owns the final report acceptance check.",
         )
         return
@@ -65,26 +67,24 @@ def main() -> None:
             "SessionStart",
             "# AMMO Optimization Detected\n\n"
             f"Existing optimization state at: `{state_file}`.\n"
-            "If the user continues this campaign, read `skills/ammo/SKILL.md` "
+            f"If the user continues this campaign, read `{skill_path}` "
             "and its current state. This startup notice does not resume it.",
         )
         return
 
-    # Load the current installed router, including from the root-owned managed
-    # closure. State paths and reference pointers remain campaign-local.
-    skill_path = Path(__file__).resolve().parents[1] / "skills" / "ammo" / "SKILL.md"
+    # Load the installed plugin's entry skill. State paths stay campaign-local.
     try:
         skill = skill_path.read_text(encoding="utf-8")
     except OSError:
-        skill = "Read `skills/ammo/SKILL.md` before continuing."
+        skill = f"Read `{skill_path}` before continuing."
     # Managed hooks carry both guides. Select from the server's launch profile,
     # rather than reloading the template's default V2 guide for a V1 campaign.
     mode = "v1" if is_v1_session() else "v2"
-    runtime_path = skill_path.parent / "references" / f"codex-runtime-{mode}.md"
+    runtime_path = plugin_path("references", f"codex-runtime-{mode}.md")
     try:
         runtime_guide = runtime_path.read_text(encoding="utf-8")
     except OSError:
-        runtime_guide = "Read `references/codex-runtime.md` before any agent operation."
+        runtime_guide = f"Read `{plugin_path('references', 'codex-runtime.md')}` before any agent operation."
     current_round = campaign.get("current_round")
     rounds = campaign.get("rounds")
     round_doc = {}

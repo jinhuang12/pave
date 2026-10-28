@@ -6,7 +6,7 @@
 # Why this shape:
 #
 #   `ncu --set <X>` expands to 15-20 metric groups, each requiring one
-#   application-replay pass under CUDA graphs. Combined with vLLM's
+#   application-replay pass under CUDA graphs. Combined with pumice-server's
 #   3-5 min cold start per pass, the default `--set` easily blows past
 #   30 minutes of wall-clock for a sanity check that only needs to answer
 #   "is SM utilization absurdly low? is DRAM BW way off peak? is the
@@ -62,12 +62,18 @@ LAUNCH_COUNT="${LAUNCH_COUNT:-30}"
 NCU_TIMEOUT_S="${NCU_TIMEOUT_S:-600}"
 OUTPUT_LEN="${OUTPUT_LEN:-8}"  # short OL keeps each pass cheap; fine for counters
 
-# The driver imports vllm, so it must run under the session worktree venv.
-# Prefer ./.venv/bin/python; fall back to `python` when no venv is present.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DRIVER="${SCRIPT_DIR}/ncu_sanity_driver.py"
+
+# The driver imports the bench runner and its gRPC client, so it must run
+# under the engine venv. Prefer ./.venv/bin/python (a track worktree), then the
+# campaign python from campaign_paths.py (track .venv, target.json engine.venv,
+# AMMO_PYTHON, <engine>/.venv), then `python`.
 if [ -x "./.venv/bin/python" ]; then
     PY="./.venv/bin/python"
 else
-    PY="python"
+    PY="$(python3 "${SCRIPT_DIR}/campaign_paths.py" python 2>/dev/null || true)"
+    PY="${PY:-python}"
 fi
 
 if [ "$#" -lt 1 ]; then
@@ -85,9 +91,6 @@ for k in "$@"; do
     KERNEL_REGEX+="|$k"
 done
 KERNEL_FLAGS=(--kernel-name "regex:${KERNEL_REGEX}")
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DRIVER="${SCRIPT_DIR}/ncu_sanity_driver.py"
 
 mkdir -p "$(dirname "$CSV_OUT")"
 

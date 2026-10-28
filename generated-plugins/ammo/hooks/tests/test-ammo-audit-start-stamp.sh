@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test harness for ammo-audit-start-stamp.sh (PostToolUse hook, matcher=Agent)
-# Run: bash .claude/hooks/test-ammo-audit-start-stamp.sh
+# Run: bash hooks/tests/test-ammo-audit-start-stamp.sh
 #
 # The hook stamps campaign.rounds[N-1].audit.{stage}.started_at + cycle when the
 # ORCHESTRATOR dispatches an ammo-auditor. It calls the REAL rendered
@@ -9,7 +9,8 @@
 #
 # Key fields consumed from hook stdin:
 #   .agent_type                 — empty on the orchestrator, set inside a subagent
-#   .tool_input.subagent_type   — must be "ammo-auditor"
+#   .tool_input.subagent_type   — must be "ammo-auditor" (or the plugin address
+#                                 "ammo:ammo-auditor")
 #   .tool_input.prompt          — the canonical dispatch block:
 #                                   task: audit_gate
 #                                   artifact_dir: <dir>
@@ -20,15 +21,19 @@
 # The hook is fail-open and SILENT: every case expects exit 0 and no stdout.
 # What distinguishes a stamp from a no-stamp is the state.json content, so each
 # case asserts on the file, not on the hook's output.
+#
+# PROJ is an engine root: .ammo/active names campaign tgt at .ammo/tgt/. The
+# hook stamps only when artifact_dir is inside that campaign, and runs the
+# plugin's own scripts/ammo_state.py through ammo_python.
 
 set -euo pipefail
 
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' | grep -v '^AMMO_TEST_HOOK$' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
+
 HOOK_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-HOOK="$HOOK_DIR/ammo-audit-start-stamp.sh"
-# The hook resolves the engine through CLAUDE_PROJECT_DIR, so the fake project
-# needs the real script at the real relative path.
-ENGINE_REL="scripts/ammo_state.py"
-REAL_ENGINE="$(cd "$HOOK_DIR/../scripts" && pwd)/ammo_state.py"
+HOOK="${AMMO_TEST_HOOK:-$HOOK_DIR/ammo-audit-start-stamp.sh}"
 
 PASS=0
 FAIL=0
@@ -38,15 +43,14 @@ TMPDIR=$(mktemp -d)
 cleanup() { rm -rf "$TMPDIR" 2>/dev/null || true; }
 trap cleanup EXIT
 
-# One fake project dir shared by every case; the engine is symlinked in so we
-# test the rendered script, not a copy.
+# One engine root shared by every case. The hook's own cwd is PROJ, so the
+# campaign is found even when CLAUDE_PROJECT_DIR is unset.
 PROJ="$TMPDIR/proj"
-mkdir -p "$PROJ/$(dirname "$ENGINE_REL")"
-ln -s "$REAL_ENGINE" "$PROJ/$ENGINE_REL"
-
-ART="$PROJ/kernel_opt_artifacts/tgt"
+ART="$PROJ/.ammo/tgt"
 mkdir -p "$ART"
+printf 'tgt\n' > "$PROJ/.ammo/active"
 STATE="$ART/state.json"
+cd "$PROJ"
 
 # write_state: $1 = "audit" to give round 1 an audit:{} key, "noaudit" to omit it.
 write_state() {
@@ -65,11 +69,13 @@ write_state() {
 }
 
 # canonical_prompt: $1 stage  $2 round  $3 cycle
-# Reproduces the audit-protocol.md block verbatim, indentation and inline
-# stage comment included — the parser must tolerate both.
+# Reproduces the orchestration/audit-protocol.md block verbatim: the leading
+# plugin_root line, indentation and inline stage comment included — the
+# parser must tolerate all three.
+PLUGIN_ROOT_DIR="$(cd "$HOOK_DIR/.." && pwd)"
 canonical_prompt() {
-    printf '    task: audit_gate\n    artifact_dir: %s\n    stage: %s       # stage_1 | stage_2 | stage_45 | stage_67\n    round: %s\n    cycle: %s\n' \
-        "$ART" "$1" "$2" "$3"
+    printf '    plugin_root: %s\n    task: audit_gate\n    artifact_dir: %s\n    stage: %s       # stage_1 | stage_2 | stage_45 | stage_67\n    round: %s\n    cycle: %s\n' \
+        "$PLUGIN_ROOT_DIR" "$ART" "$1" "$2" "$3"
 }
 
 # run_hook: pipes $1 (json) into the hook under CLAUDE_PROJECT_DIR=$PROJ.
@@ -418,7 +424,47 @@ assert "k2 planted engine under artifact_dir was NOT executed" \
 K2C=$(gate_field stage_2 cycle)
 assert "k3 trusted engine still stamped (cycle 4)" \
     "$([ "$K2C" = "4" ] && echo true || echo false)" "cycle=$K2C"
-rm -rf "$ART/.claude"
+rm -rf "$PLANT"
+
+# ══════════════════════════════════════════════
+echo ""; echo "== (l) plugin address ammo:ammo-auditor → stamped =="
+# ══════════════════════════════════════════════
+write_state audit
+PAYLOAD=$(jq -nc --arg p "$(canonical_prompt stage_45 1 3)" \
+    '{tool_name:"Agent",tool_input:{subagent_type:"ammo:ammo-auditor",prompt:$p}}')
+run_hook "$PAYLOAD"
+assert_silent_exit0 "l1 hook is silent and exits 0"
+L_CYCLE=$(gate_field stage_45 cycle)
+assert "l2 ammo:ammo-auditor dispatch stamped (cycle 3)" \
+    "$([ "$L_CYCLE" = "3" ] && echo true || echo false)" "cycle=$L_CYCLE"
+
+# ══════════════════════════════════════════════
+echo ""; echo "== (m) campaign scope =="
+# ══════════════════════════════════════════════
+# m1: artifact_dir names a dir that is not the campaign → NOT stamped.
+OTHER="$TMPDIR/other-art"
+mkdir -p "$OTHER"
+jq -n '{schema_version: "4.2", campaign: { rounds: [ { round_id: 1, status: "IN_PROGRESS", audit: {} } ] }}' > "$OTHER/state.json"
+OTHER_BEFORE=$(cat "$OTHER/state.json")
+PAYLOAD=$(jq -nc --arg p "$(printf '    task: audit_gate\n    artifact_dir: %s\n    stage: stage_2\n    round: 1\n    cycle: 1\n' "$OTHER")" \
+    '{tool_name:"Agent",tool_input:{subagent_type:"ammo-auditor",prompt:$p}}')
+run_hook "$PAYLOAD"
+assert_silent_exit0 "m1 hook is silent and exits 0"
+assert "m1 artifact_dir outside the campaign NOT stamped" \
+    "$([ "$(cat "$OTHER/state.json")" = "$OTHER_BEFORE" ] && echo true || echo false)"
+
+# m2: no campaign at all (no marker above the cwd) → NOT stamped, silent.
+NOCAMP=$(mktemp -d)
+mkdir -p "$NOCAMP/art"
+cp "$OTHER/state.json" "$NOCAMP/art/state.json"
+PAYLOAD=$(jq -nc --arg p "$(printf '    task: audit_gate\n    artifact_dir: %s\n    stage: stage_2\n    round: 1\n    cycle: 1\n' "$NOCAMP/art")" \
+    --arg c "$NOCAMP" '{tool_name:"Agent",cwd:$c,tool_input:{subagent_type:"ammo-auditor",prompt:$p}}')
+RC=0
+printf '%s' "$PAYLOAD" | (cd "$NOCAMP" && bash "$HOOK") >"$TMPDIR/out" 2>"$TMPDIR/err" || RC=$?
+assert_silent_exit0 "m2 hook is silent and exits 0 outside a campaign"
+assert "m2 no campaign → NOT stamped" \
+    "$([ "$(cat "$NOCAMP/art/state.json")" = "$OTHER_BEFORE" ] && echo true || echo false)"
+rm -rf "$NOCAMP" "$OTHER"
 
 echo ""
 echo "================================"

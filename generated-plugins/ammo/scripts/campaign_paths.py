@@ -22,6 +22,7 @@ import os
 import re
 import shlex
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Mapping, MutableMapping, Optional
@@ -29,6 +30,8 @@ from typing import Any, Mapping, MutableMapping, Optional
 MARKER = Path(".ammo") / "active"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 DEFAULT_GPU_RES_DIR = "/tmp/ammo_gpu_res"
+APPLIED_ENV = "AMMO_APPLIED_ENV"
+_RESTORABLE = re.compile(r"AMMO_[A-Z0-9_]+|CARGO_TARGET_DIR")
 
 
 def _load_json(path: Path) -> dict:
@@ -101,11 +104,50 @@ def _is_exe(path: Path) -> bool:
     return path.is_file() and os.access(path, os.X_OK)
 
 
+def _git_dirs(directory: str) -> Optional[tuple]:
+    """(toplevel, common dir) of the git worktree at directory, both realpaths, else None."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", directory, "rev-parse", "--show-toplevel", "--git-common-dir"],
+            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    lines = out.stdout.splitlines()
+    if out.returncode != 0 or len(lines) != 2:
+        return None
+    return os.path.realpath(lines[0]), os.path.realpath(os.path.join(directory, lines[1]))
+
+
+def _track_worktree(engine: Path) -> Optional[Path]:
+    """The cwd's git toplevel when it is another worktree of the engine's repository, else None.
+
+    Same repository means the same git common dir. That holds when the engine is a plain
+    clone and when the engine is itself a linked worktree of some other checkout.
+    """
+    here = _git_dirs(os.getcwd())
+    if here is None or here[0] == os.path.realpath(engine):
+        return None
+    there = _git_dirs(str(engine))
+    if there is None or there[1] != here[1]:
+        return None
+    return Path(here[0])
+
+
 def python_exe(campaign_dir=None) -> Path:
-    """target.json engine.venv, else AMMO_PYTHON, else <engine>/.venv/bin/python, else python3."""
+    """Track worktree .venv, else target.json engine.venv, else AMMO_PYTHON,
+    else <engine>/.venv/bin/python, else python3.
+
+    The first candidate applies when the cwd is inside another git worktree of the
+    engine's repository (a track worktree): the bench runner starts the server with sys.executable,
+    so a track must run its own build, not the engine's.
+    """
     candidates = []
     target = _load_json(Path(campaign_dir) / "target.json") if campaign_dir else {}
     engine = _engine(campaign_dir, target) if campaign_dir else None
+    track = _track_worktree(engine) if engine is not None else None
+    if track is not None:
+        candidates.append(track / ".venv" / "bin" / "python")
     venv = _section(target, "engine").get("venv")
     if engine is not None and isinstance(venv, str) and venv:
         candidates.append(_venv_python(venv, engine))
@@ -185,18 +227,56 @@ def campaign_env(campaign_dir) -> dict:
     return env
 
 
-def _fill(env: MutableMapping, campaign: Path) -> None:
+def _fill(env: MutableMapping, campaign: Path) -> dict:
+    """Set each derived name that is unset or empty. Return name -> prior value (None when unset)."""
+    prior = {}
     for key, value in campaign_env(campaign).items():
         if not env.get(key):
+            prior[key] = env.get(key)
             env[key] = value
+    return prior
+
+
+def _applied(env: Mapping) -> dict:
+    try:
+        record = json.loads(env.get(APPLIED_ENV) or "{}")
+    except ValueError:
+        return {}
+    return record if isinstance(record, dict) else {}
 
 
 def apply_env(env: MutableMapping = os.environ) -> Optional[Path]:
-    """Find the campaign, then set each derived name that is unset or empty. Explicit env wins."""
+    """Find the campaign, then set each derived name that is unset or empty. Explicit env wins.
+
+    Each name it sets goes into AMMO_APPLIED_ENV with its prior value, so unapply_env() can
+    undo it. A name already in that record keeps its first prior value.
+    """
     campaign = find_campaign_dir(env=env)
     if campaign is not None:
-        _fill(env, campaign)
+        prior = _fill(env, campaign)
+        if prior:
+            record = _applied(env)
+            for key, value in prior.items():
+                record.setdefault(key, value)
+            env[APPLIED_ENV] = json.dumps(record, sort_keys=True)
     return campaign
+
+
+def unapply_env(env: MutableMapping = os.environ) -> None:
+    """Undo apply_env(): give each name in AMMO_APPLIED_ENV its prior value back, then drop the record.
+
+    A name that was unset is removed. Without a usable record nothing else changes. Only
+    names that apply_env() can set (AMMO_*, CARGO_TARGET_DIR) are touched.
+    """
+    record = _applied(env)
+    env.pop(APPLIED_ENV, None)
+    for key, value in record.items():
+        if key == APPLIED_ENV or not _RESTORABLE.fullmatch(key):
+            continue
+        if value is None:
+            env.pop(key, None)
+        elif isinstance(value, str):
+            env[key] = value
 
 
 # --------------------------------------------------------------------------- CLI

@@ -238,6 +238,136 @@ def test_python_exe_without_campaign_uses_ammo_python(tmp_path, clean_env):
     assert cp.python_exe(None) == env_py
 
 
+def git(*args, cwd):
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", *args],
+        cwd=cwd, check=True, capture_output=True, text=True,
+    )
+
+
+def git_engine(tmp_path: Path, target: dict | None = None) -> tuple[Path, Path, Path]:
+    """An engine git repo with a campaign and a linked track worktree under .claude/worktrees."""
+    engine, campaign = make_engine(tmp_path / "engine", target=target)
+    git("init", "-q", cwd=engine)
+    git("commit", "-q", "--allow-empty", "-m", "init", cwd=engine)
+    worktree = engine / ".claude" / "worktrees" / "op-001"
+    git("worktree", "add", "-q", "-b", "op-001", str(worktree), cwd=engine)
+    return engine, campaign, worktree
+
+
+def test_python_exe_prefers_track_worktree_venv(tmp_path, clean_env):
+    engine, campaign, worktree = git_engine(tmp_path)
+    engine_py = fake_exe(engine / ".venv" / "bin" / "python")
+    track_py = fake_exe(worktree / ".venv" / "bin" / "python")
+    (worktree / "src").mkdir()
+    clean_env.chdir(worktree / "src")
+    assert cp.python_exe(campaign).resolve() == track_py.resolve()
+    clean_env.chdir(engine)
+    assert cp.python_exe(campaign) == engine_py
+
+
+def test_track_worktree_venv_beats_target_venv_and_ammo_python(tmp_path, clean_env):
+    engine, campaign, worktree = git_engine(tmp_path)
+    fake_exe(engine / ".venv" / "bin" / "python")  # at the engine root, engine.venv must still win
+    venv_py = fake_exe(tmp_path / "venv" / "bin" / "python")
+    (campaign / "target.json").write_text(json.dumps({"engine": {"venv": str(tmp_path / "venv")}}))
+    clean_env.setenv("AMMO_PYTHON", str(fake_exe(tmp_path / "envpy" / "python")))
+    track_py = fake_exe(worktree / ".venv" / "bin" / "python")
+    clean_env.chdir(worktree)
+    assert cp.python_exe(campaign).resolve() == track_py.resolve()
+    clean_env.chdir(engine)
+    assert cp.python_exe(campaign) == venv_py
+
+
+def test_track_worktree_without_venv_falls_through(tmp_path, clean_env):
+    engine, campaign, worktree = git_engine(tmp_path)
+    engine_py = fake_exe(engine / ".venv" / "bin" / "python")
+    clean_env.chdir(worktree)
+    assert cp.python_exe(campaign) == engine_py
+
+
+def test_unrelated_repo_venv_is_not_used(tmp_path, clean_env):
+    engine, campaign, _ = git_engine(tmp_path)
+    engine_py = fake_exe(engine / ".venv" / "bin" / "python")
+    other = tmp_path / "other"
+    other.mkdir()
+    git("init", "-q", cwd=other)
+    fake_exe(other / ".venv" / "bin" / "python")
+    clean_env.chdir(other)
+    assert cp.python_exe(campaign) == engine_py
+
+
+def test_track_of_an_engine_that_is_itself_a_linked_worktree(tmp_path, clean_env):
+    # Every linked worktree shares the main repo's common dir, which here is outside the engine.
+    main = tmp_path / "main"
+    main.mkdir()
+    git("init", "-q", cwd=main)
+    git("commit", "-q", "--allow-empty", "-m", "init", cwd=main)
+    engine = tmp_path / "engine"
+    git("worktree", "add", "-q", "-b", "engine", str(engine), cwd=main)
+    _, campaign = make_engine(engine)
+    worktree = engine / ".claude" / "worktrees" / "op-001"
+    git("worktree", "add", "-q", "-b", "op-001", str(worktree), cwd=engine)
+    engine_py = fake_exe(engine / ".venv" / "bin" / "python")
+    track_py = fake_exe(worktree / ".venv" / "bin" / "python")
+    fake_exe(main / ".venv" / "bin" / "python")
+    clean_env.chdir(worktree)
+    assert cp.python_exe(campaign).resolve() == track_py.resolve()
+    clean_env.chdir(engine)
+    assert cp.python_exe(campaign) == engine_py
+
+
+def test_codex_track_worktree_is_detected(tmp_path, clean_env):
+    engine, campaign, _ = git_engine(tmp_path)
+    codex_track = engine / ".codex" / "worktrees" / "op-002"
+    git("worktree", "add", "-q", "-b", "op-002", str(codex_track), cwd=engine)
+    fake_exe(engine / ".venv" / "bin" / "python")
+    track_py = fake_exe(codex_track / ".venv" / "bin" / "python")
+    clean_env.chdir(codex_track)
+    assert cp.python_exe(campaign).resolve() == track_py.resolve()
+
+
+def test_any_linked_worktree_of_the_engine_repo_counts(tmp_path, clean_env):
+    # Same git repository as the engine, so its own build is the one to run.
+    engine, campaign, _ = git_engine(tmp_path)
+    sibling = tmp_path / "sibling"
+    git("worktree", "add", "-q", "-b", "sibling", str(sibling), cwd=engine)
+    fake_exe(engine / ".venv" / "bin" / "python")
+    sibling_py = fake_exe(sibling / ".venv" / "bin" / "python")
+    clean_env.chdir(sibling)
+    assert cp.python_exe(campaign).resolve() == sibling_py.resolve()
+
+
+def test_nested_independent_repo_is_not_used(tmp_path, clean_env):
+    engine, campaign, _ = git_engine(tmp_path)
+    nested = engine / "third_party" / "lib"
+    nested.mkdir(parents=True)
+    git("init", "-q", cwd=nested)
+    engine_py = fake_exe(engine / ".venv" / "bin" / "python")
+    fake_exe(nested / ".venv" / "bin" / "python")
+    clean_env.chdir(nested)
+    assert cp.python_exe(campaign) == engine_py
+
+
+def test_no_worktree_check_without_campaign(tmp_path, clean_env):
+    _, _, worktree = git_engine(tmp_path)
+    fake_exe(worktree / ".venv" / "bin" / "python")
+    clean_env.chdir(worktree)
+    assert cp.python_exe(None) == Path(shutil.which("python3") or sys.executable)
+
+
+def test_launcher_runs_track_worktree_python(tmp_path):
+    engine, campaign, worktree = git_engine(tmp_path)
+    fake_exe(engine / ".venv" / "bin" / "python", "#!/bin/sh\necho engine\n")
+    fake_exe(worktree / ".venv" / "bin" / "python", '#!/bin/sh\necho "track $AMMO_SESSION_ID"\n')
+    probe = tmp_path / "probe.py"
+    probe.write_text("print('unused')\n")
+    proc = run([str(SCRIPTS / "ammo"), str(probe)], cwd=worktree)
+    assert (proc.returncode, proc.stdout.strip()) == (0, f"track {CID}"), proc.stderr
+    proc = run([str(SCRIPTS / "ammo"), str(probe)], cwd=engine)
+    assert (proc.returncode, proc.stdout.strip()) == (0, "engine"), proc.stderr
+
+
 # --------------------------------------------------------------------------- campaign_env
 
 
@@ -340,6 +470,91 @@ def test_apply_env_not_found_leaves_env_alone(tmp_path, clean_env):
     assert env == {"PATH": "/bin"}
 
 
+# --------------------------------------------------------------------------- unapply_env
+
+# A kept name (explicit value), an overwritten name (empty counts as unset), and
+# every other derived name unset.
+BEFORE = {"PATH": "/bin", "AMMO_GPU_RES_DIR": "/custom/res", "AMMO_TP_SIZE": "", "AMMO_SERVING_MANIFEST": ""}
+
+
+def full_engine(tmp_path, clean_env) -> Path:
+    engine, campaign = make_engine(tmp_path / "engine", target=full_target(tmp_path / "engine"))
+    clean_env.chdir(engine)
+    return campaign
+
+
+def test_apply_env_records_each_name_it_sets(tmp_path, clean_env):
+    campaign = full_engine(tmp_path, clean_env)
+    env = dict(BEFORE)
+    cp.apply_env(env)
+    record = json.loads(env["AMMO_APPLIED_ENV"])
+    assert record["AMMO_TP_SIZE"] == "" and record["AMMO_SERVING_MANIFEST"] == ""
+    assert record["AMMO_PYTHON"] is None and record["AMMO_ARTIFACT_DIR"] is None
+    assert set(record) == set(cp.campaign_env(campaign)) - {"AMMO_GPU_RES_DIR"}
+
+
+def test_unapply_env_restores_set_overwritten_and_unset_names(tmp_path, clean_env):
+    full_engine(tmp_path, clean_env)
+    env = dict(BEFORE)
+    cp.apply_env(env)
+    assert env["AMMO_SERVING_MANIFEST"] and env["AMMO_TP_SIZE"] == "2" and env["AMMO_PYTHON"]
+    cp.unapply_env(env)
+    assert env == BEFORE
+
+
+def test_apply_and_unapply_are_idempotent(tmp_path, clean_env):
+    full_engine(tmp_path, clean_env)
+    env = dict(BEFORE)
+    cp.apply_env(env)
+    first = dict(env)
+    cp.apply_env(env)
+    assert env == first
+    cp.unapply_env(env)
+    assert env == BEFORE
+    cp.unapply_env(env)
+    assert env == BEFORE
+
+
+def test_a_later_apply_keeps_the_first_prior_value(tmp_path, clean_env):
+    full_engine(tmp_path, clean_env)
+    env = {"PATH": "/bin"}
+    cp.apply_env(env)
+    env["AMMO_PYTHON"] = ""
+    cp.apply_env(env)
+    assert json.loads(env["AMMO_APPLIED_ENV"])["AMMO_PYTHON"] is None
+    cp.unapply_env(env)
+    assert env == {"PATH": "/bin"}
+
+
+def test_unapply_env_defaults_to_os_environ(tmp_path, clean_env):
+    full_engine(tmp_path, clean_env)
+    clean_env.setenv("AMMO_TP_SIZE", "")
+    saved = dict(os.environ)
+    try:
+        cp.apply_env()
+        assert os.environ["AMMO_SESSION_ID"] == CID and os.environ["AMMO_TP_SIZE"] == "2"
+        cp.unapply_env()
+        assert dict(os.environ) == saved
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
+
+
+@pytest.mark.parametrize("record", [
+    None,
+    "not json",
+    "[1]",
+    '{"AMMO_SESSION_ID": 3}',
+    '{"PATH": null, "LD_PRELOAD": "/x.so", "AMMO_APPLIED_ENV": "x"}',
+])
+def test_unapply_env_without_a_usable_record_changes_nothing_else(record):
+    env = {"PATH": "/bin", "AMMO_SESSION_ID": "kept"}
+    if record is not None:
+        env["AMMO_APPLIED_ENV"] = record
+    cp.unapply_env(env)
+    assert env == {"PATH": "/bin", "AMMO_SESSION_ID": "kept"}
+
+
 # --------------------------------------------------------------------------- CLI and launcher
 
 
@@ -434,6 +649,26 @@ def test_launcher_uses_campaign_python_and_env(tmp_path):
     proc = run([str(SCRIPTS / "ammo"), str(probe)], cwd=engine)
     assert proc.returncode == 0, proc.stderr
     assert marker.read_text().split() == [CID, str(probe)]
+
+
+def test_launcher_child_can_unapply_the_campaign_env(tmp_path):
+    engine, _ = make_engine(tmp_path / "engine", target=full_target(tmp_path / "engine"))
+    probe = tmp_path / "probe.py"
+    probe.write_text(
+        "import json, os, sys\n"
+        f"sys.path.insert(0, {str(SCRIPTS)!r})\n"
+        "import campaign_paths\n"
+        "seen = sorted(k for k in os.environ if k.startswith('AMMO_'))\n"
+        "campaign_paths.unapply_env()\n"
+        "left = {k: v for k, v in os.environ.items() if k.startswith('AMMO_') or k == 'CARGO_TARGET_DIR'}\n"
+        "print(json.dumps({'seen': seen, 'left': left}))\n"
+    )
+    keep = {"AMMO_GPU_RES_DIR": "/custom/res", "CARGO_TARGET_DIR": ""}
+    proc = run([str(SCRIPTS / "ammo"), str(probe)], cwd=engine, env=keep)
+    assert proc.returncode == 0, proc.stderr
+    out = json.loads(proc.stdout)
+    assert {"AMMO_SERVING_MANIFEST", "AMMO_PYTHON", "AMMO_APPLIED_ENV"} <= set(out["seen"])
+    assert out["left"] == keep
 
 
 def test_launcher_relative_path_falls_back_to_plugin_root(tmp_path):

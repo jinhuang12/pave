@@ -3,16 +3,23 @@
 #
 # Logic: if a Phase 2 sentinel exists (inject-audit-phase2.sh fired) but the
 # verdict file doesn't contain a "## Phase 2" section, block with instructions.
-# Only fires for auditor subagents (agent_type present in input).
+# Only fires for the auditor (agent_type ammo-auditor, or the plugin address
+# ammo:ammo-auditor). Campaign scope (_find_campaign.sh): the verdict file is
+# looked up inside the campaign dir; outside a campaign the hook exits 0 and
+# prints nothing.
 set -euo pipefail
 
 if ! command -v jq &>/dev/null; then exit 0; fi
 
 INPUT=$(cat)
 
-# Only fire for subagents (auditors are always spawned as subagents)
+# Only fire for the auditor (always spawned as a subagent)
 AGENT_TYPE=$(jq -r '.agent_type // empty' <<<"$INPUT")
-[[ -z "$AGENT_TYPE" ]] && exit 0
+[[ "${AGENT_TYPE#ammo:}" == "ammo-auditor" ]] || exit 0
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+_find_campaign "$INPUT" || exit 0
 
 SESSION_ID=$(jq -r '.session_id // "unknown"' <<<"$INPUT")
 
@@ -32,17 +39,17 @@ SESSION_ID=$(jq -r '.session_id // "unknown"' <<<"$INPUT")
 # test-ammo-audit-phase2.sh asserts the pair agrees.
 SENTINEL_PREFIX="/tmp/ammo_audit_phase2_injected_"
 
-# Check if any Phase 2 sentinel exists for this session
-SENTINEL_MATCH=$(find /tmp -maxdepth 1 -name "$(basename "$SENTINEL_PREFIX")${SESSION_ID}__*" 2>/dev/null | head -1)
+# Check if any Phase 2 sentinel exists for this session. The trailing slash
+# makes find enter /tmp when /tmp is a symlink (macOS: /private/tmp).
+SENTINEL_MATCH=$(find /tmp/ -maxdepth 1 -name "$(basename "$SENTINEL_PREFIX")${SESSION_ID}__*" 2>/dev/null | head -1)
 [[ -z "$SENTINEL_MATCH" ]] && exit 0
 
 # Recover VERDICT_BASE: the trailing field after the last `__`.
 VERDICT_BASE="${SENTINEL_MATCH##*__}"
 [[ -z "$VERDICT_BASE" ]] && exit 0
 
-# Find the actual verdict file by searching kernel_opt_artifacts
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-VERDICT_FILE=$(find "$PROJECT_DIR"/kernel_opt_artifacts -path "*/audits/${VERDICT_BASE}.md" 2>/dev/null | head -1)
+# Find the actual verdict file inside the campaign dir
+VERDICT_FILE=$(find "$AMMO_ARTIFACT_DIR" -path "*/audits/${VERDICT_BASE}.md" 2>/dev/null | head -1)
 [[ -z "$VERDICT_FILE" ]] && exit 0
 
 # Check if Phase 2 section exists in the verdict file

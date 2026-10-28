@@ -12,7 +12,7 @@ The C++ kernel row applies to the vllm-* profiles. The Rust engine and confdb ro
 |-------------|----------------|------|
 | **Pure Python** (model code, Triton kernels, CuTeDSL kernels, configs) | Edit, test, commit. **No rebuild.** | Immediate (CuTeDSL JIT-compiles on first import; cache under `$CUTE_DSL_CACHE_DIR` or `/tmp/{user}/cutlass_python_cache`) |
 | **C++ kernel** (csrc/ changes, including CUTLASS C++ templates) | `cmake --preset release && cmake --build --preset release --target install` | ~5-55s (ccache) |
-| **Pumice Rust engine** (`pumice-rust/src/**`, `pumice-rust/build.rs`, `Cargo.toml`) | From the worktree root: `pumice-stage-native.sh .venv/bin/python "$PWD" --features "nixl-stub cmb"` on CUDA, or `--features nixl-stub` on Neuron. These are the image build features; without `cmb` on CUDA, the server ignores `--cmb-port`. The script runs `cargo build --release` and then stages the new `pumice_rust` extension into `.venv`. A plain `cargo build` does not stage; the server then loads the old extension. Outside the session image, first add this `[patch.crates-io]` entry to `$CARGO_HOME/config.toml`: `amzn-mantle-cmb-api = { path = "/home/ubuntu/AWSMantle/share/common/cmb-api" }`. | Minutes when cold. Less with a warm `sccache`. |
+| **Pumice Rust engine** (`pumice-rust/src/**`, `pumice-rust/build.rs`, `Cargo.toml`) | From the worktree root: `scripts/ammo pumice-stage-native.sh "$PWD/.venv/bin/python" "$PWD" --features "nixl-stub cmb"` on CUDA, or `--features nixl-stub` on Neuron. These are the engine build features; without `cmb` on CUDA, the server ignores `--cmb-port`. The script runs `cargo build --release` and then stages the new `pumice_rust` extension into `.venv`. A plain `cargo build` does not stage; the server then loads the old extension. The user adds this `[patch.crates-io]` entry to `$CARGO_HOME/config.toml` before the first engine build, with the path of their cmb-api checkout: `amzn-mantle-cmb-api = { path = "/home/ubuntu/AWSMantle/share/common/cmb-api" }`. `scripts/preflight_pumice.py` checks that it is there. | Minutes when cold. Less with a warm `sccache`. |
 | **Pumice confdb TOML** (`pumice-rust/confdb/*.toml`) | Same as the Rust engine row. `build.rs` compiles the TOML files into the engine, so a TOML edit is a source change. | Same as the Rust engine row |
 
 A Rust or confdb edit has no effect until you rebuild and re-stage. The sweep runner refuses to measure a build that is older than its Rust or confdb sources.
@@ -20,7 +20,7 @@ A Rust or confdb edit has no effect until you rebuild and re-stage. The sweep ru
 ## Source Modification Rules
 
 - Only the champion modifies source files (`csrc/`, `vllm/`, etc.).
-- Write your kernel-gate artifacts to `{artifact_dir}/rounds/{CR}/tracks/{op_id}/validator_tests/`, where `{CR}` is `campaign.current_round`. The `validator_tests/` dirname is kept as a historical label because downstream consumers read from this exact path: the state.json merge, the dashboard tabs, and the eval scorer.
+- Write your kernel-gate artifacts to `{artifact_dir}/rounds/{CR}/tracks/{op_id}/validator_tests/`, where `{CR}` is `campaign.current_round`. The `validator_tests/` dirname is kept as a historical label because downstream consumers read from this exact path: the state.json merge and the layout manifest (`scripts/artifact_layout.json`).
 - These gates run before the E2E sweep, so they need no GPU coordination.
 
 ## Write the Kernel Gates From the Plan
@@ -120,7 +120,7 @@ Flag: `VLLM_OP004`. A maintainer cannot tell what it does, what it touches, or w
 
 **Rule of thumb**: if you deleted the campaign's `state.json`, would the flag name still tell a stranger what the optimization does? If not, rename it before you commit. A flag whose name is just `VLLM_OP<n>` / `VLLM_OPT<n>` (the op_id with a `VLLM_` prefix) is never acceptable. The Stage 4-5 audit treats it as a BLOCKING finding.
 
-**Reserved names:** `PUMICE_PLATFORM` and `PUMICE_VLLM_RUNNER_ONLY` are image-level platform names that the bench runner always keeps (`ENGINE_INFRA_ENV` in `run_pumice_grpc_bench.py`), so do not use them as A/B flags.
+**Reserved names:** `PUMICE_PLATFORM` and `PUMICE_VLLM_RUNNER_ONLY` are engine platform names, set by the engine build or the host environment, that the bench runner always keeps (`ENGINE_INFRA_ENV` in `run_pumice_grpc_bench.py`), so do not use them as A/B flags.
 
 ## Batch-Size Dispatch Mechanisms (for GATED_PASS Optimizations)
 

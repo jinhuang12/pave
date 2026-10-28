@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""ammo v2: scaffold a new target artifact directory.
+"""ammo v2: scaffold a new campaign workspace.
 
-Creates:
-  - constraints.md
-  - state.json (simplified v2 schema)
-  - target.json (input for run_vllm_bench_latency_sweep.py)
+Run it inside the engine checkout (the Pumice repo). It creates:
+  - <engine>/.ammo/<campaign-id>/state.json (simplified v2 schema)
+  - <engine>/.ammo/<campaign-id>/target.json (bench input plus the engine
+    contract that scripts/campaign_paths.py reads)
+  - <engine>/.ammo/<campaign-id>/rounds/1/ scaffold
+  - <engine>/.ammo/active, one line: the campaign id
+  - one `.ammo/` line in the engine's .git/info/exclude
+
+The campaign id is YYYYMMDD-HHMMSS-<6 hex> (UTC) unless --campaign-id names it.
+The engine root is --engine-root, else `git rev-parse --show-toplevel` of the
+current dir. --artifact-dir names the campaign dir directly; a dir of the form
+<engine>/.ammo/<id> also gets the marker and the exclude line.
 
 Safety: refuses to overwrite existing files unless --force is provided.
 
 Example:
-  .venv/bin/python scripts/new_target.py \\
-    --artifact-dir .ammo/auto_qwen3_l40s_fp8_tp1 \\
+  scripts/ammo new_target.py \\
     --model-id Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8 \\
     --hardware L40S --dtype fp8 --tp 1 --ep 1
 """
@@ -20,13 +27,20 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import secrets
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, replace
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+import campaign_paths
+import runtime_ops
+from campaign_paths import plugin_path
 from runtime_ops import (
+    PUMICE_CUDA_PROFILE,
     PUMICE_NEURON_PROFILE,
     campaign_runtime_metadata,
     resolve_runtime,
@@ -305,7 +319,7 @@ def _constraints_md(fields: TargetFields) -> str:
 
 """
 
-_SCHEMA_PATH = Path(__file__).resolve().parents[3] / "schemas" / "state.schema.json"
+_SCHEMA_PATH = plugin_path("schemas", "state.schema.json")
 
 
 def _schema_default(path: str, fallback: float) -> float:
@@ -437,20 +451,26 @@ def _state_json(fields: TargetFields, artifact_dir: Path, min_e2e_improvement_pc
     return state
 
 
-def _compose_extra_args(fields: TargetFields) -> List[str]:
+def _compose_extra_args(
+    fields: TargetFields, runtime_profile: str | None = None
+) -> List[str]:
     """Compose bench.extra_args from DP / EP fields.
 
-    DP > 1 triggers auto-injection of --distributed-executor-backend
+    On the vllm-* runner, DP > 1 also injects --distributed-executor-backend
     external_launcher, which vLLM requires for data-parallel execution via
     torchrun. The sweep script validates that no conflicting backend value
     was appended post-hoc (e.g., via frontend additionalFlags).
+
+    pumice-* profiles never get that flag: neither Pumice server parser
+    (rust_grpc_server.py, pumice-server) knows it, so the server stops at
+    launch. The gRPC bench runner starts one server process per DP rank.
     """
+    pumice = bool(runtime_profile and runtime_profile.startswith("pumice-"))
     extra: List[str] = []
     if fields.data_parallel_size > 1:
-        extra.extend([
-            "--data-parallel-size", str(fields.data_parallel_size),
-            "--distributed-executor-backend", "external_launcher",
-        ])
+        extra.extend(["--data-parallel-size", str(fields.data_parallel_size)])
+        if not pumice:
+            extra.extend(["--distributed-executor-backend", "external_launcher"])
     if fields.enable_expert_parallel:
         extra.append("--enable-expert-parallel")
     if fields.max_num_seqs is not None:
@@ -485,6 +505,7 @@ def _target_json(
         "model_id": fields.model_id,
         "dtype": fields.dtype,
         "tp": fields.tp,
+        "dp": fields.data_parallel_size,
         "ep": fields.ep,
         "max_model_len": fields.max_model_len,
     }
@@ -510,7 +531,7 @@ def _target_json(
             # Frozen prompt source: run_pumice_grpc_bench.py reads it when the
             # CLI flag is absent, so every arm of every stage inherits it.
             **({"prompt_source": fields.prompt_source} if fields.prompt_source else {}),
-            "extra_args": _compose_extra_args(fields),
+            "extra_args": _compose_extra_args(fields, runtime_profile),
             "baseline_extra_args": [],
             "opt_extra_args": [],
             "baseline_env": dict(fields.baseline_env or {}),
@@ -552,9 +573,250 @@ def _target_json(
     }
 
 
+# --------------------------------------------------------------------------
+# Campaign workspace (conventions §3): <engine>/.ammo/<campaign-id>/
+# --------------------------------------------------------------------------
+
+WORKSPACE = ".ammo"
+EXCLUDE_LINE = ".ammo/"
+FINGERPRINT_TIMEOUT_S = 300
+
+
+def _mint_campaign_id() -> str:
+    """YYYYMMDD-HHMMSS-<6 hex>, UTC."""
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    return f"{stamp}-{secrets.token_hex(3)}"
+
+
+def _valid_campaign_id(value: str) -> bool:
+    # The layer's own id rule, so the marker this script writes is one that
+    # campaign_paths.find_campaign_dir() accepts.
+    return bool(campaign_paths._ID.fullmatch(value)) and value not in (".", "..")
+
+
+def _git_toplevel(start: Path) -> Optional[Path]:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(start), "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    top = result.stdout.strip()
+    return Path(top).resolve() if result.returncode == 0 and top else None
+
+
+def _in_workspace(artifact_dir: Path) -> bool:
+    """True when artifact_dir has the form <engine>/.ammo/<id>."""
+    return artifact_dir.parent.name == WORKSPACE
+
+
+def _resolve_campaign(args: argparse.Namespace, p: argparse.ArgumentParser):
+    """Return (campaign_dir, campaign_id, engine_root, engine_is_guess).
+
+    Nothing is written here, so every refusal leaves the disk unchanged.
+    """
+    if args.campaign_id is not None and not _valid_campaign_id(args.campaign_id):
+        p.error(
+            f"--campaign-id {args.campaign_id!r} must be one path segment of "
+            "letters, digits, '.', '_' or '-' that starts with a letter or digit"
+        )
+    explicit_engine = (
+        Path(args.engine_root).expanduser().resolve() if args.engine_root else None
+    )
+    if explicit_engine is not None and not explicit_engine.is_dir():
+        p.error(f"--engine-root {explicit_engine} is not a directory")
+
+    if args.artifact_dir:
+        campaign_dir = Path(args.artifact_dir).expanduser().resolve()
+        campaign_id = campaign_paths.campaign_id(campaign_dir)
+        if args.campaign_id is not None and args.campaign_id != campaign_id:
+            p.error(
+                f"--campaign-id {args.campaign_id!r} differs from the --artifact-dir "
+                f"basename {campaign_id!r}; pass one of them"
+            )
+        if _in_workspace(campaign_dir):
+            workspace_engine = campaign_paths.engine_root(campaign_dir)
+            if explicit_engine is not None and explicit_engine != workspace_engine:
+                p.error(
+                    f"--engine-root {explicit_engine} does not hold the --artifact-dir "
+                    f"workspace {campaign_dir.parent}; pass one of them"
+                )
+            return campaign_dir, campaign_id, workspace_engine, False
+        if explicit_engine is not None:
+            return campaign_dir, campaign_id, explicit_engine, False
+        top = _git_toplevel(Path.cwd())
+        if top is not None:
+            return campaign_dir, campaign_id, top, False
+        return campaign_dir, campaign_id, Path.cwd().resolve(), True
+
+    engine = explicit_engine or _git_toplevel(Path.cwd())
+    if engine is None:
+        p.error(
+            f"{Path.cwd()} is not inside a git checkout. Run new_target.py inside "
+            "the engine checkout, or pass --engine-root"
+        )
+    campaign_id = args.campaign_id or _mint_campaign_id()
+    return engine / WORKSPACE / campaign_id, campaign_id, engine, False
+
+
+def _engine_venv(engine: Path) -> str:
+    """AMMO_PYTHON when set at scaffold (an empty value counts as unset), else <engine>/.venv."""
+    explicit = (os.environ.get("AMMO_PYTHON") or "").strip()
+    if explicit:
+        return os.path.abspath(os.path.expanduser(explicit))
+    return str(engine / ".venv")
+
+
+def _venv_python(venv: str) -> Path:
+    path = Path(venv)
+    return path if path.is_file() else path / "bin" / "python"
+
+
+def _stack_fingerprint(engine_root: Path, python: Path) -> Optional[Dict[str, Any]]:
+    """Engine stack identity from `preflight_pumice.py --write-fingerprint`.
+
+    It runs under the engine python, because only that python imports pumice.
+    --engine-root names the new engine, so the commit is never read from a
+    checkout that a previous campaign's env points at. The flag writes one
+    JSON object to the path it is given. Any failure returns None with a WARNING:
+    preflight, not the scaffold, is the step that fails closed on a broken
+    engine venv.
+    """
+    def skip(reason: str) -> None:
+        print(
+            f"WARNING: runtime.stack_fingerprint not recorded: {reason}. "
+            "Preflight records the engine stack before Stage 1.",
+            file=sys.stderr,
+        )
+
+    if not (python.is_file() and os.access(python, os.X_OK)):
+        skip(f"engine python {python} not found")
+        return None
+    preflight = plugin_path("scripts", "preflight_pumice.py")
+    with tempfile.TemporaryDirectory(prefix="ammo-fingerprint-") as tmp:
+        out = Path(tmp) / "fingerprint.json"
+        try:
+            result = subprocess.run(
+                [str(python), str(preflight), "--engine-root", str(engine_root),
+                 "--write-fingerprint", str(out)],
+                cwd=str(engine_root), capture_output=True, text=True,
+                timeout=FINGERPRINT_TIMEOUT_S,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            skip(f"{preflight.name} did not run ({exc})")
+            return None
+        if result.returncode != 0:
+            last = (result.stderr or result.stdout).strip().splitlines()[-1:]
+            skip(f"{preflight.name} --write-fingerprint exited {result.returncode}"
+                 + (f": {last[0]}" if last else ""))
+            return None
+        text = out.read_text(encoding="utf-8") if out.is_file() else ""
+        try:
+            data = json.loads(text)
+        except ValueError:
+            skip(f"{preflight.name} --write-fingerprint wrote no JSON object")
+            return None
+    if not isinstance(data, dict) or not data:
+        skip(f"{preflight.name} --write-fingerprint wrote no JSON object")
+        return None
+    return data
+
+
+def _explicit_fingerprint(p: argparse.ArgumentParser) -> Optional[Dict[str, Any]]:
+    raw = (os.environ.get("AMMO_STACK_FINGERPRINT") or "").strip()
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        p.error("AMMO_STACK_FINGERPRINT must be a JSON object")
+    if not isinstance(data, dict):
+        p.error("AMMO_STACK_FINGERPRINT must be a JSON object")
+    return data
+
+
+def _setdefault_env(name: str, value: Optional[str]) -> None:
+    """Explicit env wins; an empty value counts as unset (campaign_paths.apply_env)."""
+    if value and not os.environ.get(name):
+        os.environ[name] = value
+
+
+def _write_marker(engine: Path, campaign_id: str) -> None:
+    """Point <engine>/.ammo/active at this campaign. Atomic; never cleared."""
+    marker = engine / campaign_paths.MARKER
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    tmp = marker.with_name(f".active.{os.getpid()}.tmp")
+    tmp.write_text(campaign_id + "\n", encoding="utf-8")
+    os.replace(tmp, marker)
+
+
+def _git_exclude_path(engine: Path) -> Optional[Path]:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(engine), "rev-parse", "--git-path", "info/exclude"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        result = None
+    if result is not None and result.returncode == 0 and result.stdout.strip():
+        path = Path(result.stdout.strip())
+        return path if path.is_absolute() else engine / path
+    if (engine / ".git").is_dir():
+        return engine / ".git" / "info" / "exclude"
+    return None
+
+
+def _exclude_workspace(engine: Path) -> None:
+    """Append `.ammo/` to the engine's git exclude file once (idempotent)."""
+    path = _git_exclude_path(engine)
+    if path is None:
+        return
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    if any(line.strip() in {".ammo", ".ammo/", "/.ammo", "/.ammo/"} for line in text.splitlines()):
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        if text and not text.endswith("\n"):
+            handle.write("\n")
+        handle.write(EXCLUDE_LINE + "\n")
+
+
+def _require_supported_profile(profile: str, p: argparse.ArgumentParser) -> None:
+    """The one profile gate (conventions §6): only pumice-cuda scaffolds in v1.
+
+    resolve_runtime() still accepts every profile, so the Neuron branches
+    below stay in place for records and for a later release.
+    """
+    try:
+        runtime_ops.require_supported_profile(profile)
+    except ValueError as exc:
+        p.error(str(exc))
+
+
+def _drop_active_campaign_env() -> None:
+    """Undo the launcher's campaign_paths.apply_env() before any env read.
+
+    scripts/ammo fills the active campaign's derived names (AMMO_PYTHON,
+    AMMO_SERVING_*, AMMO_STACK_FINGERPRINT, ...) before it runs this script.
+    A new campaign must not inherit them. unapply_env() restores only the
+    names apply_env() set, so names the caller exported still win.
+    """
+    campaign_paths.unapply_env()
+
+
 def main() -> None:
+    _drop_active_campaign_env()
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--artifact-dir", type=str, required=True, help="Directory to create/populate")
+    p.add_argument("--artifact-dir", type=str, default=None,
+                   help="Campaign dir to create/populate. Default: "
+                        "<engine-root>/.ammo/<campaign-id>")
+    p.add_argument("--campaign-id", type=str, default=None,
+                   help="Campaign id (the session_id value). Default: minted "
+                        "YYYYMMDD-HHMMSS-<6 hex> (UTC)")
+    p.add_argument("--engine-root", type=str, default=None,
+                   help="Engine checkout that holds .ammo/. Default: "
+                        "`git rev-parse --show-toplevel` of the current dir")
     p.add_argument("--force", action="store_true", help="Overwrite existing files")
 
     # Optional target metadata (safe defaults + placeholders)
@@ -572,9 +834,10 @@ def main() -> None:
                         "in state.json. Does NOT enable vLLM expert parallelism. "
                         "Use --enable-expert-parallel to actually enable EP.")
     p.add_argument("--data-parallel-size", type=int, default=1,
-                   help="vLLM data-parallel size. When > 1, new_target.py injects "
-                        "--distributed-executor-backend external_launcher into "
-                        "bench.extra_args (required for torchrun DP).")
+                   help="Data-parallel size. When > 1, it is written to "
+                        "bench.extra_args. vllm-* profiles also get "
+                        "--distributed-executor-backend external_launcher "
+                        "(required for torchrun DP); pumice-* profiles never do.")
     p.add_argument("--enable-expert-parallel", action="store_true",
                    help="Enable vLLM expert parallelism (passes "
                         "--enable-expert-parallel through to bench.extra_args).")
@@ -629,31 +892,48 @@ def main() -> None:
 
     p.add_argument("--serving-manifest", help="Frozen managed P/D ServingSpec JSON; selects serving gates")
     args = p.parse_args()
-    # The session form is binding intent, not an optional prompt suggestion.
-    # A P/D session must never silently start a batch campaign.
+    # Host-local campaigns run the Pumice CUDA path. An explicit, non-empty
+    # AMMO_RUNTIME_PROFILE wins; the one gate below decides whether it is
+    # supported. new_target.py never calls campaign_paths.apply_env(): it
+    # creates a campaign, so values derived from a previous campaign's
+    # target.json must not leak into the new one.
+    _setdefault_env("AMMO_RUNTIME_PROFILE", PUMICE_CUDA_PROFILE)
+    _require_supported_profile(os.environ["AMMO_RUNTIME_PROFILE"].strip(), p)
+    try:
+        runtime = resolve_runtime()
+    except ValueError as exc:
+        p.error(str(exc))
+
+    # The campaign form is binding intent, not an optional prompt suggestion.
+    # A P/D campaign must never silently start a batch campaign.
     if os.environ.get("AMMO_SERVING_SETUP") == "pd":
         assigned = os.environ.get("AMMO_SERVING_MANIFEST")
         if not assigned:
-            p.error("P/D session is missing its server-bound manifest")
+            p.error("AMMO_SERVING_SETUP=pd but AMMO_SERVING_MANIFEST names no manifest")
         if args.serving_manifest and Path(args.serving_manifest).resolve() != Path(assigned).resolve():
-            p.error("P/D session must use its server-bound manifest")
+            p.error("a P/D campaign must use the AMMO_SERVING_MANIFEST manifest")
         args.serving_manifest = assigned
     serving_spec = None
+    serving_manifest_path = None
     if args.serving_manifest:
         from serving_contract import load_spec
         try:
-            serving_spec = load_spec(Path(args.serving_manifest).expanduser().resolve())
+            serving_manifest_path = Path(args.serving_manifest).expanduser().resolve()
+            serving_spec = load_spec(serving_manifest_path)
             if os.environ.get("AMMO_SERVING_SETUP") == "pd":
                 expected = os.environ.get("AMMO_SERVING_MANIFEST_SHA256")
                 if not expected or serving_spec.checksum != expected:
-                    p.error("server-bound P/D manifest changed")
+                    p.error("the P/D manifest changed since AMMO_SERVING_MANIFEST_SHA256 was taken")
             serving_spec.verify_files()
             if args.model_id is not None and args.model_id != serving_spec.model_id:
                 p.error("--model-id differs from the serving manifest")
             if args.dtype is not None and args.dtype != serving_spec.dtype:
                 p.error("--dtype differs from the serving manifest")
-            if serving_spec.runtime_profile != resolve_runtime().runtime_profile:
-                p.error("serving runtime differs from the server-assigned accelerator profile")
+            if serving_spec.runtime_profile != runtime.runtime_profile:
+                p.error(
+                    f"serving runtime {serving_spec.runtime_profile} differs from the "
+                    f"campaign profile {runtime.runtime_profile}"
+                )
             # Shape/load/SLO knobs come from the serving manifest. Explicit batch
             # flags would create two contradictory workload contracts.
             forbidden = {"--input-len", "--output-len", "--batch-sizes", "--isl-osl", "--num-iters", "--max-num-seqs",
@@ -665,44 +945,20 @@ def main() -> None:
         except (ValueError, OSError) as exc:
             p.error(str(exc))
 
-    artifact_dir = Path(args.artifact_dir).expanduser().resolve()
-    artifact_dir.mkdir(parents=True, exist_ok=True)
+    artifact_dir, campaign_id, engine, engine_is_guess = _resolve_campaign(args, p)
+    if engine_is_guess:
+        print(
+            f"WARNING: engine.root recorded as the current dir {engine}: it is not "
+            "inside a git checkout. Pass --engine-root to name the engine checkout.",
+            file=sys.stderr,
+        )
+    if not args.force:
+        for name in ("state.json", "target.json"):
+            if (artifact_dir / name).exists():
+                p.error(f"Refusing to overwrite existing file: {artifact_dir / name} (use --force)")
 
     fields = _default_target_fields(args)
 
-    # Create v2 round-scoped scaffold for round 1.
-    # Spec: docs/superpowers/specs/2026-05-12-ammo-artifact-layout-design.md (§Bootstrap)
-    # Reference: references/artifact-layout.md
-    round_dir = artifact_dir / "rounds" / "1"
-    for subdir in (
-        "profiling/nsys",
-        "profiling/ncu",
-        "profiling/neuron",
-        "sweeps/baseline/json",
-        "sweeps/baseline/logs",
-        "sweeps/baseline/status",
-        "sweeps/opt",
-        "sweeps/opt_correctness",
-        "sweeps/opt_profiling",
-        "sweeps/integration",
-        "sweeps/integration_profiling",
-        "sweeps/golden_capture",
-        "mining",
-        "debate/proposals",
-        "debate/micro_experiments",
-        "debate/monitor_audits",
-        "tracks",
-        "audits",
-        "_archive",
-    ):
-        (round_dir / subdir).mkdir(parents=True, exist_ok=True)
-    # Cross-round (campaign-level) blockers dir — NOT round-scoped.
-    (artifact_dir / "blockers").mkdir(exist_ok=True)
-
-    try:
-        runtime = resolve_runtime()
-    except ValueError as exc:
-        p.error(str(exc))
     if (
         runtime.is_neuron
         and fields.max_num_batched_tokens is None
@@ -733,29 +989,63 @@ def main() -> None:
             file=sys.stderr,
         )
 
+    # The engine contract that campaign_paths.campaign_env() derives the
+    # campaign env from (references/campaign-env.md section 1). Fill the same
+    # names in this process first, so the scaffold-time stack fingerprint in
+    # state.json matches what later scripts compute after apply_env().
+    venv = _engine_venv(engine)
+    accelerator_name = gpu_model or None
+    instance_family = (os.environ.get("AMMO_INSTANCE_FAMILY") or "").strip() or accelerator_name
+    fingerprint = _explicit_fingerprint(p)
+    if fingerprint is None:
+        fingerprint = _stack_fingerprint(engine, _venv_python(venv))
+    _setdefault_env("AMMO_ENGINE_ROOT", str(engine))
+    _setdefault_env("AMMO_RUNTIME_SOURCE_DIR", str(engine))
+    _setdefault_env("AMMO_ACCELERATOR_NAME", accelerator_name)
+    _setdefault_env("AMMO_INSTANCE_FAMILY", instance_family)
+    if fingerprint is not None:
+        _setdefault_env(
+            "AMMO_STACK_FINGERPRINT",
+            json.dumps(fingerprint, sort_keys=True, separators=(",", ":")),
+        )
+
     state = _state_json(
         fields, artifact_dir, args.min_e2e_improvement,
         noise_tolerance_pct=args.noise_tolerance_pct,
         catastrophic_regression_pct=args.catastrophic_regression_pct,
         gpu_model=gpu_model,
     )
+    state["session_id"] = campaign_id
     target = _target_json(fields, artifact_dir, runtime.runtime_profile)
+    target["engine"] = {"root": str(engine), "venv": venv}
+    target["runtime"] = {
+        "profile": runtime.runtime_profile,
+        "accelerator_kind": runtime.accelerator_kind,
+        "accelerator_name": accelerator_name,
+        "instance_family": instance_family,
+    }
+    if fingerprint is not None:
+        target["runtime"]["stack_fingerprint"] = fingerprint
     if serving_spec is not None:
         from serving_campaign import binding
         required_resources = {resource for worker in serving_spec.workers for resource in worker.resource_ids}
         if not required_resources <= set(state["runtime"]["resource_ids"]):
-            p.error("serving workers exceed the server-assigned resource pool")
+            p.error("serving workers need resources outside this campaign's visible pool "
+                    "(CUDA_VISIBLE_DEVICES)")
         if state["runtime"].get("lnc") != serving_spec.lnc:
-            p.error("serving LNC differs from the server-assigned configuration")
+            p.error("serving LNC differs from the campaign configuration")
         state["serving"] = binding(serving_spec)
         state["campaign"]["rounds"][0]["serving"] = {}
         target["serving"] = serving_spec.model_dump(mode="json")
+        target["serving_manifest"] = {
+            "path": str(serving_manifest_path),
+            "sha256": serving_spec.checksum,
+        }
         # Legacy metadata remains readable, but no batch workload or runner is
         # operative for this target. This prevents accidental batch fallback.
         target.pop("workload", None)
         target.pop("bench", None)
         target.pop("gating", None)
-        (artifact_dir / "serving").mkdir(exist_ok=True)
     try:
         from jsonschema import Draft202012Validator
     except ImportError as exc:
@@ -768,11 +1058,47 @@ def main() -> None:
     if errors:
         details = "; ".join(error.message for error in errors[:5])
         p.error(f"generated state violates schema: {details}")
+
+    # Every check passed: now write. Create v2 round-scoped scaffold for round 1.
+    # Reference: references/artifact-layout.md
+    round_dir = artifact_dir / "rounds" / "1"
+    for subdir in (
+        "profiling/nsys",
+        "profiling/ncu",
+        "profiling/neuron",
+        "sweeps/baseline/json",
+        "sweeps/baseline/logs",
+        "sweeps/baseline/status",
+        "sweeps/opt",
+        "sweeps/opt_correctness",
+        "sweeps/opt_profiling",
+        "sweeps/integration",
+        "sweeps/integration_profiling",
+        "sweeps/golden_capture",
+        "mining",
+        "debate/proposals",
+        "debate/micro_experiments",
+        "debate/monitor_audits",
+        "tracks",
+        "audits",
+        "_archive",
+    ):
+        (round_dir / subdir).mkdir(parents=True, exist_ok=True)
+    # Cross-round (campaign-level) blockers dir — NOT round-scoped.
+    (artifact_dir / "blockers").mkdir(exist_ok=True)
+    if serving_spec is not None:
+        (artifact_dir / "serving").mkdir(exist_ok=True)
     _write_json(artifact_dir / "state.json", state, force=args.force)
     _write_json(artifact_dir / "target.json", target, force=args.force)
+    if _in_workspace(artifact_dir):
+        workspace_engine = campaign_paths.engine_root(artifact_dir)
+        _write_marker(workspace_engine, campaign_id)
+        _exclude_workspace(workspace_engine)
 
-    print(f"Initialized artifact directory: {artifact_dir}")
+    print(f"Initialized campaign {campaign_id}: {artifact_dir}")
     print("Created: state.json, target.json, rounds/1/ scaffold")
+    if _in_workspace(artifact_dir):
+        print(f"Marker: {campaign_paths.engine_root(artifact_dir) / campaign_paths.MARKER}")
     print("Next: write rounds/1/constraints.md (Phase 1)")
 
 

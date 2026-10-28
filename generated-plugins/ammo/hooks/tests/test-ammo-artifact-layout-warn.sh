@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test harness for ammo-artifact-layout-warn.sh (PostToolUse, matcher=Write|Edit|Bash)
-# Run: bash .claude/hooks/test-ammo-artifact-layout-warn.sh
+# Run: bash hooks/tests/test-ammo-artifact-layout-warn.sh
 #
 # The hook is ADVISORY: it always exits 0 and signals only through
 # hookSpecificOutput.additionalContext ("LAYOUT WARN: ..."). So every case here
@@ -12,20 +12,35 @@
 #      motivated the manifest — evidence.json, validation_summary.json,
 #      diff.patch, post_ship_profiling/ — are pinned explicitly),
 #   2. the doc's Prohibited Patterns still WARN,
-#   3. a missing or corrupt manifest disables checking LOUDLY on stderr and
-#      never degrades to an empty allowlist that warns on everything.
+#   3. a missing or corrupt manifest (or one without the campaign_root key)
+#      disables checking LOUDLY on stderr and never degrades to an empty
+#      allowlist that warns on everything.
+#
+# ENG is an engine root: .ammo/active names campaign tgt, so the campaign dir
+# ART is ENG/.ammo/tgt. The hook classifies a path by containment in the
+# campaign dir; outside a campaign it is silent.
 set -uo pipefail
 
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' | grep -v '^AMMO_TEST_HOOK$' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
+
 HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-artifact-layout-warn.sh}"
-MANIFEST="$(cd "$(dirname "$0")/.." && pwd)/../scripts/artifact_layout.json"
-ART="/w/kernel_opt_artifacts/tgt"
+PLUGIN="$(cd "$(dirname "$HOOK")/.." && pwd)"
+MANIFEST="$PLUGIN/scripts/artifact_layout.json"
 PASS=0
 FAIL=0
 TOTAL=0
 
 TMPDIR=$(mktemp -d)
-cleanup() { rm -rf "$TMPDIR" 2>/dev/null || true; }
+NOCAMP=$(mktemp -d)
+cleanup() { rm -rf "$TMPDIR" "$NOCAMP" 2>/dev/null || true; }
 trap cleanup EXIT
+ENG="$TMPDIR/w"
+ART="$ENG/.ammo/tgt"
+mkdir -p "$ART"
+printf 'tgt\n' > "$ENG/.ammo/active"
+cd "$ENG"
 
 # run_case: $1 label  $2 silent|warn  $3 payload JSON
 run_case() {
@@ -53,11 +68,11 @@ run_case() {
     fi
 }
 
-write_case() { run_case "$1" "$2" "$(jq -n -c --arg p "$ART/$3" \
-    '{tool_name:"Write",tool_input:{file_path:$p}}')"; }
+write_case() { run_case "$1" "$2" "$(jq -n -c --arg p "$ART/$3" --arg cwd "$ENG" \
+    '{tool_name:"Write",cwd:$cwd,tool_input:{file_path:$p}}')"; }
 
-bash_case() { run_case "$1" "$2" "$(jq -n -c --arg c "$3" \
-    '{tool_name:"Bash",tool_input:{command:$c}}')"; }
+bash_case() { run_case "$1" "$2" "$(jq -n -c --arg c "$3" --arg cwd "$ENG" \
+    '{tool_name:"Bash",cwd:$cwd,tool_input:{command:$c}}')"; }
 
 # ══════════════════════════════════════════════
 echo "== The four slots the hand-written allowlist warned on =="
@@ -125,16 +140,21 @@ bash_case "ls the sweeps dir" silent "ls $ART/rounds/1/sweeps"
 bash_case "ls the opt slot parent" silent "ls $ART/rounds/1/sweeps/opt"
 bash_case "ls the tracks dir" silent "ls $ART/rounds/1/tracks"
 bash_case "ls the neuron profiling dir" silent "ls $ART/rounds/1/profiling/neuron/"
-bash_case "repo-relative token (no leading slash)" silent "cat kernel_opt_artifacts/tgt/rounds/1/mining/mined.json"
+bash_case "engine-relative token (no leading slash)" silent "cat .ammo/tgt/rounds/1/mining/mined.json"
+bash_case "engine-relative drift token" warn "mkdir -p .ammo/tgt/monitoring"
 bash_case "bash drift is still caught" warn "mkdir -p $ART/monitoring/logs"
+bash_case '$AMMO_ARTIFACT_DIR token, canonical' silent 'ls "$AMMO_ARTIFACT_DIR/rounds/1/sweeps"'
+bash_case '${AMMO_ARTIFACT_DIR} token, drift' warn 'mkdir -p ${AMMO_ARTIFACT_DIR}/monitoring/logs'
 
 # ══════════════════════════════════════════════
 echo ""; echo "== Out of scope =="
 # ══════════════════════════════════════════════
-run_case "path outside kernel_opt_artifacts" silent \
+run_case "path outside the campaign" silent \
     '{"tool_name":"Write","tool_input":{"file_path":"/etc/hosts"}}'
-run_case "artifact root itself has no {target} segment" silent \
-    '{"tool_name":"Write","tool_input":{"file_path":"/w/kernel_opt_artifacts/state.json"}}'
+write_case "a file in .ammo itself is not in the campaign dir" silent "../state.json"
+write_case "a campaign dir the marker does not name is out of scope" silent "../old/monitor_log_x.md"
+run_case "no campaign: drift-shaped path → silent" silent \
+    "$(jq -n -c --arg p "$NOCAMP/.ammo/x/monitor_log_x.md" --arg cwd "$NOCAMP" '{tool_name:"Write",cwd:$cwd,tool_input:{file_path:$p}}')"
 run_case "unhandled tool name" silent '{"tool_name":"Read","tool_input":{"file_path":"/x"}}'
 run_case "missing file_path" silent '{"tool_name":"Write","tool_input":{}}'
 
@@ -145,7 +165,8 @@ echo ""; echo "== Manifest failure is LOUD and fails open =="
 # than not checking: it trains the reader to ignore the channel.
 STAGE="$TMPDIR/stage"
 mkdir -p "$STAGE/hooks" "$STAGE/scripts"
-cp "$HOOK" "$STAGE/hooks/"
+cp "$HOOK" "$PLUGIN/hooks/_find_campaign.sh" "$STAGE/hooks/"
+cp "$PLUGIN/scripts/campaign_paths.py" "$PLUGIN/scripts/ammo" "$STAGE/scripts/"
 STAGED_HOOK="$STAGE/hooks/$(basename "$HOOK")"
 GOOD_PAYLOAD=$(jq -n -c --arg p "$ART/state.json" '{tool_name:"Write",tool_input:{file_path:$p}}')
 DRIFT_PAYLOAD=$(jq -n -c --arg p "$ART/monitor_log_x.md" '{tool_name:"Write",tool_input:{file_path:$p}}')
@@ -179,6 +200,11 @@ check_disabled "corrupt manifest: loud stderr, checking disabled" "$GOOD_PAYLOAD
 
 printf '{"placeholders":{},"slots":{}}' > "$STAGE/scripts/artifact_layout.json"
 check_disabled "empty slots: loud stderr, never an empty allowlist" "$GOOD_PAYLOAD"
+
+# The campaign root comes from the manifest key, never a literal in the hook.
+python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); m.pop("campaign_root"); json.dump(m, open(sys.argv[2],"w"))' \
+    "$MANIFEST" "$STAGE/scripts/artifact_layout.json"
+check_disabled "no campaign_root key: loud stderr, checking disabled" "$DRIFT_PAYLOAD"
 
 # Restoring a good manifest must re-enable checking, so a disabled hook is a
 # transient state and not a latch.

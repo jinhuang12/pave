@@ -82,8 +82,9 @@ class TestPinsSkipOnNeuron:
 
 
 class TestCmbApiPatchCheck:
-    def test_missing_cargo_home_fails(self, monkeypatch):
+    def test_missing_cargo_home_fails(self, monkeypatch, tmp_path):
         monkeypatch.delenv("CARGO_HOME", raising=False)
+        monkeypatch.setenv("HOME", str(tmp_path))  # ~/.cargo is the default
         _, ok, detail = preflight._check_cmb_api_patch()
         assert not ok and "CARGO_HOME" in detail
 

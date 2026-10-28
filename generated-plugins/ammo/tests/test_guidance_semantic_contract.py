@@ -3,9 +3,10 @@
 These tests intentionally assert topology, authority, and machine-facing
 contracts rather than duplicated prose sentences.
 
-Claude-variant layout: role documents live in `agents/*.md` (frontmatter
-IS the runtime registration — there are no bootstrap TOMLs), the schema in
-`schemas/`, and the lifecycle guards are shell hooks in `.claude/hooks/`.
+Plugin layout (Claude dialect): role documents live in `agents/*.md`
+(frontmatter IS the runtime registration — there are no bootstrap TOMLs), the
+schema in `schemas/`, the lifecycle guards are shell hooks in `hooks/`, and
+their harnesses are in `hooks/tests/`.
 """
 
 from __future__ import annotations
@@ -20,9 +21,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CLAUDE_DIR = ROOT
-# Shell scripts that guidance may name but that are not hooks: they ship in the
-# repo docker/ dir and install to /usr/local/bin in the Pumice session images.
-IMAGE_INSTALLED_SCRIPTS = frozenset({"pumice-stage-native.sh", "install-rust-toolchain.sh"})
+# Shell scripts that guidance may name but that the plugin does not ship: they
+# live in the repo docker/ dir and install to /usr/local/bin in the session
+# images. pumice-stage-native.sh is not here: the plugin ships it in scripts/.
+IMAGE_INSTALLED_SCRIPTS = frozenset({"install-rust-toolchain.sh"})
 AGENTS = CLAUDE_DIR / "agents"
 SKILL = (ROOT / "skills" / "ammo" / "SKILL.md").read_text(encoding="utf-8")
 
@@ -321,7 +323,8 @@ def test_retired_hook_names_and_bare_python3_are_absent() -> None:
             if docker_dir.is_dir():
                 assert (docker_dir / hook).is_file(), f"referenced image script missing: {hook}"
             continue
-        candidates = [CLAUDE_DIR / "hooks" / hook, ROOT / "scripts" / hook]
+        candidates = [CLAUDE_DIR / "hooks" / hook, CLAUDE_DIR / "hooks" / "tests" / hook,
+                      ROOT / "scripts" / hook]
         assert any(c.is_file() for c in candidates), f"referenced hook missing: {hook}"
     # Bare python3 at line start invites system-python vllm imports; guidance
     # must show the venv-activated form (hook YAML command lines excepted —
@@ -338,7 +341,10 @@ def test_retired_hook_names_and_bare_python3_are_absent() -> None:
 
 
 def test_progressive_disclosure_reduces_hot_path_without_deleting_roles() -> None:
-    assert not (ROOT / "README.md").exists()
+    # The plugin README sits at the plugin root (the vllm-neuron-parity shape).
+    # The skill dir stays README-free: SKILL.md and references/ are the hot path.
+    assert (ROOT / "README.md").is_file()
+    assert not (ROOT / "skills" / "ammo" / "README.md").exists()
 
 
 def test_changed_markdown_fences_are_balanced() -> None:
@@ -385,12 +391,12 @@ def test_runtime_guidance_dependencies_are_registered() -> None:
     assert 'slot.startswith("opt_profiling/")' in runner
     state_engine = _text("scripts/ammo_state.py")
     assert '"audit": {}' in state_engine
-    # Bare-python sweep invocations are guarded by the Claude venv hook.
-    venv_guard = (CLAUDE_DIR / "hooks" / "ammo-venv-python-guard.sh").read_text(
-        encoding="utf-8"
-    )
-    assert "run_vllm_bench_latency_sweep" in venv_guard
-    assert ".venv/bin/python" in venv_guard
+    # The venv-python guard hook is dropped (conventions §7). The scripts/ammo
+    # launcher runs every .py script under the campaign's engine python.
+    assert not (CLAUDE_DIR / "hooks" / "ammo-venv-python-guard.sh").exists()
+    launcher = _text("scripts/ammo")
+    assert "campaign_paths.python_exe(" in launcher
+    assert 'script.suffix == ".py"' in launcher
 
 
 def test_runtime_fail_closed_policy_invariants_bind() -> None:

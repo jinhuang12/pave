@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install vLLM-Neuron parity custom agents into Codex project or user scope."""
+"""Install the AMMO custom agents into Codex project or user scope."""
 
 from __future__ import annotations
 
@@ -19,17 +19,20 @@ except ImportError as exc:  # pragma: no cover - Python 3.11+ is expected.
     raise SystemExit("Python 3.11+ is required (missing tomllib).") from exc
 
 
-MANIFEST_NAME = ".vllm-neuron-parity-codex-agents.json"
+MANIFEST_NAME = ".ammo-codex-agents.json"
 REQUIRED_FIELDS = ("name", "description", "developer_instructions")
 EXPECTED_AGENTS = {
-    "vllm_neuron_parity_adjudicator.toml": "vllm-neuron-parity:adjudicator",
-    "vllm_neuron_parity_adversarial_reviewer.toml": (
-        "vllm-neuron-parity:adversarial-reviewer"
-    ),
-    "vllm_neuron_parity_implementer.toml": "vllm-neuron-parity:implementer",
-    "vllm_neuron_parity_investigator.toml": "vllm-neuron-parity:investigator",
-    "vllm_neuron_parity_measurer.toml": "vllm-neuron-parity:measurer",
-    "vllm_neuron_parity_rederiver.toml": "vllm-neuron-parity:rederiver",
+    "ammo-auditor.toml": "ammo:ammo-auditor",
+    "ammo-champion.toml": "ammo:ammo-champion",
+    "ammo-delegate.toml": "ammo:ammo-delegate",
+    "ammo-impl-champion.toml": "ammo:ammo-impl-champion",
+    "ammo-implementer.toml": "ammo:ammo-implementer",
+    "ammo-investigator.toml": "ammo:ammo-investigator",
+    "ammo-report.toml": "ammo:ammo-report",
+    "ammo-report-writer.toml": "ammo:ammo-report-writer",
+    "ammo-researcher.toml": "ammo:ammo-researcher",
+    "ammo-resolver.toml": "ammo:ammo-resolver",
+    "ammo-transcript-monitor.toml": "ammo:ammo-transcript-monitor",
 }
 
 
@@ -71,12 +74,12 @@ def _sources() -> list[Path]:
     source = _source_dir()
     paths = [source / name for name in EXPECTED_AGENTS]
     missing = [path.name for path in paths if not path.is_file()]
-    actual = {path.name for path in source.glob("vllm_neuron_parity_*.toml")}
+    actual = {path.name for path in source.glob("ammo-*.toml")}
     expected = {path.name for path in paths}
     unexpected = sorted(actual - expected)
     if missing or unexpected:
         raise FileNotFoundError(
-            f"invalid vLLM-Neuron parity agent source set under {source}: "
+            f"invalid AMMO agent source set under {source}: "
             f"missing={missing}, unexpected={unexpected}"
         )
     for path in paths:
@@ -152,7 +155,7 @@ def install(target: Path, force: bool) -> int:
     temp.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     os.replace(temp, manifest_path)
 
-    print(f"installed {len(planned)} vLLM-Neuron parity custom agents in {target}")
+    print(f"installed {len(planned)} AMMO custom agents in {target}")
     print("restart Codex so it reloads custom-agent configuration")
     return 0
 
@@ -166,7 +169,7 @@ def check(target: Path) -> int:
     if missing_or_changed:
         print("not installed or changed: " + ", ".join(missing_or_changed), file=sys.stderr)
         return 1
-    print(f"vLLM-Neuron parity custom agents are current in {target}")
+    print(f"{len(_sources())} AMMO custom agents are current in {target}")
     return 0
 
 
@@ -174,7 +177,7 @@ def uninstall(target: Path, force: bool) -> int:
     manifest = _read_manifest(target)
     files = manifest.get("files", {}) if isinstance(manifest.get("files"), dict) else {}
     if not files:
-        print(f"no vLLM-Neuron parity ownership manifest in {target}", file=sys.stderr)
+        print(f"no AMMO ownership manifest in {target}", file=sys.stderr)
         return 1
 
     blocked: list[str] = []
@@ -201,7 +204,7 @@ def uninstall(target: Path, force: bool) -> int:
         target.rmdir()
     except OSError:
         pass
-    print(f"removed vLLM-Neuron parity custom agents from {target}")
+    print(f"removed AMMO custom agents from {target}")
     return 0
 
 

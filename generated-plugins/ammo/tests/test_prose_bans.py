@@ -7,8 +7,10 @@ Exceptions, exactly as the conventions state:
   ban: they must stay `cmp`-identical to their source (ruled 2026-10-28).
 - Table rows (lines that start with `|`) of `hooks/README.md` and `README.md`
   may hold the non-pin tokens: those are the migration tables.
-- Pin literals may appear only in `scripts/pumice_pins.py` and
-  `scripts/pumice_pb/README.md` (and in planning-records/, outside the plugin).
+- Pin literals may appear only in `scripts/pumice_pins.py`,
+  `scripts/pumice_pb/README.md`, and `scripts/serving_benchmark_adapter.py`
+  (its wheel digest table is keyed by vLLM version), and in planning-records/,
+  outside the plugin.
 """
 
 from __future__ import annotations
@@ -58,7 +60,7 @@ PINS = {
     "new vllm pin": r"(?<![\d.])0\.32\.0(?!\d)",
     "torch pin": r"(?<![\d.])2\.13\.0(?!\d)",
 }
-PIN_FILES = {"scripts/pumice_pins.py", "scripts/pumice_pb/README.md"}
+PIN_FILES = {"scripts/pumice_pins.py", "scripts/pumice_pb/README.md", "scripts/serving_benchmark_adapter.py"}
 
 
 def text_files():
@@ -149,3 +151,6 @@ def test_rule_migration_table_rows_only():
 def test_rule_pin_files_may_hold_pins():
     assert not flagged("scripts/pumice_pins.py", f'REQUIRED = "{OLD_VLLM}"', "old vllm pin")
     assert flagged("scripts/pumice_pins.py", f"x = '{WS}'", "container workspace")
+    assert not flagged("scripts/serving_benchmark_adapter.py", f'"{OLD_VLLM}": "sha256"', "old vllm pin")
+    assert flagged("scripts/serving_benchmark_adapter.py", f"x = '{WS}'", "container workspace")
+    assert flagged("scripts/run_serving_sweep.py", f'"{OLD_VLLM}"', "old vllm pin")

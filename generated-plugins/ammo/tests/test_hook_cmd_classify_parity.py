@@ -1,8 +1,8 @@
 """Verdict pins and internal parity for hook_cmd_classify.py.
 
 `scripts/hook_cmd_classify.py` is the ONE shell-command classifier. The shell
-hooks call its CLI; `.codex/hooks/common.py` and
-`.codex/hooks/pre_tool_use_guard.py` import it directly. There is no second
+hooks call its CLI; `codex/hooks/common.py` and
+`codex/hooks/pre_tool_use_guard.py` import it directly. There is no second
 implementation left to compare against, so this module pins the verdicts
 themselves over a command table that covers each bypass the older anchored
 `grep -P` regexes used to allow.
@@ -51,10 +51,12 @@ import hook_cmd_classify as classify  # noqa: E402
 TABLE: tuple[tuple[str, bool | None, bool | None], ...] = (
     # --- inspection prefixes that used to disable the whole guard ---
     ("grep -rn kernel .", True, False),
-    ("rg --files kernel_opt_artifacts", True, False),
-    ("cat kernel_opt_artifacts/t/state.json", True, False),
+    ("rg --files .ammo", True, False),
+    ("cat .ammo/20261028-120000-abc123/state.json", True, False),
     ("head -20 REPORT.md", True, False),
-    ("ls -la kernel_opt_artifacts", True, False),
+    ("ls -la .ammo", True, False),
+    ("cat .ammo/active", True, False),
+    ("jq .campaign.status .ammo/20261028-120000-abc123/state.json", True, False),
     ("jq .campaign.status state.json", True, False),
     ("wc -l envs.py", True, False),
     ("git log --oneline -10", True, False),
@@ -147,7 +149,7 @@ def test_inspection_only_closes_the_glued_separator_hole():
 
 
 # `is_static_inspection_command` is the function BOTH runtimes call: the shell
-# hooks reach it through `--mode readonly`, `.codex/hooks/common.py` re-exports
+# hooks reach it through `--mode readonly`, `codex/hooks/common.py` re-exports
 # it, and `post_tool_use_guard.py` gates state.json validation on it. The rows
 # below pin its verdict DIRECTLY, because the table walk above reads
 # `is_inspection_only` and the two-function inequality cannot see a loosening

@@ -10,7 +10,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-HOOKS_DIR = Path(__file__).resolve().parents[3] / "hooks"
+# <plugin>/codex/scripts/monitor_queue_ack.py -> the Codex hooks in <plugin>/codex/hooks.
+HOOKS_DIR = Path(__file__).resolve().parent.parent / "hooks"
 sys.path.insert(0, str(HOOKS_DIR))
 from common import blocking_monitor_records, find_repo_root, monitor_queue_paths, read_monitor_jsonl, record_session_id, session_id_from_payload, stable_monitor_record_id  # noqa: E402
 

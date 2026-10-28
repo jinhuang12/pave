@@ -1,4 +1,4 @@
-# Artifact Layout (V2) — Path Resolution Reference
+# Artifact Layout (V2): Path Resolution Reference
 
 This file says where every AMMO campaign artifact lives. Read it before you write any file under `.ammo/`, and read it again whenever two candidate files could answer the same question. It is the single source of truth for campaign artifact paths: all agent docs, orchestration docs, and scripts point here, and if another document contradicts a path here, this file wins.
 
@@ -18,12 +18,14 @@ This file says where every AMMO campaign artifact lives. Read it before you writ
 
 ## Root Layout
 
+The campaign root is `<engine>/.ammo/<id>/`. `<engine>` is the Pumice checkout, and `<id>` is the campaign id that `new_target.py` mints (`YYYYMMDD-HHMMSS-<6 hex>`). `scripts/artifact_layout.json` names this root in its `campaign_root` key. Scripts take the same directory as `--artifact-dir` or `AMMO_ARTIFACT_DIR` (`references/campaign-env.md`). The marker `<engine>/.ammo/active` holds the id of the current campaign. It sits beside the campaign directories, not inside one.
+
 Only these entries live at the campaign root. Everything else is round-scoped.
 
 ```
 .ammo/<id>/
 ├── state.json              # Campaign state (orchestrator-only writes)
-├── state.json.lock         # flock file — every state.json writer serializes on it
+├── state.json.lock         # flock file: every state.json writer serializes on it
 ├── target.json             # Workload + bench config (mutated on SHIP)
 ├── REPORT.md               # Terminal deliverable (Stage 7b)
 ├── report_assets/          # Charts + generators for REPORT.md
@@ -36,7 +38,7 @@ Only these entries live at the campaign root. Everything else is round-scoped.
     └── {stage}_{date}.md
 ```
 
-`{target}` = `{model}_{hardware}_{dtype}_tp{tp}` (e.g., `deepseek-v4-flash_B200_fp8_tp1`).
+`target.json` records the model, hardware, dtype, and TP of the campaign. The directory name does not carry them.
 
 ### Root-Level Files
 
@@ -49,13 +51,13 @@ Only these entries live at the campaign root. Everything else is round-scoped.
 | `report_assets/` | `ammo-report-writer` | 5 required PNGs + gen scripts |
 | `blockers/{stage}_{date}.md` | Orchestrator on escalation | Cross-round (NOT round-scoped) |
 
-> **Note:** `state.json` plus the path conventions in this file are the only sources of artifact metadata. The frontend lists files with `GET /api/campaigns/{id}/tree` and reads metrics from `state.json` (for example `rounds[N-1].bottleneck_mining` and `tracks[op_id].gate_5_2_metrics`).
+> **Note:** `state.json` plus the path conventions in this file are the only sources of artifact metadata. Read metrics from `state.json` (for example `rounds[N-1].bottleneck_mining` and `tracks[op_id].gate_5_2_metrics`).
 
 ---
 
 ## Round Directory Tree
 
-Every round `N` (1-indexed) contains the full lifecycle for that optimization round. Read the comments in the tree — each one is a rule about what the file is for and whether you may trust its numbers.
+Every round `N` (1-indexed) contains the full lifecycle for that optimization round. Read the comments in the tree. Each one is a rule about what the file is for and whether you may trust its numbers.
 
 ```
 rounds/{N}/
@@ -98,16 +100,16 @@ rounds/{N}/
 ├── mining/
 │   ├── mine_config.json                 # Researcher JUDGMENT input to mine_trace.py
 │   ├── mined.json                       # mine_trace.py output (schema mine_trace/1)
-│   ├── tables.md                        # DERIVED — mine_trace.py; pasted verbatim below
+│   ├── tables.md                        # DERIVED: mine_trace.py; pasted verbatim below
 │   └── bottleneck_analysis.md
 │
 ├── debate/
-│   ├── eligibility_verdicts.md          # Lead-owned — CUT-4 four-gate verdict + gated_revision (write-once-then-append)
+│   ├── eligibility_verdicts.md          # Lead-owned: CUT-4 four-gate verdict + gated_revision (write-once-then-append)
 │   ├── proposals/                       # {champion_id}_proposal.md
 │   ├── round_{D}/                       # Debate rounds (D=1,2,...; NOT campaign rounds)
 │   │   └── {op_id}_{argument|critique_{target}|rebuttal}.md
 │   ├── micro_experiments/               # Champion feasibility scripts + logs
-│   └── summary.md                       # DERIVED — lead-authored from state.json; state.json wins
+│   └── summary.md                       # DERIVED: lead-authored from state.json; state.json wins
 │
 ├── tracks/
 │   └── {op_id}/
@@ -153,7 +155,7 @@ These rules fix the output path for each writer, so nobody has to invent one.
 The runner starts the Pumice gRPC server for each arm and drives it with Generate waves. Name the runner output with `--round` and `--slot`. Never name the directory yourself.
 
 ```bash
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
     --artifact-dir {artifact_dir} \
     --round {N} --slot {SLOT} \
     [--labels baseline|opt] [other flags...]
@@ -198,11 +200,11 @@ Monitors receive `round_number` and `output_dir` in their dispatch prompt. They 
 
 ### Champion Scratch Files
 
-Every intermediate artifact — drafts, debug scripts, iteration logs — MUST go in `rounds/{N}/tracks/{op_id}/_scratch/`. The ONLY authoritative file at the track root is `validation_results.md`.
+Every intermediate artifact (drafts, debug scripts, iteration logs) MUST go in `rounds/{N}/tracks/{op_id}/_scratch/`. The ONLY authoritative file at the track root is `validation_results.md`.
 
 ### Projection Accuracy (`check_projection_accuracy.py`)
 
-This script appends a `## Projection Accuracy` section to `rounds/{N}/tracks/{op_id}/validation_results.md` — NOT a campaign-root file. Call it with `--round N --track-id {op_id}`.
+This script appends a `## Projection Accuracy` section to `rounds/{N}/tracks/{op_id}/validation_results.md`, NOT to a campaign-root file. Call it with `--round N --track-id {op_id}`.
 
 ---
 
@@ -224,7 +226,7 @@ This shared diagnostic slot has no gate authority and does not change Claude rol
 | `state.json` | Every stage transition, gate result, track update |
 | `target.json` | SHIP env promotion |
 | `rounds/{N}/debate/summary.md` (lead-authored) | After debate winner selection |
-| `rounds/{N}/debate/eligibility_verdicts.md` | At op_id minting — CUT-4 four-gate verdict + `gated_revision` per surviving op_id; appended on any critique-triggered Gate-1/Gate-2 re-derivation (write-once-then-append; lead-owned) |
+| `rounds/{N}/debate/eligibility_verdicts.md` | At op_id minting: CUT-4 four-gate verdict + `gated_revision` per surviving op_id; appended on any critique-triggered Gate-1/Gate-2 re-derivation (write-once-then-append; lead-owned) |
 | `blockers/{stage}_{date}.md` | On escalation |
 
 ### ammo-researcher
@@ -241,7 +243,7 @@ This shared diagnostic slot has no gate authority and does not change Claude rol
 | Writes to | When |
 |-----------|------|
 | `rounds/{N}/debate/proposals/{champion_id}_proposal.md` | Phase 0 |
-| `rounds/{N}/debate/round_{D}/{op_id}_argument.md` | Phase A (debate sub-rounds 2+ only — sub-round 1 has no Phase A; the Phase 0 proposal is its argument-of-record) |
+| `rounds/{N}/debate/round_{D}/{op_id}_argument.md` | Phase A (debate sub-rounds 2+ only; sub-round 1 has no Phase A, and the Phase 0 proposal is its argument-of-record) |
 | `rounds/{N}/debate/round_{D}/{op_id}_critique_{target}.md` | Phase B |
 | `rounds/{N}/debate/round_{D}/{op_id}_rebuttal.md` | Phase C |
 | `rounds/{N}/debate/micro_experiments/{champion_id}_*.py` | Phase 0 (optional) |
@@ -270,7 +272,7 @@ This shared diagnostic slot has no gate authority and does not change Claude rol
 | `rounds/{N}/audits/stage_2.md` | T_AUDIT_S2 |
 | `rounds/{N}/audits/stage_45.md` | T_AUDIT_S45 |
 | `rounds/{N}/audits/stage_67.md` | T_AUDIT_S67 |
-| `rounds/{N}/audits/stage_45_partial_{op_id}.md` | Optional — early per-track evidence, written by an `ammo-delegate` dispatched directly by the orchestrator (not by `ammo-auditor` itself) as soon as that track reaches terminal status, ahead of the full T_AUDIT_S45 gate. Consumed (not produced) by the real auditor at T_AUDIT_S45. See `orchestration/audit-protocol.md` § Optional Early S45 Evidence. |
+| `rounds/{N}/audits/stage_45_partial_{op_id}.md` | Optional. Early per-track evidence, written by an `ammo-delegate` dispatched directly by the orchestrator (not by `ammo-auditor` itself) as soon as that track reaches terminal status, ahead of the full T_AUDIT_S45 gate. Consumed (not produced) by the real auditor at T_AUDIT_S45. See `orchestration/audit-protocol.md` § Optional Early S45 Evidence. |
 
 ### ammo-report-writer
 | Writes to | When |
@@ -285,11 +287,11 @@ This shared diagnostic slot has no gate authority and does not change Claude rol
 
 An authoritative file is an input to a later stage, so treat it as a contract. A diagnostic file only informs a reader.
 
-### Authoritative — downstream stages read these
+### Authoritative: downstream stages read these
 
 | Path | Consumer | Gate |
 |------|----------|------|
-| `state.json` | All agents, all stages | — |
+| `state.json` | All agents, all stages | none |
 | `rounds/{N}/sweeps/baseline/e2e_latency_results.json` | Stage-1 mining and later invalidated-mining reuse until a material SHIP supersedes it | Stage 2 |
 | `rounds/{N}/sweeps/baseline/json/golden_refs.json` | Stage 5.1b correctness | Gate 5.1b |
 | `rounds/{N}/sweeps/opt_correctness/{op_id}/json/correctness_verdict.json` | Orchestrator, auditor | Gate 5.1b |
@@ -298,7 +300,7 @@ An authoritative file is an input to a later stage, so treat it as a contract. A
 | `rounds/{N}/mining/mined.json` | Auditor, `bottleneck_analysis.md` tables | Stage 2 |
 | `rounds/{N}/mining/tables.md` | Researcher, pasted verbatim (DERIVED) | Stage 2 |
 | `rounds/{N}/mining/bottleneck_analysis.md` | Debate champions, routing | Stage 2 |
-| `rounds/{N}/debate/summary.md` | Report writer (DERIVED) | — |
+| `rounds/{N}/debate/summary.md` | Report writer (DERIVED) | none |
 | `rounds/{N}/sweeps/opt/{op_id}/e2e_latency_results.json` | Orchestrator, integration | Gate 5.3b |
 | `rounds/{N}/tracks/{op_id}/validation_results.md` | Orchestrator, auditor, report writer | T9 |
 | `rounds/{N}/tracks/{op_id}/evidence.json` | `verify_validation_gates.py`, `reconcile_track_state.py` | Gate 5.x |
@@ -309,23 +311,23 @@ An authoritative file is an input to a later stage, so treat it as a contract. A
 | `rounds/{N}/tracks/{op_id}/validator_tests/gate_5_2_results.json` | Orchestrator state merge | Gate 5.2 |
 | `rounds/{N}/sweeps/integration/e2e_latency_results.json` | Campaign eval, cumulative speedup, and round N+1 mining after a material SHIP | Stage 6 / next-round Stage 2 |
 | `rounds/{N}/sweeps/golden_capture/json/golden_refs.json` | Next round's Stage 5.1b | Post-SHIP |
-| `rounds/{N}/constraints.md` | Debate champions (current round) | — |
+| `rounds/{N}/constraints.md` | Debate champions (current round) | none |
 | `rounds/{N}/audits/stage_{1\|2\|45\|67}.md` | State transitions and downstream stages | T_AUDIT |
 | `rounds/{N}/audits/stage_{stage}_cycle_{C}.md` | Re-audit verdict after BLOCKED (C=2,3) | T_AUDIT |
 | `rounds/{N}/validation_gate_report.json` | Orchestrator, auditor (cohort mechanical result) | Gate 5.x |
 
-### Diagnostic — informational, not pipeline-consumed
+### Diagnostic: informational, not pipeline-consumed
 
 The Confusion Risk column says how easily a reader mistakes the file for an authoritative one.
 
 | Path | Purpose | Confusion Risk |
 |------|---------|----------------|
-| `rounds/{N}/profiling/ncu/sanity.csv` | HW counter sanity | MEDIUM — latency column is NOT baseline |
+| `rounds/{N}/profiling/ncu/sanity.csv` | HW counter sanity | MEDIUM: latency column is NOT baseline |
 | `rounds/{N}/debate/micro_experiments/*` | Feasibility evidence | LOW |
-| `rounds/{N}/tracks/{op_id}/_scratch/*` | Champion iteration | MEDIUM — drafts look like finals |
+| `rounds/{N}/tracks/{op_id}/_scratch/*` | Champion iteration | MEDIUM: drafts look like finals |
 | `rounds/{N}/tracks/{op_id}/monitor_audits/*` | DA enforcement (impl-stage) | LOW |
-| `rounds/{N}/audits/stage_45_partial_{op_id}.md` | Early per-track evidence | MEDIUM — not a verdict |
-| `rounds/{N}/sweeps/post_ship_profiling/` | Post-SHIP re-attribution | HIGH — latency is contaminated |
+| `rounds/{N}/audits/stage_45_partial_{op_id}.md` | Early per-track evidence | MEDIUM: not a verdict |
+| `rounds/{N}/sweeps/post_ship_profiling/` | Post-SHIP re-attribution | HIGH: latency is contaminated |
 | `rounds/{N}/_archive/{slot}_{timestamp}/` | Superseded runs | LOW (quarantined) |
 
 ---
@@ -355,16 +357,16 @@ Never create any of these. Each item names the replacement or the reason.
 1. **Writing to campaign root** (except `state.json`, `state.json.lock`, `target.json`, `REPORT.md`, `report_assets/`)
 2. **Timestamped directory names in active slots** (only `_archive/` may carry timestamps)
 3. **Ad-hoc `--out-name`** on the bench runner (use `--round` + `--slot`)
-4. **`monitor_log_*` at campaign root** — must be under `monitor_audits/`
-5. **`validation_results_DRAFT.md`** or similar at track root — use `_scratch/`
-6. **Nested `.ammo/` paths** — monitors must receive absolute `output_dir`
-7. **`e2e_latency_opt*`, `e2e_latency_combined/`** at campaign root — use semantic slots
-8. **`investigation/`, `runs/`, `monitoring/`** directories at root — not part of the layout; the Root Layout list is complete
-9. **Writing nsys traces into sweep output** — traces go to `profiling/nsys/`, not `sweeps/*/nsys/`
-10. **`debate/campaign_round_{N}/` nesting** — replaced by top-level `rounds/{N}/debate/`
-11. **`audits/stage_{N}_round_{M}.md` at campaign root** — replaced by `rounds/{M}/audits/stage_{N}.md`
-12. **`bottleneck_analysis.md` at campaign root** — replaced by `rounds/{N}/mining/bottleneck_analysis.md`
-13. **`constraints.md` at campaign root** — replaced by `rounds/{N}/constraints.md`
+4. **`monitor_log_*` at campaign root**: must be under `monitor_audits/`
+5. **`validation_results_DRAFT.md`** or similar at track root: use `_scratch/`
+6. **Nested `.ammo/` paths**: monitors must receive absolute `output_dir`
+7. **`e2e_latency_opt*`, `e2e_latency_combined/`** at campaign root: use semantic slots
+8. **`investigation/`, `runs/`, `monitoring/`** directories at root: not part of the layout; the Root Layout list is complete
+9. **Writing nsys traces into sweep output**: traces go to `profiling/nsys/`, not `sweeps/*/nsys/`
+10. **`debate/campaign_round_{N}/` nesting**: replaced by top-level `rounds/{N}/debate/`
+11. **`audits/stage_{N}_round_{M}.md` at campaign root**: replaced by `rounds/{M}/audits/stage_{N}.md`
+12. **`bottleneck_analysis.md` at campaign root**: replaced by `rounds/{N}/mining/bottleneck_analysis.md`
+13. **`constraints.md` at campaign root**: replaced by `rounds/{N}/constraints.md`
 
 ---
 
@@ -385,6 +387,6 @@ When `_is_v2_layout(artifact_dir)` is `True`, scripts MUST emit v2 paths. When `
 
 ## Hook Enforcement
 
-The PostToolUse warn hook (`.claude/hooks/ammo-artifact-layout-warn.sh`) emits a non-blocking warning when files are created outside the allowed patterns. The tree and path-resolution rules above remain the documentation authority.
+The PostToolUse warn hook (`hooks/ammo-artifact-layout-warn.sh` in the plugin) emits a non-blocking warning when files are created outside the allowed patterns. The tree and path-resolution rules above remain the documentation authority.
 
 Op-id pattern: `[A-Za-z0-9_-]+` (supports `OP-001`, `op007`, etc.).

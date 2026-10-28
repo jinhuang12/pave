@@ -34,16 +34,18 @@ Outside a campaign the layer sets nothing. Scripts then stop and name the search
 | `AMMO_SERVING_MANIFEST` | `target.json` `serving_manifest.path`, from the `--serving-manifest` flag of `new_target.py` | none | batch target |
 | `AMMO_SERVING_MANIFEST_SHA256` | `target.json` `serving_manifest.sha256` | none | batch target |
 
+The python that `scripts/ammo` and `ammo_python` run is `python_exe()`: when the current dir is inside another git worktree of the engine's repository (a track worktree under `.claude/worktrees/` or `.codex/worktrees/`) and `<worktree>/.venv/bin/python` is executable, it is that python, else the first executable of `engine.venv`, `AMMO_PYTHON`, `<engine>/.venv/bin/python`, then `python3`.
+
 The CUDA path is the only profile that preflight accepts. Preflight refuses any other `AMMO_RUNTIME_PROFILE`.
 
 ## 2. Read, never injected
 
-The layer does not set these names. You set them, or a script sets them for a child process that it starts.
+`campaign_env()` does not return these names. You set them, or a script sets them for a child process that it starts. The layer sets one of them: `apply_env()` writes `AMMO_APPLIED_ENV`.
 
 | Name | Read by | Purpose |
 |---|---|---|
 | `AMMO_PUMICE_SERVER_EXE` | `preflight_pumice.py`, the gRPC bench runner | Server launcher to use. When it is not set, the runner picks `rust_grpc_server.py` or `pumice-server` as before. |
-| `AMMO_PUMICE_PINS_FILE` | `preflight_pumice.py` | Path to a pins file. Wave 1 removes this search (conventions §6). Then move this row to section 4. |
+| `AMMO_APPLIED_ENV` | `campaign_paths.py` `unapply_env()` | Record of the names that `apply_env()` set: a JSON object of each name and its prior value, null when it was unset. `scripts/ammo` passes it to the script that it starts. `unapply_env()` gives those names their prior values back and removes the record, so `new_target.py` does not get values from the active campaign. |
 | `AMMO_RUNTIME_SOURCE_COMMIT` | `runtime_ops.py`, report and gate scripts | Neuron plugin source commit. Not set on the CUDA path. |
 | `AMMO_STACK_IMAGE_DIGEST` | `runtime_ops.py`, report and gate scripts | Container image digest. A host-local campaign has no image, so it stays unset and the fingerprint records `image_digest` as null. |
 | `AMMO_NEURON_LNC` | `runtime_ops.py`, `deployment_ops.py` | Neuron logical core setting. Neuron only. |
@@ -53,12 +55,13 @@ The layer does not set these names. You set them, or a script sets them for a ch
 | `AMMO_SERVING_RUN_ID` | `serving_contract.py` | Serving run id. `deployment_ops.py` sets it for each serving worker. |
 | `AMMO_MODEL_LOAD_BINDING` | `run_vllm_bench_latency_sweep.py` | Model load binding. The sweep sets it for its own child. |
 | `AMMO_LAYOUT_MANIFEST` | `ammo-artifact-layout-warn.sh` | Layout manifest path. The hook sets it for its inline Python. |
+| `AMMO_LAYOUT_BASE` | `ammo-artifact-layout-warn.sh` | Dir that relative path tokens resolve against: the tool call's cwd. The hook sets it for its inline Python. |
+| `AMMO_LAYOUT_ROOT_RE` | `ammo-artifact-layout-warn.sh` | Pattern of the campaign root, from the layout manifest. The hook sets it for its inline Python. |
 | `AMMO_REMINDER_STATE_DIR` | `ammo-next-step-reminder.sh`, `ammo-state-validate.sh`, Codex post-tool guard | Root of the previous-state snapshots. Default `/tmp`. |
 | `AMMO_MSG_MIRROR_DIR` | `ammo-msg-check.sh`, `_ammo_msg_identity.sh` | Root of the message mirror channel. Default `/tmp/ammo-msg-mirror-<uid>`. |
 | `AMMO_MSG_MIRROR_MAX_AGE_S` | `ammo-msg-check.sh` | Maximum age of a mirrored message in seconds. Default 7200. |
 | `AMMO_MSG_CHECK_DEBUG` | `ammo-msg-check.sh` | Debug log switch. |
 | `AMMO_VALIDATE_FAIL_OPEN` | `ammo_state.py`, `ammo-state-validate.sh`, Codex post-tool guard | Set to 1 to skip schema validation when `jsonschema` is missing. |
-| `AMMO_ALLOW_PIP` | Codex pre-tool guard | Set to 1 to allow a pip install. |
 | `AMMO_ALLOW_STOP` | Codex stop gate | Set to 1 to allow a stop while a gate is open. |
 | `AMMO_ALLOW_UNRESERVED_GPU` | Codex pre-tool guard | Set to 1 to run a GPU command without a reservation. |
 | `AMMO_ALLOW_ANCHOR_MUTATION` | Codex pre-tool guard | Set to 1 to change a frozen anchor during a validated recovery. |
@@ -71,7 +74,6 @@ The layer does not set these names. You set them, or a script sets them for a ch
 | `AMMO_PROJECT_DIR` | Codex post-tool guard | Project root when `CODEX_PROJECT_DIR` is not set. |
 | `AMMO_CODEX_AGENT_MODE` | Codex hooks | Set to `v1` to select the Codex v1 agent mode. |
 | `AMMO_NSYS_CAPTURE_IDENTITIES_JSON` | `codex/instrumentation/sitecustomize.py` | JSON list of capture identities to put in the NVTX ranges of an Nsight child. No file in this plugin sets it. |
-| `AMMO_CODEX_BEDROCK_REGION` | the ammo-server Codex runtime only | Bedrock login region. `codex/RUNTIME.md` names it, and no plugin file reads it. Move this row to section 4 when that text goes. |
 
 ## 3. Not environment names
 
@@ -93,8 +95,8 @@ The inventory grep also finds these tokens. They are not read from the environme
 | `AMMO_TRACK_LOCAL_RUNTIME_EXTRA_GLOBS` | `worktree-create-with-build.sh` | Bash array of extra file patterns to stage. |
 | `AMMO_CAPTURE_V2` | `run_pumice_grpc_bench.py` | Schema id inside capture JSON. |
 | `AMMO_CAPTURE_V1` | `codex/instrumentation/sitecustomize.py` | Prefix of a capture identity string. |
-| `AMMO_EXPORT` | `codex/RUNTIME.md` | Placeholder name for an export dir in the install steps. |
 | `AMMO_NORMALIZED_INTERVALS` | `mine_trace.py` | Input format label. |
+| `AMMO_SERVING_` | `new_target.py` | Part of `AMMO_SERVING_*` in a docstring: the serving names of section 1. |
 | `AMMO_TASK` | `codex_agent_registry.py` | Metadata line in a Codex spawn message. |
 | `AMMO_TEST_GUARD` | `hooks/tests/test-ammo-audit-phase2.sh` | Test harness variable. |
 | `AMMO_TEST_HOOK` | `hooks/tests/test-*.sh` | Test harness variable: the hook under test. |
@@ -103,4 +105,11 @@ The inventory grep also finds these tokens. They are not read from the environme
 
 ## 4. Dropped
 
-No name is dropped yet. When a change removes the last reader of a name, move its row to a table in this section and give the reason. `tests/test_env_inventory.py` fails when a script still reads a name listed here.
+When a change removes the last reader of a name, move its row to this table and give the reason. `tests/test_env_inventory.py` fails when a script still reads a name listed here.
+
+| Name | Was read by | Reason |
+|---|---|---|
+| `AMMO_ALLOW_PIP` | Codex pre-tool guard | The Codex pip guard goes with its Claude twin, the pip-guard hook (conventions §7). |
+| `AMMO_PUMICE_PINS_FILE` | `preflight_pumice.py` | Pins are constants in `scripts/pumice_pins.py`. |
+| `AMMO_EXPORT` | `codex/RUNTIME.md`, as a placeholder | Server export and session-setup only. |
+| `AMMO_CODEX_BEDROCK_REGION` | the ammo-server Codex runtime | Server export and session-setup only. |

@@ -191,6 +191,7 @@ class TestProfilerGuardIntegration:
         )
         return result.returncode, result.stderr + result.stdout
 
+    @pytest.mark.requires_gpu  # the guard runs after the nsys PATH check
     def test_subprocess_baseline_nsys_exits_nonzero(self, artifact_dir):
         code, output = self._run_sweep(artifact_dir, [
             "--slot", "baseline", "--nsys-profile", "--labels", "baseline",

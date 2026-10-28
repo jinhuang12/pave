@@ -54,7 +54,7 @@ Wave 1 starts when worker-1 and worker-2 PASS. worker-3 and worker-4 may still b
 |---|---|---|---|
 | worker-5 | Lead skill, report skill, orchestration, agents, Codex agents, manifests | `skills/`, `orchestration/`, `agents/`, `codex/agents/`, `codex/install_agents.py`, `codex/RUNTIME.md`, `references/harness-binding.md` (new), `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, `tests/test_codex_port.py`, and the ammo entry in `/Users/jinhun/GitHub/pave/.claude-plugin/marketplace.json` | da-1 |
 | worker-6 | References | `references/*.md` except `campaign-env.md` and `harness-binding.md` | da-2 |
-| worker-7 | Measurement scripts + pin | `scripts/run_pumice_grpc_bench.py`, `scripts/run_vllm_bench_latency_sweep.py`, `scripts/preflight_pumice.py`, `scripts/pumice_pins.py`, `scripts/pumice_pb/`, `scripts/runtime_ops.py`, `scripts/mine_trace.py`, `scripts/ncu_sanity.sh`, `scripts/ncu_sanity_driver.py`; tests `test_pumice_bench_*.py`, `test_preflight_pumice*.py`, `test_pumice_pins.py`, `test_runtime_ops.py`, `test_mine_trace*.py`, `test_sweep_*.py`, `test_correctness_comparator.py`, `test_parse_artifacts.py`, `test_evidence_freshness.py` | da-1 |
+| worker-7 (now worker-14) | Measurement scripts + pin | `scripts/pumice-stage-native.sh` (added by mid-wave ruling), `scripts/run_pumice_grpc_bench.py`, `scripts/run_vllm_bench_latency_sweep.py`, `scripts/preflight_pumice.py`, `scripts/pumice_pins.py`, `scripts/pumice_pb/`, `scripts/runtime_ops.py`, `scripts/mine_trace.py`, `scripts/ncu_sanity.sh`, `scripts/ncu_sanity_driver.py`; tests `test_pumice_bench_*.py`, `test_preflight_pumice*.py`, `test_pumice_pins.py`, `test_runtime_ops.py`, `test_mine_trace*.py`, `test_sweep_*.py`, `test_correctness_comparator.py`, `test_parse_artifacts.py`, `test_evidence_freshness.py` | da-1 |
 | worker-8 | State, scaffold, gates | `scripts/new_target.py`, `scripts/ammo_state.py`, `scripts/hook_cmd_classify.py`, `scripts/verify_validation_gates.py`, `scripts/generate_validation_report.py`, `scripts/reconcile_track_state.py`, `scripts/check_projection_accuracy.py`, `scripts/create_evidence_template.py`, `scripts/transcript_filter.py`, `scripts/transitions.json`, `scripts/artifact_layout.json`, `schemas/state.schema.json`; tests: every `tests/*.py` not named for worker-2, worker-4, worker-7, worker-9, plus `tests/scripts/`, `tests/fixtures/`, `tests/run_all.sh` | da-2 |
 | worker-9 | Serving, GPU lock, Codex runtime | `scripts/serving_*.py`, `scripts/run_serving_sweep.py`, `scripts/deployment_ops.py`, `scripts/gpu_reservation.py`, `schemas/serving.schema.json`, `schemas/serving-arm.schema.json`, `data/`, `codex/hooks/`, `codex/scripts/`, `codex/instrumentation/`, `codex/hooks.json` (if §7 needs it); tests `test_ammo_serving*.py`, `test_gpu_reservation*.py`, `test_neuron_reservation.py`, `test_codex_hook_campaign_resolution.py`, the six Codex-only tests | da-1 |
 | worker-10 | Claude hooks | `hooks/` except `_find_campaign.sh`, `hooks.json` (regenerated through `gen_hooks_json.py` only), `hooks/README.md`, `hooks/pumice_env_allowlist.txt`, `hooks/tests/` except `test-find-campaign.sh`; tests `test_env_default_guard_hook.py`, `test_worktree_hook.py` | da-2 |
@@ -96,6 +96,21 @@ Wave 1 starts when worker-1 and worker-2 PASS. worker-3 and worker-4 may still b
 - `hooks/README.md` per conventions §7 with intents from `S/docs/ammo-intent-map.json`.
 - `pumice_env_allowlist.txt` regenerated at `769c7529` with its header recipe; `test_env_default_guard_hook.py` count updated and passing.
 - On g6e-cdd in the warm container: every `hooks/tests/test-*.sh` passes and `test_hooks_silent.py` passes (rsync + docker exec; output pasted).
+
+### Wave 1 mid-wave rulings (2026-10-28, lead)
+
+Respawns after the 19:50 API outage: worker-5 -> worker-12, worker-6 -> worker-13, worker-7 -> worker-14, worker-8 -> worker-15, worker-10 -> worker-17. worker-9 survived and keeps its set. The acceptance sections above keep the old names.
+
+| Ruling | Owner |
+|---|---|
+| Plugin ships `scripts/pumice-stage-native.sh` (port of the server's docker copy; engine root from `AMMO_ENGINE_ROOT`, else the parent of the worktree's git common dir; no `/workspace`). Runner rebuild hint names `scripts/ammo pumice-stage-native.sh`. | worker-14 (file, hint); worker-17 (hook line in `worktree-create-with-build.sh`); worker-13 (prose) |
+| `python_exe()` prefers `<track worktree>/.venv/bin/python` by the same-common-git-dir rule. | worker-2 addendum (PASS) |
+| `references/codex-runtime.md`, `codex-runtime-v1.md`, `codex-runtime-v2.md` ship in `R/references/` (selector text rewritten); `context-recovery.md` too. Codex hooks resolve them with `plugin_path("references", ...)`. | worker-12 (three guides); worker-13 (context-recovery); worker-9 (resolution) |
+| Agent names are `ammo:<role>` on both harnesses; TOML file names stay `ammo-<role>.toml`; hooks strip an optional leading `ammo:` before role matching; Codex role markers resolve against `codex/agents/*.toml`. | worker-12 (TOML name, installer); worker-9 (Codex hooks); worker-17 (Claude hooks) |
+| `tests/test_neuron_role_routing.py` gets `pytestmark = pytest.mark.neuron`; `accelerator-binding.md` says the Neuron skills are not shipped in v1. | worker-15 (test); worker-13 (prose) |
+| `scripts/serving_benchmark_adapter.py` joins the pin-literal exemption (WHEEL_BLOBS digest table). | worker-2 (done) |
+| Codex hooks register in `R/codex/hooks.json` (pave-init form); `.codex-plugin/plugin.json` gets `"hooks": "./codex/hooks.json"`; `hooks/README.md` records the difference and the dropped Codex twins (pip guard, sweep .venv guard). | worker-9 (file); worker-12 (manifest); worker-17 (README) |
+| `AMMO_ALLOW_PIP` is dropped; `_guard_package_installs` and its tests go. | worker-9 |
 
 ## Wave 2 - clean-room run and real smoke on g6e-cdd (1 worker)
 

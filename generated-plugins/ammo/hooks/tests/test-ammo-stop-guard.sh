@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test harness for ammo-stop-guard.sh (Stop hook)
-# Run: bash .claude/hooks/test-ammo-stop-guard.sh
+# Run: bash hooks/tests/test-ammo-stop-guard.sh
 #
 # v2 state.json shape: round-centric. All seed payloads nest per-round
 # state (debate, parallel_tracks, integration) under campaign.rounds[N-1].
@@ -8,8 +8,16 @@
 # Tests:
 #   Bug 1 — Role filtering: only lead/solo orchestrator should get nudges
 #   Regression — Existing functionality preserved
+#   Campaign scope — no .ammo/active marker means no campaign: silent pass
+#
+# The temp dir is an engine root: .ammo/active names the campaign id and the
+# campaign dir is .ammo/test_target/ (CLAUDE_PROJECT_DIR is the engine root).
 
 set -euo pipefail
+
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
 
 HOOK="$(cd "$(dirname "$0")/.." && pwd)/ammo-stop-guard.sh"
 PASS=0
@@ -18,8 +26,10 @@ TOTAL=0
 
 # Create temporary test environment
 TMPDIR=$(mktemp -d)
-ARTIFACT_DIR="$TMPDIR/kernel_opt_artifacts/test_target"
+cd "$TMPDIR"
+ARTIFACT_DIR="$TMPDIR/.ammo/test_target"
 mkdir -p "$ARTIFACT_DIR"
+printf 'test_target\n' > "$TMPDIR/.ammo/active"
 
 cleanup() {
     rm -rf "$TMPDIR"
@@ -168,6 +178,16 @@ run_test "Teammate silenced for Stage 7 report nag" 0 \
 # Test 5: Lead should get Stage 7 report nag (no REPORT.md)
 run_test "Lead gets Stage 7 report nag (no REPORT.md)" 2 \
     '{"session_id": "lead-session-123"}'
+
+# The nudge names the plugin address of the report writer.
+TOTAL=$((TOTAL + 1))
+if grep -qF "subagent_type=ammo:ammo-report-writer" "$TMPDIR/hook-stderr"; then
+    echo "  PASS [$TOTAL]: Stage 7 nudge names subagent_type=ammo:ammo-report-writer"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: Stage 7 nudge lacks the plugin address: $(head -c 300 "$TMPDIR/hook-stderr")"
+    FAIL=$((FAIL + 1))
+fi
 
 # Test 6: Solo orchestrator (no team configs) → should still get nudged
 rm -rf "$TMPDIR/.claude/teams"
@@ -355,6 +375,16 @@ write_state "$ARTIFACT_DIR/state.json" '
 run_test "Stage 7b → lead gets report nudge" 2 \
     '{"session_id": "lead-session-123"}'
 
+# The nudge names the plugin address of the report writer.
+TOTAL=$((TOTAL + 1))
+if grep -qF "subagent_type=ammo:ammo-report-writer" "$TMPDIR/hook-stderr"; then
+    echo "  PASS [$TOTAL]: Stage 7b nudge names subagent_type=ammo:ammo-report-writer"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: Stage 7b nudge lacks the plugin address: $(head -c 300 "$TMPDIR/hook-stderr")"
+    FAIL=$((FAIL + 1))
+fi
+
 # Test 19-20: Circuit breaker — second stop attempt passes through
 write_state "$ARTIFACT_DIR/state.json" '
   .campaign.current_round = 2 |
@@ -435,6 +465,32 @@ echo "== Verifier edge-case probe 2: transcript_path given but file missing =="
 # Edge-case: transcript_path in JSON but file doesn't exist → fail-open.
 run_test "Missing transcript file → fail-open, lead still gets nudge" 2 \
     '{"session_id": "lead-session-123", "transcript_path": "/tmp/nonexistent-does-not-exist-98765.jsonl"}'
+
+echo ""
+echo "== Campaign scope: no marker → no campaign =="
+# Same active Stage 7 state, but the .ammo/active marker is gone, so the
+# engine root holds no campaign. The plugin is enabled in every project; a
+# stop outside a campaign must never be held.
+write_state "$ARTIFACT_DIR/state.json" '
+  .campaign.status = "active"
+  | .campaign.current_stage = "7_campaign_eval"
+'
+mv "$TMPDIR/.ammo/active" "$TMPDIR/.ammo/active.off"
+run_test "No campaign marker → silent pass" 0 \
+    '{"session_id": "lead-session-123"}'
+TOTAL=$((TOTAL + 1))
+rm -f /tmp/ammo-stop-nudged-* 2>/dev/null || true
+NC_OUT=$(echo '{"session_id": "lead-session-123"}' | env HOME="$TMPDIR" CLAUDE_PROJECT_DIR="$TMPDIR" bash "$HOOK" 2>&1) || true
+if [ -z "$NC_OUT" ] && [ ! -e /tmp/ammo-stop-nudged-lead-session-123 ]; then
+    echo "  PASS [$TOTAL]: No campaign marker → no output, no circuit-breaker marker"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: No campaign marker → expected silence, got [$NC_OUT]"
+    FAIL=$((FAIL + 1))
+fi
+mv "$TMPDIR/.ammo/active.off" "$TMPDIR/.ammo/active"
+run_test "Marker restored → lead gets the Stage 7 nudge again" 2 \
+    '{"session_id": "lead-session-123"}'
 
 echo ""
 echo "================================"

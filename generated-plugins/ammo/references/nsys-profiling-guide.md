@@ -1,6 +1,6 @@
 # Nsight Systems Profiling Guide
 
-This guide owns how AMMO captures GPU traces and how it reads them. Read it before you run a profiler in Stage 1, and again before you write a bottleneck claim in Stage 2. It gives the exact commands, the capture semantics, and the list of what counts as valid evidence. It applies to `pumice-cuda` sessions. Neuron sessions have no nsys; see `references/accelerator-binding.md`.
+This guide owns how AMMO captures GPU traces and how it reads them. Read it before you run a profiler in Stage 1, and again before you write a bottleneck claim in Stage 2. It gives the exact commands, the capture semantics, and the list of what counts as valid evidence. It applies to `pumice-cuda` campaigns. Neuron campaigns have no nsys; see `references/accelerator-binding.md`.
 
 ## The Default Workflow
 
@@ -49,7 +49,7 @@ Run two separate sweeps, in this order.
 Clean baseline, used for all speedup math:
 
 ```bash
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
   --artifact-dir {artifact_dir} \
   --target-json {artifact_dir}/target.json \
   --round {N} \
@@ -61,7 +61,7 @@ Clean baseline, used for all speedup math:
 Bounded nsys capture, used for bottleneck attribution on every CUDA platform:
 
 ```bash
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
   --artifact-dir {artifact_dir} \
   --target-json {artifact_dir}/target.json \
   --round {N} \
@@ -143,7 +143,7 @@ Minimum analysis:
 - Export nsys reports to SQLite or stats tables.
 - Rank kernels by total GPU time and count.
 - Group kernel chains in timestamp order, not architecture order.
-- Map top kernels to source paths or generated backends when possible. On the Pumice runner: `src/pumice/kernels/`, `src/pumice/layers/`, `csrc/`, `src/pumice/third_party/triton_kernels/`. `triton_poi_fused_*` and `triton_red_*` names come from Inductor and point at `src/pumice/compilation/`, not at a hand-written kernel. On the vLLM runner, kernels come from the installed vLLM 0.30.0 package. Host-side gaps point at `pumice-rust/src/engine.rs` or the Python model runner.
+- Map top kernels to source paths or generated backends when possible. On the Pumice runner: `src/pumice/kernels/`, `src/pumice/layers/`, `csrc/`, `src/pumice/third_party/triton_kernels/`. `triton_poi_fused_*` and `triton_red_*` names come from Inductor and point at `src/pumice/compilation/`, not at a hand-written kernel. On the vLLM runner, kernels come from the installed vLLM package (the pinned version). Host-side gaps point at `pumice-rust/src/engine.rs` or the Python model runner.
 - For TP > 1 or DP > 1, compare all rank/device reports and report per-rank skew. TP ranks 1..N-1 and each DP rank are separate processes (§ TP>1 Per-Rank Caveat).
 - Separate compute kernels from communication kernels and memcpy/P2P traffic.
 - Compute `f_decode`, `decode_share_of_e2e`, and `f_e2e` from measured Stage 1 data.
@@ -173,7 +173,7 @@ If node and graph mode disagree, use node-mode timing for bottleneck ranking (§
 Graph diagnostic command:
 
 ```bash
-.venv/bin/python scripts/run_pumice_grpc_bench.py \
+scripts/ammo run_pumice_grpc_bench.py \
   --artifact-dir {artifact_dir} \
   --target-json {artifact_dir}/target.json \
   --round {N} \

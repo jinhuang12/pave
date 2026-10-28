@@ -30,12 +30,16 @@ campaign_id(campaign_dir) -> str          # basename
 engine_root(campaign_dir) -> Path         # parent of .ammo
 plugin_root() -> Path                     # parent of scripts/
 plugin_path(*parts) -> Path               # plugin_root()/parts ("schemas", "state.schema.json")
-python_exe(campaign_dir | None) -> Path   # target.json engine.venv, else AMMO_PYTHON, else <engine>/.venv/bin/python, else python3.
+python_exe(campaign_dir | None) -> Path   # <track worktree>/.venv/bin/python when cwd is in another worktree of the engine's git repo (same common git dir; ruled 2026-10-28, addendum),
+                                          # else target.json engine.venv, else AMMO_PYTHON, else <engine>/.venv/bin/python, else python3.
                                           # new_target.py records engine.venv from AMMO_PYTHON when that is set at scaffold (ruled 2026-10-28),
                                           # so the recorded venv is the frozen contract and wins afterwards. An empty env value counts as unset.
 in_campaign(path, campaign_dir) -> bool   # realpath containment; the one path classifier
 campaign_env(campaign_dir) -> dict        # every name in the env table (§4) derived from target.json
-apply_env(env=os.environ) -> Path | None  # find, then env.setdefault each derived name; explicit env wins
+apply_env(env=os.environ) -> Path | None  # find, then env.setdefault each derived name; explicit env wins;
+                                          # records every name it set in AMMO_APPLIED_ENV (JSON name -> prior value or null; first prior wins)
+unapply_env(env=os.environ) -> None       # restores the AMMO_APPLIED_ENV record (AMMO_* and CARGO_TARGET_DIR only) and removes it;
+                                          # new_target.py calls it first so a scaffold reads the user's env, never the active campaign's (ruled 2026-10-28)
 ```
 
 - Every script calls `apply_env()` once at the top of `main()`. Scripts that today read `os.environ["AMMO_*"]` keep doing so; the layer fills the names in.
@@ -64,6 +68,7 @@ apply_env(env=os.environ) -> Path | None  # find, then env.setdefault each deriv
 | `AMMO_ENGINE_ROOT`, `AMMO_RUNTIME_SOURCE_DIR` (same value) | `target.json engine.root` | parent of `.ammo` |
 | `AMMO_PYTHON` | `target.json engine.venv` | `<engine>/.venv/bin/python` |
 | `CARGO_TARGET_DIR` | explicit env | `<engine>/target` |
+| `AMMO_APPLIED_ENV` | written by `apply_env()` | unset; JSON record of names it set, consumed by `unapply_env()` |
 | `AMMO_GPU_RES_DIR` | explicit env | `/tmp/ammo_gpu_res` (host-wide, §5) |
 | `AMMO_RUNTIME_PROFILE`, `AMMO_ACCELERATOR_KIND` | `target.json runtime.profile`, `runtime.accelerator_kind` | `pumice-cuda`, `cuda`; any other profile is refused at preflight (§6) |
 | `AMMO_TP_SIZE`, `AMMO_DP_SIZE` | `target.json` parallelism | omitted when tp_size is 0 |
@@ -81,7 +86,7 @@ Worker-2 (wave 0) completes this table from the 58 `AMMO_*` names the source rea
 ## 6. Pins and the CUDA-only gate
 
 - `scripts/pumice_pins.py` is a copy of `S/shared/pumice_pins.py` with `PUMICE_COMMIT = "769c752995b8a39b27df028176411d17c99ff441"` and `REQUIRED_TORCH` read from the line of Pumice `origin/mainline` that `planning-records/ammo/pumice-delta.md` names. The vLLM pin is not a constant: `check_pins()` compares the installed vLLM with `pumice.config.REQUIRED_VLLM_VERSION`, and only when the model-runner kind is `vllm`. `preflight_pumice.py` imports the sibling module; its three-tier pins-file search goes.
-- Pin literals (`9d126713`, `0.30.0`, `769c7529`, `0.32.0`, torch versions) may appear only in `pumice_pins.py`, `scripts/pumice_pb/README.md`, and `planning-records/`. References say "the pinned version". `tests/test_prose_bans.py` enforces this.
+- Pin literals (`9d126713`, `0.30.0`, `769c7529`, `0.32.0`, torch versions) may appear only in `pumice_pins.py`, `scripts/pumice_pb/README.md`, `scripts/serving_benchmark_adapter.py` (its WHEEL_BLOBS digest table is keyed by vLLM version; ruled 2026-10-28), and `planning-records/`. References say "the pinned version". `tests/test_prose_bans.py` enforces this.
 - Pin-bound data regenerated at the new pin: `hooks/pumice_env_allowlist.txt` (recipe in its header; its count test updates), `serving_benchmark_adapter.py` version table row.
 - One gate: `require_supported_profile()` in `runtime_ops.py` (it already refuses unsupported profiles at lines 524-529) is called by `new_target.py` and `preflight_pumice.py`. Neuron branches in scripts stay as they are. The sentence "v1 ships and tests the CUDA path only" appears in `skills/ammo/SKILL.md`, `README.md`, and `references/accelerator-binding.md`, and nowhere else. `tests/conftest.py` defines markers `neuron` and `requires_gpu`; those tests are deselected by default.
 

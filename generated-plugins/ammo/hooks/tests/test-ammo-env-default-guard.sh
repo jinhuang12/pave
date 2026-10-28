@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test harness for ammo-env-default-guard.sh (PreToolUse Edit|Write).
-# Run: bash .claude/hooks/test-ammo-env-default-guard.sh
+# Run: bash hooks/tests/test-ammo-env-default-guard.sh
 #
 # Contract: block an envs.py edit that registers a CAMPAIGN VLLM_* gating flag
 # with a truthy default (exit 2 + stderr naming the flag); allow default-off
@@ -11,7 +11,15 @@
 # Naming (PR-Ready) FORBIDS that shape, so every conforming flag name sailed
 # through. Aim this harness at an archived copy with AMMO_TEST_HOOK to see the
 # "conforming name" and "getenv idiom" blocks fail there.
+#
+# The engine fixture is $TMPDIR/engine with .ammo/active = tgt; the hook input
+# carries cwd so _find_campaign walks to it. Outside a campaign the hook is
+# silent. The allowlist is the plugin's hooks/pumice_env_allowlist.txt.
 set -euo pipefail
+
+# Hermetic: a live campaign's names must not leak into the fixtures.
+for _v in $(compgen -e | grep '^AMMO_' | grep -v '^AMMO_TEST_HOOK$' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
 
 HOOK="${AMMO_TEST_HOOK:-$(cd "$(dirname "$0")/.." && pwd)/ammo-env-default-guard.sh}"
 PASS=0
@@ -19,8 +27,14 @@ FAIL=0
 TOTAL=0
 
 TMPDIR=$(mktemp -d)
-cleanup() { rm -rf "$TMPDIR" 2>/dev/null || true; }
+NOCAMP=$(mktemp -d)
+cleanup() { rm -rf "$TMPDIR" "$NOCAMP" 2>/dev/null || true; }
 trap cleanup EXIT
+cd "$TMPDIR"
+ENGINE="$TMPDIR/engine"
+mkdir -p "$ENGINE/.ammo/tgt"
+printf 'tgt\n' > "$ENGINE/.ammo/active"
+HOOK_CWD="$ENGINE"
 
 # run_test:
 #   $1 name  $2 expected_exit (2=BLOCK 0=ALLOW)  $3 content
@@ -28,13 +42,13 @@ trap cleanup EXIT
 #   $5 (optional) expected stderr substring
 run_test() {
     local name="$1" expected="$2" content="$3"
-    local path="${4:-/workspace/vllm/vllm/envs.py}" want_err="${5:-}"
+    local path="${4:-$ENGINE/vllm/envs.py}" want_err="${5:-}"
     local rc=0
     TOTAL=$((TOTAL + 1))
 
-    jq -nc --arg p "$path" --arg c "$content" \
-        '{session_id:"s1",hook_event_name:"PreToolUse",tool_name:"Edit",tool_input:{file_path:$p,old_string:"# old",new_string:$c}}' \
-        | bash "$HOOK" >"$TMPDIR/out" 2>"$TMPDIR/err" || rc=$?
+    jq -nc --arg p "$path" --arg c "$content" --arg cwd "$HOOK_CWD" \
+        '{session_id:"s1",hook_event_name:"PreToolUse",tool_name:"Edit",cwd:$cwd,tool_input:{file_path:$p,old_string:"# old",new_string:$c}}' \
+        | (cd "$HOOK_CWD" && bash "$HOOK") >"$TMPDIR/out" 2>"$TMPDIR/err" || rc=$?
 
     local ok=true
     [ "$rc" -eq "$expected" ] || ok=false
@@ -111,35 +125,59 @@ run_test "25 whole-line comment" 0 '# VLLM_MOE_TWO_STREAM: bool = True  # turned
 run_test "26 indented comment" 0 '    # VLLM_MOE_TWO_STREAM: bool = True'
 run_test "27 trailing comment beside a default-off line" 0 \
     'VLLM_MOE_TWO_STREAM: bool = False  # was VLLM_MOE_TWO_STREAM = True'
-run_test "28 non-envs.py file" 0 'VLLM_MOE_TWO_STREAM = True' "/workspace/vllm/vllm/config.py"
+run_test "28 non-envs.py file" 0 'VLLM_MOE_TWO_STREAM = True' "$ENGINE/vllm/config.py"
 run_test "29 config.py named envs_py is not envs.py" 0 \
-    'VLLM_MOE_TWO_STREAM = True' "/workspace/vllm/vllm/my_envs_py.py"
+    'VLLM_MOE_TWO_STREAM = True' "$ENGINE/vllm/my_envs_py.py"
 run_test "30 empty new_string (deletion)" 0 ''
 run_test "31 short name below the {3,} floor" 0 'VLLM_X = True'
 
 echo ""; echo "== BLOCK: PUMICE_* engine env changes in .py / .rs (new) =="
 run_test "32 new PUMICE env via os.getenv (not allowlisted)" 2 \
-    'x = os.getenv("PUMICE_NEW_CAMPAIGN_FLAG", "1")' "/workspace/pumice/src/pumice/config.py" "BLOCKED"
+    'x = os.getenv("PUMICE_NEW_CAMPAIGN_FLAG", "1")' "$ENGINE/src/pumice/config.py" "BLOCKED"
 run_test "33 allowlisted PUMICE default change (getenv 2nd arg)" 2 \
-    'x = os.getenv("PUMICE_CACHE_ROOT", "/tmp/new")' "/workspace/pumice/src/pumice/config.py" "PUMICE_CACHE_ROOT"
+    'x = os.getenv("PUMICE_CACHE_ROOT", "/tmp/new")' "$ENGINE/src/pumice/config.py" "PUMICE_CACHE_ROOT"
 run_test "34 rust new PUMICE env via std::env::var" 2 \
-    'let v = std::env::var("PUMICE_MADE_UP_THING");' "/workspace/pumice/pumice-rust/src/foo.rs" "PUMICE_MADE_UP_THING"
+    'let v = std::env::var("PUMICE_MADE_UP_THING");' "$ENGINE/pumice-rust/src/foo.rs" "PUMICE_MADE_UP_THING"
 run_test "35 rust allowlisted default via unwrap_or" 2 \
-    'let v = env::var("PUMICE_LOG_LEVEL").unwrap_or("info".into());' "/workspace/pumice/pumice-rust/src/foo.rs" "PUMICE_LOG_LEVEL"
+    'let v = env::var("PUMICE_LOG_LEVEL").unwrap_or("info".into());' "$ENGINE/pumice-rust/src/foo.rs" "PUMICE_LOG_LEVEL"
 
 echo ""; echo "== ALLOW: PUMICE_* reads, the registry dict, prose, non-code files =="
 # PUMICE_MODELS is the _PUMICE_MODELS registry dict, not an env var. The seed
 # grep drops it, and it is never read via getenv/env::var, so it is not flagged.
 run_test "36 _PUMICE_MODELS registry dict is not an env" 0 \
-    '_PUMICE_MODELS = { "gpt_oss": GptOss }' "/workspace/pumice/src/pumice/models/registry.py"
+    '_PUMICE_MODELS = { "gpt_oss": GptOss }' "$ENGINE/src/pumice/models/registry.py"
 run_test "37 allowlisted PUMICE read with no default → ALLOW" 0 \
-    'x = os.environ["PUMICE_CACHE_ROOT"]' "/workspace/pumice/src/pumice/config.py"
+    'x = os.environ["PUMICE_CACHE_ROOT"]' "$ENGINE/src/pumice/config.py"
 run_test "38 rust allowlisted read with no default → ALLOW" 0 \
-    'let v = env::var("PUMICE_LOG_LEVEL");' "/workspace/pumice/pumice-rust/src/foo.rs"
+    'let v = env::var("PUMICE_LOG_LEVEL");' "$ENGINE/pumice-rust/src/foo.rs"
 run_test "39 PUMICE env in a comment is documentation → ALLOW" 0 \
-    '# os.getenv("PUMICE_MADE_UP", "1") is documented here' "/workspace/pumice/src/pumice/config.py"
+    '# os.getenv("PUMICE_MADE_UP", "1") is documented here' "$ENGINE/src/pumice/config.py"
 run_test "40 new PUMICE env in a non .py/.rs file → ALLOW" 0 \
-    'os.getenv("PUMICE_MADE_UP_THING", "1")' "/workspace/pumice/docs/readme.md"
+    'os.getenv("PUMICE_MADE_UP_THING", "1")' "$ENGINE/docs/readme.md"
+
+echo ""; echo "== Allowlist at the pinned Pumice commit =="
+# These names were added to Pumice after the previous seed; a plain read of
+# each must be ALLOW, so the allowlist must carry the regenerated set.
+for _n in PUMICE_SSD_READ_THREADS PUMICE_CACHE_EXPORT_STALL_MS PUMICE_KV_PEER_FAILURE_BACKOFF_MS; do
+    run_test "41 $_n read with no default → ALLOW (allowlisted at the pin)" 0 \
+        "x = os.environ[\"$_n\"]" "$ENGINE/src/pumice/config.py"
+done
+
+echo ""; echo "== Campaign scope =="
+HOOK_CWD="$NOCAMP"
+TOTAL=$((TOTAL + 1))
+rc=0
+jq -nc --arg p "$NOCAMP/vllm/envs.py" --arg cwd "$NOCAMP" \
+    '{hook_event_name:"PreToolUse",tool_name:"Edit",cwd:$cwd,tool_input:{file_path:$p,new_string:"VLLM_MOE_TWO_STREAM: bool = True"}}' \
+    | (cd "$NOCAMP" && bash "$HOOK") >"$TMPDIR/out" 2>"$TMPDIR/err" || rc=$?
+if [ "$rc" -eq 0 ] && [ ! -s "$TMPDIR/out" ] && [ ! -s "$TMPDIR/err" ]; then
+    echo "  PASS [$TOTAL]: no campaign: a blocking edit → exit 0, silent"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: no campaign: expected silent exit 0, got exit=$rc err=$(head -1 "$TMPDIR/err")"
+    FAIL=$((FAIL + 1))
+fi
+HOOK_CWD="$ENGINE"
 
 echo ""; echo "== Fail-open: jq unavailable =="
 TOTAL=$((TOTAL + 1))

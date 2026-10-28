@@ -117,21 +117,25 @@ def run_command(command: Command, *, cwd: Path, env: dict[str, str], log: Path,
 
 @contextlib.contextmanager
 def reserve_deployment(spec: ServingSpec, owner: str):
-    """Use the existing session reservation store; never auto-release peers."""
+    """Use the host-wide lease table (gpu_reservation.py); never auto-release peers."""
     import gpu_reservation
-    profile = os.environ.get('AMMO_RUNTIME_PROFILE', 'vllm-cuda')
+    profile = os.environ.get('AMMO_RUNTIME_PROFILE') or 'pumice-cuda'
     if profile != spec.runtime_profile:
-        raise ContractError('serving runtime differs from the server-assigned runtime')
+        raise ContractError('serving runtime differs from the campaign runtime '
+                            '(AMMO_RUNTIME_PROFILE, from target.json runtime.profile)')
     if spec.runtime_profile in NEURON_PROFILES:
         assigned_lnc = os.environ.get('NEURON_LOGICAL_NC_CONFIG', os.environ.get('AMMO_NEURON_LNC'))
         if assigned_lnc != str(spec.lnc):
             raise ContractError('serving LNC differs from the server-assigned logical core configuration')
     if not os.environ.get('AMMO_SESSION_ID'):
-        raise ContractError('managed serving requires a server-owned AMMO session')
+        raise ContractError('managed serving requires an AMMO campaign id (AMMO_SESSION_ID); '
+                            'run inside a campaign so the .ammo/active marker supplies it')
     ids = sorted(r for w in spec.workers for r in w.resource_ids)
+    # The host pool seen through the caller's CUDA_VISIBLE_DEVICES.
     pool = gpu_reservation._discover_session_resources()
     if not set(ids) <= set(pool):
-        raise ContractError('deployment requests resources outside its session')
+        raise ContractError('deployment requests resources outside its session: '
+                            f'{sorted(set(ids) - set(pool))} are not in the visible pool {pool}')
     # A unique owner and a bounded run avoid releasing sibling reservations.
     # The diagnostic expiry outlives the deadline. Reclamation nevertheless
     # requires confirmed cleanup, including after a killed orchestrator.

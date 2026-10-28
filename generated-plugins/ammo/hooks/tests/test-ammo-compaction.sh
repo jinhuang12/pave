@@ -1,7 +1,7 @@
 #!/bin/bash
 # Test harness for the compaction pair: ammo-precompact.sh (PreCompact) and
 # ammo-postcompact.sh (SessionStart).
-# Run: bash .claude/hooks/test-ammo-compaction.sh
+# Run: bash hooks/tests/test-ammo-compaction.sh
 #
 # The pair carries the campaign across a compaction, so both documents must be
 # valid JSON for every state value an agent can write. Cases:
@@ -10,7 +10,8 @@
 #   3. model / team_name with a newline and a quote
 #   4. Missing parallel_tracks → track_count stays numeric
 #   5. Corrupt state.json → both hooks still emit valid JSON
-#   6. No AMMO state → empty briefing document
+#   6. No campaign → both hooks exit 0 and print nothing; a campaign with no
+#      state.json → empty briefing document
 #   7. Atomic write leaves no temp file behind
 #   8. Symlink checkpoint is refused
 #   9. Broken jq → both hooks still emit valid JSON
@@ -22,6 +23,14 @@
 #      the "ignore if spawned" note, and a later lead fire still gets the
 #      checkpoint
 #  14. Stale checkpoint → state.json briefing, not the compaction briefing
+#  15. The briefing names the plugin's own SKILL.md by absolute path
+#  16. Warned-flag cleanup keeps the flag of the current key (the hook input's
+#      session_id when CLAUDE_SESSION_ID is unset), the key the pretool guard
+#      writes, and removes the others
+#
+# A sandbox is an engine root: <sb>/.ammo/active names the campaign id and the
+# campaign dir is <sb>/.ammo/tgt/. The hooks find it through _find_campaign.sh
+# (CLAUDE_PROJECT_DIR is the sandbox; no payload cwd).
 
 set -euo pipefail
 
@@ -36,19 +45,26 @@ TMPROOT=$(mktemp -d)
 cleanup() { rm -rf "$TMPROOT"; }
 trap cleanup EXIT
 
+# Hermetic: a live campaign's names must not leak into the fixtures, and the
+# hooks' cwd walk must start outside any engine.
+for _v in $(compgen -e | grep '^AMMO_' || true); do unset "$_v"; done
+unset CLAUDE_PROJECT_DIR
+cd "$TMPROOT"
+
 # ─────────────────────────────────────────────
-# new_sandbox: fresh CLAUDE_PROJECT_DIR with one artifact dir
+# new_sandbox: fresh engine root (CLAUDE_PROJECT_DIR) with one campaign
 # echoes the sandbox root
 # ─────────────────────────────────────────────
 new_sandbox() {
     local sb
     sb=$(mktemp -d "$TMPROOT/sb.XXXXXX")
-    mkdir -p "$sb/kernel_opt_artifacts/tgt"
+    mkdir -p "$sb/.ammo/tgt"
+    printf 'tgt\n' > "$sb/.ammo/active"
     echo "$sb"
 }
 
-STATE_REL="kernel_opt_artifacts/tgt/state.json"
-CHECKPOINT_REL="kernel_opt_artifacts/tgt/compaction_checkpoint.json"
+STATE_REL=".ammo/tgt/state.json"
+CHECKPOINT_REL=".ammo/tgt/compaction_checkpoint.json"
 
 # ─────────────────────────────────────────────
 # write_state: build a state.json with the given model / team / summary.
@@ -166,8 +182,27 @@ SB=$(new_sandbox)
 printf '{ this is not json' > "$SB/$STATE_REL"
 run_pair "$SB" "corrupt state"
 
-echo "=== Case 6: no AMMO state → empty briefing ==="
+echo "=== Case 6: no campaign → silent; campaign without state → empty briefing ==="
+# Outside a campaign the plugin's hooks must not touch the session at all:
+# exit 0, nothing on stdout, nothing written.
+# A state.json with no .ammo/active marker above it is not a campaign.
 SB=$(mktemp -d "$TMPROOT/sb.XXXXXX")
+mkdir -p "$SB/artifacts/tgt"
+printf '{"campaign":{"status":"active"}}' > "$SB/artifacts/tgt/state.json"
+RC=0
+OUT=$(CLAUDE_PROJECT_DIR="$SB" bash "$PRE" </dev/null 2>/dev/null) || RC=$?
+report "$([ "$RC" = "0" ] && [ -z "$OUT" ] && echo 1 || echo 0)" "no campaign: precompact exit 0, silent" "exit $RC out=[$OUT]"
+LEFT=$(find "$SB" -name 'compaction_checkpoint.json' | wc -l | tr -d ' ')
+report "$([ "$LEFT" = "0" ] && echo 1 || echo 0)" "no campaign: precompact writes no checkpoint" "found $LEFT"
+RC=0
+CLAUDE_PROJECT_DIR="$SB" bash "$POST" </dev/null >"$SB/out.json" 2>/dev/null || RC=$?
+report "$([ "$RC" = "0" ] && echo 1 || echo 0)" "no campaign: postcompact exit 0" "exit $RC"
+report "$([ ! -s "$SB/out.json" ] && echo 1 || echo 0)" "no campaign: postcompact prints nothing" "$(head -c 200 "$SB/out.json")"
+RC=0
+CLAUDE_PROJECT_DIR="$SB" bash "$POST" >"$SB/out.json" 2>/dev/null <<<'{"session_id":"s-nc","source":"compact"}' || RC=$?
+report "$([ "$RC" = "0" ] && [ ! -s "$SB/out.json" ] && echo 1 || echo 0)" "no campaign: postcompact with input prints nothing" "exit $RC $(head -c 200 "$SB/out.json")"
+
+SB=$(new_sandbox)
 RC=0
 CLAUDE_PROJECT_DIR="$SB" bash "$PRE" </dev/null >/dev/null 2>&1 || RC=$?
 report "$([ "$RC" = "0" ] && echo 1 || echo 0)" "no state: precompact exit 0" "exit $RC"
@@ -184,7 +219,7 @@ echo "=== Case 7: atomic write leaves no temp file ==="
 SB=$(new_sandbox)
 write_state "$SB" "Qwen/Qwen3-32B" "team-r1" "Atomic write check."
 CLAUDE_PROJECT_DIR="$SB" bash "$PRE" </dev/null >/dev/null 2>&1 || true
-LEFTOVER=$(find "$SB/kernel_opt_artifacts/tgt" -name '.compaction_checkpoint.json.*' | wc -l)
+LEFTOVER=$(find "$SB/.ammo/tgt" -name '.compaction_checkpoint.json.*' | wc -l | tr -d ' ')
 report "$([ "$LEFTOVER" = "0" ] && echo 1 || echo 0)" "atomic write: no temp file left" "found $LEFTOVER"
 
 echo "=== Case 8: symlink checkpoint is refused ==="
@@ -356,6 +391,39 @@ case "$BRIEF" in
     *)
         report 0 "stale checkpoint: state.json briefing with the lead-only note" "$BRIEF" ;;
 esac
+
+echo "=== Case 15: briefing names the plugin SKILL.md by absolute path ==="
+# The lead's cwd is the engine checkout, so a relative skills/ammo/SKILL.md
+# does not resolve there. Both briefings and the checkpoint carry the path.
+PLUGIN_SKILL="$(cd "$HERE/.." && pwd)/skills/ammo/SKILL.md"
+SB=$(new_sandbox)
+write_state "$SB" "Qwen/Qwen3-32B" "team-r1" "Skill path check."
+run_pair "$SB" "skill path"
+BRIEF=$(jq -r '.hookSpecificOutput.additionalContext' "$SB/out.json")
+case "$BRIEF" in
+    *"\`$PLUGIN_SKILL\`"*) report 1 "skill path: compaction briefing names $PLUGIN_SKILL" ;;
+    *) report 0 "skill path: compaction briefing names $PLUGIN_SKILL" "$BRIEF" ;;
+esac
+SKILL_IN_CKPT=$(jq -r '.skill_path' "$SB/checkpoint.snapshot.json" 2>/dev/null || true)
+report "$([ "$SKILL_IN_CKPT" = "$PLUGIN_SKILL" ] && echo 1 || echo 0)" "skill path: checkpoint skill_path is absolute" "got $SKILL_IN_CKPT"
+rm -f "$SB/$CHECKPOINT_REL"
+CLAUDE_PROJECT_DIR="$SB" bash "$POST" </dev/null >"$SB/out.json" 2>/dev/null || true
+BRIEF=$(jq -r '.hookSpecificOutput.additionalContext' "$SB/out.json" 2>/dev/null || true)
+case "$BRIEF" in
+    *"# AMMO Optimization Detected"*"\`$PLUGIN_SKILL\`"*) report 1 "skill path: state.json briefing names the SKILL.md path" ;;
+    *) report 0 "skill path: state.json briefing names the SKILL.md path" "$BRIEF" ;;
+esac
+
+echo "=== Case 16: warned-flag cleanup keeps the current key's flag ==="
+SB=$(new_sandbox)
+write_state "$SB" "m" "t" "s"
+GRD="$SB/gpu_res"
+mkdir -p "$GRD"
+touch "$GRD/.warned_payload-sid" "$GRD/.warned_other-sid"
+printf '%s' '{"hook_event_name":"SessionStart","source":"compact","session_id":"payload-sid"}' | \
+    env -u CLAUDE_SESSION_ID CLAUDE_PROJECT_DIR="$SB" AMMO_GPU_RES_DIR="$GRD" bash "$POST" >/dev/null 2>&1 || true
+report "$([ -f "$GRD/.warned_payload-sid" ] && echo 1 || echo 0)" "warned flags: current key (input session_id) kept"
+report "$([ ! -e "$GRD/.warned_other-sid" ] && echo 1 || echo 0)" "warned flags: other keys removed"
 
 echo ""
 echo "=== Summary ==="

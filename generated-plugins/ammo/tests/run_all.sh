@@ -1,26 +1,26 @@
 #!/bin/bash
-# AMMO test runner — runs the full local test surface for the skill template:
-#   1. the pytest suites under tests/, skills/ammo/eval/tests/, and
-#      skills/ammo/eval/causal/tests/
-#   2. every bash hook harness under hooks/test-*.sh
+# AMMO test runner: runs the full local test surface of the plugin.
+#   1. the pytest suite under tests/ (the conventions §9 battery)
+#   2. every bash hook harness under hooks/tests/test-*.sh
 #
 # Each child is judged by its EXIT CODE (each harness exits non-zero on any
-# failure), NOT by parsing its summary line — harnesses use different summary
+# failure), NOT by parsing its summary line: harnesses use different summary
 # formats ("Results: N passed ..." vs "N / N passed"), so exit code is the only
 # uniform signal. The runner prints a per-child line + an aggregate footer and
 # exits 1 if ANY child failed.
 #
 # Usage:  bash tests/run_all.sh
+# PYTEST overrides the pytest command. Default: the conventions §9 uv command,
+# else `python3 -m pytest` when uv is not on PATH.
+# The hook harnesses are judged on Linux (they need flock and GNU stat).
 set -uo pipefail
 
-# ── Resolve BASE (the .claude dir) from this script's own location ──
-#    THIS = .../tests/run_all.sh  →  BASE = .../.claude
+# ── Resolve BASE (the plugin root) from this script's own location ──
+#    THIS = <plugin>/tests/run_all.sh  →  BASE = <plugin>
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+BASE="$(cd "$SCRIPT_DIR/.." && pwd)"
 PYTEST_DIR="$BASE/tests"
-EVAL_TEST_DIR="$BASE/skills/ammo/eval/tests"
-CAUSAL_TEST_DIR="$BASE/skills/ammo/eval/causal/tests"
-HOOKS_DIR="$BASE/hooks"
+HARNESS_DIR="$BASE/hooks/tests"
 
 FAILED=0
 TOTAL=0
@@ -44,19 +44,23 @@ run_child() {
     fi
 }
 
-# ── 1. pytest suite (worktree venv python — never system python3) ──
-PYTHON="$BASE/../.venv/bin/python"
-if [ ! -x "$PYTHON" ]; then
-    echo "FAILED: worktree .venv/bin/python not found" >&2
-    exit 1
+cd "$BASE" || exit 1
+
+# ── 1. pytest suite ──
+if [ -n "${PYTEST:-}" ]; then
+    read -r -a PYTEST_CMD <<<"$PYTEST"
+elif command -v uv >/dev/null 2>&1; then
+    PYTEST_CMD=(uv run --no-project --with pytest --with pyyaml --with jsonschema
+                --with pydantic --with httpx --with numpy --with psutil python -m pytest)
+else
+    echo "note: uv is not on PATH; using python3 -m pytest"
+    PYTEST_CMD=(python3 -m pytest)
 fi
-run_child "pytest: tests" "$PYTHON" -m pytest "$PYTEST_DIR" -q
-run_child "pytest: skills/ammo/eval/tests" "$PYTHON" -m pytest "$EVAL_TEST_DIR" -q
-run_child "pytest: skills/ammo/eval/causal/tests" "$PYTHON" -m pytest "$CAUSAL_TEST_DIR" -q
+run_child "pytest: tests" "${PYTEST_CMD[@]}" "$PYTEST_DIR" -q -m "not neuron and not requires_gpu"
 
 # ── 2. every hook harness ──
 shopt -s nullglob
-for harness in "$HOOKS_DIR"/test-*.sh; do
+for harness in "$HARNESS_DIR"/test-*.sh; do
     run_child "hook: $(basename "$harness")" bash "$harness"
 done
 shopt -u nullglob

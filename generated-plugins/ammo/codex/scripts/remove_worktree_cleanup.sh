@@ -7,7 +7,15 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
 fi
 
 INPUT_PATH="$1"
-MAIN_REPO="${2:-$(git rev-parse --show-toplevel)}"
+# The engine checkout and its python come from the resolution layer
+# (target.json engine.root and engine.venv, conventions sections 2-4). Without a
+# campaign: the git toplevel of the current dir and its .venv.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CAMPAIGN_PATHS="$SCRIPT_DIR/../../scripts/campaign_paths.py"
+if [[ -f "$CAMPAIGN_PATHS" ]] && campaign_env="$(python3 "$CAMPAIGN_PATHS" env 2>/dev/null)"; then
+  eval "$campaign_env"
+fi
+MAIN_REPO="${2:-${AMMO_ENGINE_ROOT:-$(git rev-parse --show-toplevel)}}"
 MAIN_REPO="$(cd "$MAIN_REPO" && pwd)"
 
 if [[ "$INPUT_PATH" == */* ]]; then

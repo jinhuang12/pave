@@ -16,11 +16,14 @@
 #     or
 #   - sets a default for a PUMICE_* name that IS in the allowlist (a default
 #     change to a known engine env).
-# The allowlist is ai_cli_session/_ammo_shared/hooks/pumice_env_allowlist.txt,
-# copied next to this hook by scripts/render_ammo_variants.py. A PUMICE_* token
+# The allowlist is pumice_env_allowlist.txt beside this hook (the Codex twin
+# reads the same file). A PUMICE_* token
 # is only inspected when it appears in an env-access idiom (os.getenv,
 # os.environ, env::var, std::env), so the _PUMICE_MODELS registry dict in
 # src/pumice/models/registry.py is never flagged.
+#
+# Campaign scope (_find_campaign.sh): outside a campaign the hook exits 0 and
+# prints nothing.
 #
 # NAME-AGNOSTIC VLLM match (was VLLM_OP\d+ only). impl-track-rules.md § Env Flag
 # Naming (PR-Ready) FORBIDS the VLLM_OP<n> shape and mandates descriptive
@@ -35,7 +38,7 @@
 #   1. Platform/infra prefixes (ROCM/XPU/CPU/TPU/XLA/ZENTORCH/RAY/LOG/...): an
 #      NVIDIA campaign never gates on these, and upstream defaults several on.
 #   2. An explicit name list, seeded by scanning the real vLLM envs.py in the
-#      session image for `getenv(KEY, "1"|True)` registrations, plus the
+#      engine venv for `getenv(KEY, "1"|True)` registrations, plus the
 #      infra/provisioning keys that appear in campaign artifacts
 #      (VLLM_USE_PRECOMPILED, VLLM_CACHE_ROOT, VLLM_ATTENTION_BACKEND, ...) and
 #      the VLLM_* names in the allowlist file.
@@ -73,17 +76,15 @@ fi
 NEW_CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // .tool_input.content // empty' 2>/dev/null) || true
 [ -z "$NEW_CONTENT" ] && exit 0
 
-# ── Allowlist file (PUMICE_* known engine envs + infra-legit VLLM_* names) ──
-# scripts/render_ammo_variants.py copies the canonical
-# ai_cli_session/_ammo_shared/hooks/pumice_env_allowlist.txt next to this hook.
-# Prefer the co-located copy; fall back to the canonical path in a dev checkout.
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/_find_campaign.sh"
+# Outside a campaign there is no A/B arm to protect.
+_find_campaign "$INPUT" || exit 0
+
+# ── Allowlist file (PUMICE_* known engine envs + infra-legit VLLM_* names) ──
+# One file, beside this hook. The Codex twin reads the same path.
 ALLOWLIST_FILE=""
-for _cand in \
-    "$HOOK_DIR/pumice_env_allowlist.txt" \
-    "$HOOK_DIR/../../_ammo_shared/hooks/pumice_env_allowlist.txt"; do
-    if [ -f "$_cand" ]; then ALLOWLIST_FILE="$_cand"; break; fi
-done
+[ -f "$HOOK_DIR/pumice_env_allowlist.txt" ] && ALLOWLIST_FILE="$HOOK_DIR/pumice_env_allowlist.txt"
 
 # Names on the allowlist, comments and blanks stripped.
 ALLOWLIST_NAMES=""
@@ -263,7 +264,7 @@ if [ -n "${PUMICE_OFFENDERS_NEW// /}" ] || [ -n "${PUMICE_OFFENDERS_DEFAULT// /}
         [ -n "${PUMICE_OFFENDERS_NEW// /}" ] && echo "New env(s) not in the allowlist:$PUMICE_OFFENDERS_NEW"
         [ -n "${PUMICE_OFFENDERS_DEFAULT// /}" ] && echo "Default change to allowlisted env(s):$PUMICE_OFFENDERS_DEFAULT"
         echo ""
-        cat <<'EOF'
+        cat <<EOF
 Pumice owns its engine env names and their defaults. AMMO must not invent a new
 PUMICE_* env, nor change the default of a known one, inside a campaign — either
 silently changes the runtime the A/B arms measure.
@@ -271,7 +272,7 @@ silently changes the runtime the A/B arms measure.
 Fix:
   - New env: use an env name Pumice already reads, or surface the need to the
     lead so the Pumice team owns it. The known names are in
-    _ammo_shared/hooks/pumice_env_allowlist.txt (regenerate at the next Pumice
+    $HOOK_DIR/pumice_env_allowlist.txt (regenerate at the next Pumice
     pin with the seed grep in that file's header).
   - Default change: leave the Pumice default alone; set the value per arm via
     opt_env in target.json instead.

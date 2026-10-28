@@ -15,7 +15,7 @@ import pytest
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 _NEW_TARGET = _SCRIPTS_DIR / "new_target.py"
-_SCHEMA = Path(__file__).resolve().parents[3] / "schemas" / "state.schema.json"
+_SCHEMA = Path(__file__).resolve().parents[1] / "schemas" / "state.schema.json"
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 _spec = importlib.util.spec_from_file_location("new_target", str(_NEW_TARGET))
@@ -132,6 +132,26 @@ def test_scaffold_omits_max_num_batched_tokens_by_default(tmp_path: Path):
     assert "--max-num-batched-tokens" not in target["bench"]["extra_args"]
 
 
+# v1 scaffolds only pumice-cuda: new_target.py calls
+# runtime_ops.require_supported_profile(), which refuses every other profile
+# (conventions §6). The Neuron branches of new_target.py stay in place, so the
+# `neuron` tests below keep them tested: this shim opens the gate for the
+# child process and then runs the unchanged script. They are deselected by
+# default (tests/conftest.py); run them with `-m neuron`.
+_NEURON_GATE_SHIM = (
+    "import os, runpy, sys; "
+    "sys.path.insert(0, os.path.dirname(sys.argv[1])); "
+    "import runtime_ops; "
+    "runtime_ops.require_supported_profile = lambda profile=None, env=None: profile; "
+    "sys.argv = sys.argv[1:]; "
+    "runpy.run_path(sys.argv[0], run_name='__main__')"
+)
+
+
+def _neuron_cmd() -> list[str]:
+    return [sys.executable, "-c", _NEURON_GATE_SHIM, str(_NEW_TARGET)]
+
+
 def _neuron_env() -> dict[str, str]:
     env = dict(os.environ)
     env["AMMO_RUNTIME_PROFILE"] = "pumice-neuron"
@@ -140,13 +160,14 @@ def _neuron_env() -> dict[str, str]:
     return env
 
 
+@pytest.mark.neuron
 def test_neuron_scaffold_freezes_prefill_budget_when_context_exceeds_kernel_max(tmp_path: Path):
     """max_model_len 8192 on pumice-neuron with no flag: the scaffold must freeze
     4096 itself (the 2026-09-24 trn2 campaign lost three launches to
     kv_segment_size=8192) and say so on stderr."""
     artifact_dir = tmp_path / "neuron-auto"
     result = subprocess.run(
-        [sys.executable, str(_NEW_TARGET), "--artifact-dir", str(artifact_dir),
+        [*_neuron_cmd(), "--artifact-dir", str(artifact_dir),
          "--model-id", "test-model", "--max-model-len", "8192", "--tp", "8"],
         capture_output=True, text=True, env=_neuron_env(),
     )
@@ -157,10 +178,11 @@ def test_neuron_scaffold_freezes_prefill_budget_when_context_exceeds_kernel_max(
     assert "froze --max-num-batched-tokens 4096" in result.stderr
 
 
+@pytest.mark.neuron
 def test_neuron_scaffold_keeps_explicit_prefill_budget(tmp_path: Path):
     artifact_dir = tmp_path / "neuron-explicit"
     result = subprocess.run(
-        [sys.executable, str(_NEW_TARGET), "--artifact-dir", str(artifact_dir),
+        [*_neuron_cmd(), "--artifact-dir", str(artifact_dir),
          "--model-id", "test-model", "--max-model-len", "8192",
          "--max-num-batched-tokens", "2048"],
         capture_output=True, text=True, env=_neuron_env(),
@@ -172,10 +194,11 @@ def test_neuron_scaffold_keeps_explicit_prefill_budget(tmp_path: Path):
     assert "froze" not in result.stderr
 
 
+@pytest.mark.neuron
 def test_neuron_scaffold_leaves_short_context_alone(tmp_path: Path):
     artifact_dir = tmp_path / "neuron-short"
     result = subprocess.run(
-        [sys.executable, str(_NEW_TARGET), "--artifact-dir", str(artifact_dir),
+        [*_neuron_cmd(), "--artifact-dir", str(artifact_dir),
          "--model-id", "test-model", "--max-model-len", "4096"],
         capture_output=True, text=True, env=_neuron_env(),
     )
@@ -187,13 +210,14 @@ def test_neuron_scaffold_leaves_short_context_alone(tmp_path: Path):
 _FULL_BT = "PUMICE_RUST_EMIT_FULL_BLOCK_TABLES"
 
 
+@pytest.mark.neuron
 def test_neuron_scaffold_freezes_full_block_tables(tmp_path: Path):
     """Without this var the Neuron engine hands the kernel an all-empty block
     table on steady-state decode, and the first measured wave crashes (the
     2026-09-24 trn2 campaign, Defect 5)."""
     artifact_dir = tmp_path / "neuron-bt"
     result = subprocess.run(
-        [sys.executable, str(_NEW_TARGET), "--artifact-dir", str(artifact_dir),
+        [*_neuron_cmd(), "--artifact-dir", str(artifact_dir),
          "--model-id", "test-model", "--tp", "8"],
         capture_output=True, text=True, env=_neuron_env(),
     )
@@ -204,12 +228,13 @@ def test_neuron_scaffold_freezes_full_block_tables(tmp_path: Path):
     assert "WARNING: pumice-neuron: kept" not in result.stderr
 
 
+@pytest.mark.neuron
 def test_neuron_scaffold_keeps_explicit_full_block_tables_and_warns(tmp_path: Path):
     artifact_dir = tmp_path / "neuron-bt-off"
     env = _neuron_env()
     env[_FULL_BT] = "0"
     result = subprocess.run(
-        [sys.executable, str(_NEW_TARGET), "--artifact-dir", str(artifact_dir),
+        [*_neuron_cmd(), "--artifact-dir", str(artifact_dir),
          "--model-id", "test-model", "--tp", "8"],
         capture_output=True, text=True, env=env,
     )
@@ -220,12 +245,13 @@ def test_neuron_scaffold_keeps_explicit_full_block_tables_and_warns(tmp_path: Pa
     assert 'Neuron needs "1"' in result.stderr
 
 
+@pytest.mark.neuron
 def test_neuron_scaffold_explicit_one_needs_no_warning(tmp_path: Path):
     artifact_dir = tmp_path / "neuron-bt-on"
     env = _neuron_env()
     env[_FULL_BT] = "1"
     result = subprocess.run(
-        [sys.executable, str(_NEW_TARGET), "--artifact-dir", str(artifact_dir),
+        [*_neuron_cmd(), "--artifact-dir", str(artifact_dir),
          "--model-id", "test-model", "--tp", "8"],
         capture_output=True, text=True, env=env,
     )
@@ -235,7 +261,19 @@ def test_neuron_scaffold_explicit_one_needs_no_warning(tmp_path: Path):
     assert "WARNING: pumice-neuron" not in result.stderr
 
 
-@pytest.mark.parametrize("profile", [None, "vllm-cuda", "pumice-cuda"])
+@pytest.mark.parametrize("profile", ["vllm-cuda", "pumice-neuron", "vllm-neuron", "vllm-tpu"])
+def test_scaffold_refuses_every_profile_but_pumice_cuda(tmp_path: Path, profile):
+    env = dict(os.environ)
+    env["AMMO_RUNTIME_PROFILE"] = profile
+    env["NEURON_RT_VISIBLE_CORES"] = "0-7"
+    artifact_dir = tmp_path / f"refused-{profile}"
+    result = _run_new_target(artifact_dir, [], env=env)
+    assert result.returncode != 0
+    assert profile in result.stderr
+    assert not artifact_dir.exists()
+
+
+@pytest.mark.parametrize("profile", [None, "", "pumice-cuda"])
 def test_cuda_scaffold_never_sets_full_block_tables(tmp_path: Path, profile):
     env = dict(os.environ)
     env.pop("AMMO_RUNTIME_PROFILE", None)
@@ -250,6 +288,7 @@ def test_cuda_scaffold_never_sets_full_block_tables(tmp_path: Path, profile):
     assert _FULL_BT not in result.stderr
 
 
+@pytest.mark.neuron
 def test_neuron_full_block_tables_reach_both_bench_arms(tmp_path: Path):
     """run_pumice_grpc_bench strips inherited PUMICE_* vars, so only
     bench.baseline_env reaches the server. It must land in the baseline arm and
@@ -260,7 +299,7 @@ def test_neuron_full_block_tables_reach_both_bench_arms(tmp_path: Path):
 
     artifact_dir = tmp_path / "neuron-bt-arms"
     result = subprocess.run(
-        [sys.executable, str(_NEW_TARGET), "--artifact-dir", str(artifact_dir),
+        [*_neuron_cmd(), "--artifact-dir", str(artifact_dir),
          "--model-id", "test-model", "--tp", "8"],
         capture_output=True, text=True, env=_neuron_env(),
     )
