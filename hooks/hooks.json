@@ -1,5 +1,5 @@
 {
-  "description": "pave-init hooks that must reach subagents or survive compaction. A skill-frontmatter hook fires only for the agent that invoked the skill, so the planning-layout warning (node planners write planning/), the write-for-the-reader reminder, and the goal restatement (SessionStart resume|compact for the lead, SubagentStart for every seat) register here. All are armed by the .pave-init-run marker and stay silent outside an active run. The stop check and the staleness reminder are lead-only and stay in the skill's frontmatter.",
+  "description": "Plugin-level hooks. pave-init: a skill-frontmatter hook fires only for the agent that invoked the skill, so the planning-layout warning (node planners write planning/), the write-for-the-reader reminder, and the goal restatement (SessionStart resume|compact for the lead, SubagentStart for every seat) register here. All are armed by the .pave-init-run marker and stay silent outside an active run. The stop check and the staleness reminder are lead-only and stay in the skill's frontmatter. orchestrate: the goal restate (SessionStart resume|compact), the release reminder, and the speed-up question (PostToolUse Bash after a run-log write) register here because skill-frontmatter SessionStart hooks never run and frontmatter hooks do not survive a resume. They act only for the session that owns an open orchestrate run.",
   "hooks": {
     "SessionStart": [
       {
@@ -8,6 +8,11 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/pave-init/hooks/goal_restate.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/orchestrate/hooks/goal_restate.sh\" claude",
             "timeout": 10
           }
         ]
@@ -36,6 +41,21 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/pave-init/hooks/write_for_reader.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/orchestrate/hooks/release_reminder.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/orchestrate/hooks/speedup_nudge.sh\"",
             "timeout": 10
           }
         ]

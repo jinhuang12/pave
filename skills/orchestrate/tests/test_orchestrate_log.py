@@ -311,6 +311,34 @@ class OrchestrateLogTests(unittest.TestCase):
             "    slug.py | textkit/slug.py | pytest",
         ])
 
+    def releasable(self):
+        res = self.run_log("releasable")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        return res.stdout.split()
+
+    def test_releasable_lists_finished_agents_and_keeps_one_reviewer(self):
+        self.init(PLAN1, PLAN2, "worker-3 -> da-2 | c.py | test c | one agent: same")
+        self.run_log("append", "DONE", "worker-1", "r1 PASS")
+        self.assertEqual(self.releasable(), ["worker-1"])  # da-1 still reviews worker-2
+        self.run_log("append", "RESPAWN", "worker-3", "-> worker-4 | 503")
+        self.run_log("append", "DONE", "worker-4", "r1 PASS")
+        self.assertEqual(self.releasable(), ["worker-1", "worker-3", "worker-4", "da-2"])
+        self.run_log("append", "DONE", "worker-2", "r1 PASS")
+        self.run_log("append", "RELEASE", "worker-1")
+        # Nothing is open: da-1 saw the latest DONE and stays for the whole-goal review.
+        self.assertEqual(self.releasable(), ["worker-2", "worker-3", "worker-4", "da-2"])
+        self.run_log("append", "REVIEW", "team-lead", "whole-goal da-1 PASS")
+        self.assertIn("da-1", self.releasable())
+
+    def test_close_names_agents_not_logged_as_released(self):
+        self.init(PLAN1, PLAN2)
+        self.run_log("append", "RELEASE", "worker-1")
+        res = self.run_log("append", "CLOSE", "team-lead", "incomplete | stopped")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("release live team agents", res.stdout)
+        self.assertIn("worker-2, da-1", res.stdout)
+        self.assertNotIn("worker-1", res.stdout)
+
     def test_status_with_no_run_exits_1(self):
         res = self.run_log("status")
         self.assertEqual(res.returncode, 1)

@@ -21,14 +21,9 @@ description: >-
   task mixes unrelated domains (e.g. backend + frontend + docs) even if the
   user never mentions parallelism. Do not use it for single-file edits,
   trivial fixes, or tasks whose steps are strictly sequential with no parallel
-  width. Registers one lead-only hook: a goal restate on session resume and
-  after compaction, which adds context and never blocks.
-hooks:
-  SessionStart:
-    - matcher: "resume|compact"
-      hooks:
-        - type: command
-          command: "d=\"${CLAUDE_SKILL_DIR:-${CLAUDE_PLUGIN_ROOT}/skills/orchestrate}\"; \"$d\"/hooks/goal_restate.sh"
+  width. Registers three lead-only plugin hooks: a goal restate on session
+  resume and after compaction, a reminder to stop finished agents, and a
+  speed-up question at most every 10 minutes. They never block.
 ---'''
 PEER_MESSAGES = "direct SendMessage"
 RESOURCE_PATHS = '''`$SKILL` in this file means this skill's base directory: the Skill tool printed it as `Base directory for this skill: <path>` when the skill loaded. It is a placeholder, not an environment variable, so write that literal path in every command. Do not guess an install path.'''
@@ -48,10 +43,17 @@ Teammate traffic reaches you **only between your turns**. After spawning, end yo
 - **Idle notifications.** Whenever a teammate ends a turn you get its last plain-text line as `result`. Workers end each waiting turn with `WAITING worker-N: round R sent to da-M`, so these are your heartbeat. They are not events; do not act on them.
 - **SendMessages.** These are the events. Act only on a message whose first line is one of these:'''
 PROVIDER_FAILURE = '''**Provider failures.** An idle notification with `idleReason: failed` and an API error as the reason (503/429 after exhausted retries) means the worker died mid-task, and its files may be half-written. Spawn a replacement under the **next unused index** (`worker-7`, never a reused name), with the same subtask plus a line saying which files the dead worker may have touched, and tell its DA the new name. Log it as `append RESPAWN <old> "-> <new> | <reason>"`. Each teammate launch gets its own identity slot from the teammate launcher, so a fresh spawn usually lands on a different quota than the one that failed.'''
-SHUTDOWN = "Then release the team: tell each agent it is done; use `TaskStop` on any that remain busy."
+SHUTDOWN = "Then release the team: stop each agent that `append CLOSE` names with `TaskStop`."
+DONE_RELEASE = " Then stop the worker with `TaskStop` (task_id `worker-N`) and log `append RELEASE worker-N`. Stop a DA the same way once `releasable` lists it."
+NOTES_ROUTE = '''go to one fresh worker under the next unused index, reviewed by the DA that ran the whole-goal review, which checks only that each note was applied; there is no whole-goal re-review. Log it in the same `append --stdin` as the `REVIEW` line, as `PLAN worker-N "-> da-M | notes: <summary> | <acceptance>"`, so the release reminder keeps that DA until the notes worker's DONE.'''
+FIX_ROUTE = '''spawn a fresh worker for each finding under the next unused index, with the owning worker's write set and the finding, reviewed by a live DA (the owner was stopped at its DONE). Log one line per worker: `append PLAN worker-N "-> da-M | fix: <finding summary> | <acceptance>"`.'''
 LIST_AGENTS = "`ListAgents`"
 NEW_SESSION = '''After `/clear` the session id changes, so `status` finds no run for this session and prints the `adopt` command for the orphaned log. Run `adopt <log>` first, then the steps above.'''
-HOOK_CONTRACT = '''The one hook in this skill's frontmatter, **goal restate**, fires on session resume and after compaction, only in your own session, and only for the run this session owns (its `.orchestrate/active-<session id>` marker). It stays silent once the log's last line is a `CLOSE`. It asks you to state the goal from the log header, run `status` and `ListAgents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`. Answer it with Resume. It never throttles and never blocks. `ORCHESTRATE_PYTHON` sets the interpreter it uses.'''
+HOOK_CONTRACT = '''The plugin's `hooks/hooks.json` registers three lead hooks, not this skill's frontmatter: Claude Code never runs a skill-frontmatter SessionStart hook, and frontmatter hooks are gone after a resume. Each hook acts only in your own session and only for the run this session owns (its `.orchestrate/active-<session id>` marker), stays silent once the log's last line is a `CLOSE`, adds context, and never blocks. `ORCHESTRATE_PYTHON` sets the interpreter they use.
+
+- **Goal restate** fires on session resume and after compaction. It asks you to state the goal from the log header, run `status` and `ListAgents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`. Answer it with Resume. It never throttles.
+- **Release reminder** fires after each command that writes the log, while `releasable` lists finished agents. Stop each one it names with `TaskStop` and log `append RELEASE <name>`.
+- **Speed-up question** fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once per 10 minutes (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, run in parallel, or be cut. Answer in one line: `optimal`, or the change you make now.'''
 RUNTIME_ANTIPATTERNS = '''- **Expecting peers to read each other's plain text.** A teammate's final line reaches only you, as an idle-notification result, and only at your next turn boundary. Worker-to-DA traffic must be SendMessage.
 - **Using an agent type with a restricted tool list.** No `SendMessage` in its tools means it can never reach its DA or you. `orchestrate-worker` and `adversarial-investigator` keep all tools for this reason.
 - **Running this headless.** `claude -p` never spawns teammates; the skill is for interactive sessions.'''

@@ -21,8 +21,9 @@ description: >-
   task mixes unrelated domains (e.g. backend + frontend + docs) even if the
   user never mentions parallelism. Do not use it for single-file edits,
   trivial fixes, or tasks whose steps are strictly sequential with no parallel
-  width. Registers one lead-only hook: a goal restate on session resume and
-  after compaction, which adds context and never blocks.
+  width. Registers two lead-only plugin hooks: a goal restate on session
+  resume and after compaction, and a speed-up question at most every 10
+  minutes. They never block.
 ---'''
 PEER_MESSAGES = "direct messages"
 RESOURCE_PATHS = '''`$SKILL` in this file means the shared script directory `<PAVE_PLUGIN_ROOT>/skills/orchestrate`. Resolve PAVE_PLUGIN_ROOT three directories above this skill directory (`<root>/codex/skills/orchestrate` to `<root>`). These are placeholders, not environment variables, so write literal absolute paths in commands. References/ paths resolve beside this Codex SKILL.md, under `<PAVE_PLUGIN_ROOT>/codex/skills/orchestrate/`; scripts/ and hooks/ resolve under `$SKILL`. Supply `ORCHESTRATE_ROOT: <absolute shared script directory>` in agent briefs.'''
@@ -43,9 +44,15 @@ Keep the lead active and use bounded `wait_agent` waits for arrivals; do not end
 - **Messages.** These are the events. Act only on a message whose first line is one of these:'''
 PROVIDER_FAILURE = '''**Provider failures.** An explicit runtime failure or confirmed dead agent means the worker died mid-task, and its files may be half-written. Spawn a replacement under the **next unused index** (`worker-7`, never a reused name), with the same subtask plus a line saying which files the dead worker may have touched, and tell its DA the new canonical path. Log it as `append RESPAWN <old> "-> <new> | <reason>"`. A new Codex agent does not imply a different provider identity or quota.'''
 SHUTDOWN = '''Then release the team: use `interrupt_agent` for agents that remain busy. Idle completed agents need no close; do not wake them merely to announce shutdown.'''
+DONE_RELEASE = ""
+NOTES_ROUTE = "go to the owning workers to apply before CLOSE, with no `PLAN` line and no re-review."
+FIX_ROUTE = '''route each finding to the worker that owns the cited file as a new round through its DA, and log one line per worker: `append PLAN worker-N "-> da-M | fix: <finding summary> | <acceptance>"`. A `PLAN` after a `DONE` reopens that subtask.'''
 LIST_AGENTS = "`list_agents`"
 NEW_SESSION = '''After a new session changes the session ID, `status` finds no run for this session and prints the `adopt` command for the orphaned log. Run `adopt <log>` first, then the steps above.'''
-HOOK_CONTRACT = '''The plugin registers **goal restate** in `codex/hooks/hooks.json`. Review and trust it through `/hooks`. It fires on session resume and after compaction, only in your own session, and only for the run this session owns (its `.orchestrate/active-<session id>` marker). The hook reads the payload session ID and cwd; the log uses `CODEX_THREAD_ID`. It stays silent once the log's last line is a `CLOSE`. It asks you to state the goal from the log header, run `status` and `list_agents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`. Answer it with Resume. It never throttles and never blocks. `ORCHESTRATE_PYTHON` sets the interpreter it uses.'''
+HOOK_CONTRACT = '''The plugin registers two lead hooks in `codex/hooks/hooks.json`. Review and trust them through `/hooks`. Each acts only in your own session and only for the run this session owns (its `.orchestrate/active-<session id>` marker); the hooks read the payload session ID and cwd, and the log uses `CODEX_THREAD_ID`. Each stays silent once the log's last line is a `CLOSE`, adds context, and never blocks. `ORCHESTRATE_PYTHON` sets the interpreter they use.
+
+- **Goal restate** fires on session resume and after compaction. It asks you to state the goal from the log header, run `status` and `list_agents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`. Answer it with Resume. It never throttles.
+- **Speed-up question** fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once per 10 minutes (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, run in parallel, or be cut. Answer in one line: `optimal`, or the change you make now.'''
 RUNTIME_ANTIPATTERNS = '''- **Expecting peers to read each other's plain text.** Worker-to-DA briefs and verdicts must use `followup_task`; a final line only reports turn completion to the lead.
 - **Using an unavailable role or delivery operation.** Stop and report the missing capability; do not substitute a generic worker or rely on passive messages to wake an idle peer.
 - **Ending the lead turn while workers wait.** Stay active with `wait_agent` so lead events can be handled.'''

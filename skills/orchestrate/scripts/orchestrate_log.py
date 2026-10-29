@@ -4,7 +4,7 @@
 Only the orchestrator calls it. The log is <cwd>/.orchestrate/<UTC stamp>.md; the marker
 <cwd>/.orchestrate/active-<session id> holds its absolute path. Select the runtime
 explicitly when both CLAUDE_CODE_SESSION_ID and CODEX_THREAD_ID are present.
-Subcommands: init, append, status, adopt. Exit 0 ok, 1 refused or invalid input, 2 usage.
+Subcommands: init, append, status, releasable, adopt. Exit 0 ok, 1 refused or invalid input, 2 usage.
 """
 
 from __future__ import annotations
@@ -18,10 +18,11 @@ import sys
 import time
 from pathlib import Path
 
-EVENTS = ("PLAN", "DONE", "BLOCKED", "ESCALATE", "RESPAWN", "REVIEW", "INTEGRATE", "CLOSE")
+EVENTS = ("PLAN", "DONE", "BLOCKED", "ESCALATE", "RESPAWN", "RELEASE", "REVIEW", "INTEGRATE", "CLOSE")
 STOPS = ("accepted", "closed_unaccepted", "blocked", "incomplete", "exhausted")
 LINE = re.compile(r"^- \d\d:\d\d (\S+) (\S+) ?(.*)$")
 RESPAWN = re.compile(r"(\S+) -> (\S+)")
+REVIEWER = re.compile(r"^-> (\S+)")
 SCRIPT = os.path.abspath(__file__)
 COMMAND = f"python3 {shlex.quote(SCRIPT)}"
 SESSION_KEYS = {"claude": "CLAUDE_CODE_SESSION_ID", "codex": "CODEX_THREAD_ID"}
@@ -59,6 +60,48 @@ def open_run(marker):
     """This session's open log path, or None."""
     log = marker.read_text(encoding="utf-8").strip() if marker.is_file() else ""
     return log if log and os.path.isfile(log) and not is_closed(log) else None
+
+
+def agents(lines):
+    """(releasable, unreleased) agent names, in log order.
+
+    A worker is releasable once DONE or replaced by a RESPAWN. A DA is releasable
+    once none of its workers is open, but while nothing is open and no whole-goal
+    REVIEW has PASSed, the DA that saw the latest DONE stays for that review.
+    RELEASE removes a name from both lists.
+    """
+    state, reviewer, das, last_done, released, passed = {}, {}, [], {}, set(), False
+
+    def see(da):
+        if da not in das:
+            das.append(da)
+
+    for i, (event, actor, text) in enumerate(m.groups() for m in map(LINE.match, lines) if m):
+        swap = RESPAWN.search(f"{actor} {text}") if event == "RESPAWN" else None
+        if swap:
+            old, new = swap.groups()
+            state[old], state[new], reviewer[new] = "gone", "open", reviewer.get(old)
+        elif event == "PLAN":
+            state[actor] = "open"
+            if hit := REVIEWER.match(text):
+                reviewer[actor] = hit.group(1)
+                see(hit.group(1))
+        elif event == "DONE":
+            state[actor] = "done"
+            last_done[reviewer.get(actor)] = i
+        elif event == "RELEASE":
+            released.add(actor)
+        elif event == "REVIEW":
+            if hit := re.search(r"whole-goal (\S+)", text):
+                see(hit.group(1))  # a fresh whole-goal DA may serve no worker
+            passed = bool(re.search(r"\bPASS\b", text)) and not re.search(r"\bREVISE\b", text)
+    workers = [w for w in state if w not in released]
+    busy = {reviewer.get(w) for w in workers if state[w] == "open"}
+    idle = [d for d in das if d not in busy and d not in released]
+    if idle and not passed and not busy - released - {None}:
+        idle.remove(max(idle, key=lambda d: last_done.get(d, -1)))
+    finished = [w for w in workers if state[w] != "open"] + idle
+    return finished, workers + [d for d in das if d not in released]
 
 
 def write(path, text, mode="a"):
@@ -105,7 +148,9 @@ def cmd_append(args, home, marker):
     write(log, "".join(lines))
     if rows[-1][0] == "CLOSE":
         marker.unlink()
-        print("run closed; release live team agents using the skill's runtime contract")
+        names = ", ".join(agents(read_lines(log))[1])
+        print("run closed; release live team agents using the skill's runtime contract"
+              + (f": {names}" if names else ""))
 
 
 def cmd_status(args, home, marker):
@@ -139,6 +184,13 @@ def cmd_status(args, home, marker):
             tail = f", replaced {info}" if info else ""
             print(f"{head} — open{tail}" + (f"\n    {plan[worker]}" if plan[worker] else ""))
     print(f"last: {lines[-1] if lines else ''}")
+
+
+def cmd_releasable(args, home, marker):
+    if not (log := open_run(marker)):
+        fail("no open run for this session")
+    for name in agents(read_lines(log))[0]:
+        print(name)
 
 
 def cmd_adopt(args, home, marker):
@@ -182,12 +234,14 @@ def main(argv=None):
     p.add_argument("text", nargs="*")
     p.add_argument("--stdin", action="store_true", help="read EVENT ACTOR TEXT lines from stdin")
     sub.add_parser("status", parents=[common], help="goal, one line per subtask, last line")
+    sub.add_parser("releasable", parents=[common], help="finished agents not yet logged as released")
     sub.add_parser("adopt", parents=[common], help="point this session's marker at LOG").add_argument("log")
     args = parser.parse_args(argv)
     runtime, sid = session_identity(args.runtime)
     COMMAND = f"python3 {shlex.quote(SCRIPT)} --runtime {runtime}"
     home = Path(args.cwd).resolve() / ".orchestrate"
-    {"init": cmd_init, "append": cmd_append, "status": cmd_status, "adopt": cmd_adopt}[args.cmd](
+    {"init": cmd_init, "append": cmd_append, "status": cmd_status, "releasable": cmd_releasable,
+     "adopt": cmd_adopt}[args.cmd](
         args, home, home / f"active-{sid}")
 
 

@@ -183,9 +183,11 @@ differences are:
 - Nested dispatch uses Codex V2 with 16 child slots and 17 total slots.
 - Plugin-level `hooks/hooks.json` replaces skill-frontmatter hook registration.
 - Orchestrate registers its lead-only goal-restatement hook for `SessionStart`
-  with `resume|compact`. Codex supports both sources. The hook uses the
-  session-owned orchestrate marker; it does not register a PAVE campaign
-  restatement hook or a `SubagentStart` hook.
+  with `resume|compact`, and its speed-up question for `PostToolUse` on Bash.
+  Codex supports both. The hooks use the session-owned orchestrate marker;
+  they do not register a PAVE campaign restatement hook or a `SubagentStart`
+  hook. The Claude-only release reminder is not registered: a finished Codex
+  thread needs no close.
 - `apply_patch` needs a path/content adapter for the planning-layout hook.
 - Direct Codex caller identity is preserved so the canonical hooks remain the
   only authority for lead-versus-worker policy.
@@ -199,13 +201,15 @@ terminal status, or revision rule changes.
 
 ## Hooks
 
-The Codex plugin registers five hook actions:
+The Codex plugin registers six hook actions:
 
 1. A throttled run-state staleness reminder after Bash or file-edit tools.
 2. A non-blocking planning-layout warning after file edits.
 3. A non-blocking write-for-reader warning after file edits.
 4. A Socratic stop-alignment check with the canonical cooldown.
 5. Orchestrate's lead-only goal restatement on `SessionStart` resume or compact.
+6. Orchestrate's lead-only speed-up question after a run-log write, at most
+   once per 10 minutes.
 
 The canonical Bash scripts remain the policy implementations. The Codex Python
 file adapts only the `apply_patch` wire format and preserves caller identity.

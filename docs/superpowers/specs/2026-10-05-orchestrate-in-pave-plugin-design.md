@@ -27,7 +27,7 @@ Success looks like:
 | Persistent state | Append-only markdown run log | Nothing goes stale; no schema or validator. |
 | Log writer | The orchestrator only | PAVE one-writer rule. Reviewer verdicts are already persisted verbatim in each reviewer's transcript, so round history is not lost; the worker's DONE message carries a one-line round summary the orchestrator copies. |
 | Ownership | Per-session marker from `CLAUDE_CODE_SESSION_ID` or `CODEX_THREAD_ID` | The explicit `--runtime` selects the correct variable when both are present. Hooks use the payload session ID and act only on the run that session owns. |
-| Hooks | One, lead-only: goal restate on SessionStart resume/compact. The Stop check was built, reviewed, then dropped on 2026-10-06 (section 5) | A stop check that fires on normal waits would block 6 to 14 stops per wave. Staleness has no signal when the lead is the only writer and writes rarely. SubagentStart would hit the reviewers' research helpers. |
+| Hooks | Lead-only, plugin-level: goal restate on SessionStart resume/compact, a release reminder (Claude) and a speed-up question after run-log writes. The Stop check was built, reviewed, then dropped on 2026-10-06 (section 5) | A stop check that fires on normal waits would block 6 to 14 stops per wave. Staleness has no signal when the lead is the only writer and writes rarely. SubagentStart would hit the reviewers' research helpers. |
 | PAVE bits imported | Run log, one-agent clause on each subtask, stopping vocabulary, frozen purpose, worker recovery loop, one lead hook | Each addresses a failure seen or named. |
 | Left out | Staleness hook, SubagentStart restate, write log, audit checkpoint, deny hooks, revision log, debate/monitor/audit, rename | No consumer or evidence in a one-session tool. |
 
@@ -41,10 +41,12 @@ jinhuang12-plugins/
 ├── sources/roles/*.md.tmpl             shared agent instructions
 ├── sources/bindings/{claude,codex}.toml platform tools, models, paths, and skill names
 ├── skills/orchestrate/
-│   ├── SKILL.md                        generated Claude skill; frontmatter registers the hook
+│   ├── SKILL.md                        generated Claude skill; registers no hooks
 │   ├── hooks/
 │   │   ├── _hook_common.sh             shared skeleton (section 5)
-│   │   └── goal_restate.sh
+│   │   ├── goal_restate.sh
+│   │   ├── release_reminder.sh         Claude only
+│   │   └── speedup_nudge.sh
 │   ├── references/*.md                 generated Claude references
 │   ├── scripts/orchestrate_log.py, preflight.py
 │   └── tests/test_hooks.sh, test_orchestrate_log.py
@@ -123,15 +125,17 @@ The log is the durable record; the orchestrator's context is working memory. Aft
 
 ## 5. Hooks
 
-One hook, lead-only, registered in the Claude skill's frontmatter and in `codex/hooks/hooks.json` for Codex. It sources `hooks/_hook_common.sh`, which carries the parts the lead-hooks doctrine calls invariant: payload parse with a parse-fail sentinel and fail-open exit, session id extraction, the run-log readers, and the JSON `additionalContext` emitter. Per-skill code is exactly the doctrine's re-derive list: discovery, terminal rule, question text, env prefix `ORCHESTRATE_`. pave-init's own hooks are not changed in this work; moving them onto the skeleton is a later refactor (section 10).
+Lead-only hooks, registered in the plugin's `hooks/hooks.json` for Claude and `codex/hooks/hooks.json` for Codex. Claude Code never runs a skill-frontmatter SessionStart hook and drops frontmatter hooks on resume, so none live in the skill's frontmatter. It sources `hooks/_hook_common.sh`, which carries the parts the lead-hooks doctrine calls invariant: payload parse with a parse-fail sentinel and fail-open exit, session id extraction, the run-log readers, and the JSON `additionalContext` emitter. Per-skill code is exactly the doctrine's re-derive list: discovery, terminal rule, question text, env prefix `ORCHESTRATE_`. pave-init's own hooks are not changed in this work; moving them onto the skeleton is a later refactor (section 10).
 
 Discovery: `$root/.orchestrate/active-<payload session_id>` for `root` in payload `cwd`, then `CLAUDE_PROJECT_DIR`, then `$PWD`. No marker, or the marker's target missing, or its last line a `CLOSE`: exit 0. This is marker-authoritative and session-scoped, so a second session in the same cwd is never touched.
 
 | hook | event | behaviour |
 |---|---|---|
 | `goal_restate.sh` | SessionStart `resume\|compact` | `additionalContext`, exit 0. Prints the literal log `status` command and `ListAgents` for Claude or `list_agents` for Codex. Asks for the goal, open subtasks, and fewest steps to `CLOSE`; you orchestrate, you do not implement. Never throttled. |
+| `release_reminder.sh` | PostToolUse Bash after a run-log write (Claude only) | `additionalContext`, exit 0. Names the agents `orchestrate_log.py releasable` lists, with the `TaskStop` call and the `RELEASE` line to log. |
+| `speedup_nudge.sh` | PostToolUse Bash after a run-log write | `additionalContext`, exit 0, at most once per `ORCHESTRATE_SPEEDUP_SECONDS` (600). Asks whether anything else can overlap, run in parallel, or be cut. |
 
-The skill description discloses the hook in one sentence, as the doctrine requires.
+The skill description discloses the hooks in one sentence, as the doctrine requires.
 
 **Stop hook dropped (2026-10-06).** It was built and passed review, then removed by the user's decision under §4.11 and §9.14: in a one-session run Steps 5-7 are still in context, an unclosed run is already caught by the next `init` (refuses, prints the close command) and by the restate on resume, and the first live run showed released teammates terminate on a plain message. Its one real reminder, release idle teammates, moved to where it binds: `append CLOSE` prints it. The hook earns its place in multi-session campaigns (pave-init, vllm-neuron-parity), not here.
 

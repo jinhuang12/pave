@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# _hook_common.sh -- sourceable skeleton for the orchestrate lead hook
-# (goal_restate.sh); written so a second hook can source it unchanged.
+# _hook_common.sh -- sourceable skeleton for the orchestrate lead hooks
+# (goal_restate.sh, release_reminder.sh, speedup_nudge.sh).
 #
 # It carries the parts that do not change between hooks: the payload parse
 # with a parse-fail sentinel and fail-open exit, the session-scoped run
@@ -30,7 +30,8 @@ ORCH_PY="${ORCHESTRATE_PYTHON:-python3}"
 ORCH_PY="${ORCH_PY/#\~\//$HOME/}"   # expand a leading ~/ (env blocks do not tilde-expand)
 
 # hook_read_payload -- read the hook payload from stdin and set SESSION_ID,
-# STOP_ACTIVE (1/0), AGENT_ID, AGENT_TYPE, HOOK_EVENT, HOOK_SOURCE.
+# STOP_ACTIVE (1/0), AGENT_ID, AGENT_TYPE, HOOK_EVENT, HOOK_SOURCE, HOOK_CWD,
+# TOOL_NAME, and TOOL_COMMAND (tool_input.command, newlines flattened).
 # Exits 0 when the interpreter is missing or the payload is not a JSON
 # object: a hook must never act on input it could not read, and a failed
 # parse must not look like a minimal valid payload.
@@ -50,8 +51,12 @@ if not isinstance(payload, dict):
 def field(key):
     value = payload.get(key)
     return "" if value is None else str(value).replace("\r", " ").replace("\n", " ")
+tool_input = payload.get("tool_input")
+command = tool_input.get("command") if isinstance(tool_input, dict) else None
+payload["command"] = command if isinstance(command, str) else None
 lines = ["OK", field("session_id"), "1" if payload.get("stop_hook_active") else "0",
-         field("agent_id"), field("agent_type"), field("hook_event_name"), field("source"), field("cwd")]
+         field("agent_id"), field("agent_type"), field("hook_event_name"), field("source"), field("cwd"),
+         field("tool_name"), field("command")]
 print("\n".join(lines))
 ' 2>/dev/null || true)"
   [ "$(printf '%s\n' "$fields" | sed -n 1p)" = "OK" ] || exit 0
@@ -62,6 +67,18 @@ print("\n".join(lines))
   HOOK_EVENT="$(printf '%s\n' "$fields" | sed -n 6p)"
   HOOK_SOURCE="$(printf '%s\n' "$fields" | sed -n 7p)"
   HOOK_CWD="$(printf '%s\n' "$fields" | sed -n 8p)"
+  TOOL_NAME="$(printf '%s\n' "$fields" | sed -n 9p)"
+  TOOL_COMMAND="$(printf '%s\n' "$fields" | sed -n 10p)"
+}
+
+# lead_wrote_log -- 0 when this PostToolUse payload is a shell command that ran
+# orchestrate_log.py init or append, the only writes to a run log.
+lead_wrote_log() {
+  [ "${HOOK_EVENT:-}" = "PostToolUse" ] || return 1
+  case "${TOOL_COMMAND:-}" in
+    *orchestrate_log.py*" init"*|*orchestrate_log.py*" append"*) return 0 ;;
+  esac
+  return 1
 }
 
 # find_owned_run -- set RUN_LOG to the open run this session owns and return
@@ -143,6 +160,11 @@ _log_subtasks() {
   ' "$1" 2>/dev/null
 }
 log_open_subtasks() { _log_subtasks "$1" open; }
+
+# log_last_event LOG -- print the event word of the last event line.
+log_last_event() {
+  awk -v re="$_ORCH_EVENT_LINE" '{ sub(/\r$/, "") } $0 ~ re { last = $3 } END { print last }' "$1" 2>/dev/null
+}
 
 # emit_additional_context EVENT TEXT -- print one hookSpecificOutput JSON
 # object on stdout; prints nothing if the interpreter fails.

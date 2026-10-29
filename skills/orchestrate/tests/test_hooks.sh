@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Invariant tests for the orchestrate lead hook (spec
+# Invariant tests for the orchestrate lead hooks (spec
 # docs/superpowers/specs/2026-10-05-orchestrate-in-pave-plugin-design.md,
 # sections 5, 7 and 8). Tests behaviour, not wording:
 #   discovery: silent with no marker, for a session that owns no run, when the
@@ -13,17 +13,23 @@
 #              worker, a RESPAWN of an unlogged worker does not hide its later
 #              PLAN, and "none" when every subtask is DONE or no PLAN exists;
 #              startup, clear, and any other event stay silent; never throttled
+#   release:   a lead log write names the finished agents; other commands are silent
+#   speed-up:  a lead log write asks the speed-up question, at most once per interval
+#   registration: every orchestrate hook is plugin-level
 #   fail open: an unparsable payload, empty stdin, a non-object payload, and a
 #              missing interpreter leave the hook silent with exit 0
 #
 # Self-contained: fixture logs are written by hand inside a mktemp sandbox;
-# no real log or marker is touched, and orchestrate_log.py is not needed.
+# no real log or marker is touched. The release hook reads them through
+# orchestrate_log.py releasable.
 
 set -u
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 SKILL="$(cd "$HERE/.." && pwd)"
 RESTATE_HOOK="$SKILL/hooks/goal_restate.sh"
+RELEASE_HOOK="$SKILL/hooks/release_reminder.sh"
+SPEEDUP_HOOK="$SKILL/hooks/speedup_nudge.sh"
 COMMON="$SKILL/hooks/_hook_common.sh"
 
 PASS=0
@@ -111,12 +117,12 @@ GHOST_LOG="$(printf '%s\n' '- 12:03 PLAN worker-1 -> da-1 | a.py | pytest a' '- 
 
 # --- syntax ------------------------------------------------------------------
 
-for f in "$COMMON" "$RESTATE_HOOK"; do
+for f in "$COMMON" "$RESTATE_HOOK" "$RELEASE_HOOK" "$SPEEDUP_HOOK"; do
   ok=0; [ -f "$f" ] && bash -n "$f" 2>/dev/null && ok=1
   report "syntax: bash -n $(basename "$f")" "$ok" "missing or syntax error"
 done
-ok=0; [ -x "$RESTATE_HOOK" ] && ok=1
-report "syntax: goal_restate.sh is executable (the frontmatter runs it directly)" "$ok" "mode"
+ok=0; [ -x "$RESTATE_HOOK" ] && [ -x "$RELEASE_HOOK" ] && [ -x "$SPEEDUP_HOOK" ] && ok=1
+report "syntax: the hooks are executable (hooks.json runs them directly)" "$ok" "mode"
 
 # --- discovery -----------------------------------------------------------------
 
@@ -236,6 +242,51 @@ own o8 "$GHOST_LOG"
 run_hook "$RESTATE_HOOK" "$(compact o8)"
 ok=0; open_is "ghost" && ok=1
 report "restate: a RESPAWN of an unlogged worker does not hide its later PLAN" "$ok" "rc=$RC out=$OUT"
+
+# --- post-log-write reminders (release_reminder.sh, speedup_nudge.sh) --------------
+
+bash_payload() { # $1 session, $2 command
+  python3 -c 'import json,sys; print(json.dumps({"session_id": sys.argv[1], "hook_event_name": "PostToolUse",
+    "tool_name": "Bash", "tool_input": {"command": sys.argv[2]}}))' "$1" "$2"
+}
+LOG_WRITE="python3 $SKILL/scripts/orchestrate_log.py --runtime claude append DONE worker-2 r2 PASS"
+
+own p1 "$OPEN_LOG"
+run_hook "$RELEASE_HOOK" "$(bash_payload p1 "$LOG_WRITE")"
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && has_out "worker-1, worker-2" && has_out "TaskStop" \
+  && has_out "append RELEASE" && ok=1
+report "release: a log write names the finished agents and how to stop and log them" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$RELEASE_HOOK" "$(bash_payload p1 "git status")"
+ok=0; silent && ok=1
+report "release: a command that does not write the log is silent" "$ok" "rc=$RC out=$OUT"
+
+own p2 "$OPEN_LOG"
+run_hook "$SPEEDUP_HOOK" "$(bash_payload p2 "$LOG_WRITE")"
+ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && has_out "overlap, parallelize, or cut" && has_out "worker-3" && ok=1
+report "speed-up: a log write asks the speed-up question and names open subtasks" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$SPEEDUP_HOOK" "$(bash_payload p2 "$LOG_WRITE")"
+ok=0; silent && ok=1
+report "speed-up: a second log write inside the interval is silent" "$ok" "rc=$RC out=$OUT"
+
+# --- registration ------------------------------------------------------------------
+# Skill-frontmatter SessionStart hooks never run (Claude Code 2.1.312), and
+# frontmatter hooks are gone after --resume, so every orchestrate hook is
+# registered at plugin level.
+PLUGIN_ROOT="$(cd "$SKILL/../.." && pwd)"
+ok=0; python3 - "$PLUGIN_ROOT" <<'PY' && ok=1
+import json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+def cmds(path, event):
+    return " ".join(h["command"] for g in json.load(open(root / path))["hooks"].get(event, []) for h in g["hooks"])
+assert "orchestrate/hooks/goal_restate.sh" in cmds("hooks/hooks.json", "SessionStart")
+assert "orchestrate/hooks/release_reminder.sh" in cmds("hooks/hooks.json", "PostToolUse")
+assert "orchestrate/hooks/speedup_nudge.sh" in cmds("hooks/hooks.json", "PostToolUse")
+assert "orchestrate/hooks/speedup_nudge.sh" in cmds("codex/hooks/hooks.json", "PostToolUse")
+front = (root / "skills/orchestrate/SKILL.md").read_text().split("\n---\n", 1)[0]
+assert "\nhooks:" not in front
+PY
+report "registration: all orchestrate hooks are plugin-level, none in the skill frontmatter" "$ok" "see hooks.json"
 
 # --- fail open -----------------------------------------------------------------------
 

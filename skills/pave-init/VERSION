@@ -1,4 +1,4 @@
-version: 2.8.3
+version: 2.9.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,15 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.9.0 (2026-10-29)
+
+- Fixed — In Claude Code, the orchestrate goal restate now fires after compaction and on resume. Before, it never fired: it was registered in the skill's frontmatter, Claude Code never runs a frontmatter SessionStart hook, and it drops every frontmatter hook on resume.
+  - The hook moved to the plugin's `hooks/hooks.json`. The skill frontmatter registers no hooks now. Measured on Claude Code 2.1.312 with a probe skill and with the real skill: frontmatter SessionStart, PreCompact, and PostCompact hooks never run, and no frontmatter hook survives `--resume`.
+- New — In Claude Code, orchestrate reminds the lead to stop finished agents. After each run-log write, the lead gets the names of finished workers and DAs that still hold agent slots, with the `TaskStop` call and the `RELEASE` line to log. One DA stays up for the whole-goal review. After a whole-goal REVISE, each fix goes to a fresh worker.
+  - `orchestrate_log.py` adds the `RELEASE` event and the `releasable` command. `append CLOSE` now names every agent that has no `RELEASE` line. Codex does not get this hook: a finished Codex thread needs no close.
+- New — In both runtimes, orchestrate asks the lead a speed-up question: "Anything else we can overlap, parallelize, or cut to speed this whole process up, or is it already optimal?" It asks after a run-log write that changes the plan, at most once per 10 minutes, and the lead answers in one line.
+  - `ORCHESTRATE_SPEEDUP_SECONDS` changes the interval. Source: the user's request of 2026-10-29.
 
 ### 2.8.3 (2026-10-15)
 

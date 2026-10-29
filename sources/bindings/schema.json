@@ -56,6 +56,9 @@
                 "MONITOR_DELIVERY",
                 "PROVIDER_FAILURE",
                 "SHUTDOWN",
+                "DONE_RELEASE",
+                "FIX_ROUTE",
+                "NOTES_ROUTE",
                 "LIST_AGENTS",
                 "NEW_SESSION",
                 "HOOK_CONTRACT",
@@ -106,6 +109,15 @@
                   "type": "string"
                 },
                 "SHUTDOWN": {
+                  "type": "string"
+                },
+                "DONE_RELEASE": {
+                  "type": "string"
+                },
+                "FIX_ROUTE": {
+                  "type": "string"
+                },
+                "NOTES_ROUTE": {
                   "type": "string"
                 },
                 "LIST_AGENTS": {
