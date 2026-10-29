@@ -1,0 +1,205 @@
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -219,11 +219,11 @@
+       kind: judgment
+       produced_by:
+       - audit_s1
+-      - audit_s2
++      - stage_2_bottleneck_mining
+       - audit_s45
+       - audit_s67
+       subject: The auditor's verdict file with Phase 1, the hook-delivered Phase 2, reconciliation, and an explicit
+-        Overall line; re-audits add _cycle_<C>.
++        Overall line; re-audits add _cycle_<C>. For Stage 2 the file is produced inside the child run and exported.
+       artifact: .ammo/<campaign-id>/rounds/<N>/audits/
+     campaign_report:
+       kind: derivation
+@@ -277,8 +277,10 @@
+       style: mechanical
+       question: Is audit.stage_2.passed_at recorded with a complete final-PASS verdict file? scripts/ammo_state.py
+         refuses current_stage 3_debate without it, and refuses the post-SHIP move to 7_campaign_eval without it.
+-      evaluated_by: lead
+-      on_failure_route: audit_s2
++        At Stage 2 the stamp comes from the auditor dispatched inside the child run; the parent reads it the same
++        way.
++      evaluated_by: lead
++      on_failure_route: stage_2_bottleneck_mining
+     audit_s45_passed:
+       style: mechanical
+       question: Is audit.stage_45.passed_at recorded with a complete final-PASS verdict file, and is every track
+@@ -563,11 +565,12 @@
+             campaign.auditor_escalation.
+     stage_2_bottleneck_mining:
+       intent: explore
+-      purpose: 'Stage 2: a fresh ammo-researcher with task_type mining mines the production evidence already on
+-        disk and never recaptures it. In round 1 that is the Stage 1 baseline and attribution; after a material
+-        SHIP, the prior round''s Stage 6 integration result plus the attribution evidence that still applies; after
+-        invalidated mining, the same measured baseline. It grounds every binding claim in primary artifacts and
+-        writes bottleneck_analysis.md; the lead writes the mining enrichment to state.json before advancing.'
++      purpose: 'Stage 2 as a composed node: the lead opens workflow.stage2-mining.pave.yaml and runs it (the family
++        wave through the pave-init orchestrate skill, the other seats the normal AMMO way); T_AUDIT_S2 runs inside
++        the child. In round 1 the evidence is the Stage 1 baseline and attribution; after a material SHIP, the prior
++        round''s Stage 6 integration result plus the attribution that still applies; after invalidated mining, the
++        same measured baseline. No recapture. The lead writes the mining enrichment to state.json from the child''s
++        accepted terminal.'
+       roles:
+       - lead
+       - ammo_researcher
+@@ -579,41 +582,20 @@
+       produces:
+       - bottleneck_analysis
+       outcomes:
+-        mining_grounded:
+-          meaning: bottleneck_analysis.md is complete and grounded in primary artifacts.
++        pass:
++          meaning: 'The child reached mining_accepted: the Stage 2 verdict file holds Overall: PASS.'
+           required_evidence:
+           - bottleneck_analysis
+-        mining_incomplete:
+-          meaning: The analysis is missing a required section or an ungrounded claim; the researcher regenerates
+-            it from primary data.
++          - audit_verdict
++        escalated:
++          meaning: 'The child reached mining_escalated: blockers remain at the audit cycle cap; campaign-scoped
++            pause.'
++          required_evidence:
++          - audit_verdict
+         user_authority_needed:
+-          meaning: Missing authority or an unrecoverable conflict.
+-    audit_s2:
+-      intent: review
+-      purpose: 'T_AUDIT_S2: a fresh ammo-auditor independently confirms that the measured bottleneck, the opportunity
+-        math, the code mapping, and the candidate frontier are real before debate, or before the post-SHIP stop
+-        check. Every blocker at this gate is campaign-scoped.'
+-      roles:
+-      - lead
+-      - ammo_auditor
+-      - ammo_delegate
+-      - ammo_investigator
+-      consumes:
+-      - bottleneck_analysis
+-      produces:
+-      - audit_verdict
+-      outcomes:
+-        pass:
+-          meaning: 'PASS: no BLOCKING or HIGH finding remains.'
+-          required_evidence:
+-          - audit_verdict
+-        blocked:
+-          meaning: 'BLOCKED: mining findings go to ammo-researcher, which regenerates the tables from primary data;
+-            then a fresh re-audit.'
+-        needs_investigation:
+-          meaning: 'NEEDS_INVESTIGATION: a bounded investigator resolves severity, then a fresh re-audit.'
+-        escalated:
+-          meaning: Blockers remain after three audit-fix cycles; campaign-scoped pause.
++          meaning: The child reached mining_needs_user.
++          required_evidence:
++          - blocker_record
+     stage_3_debate:
+       intent: plan
+       purpose: 'Stage 3 (orchestration/debate-protocol.md): 2-4 named ammo-champion teammates propose 2-3 grounded
+@@ -895,43 +877,27 @@
+   - id: audit_s1_escalated_to_pause
+     from: audit_s1.escalated
+     to: paused_for_user
+-  - id: mining_to_audit_s2
+-    from: stage_2_bottleneck_mining.mining_grounded
+-    to: audit_s2
+-    checks:
+-    - mining_enrichment_recorded
+-  - id: mining_retry
+-    from: stage_2_bottleneck_mining.mining_incomplete
+-    to: stage_2_bottleneck_mining
+   - id: mining_authority_to_pause
+     from: stage_2_bottleneck_mining.user_authority_needed
+     to: paused_for_user
+-  - id: audit_s2_pass_to_debate
+-    from: audit_s2.pass
++  - id: mining_pass_to_debate
++    from: stage_2_bottleneck_mining.pass
+     to: stage_3_debate
+     checks:
++    - mining_enrichment_recorded
+     - audit_s2_passed
+     - debate_warranted
+-  - id: audit_s2_pass_post_ship_to_eval
+-    from: audit_s2.pass
++  - id: mining_pass_post_ship_to_eval
++    from: stage_2_bottleneck_mining.pass
+     to: stage_7_campaign_eval
+     checks:
++    - mining_enrichment_recorded
+     - audit_s2_passed
+     - post_ship_floor_reached
+     rationale: A material SHIP is judged on mining of its promoted result; when that mining is below the floor,
+       Stage 7 closes the campaign from the audited SHIP without a debate.
+-  - id: audit_s2_blocked_to_mining
+-    from: audit_s2.blocked
+-    to: stage_2_bottleneck_mining
+-    checks:
+-    - audit_cycle_bound
+-  - id: audit_s2_investigate
+-    from: audit_s2.needs_investigation
+-    to: audit_s2
+-    checks:
+-    - audit_cycle_bound
+-  - id: audit_s2_escalated_to_pause
+-    from: audit_s2.escalated
++  - id: mining_escalated_to_pause
++    from: stage_2_bottleneck_mining.escalated
+     to: paused_for_user
+   - id: winners_fan_out_to_tracks
+     from: stage_3_debate.winners_selected
+@@ -1155,6 +1121,7 @@
+   extensions:
+     required:
+     - ammo
++    - composition
+     ammo:
+       live_state: .ammo/<campaign-id>/state.json
+       state_schema: schemas/state.schema.json
+@@ -1170,7 +1137,7 @@
+         7b_report: stage_7b_report
+       audit_nodes:
+         stage_1: audit_s1
+-        stage_2: audit_s2
++        stage_2: stage_2_bottleneck_mining
+         stage_45: audit_s45
+         stage_67: audit_s67
+       binding_gates:
+@@ -1194,14 +1161,32 @@
+         audit_s1.pass: PASS
+         audit_s1.blocked: BLOCKED
+         audit_s1.needs_investigation: NEEDS_INVESTIGATION
+-        audit_s2.pass: PASS
+-        audit_s2.blocked: BLOCKED
+-        audit_s2.needs_investigation: NEEDS_INVESTIGATION
+         audit_s45.pass: PASS
+         audit_s45.blocked: BLOCKED
+         audit_s45.needs_investigation: NEEDS_INVESTIGATION
+         audit_s67.pass: PASS
+         audit_s67.blocked: BLOCKED
+         audit_s67.needs_investigation: NEEDS_INVESTIGATION
++        stage_2_bottleneck_mining.pass: PASS
+       diluted_pass: DILUTED_PASS is stage_4_5_parallel_tracks.pass with diluted:true (references/validation-defaults.md);
+         there is no separate outcome or status value.
++    composition:
++      version: 1.0.0
++      implementations:
++        stage_2_bottleneck_mining:
++          kind: child_graph_file
++          graph_file: workflow.stage2-mining.pave.yaml
++          inputs:
++            round: state.campaign_state.campaign.current_round
++            parent_node_run: state.active_node_runs.stage_2_bottleneck_mining
++          evidence_exports:
++          - child: bottleneck_analysis
++            parent: bottleneck_analysis
++          - child: audit_verdict
++            parent: audit_verdict
++          - child: mining_blocker
++            parent: blocker_record
++          child_outcome_map:
++            mining_accepted: pass
++            mining_escalated: escalated
++            mining_needs_user: user_authority_needed

@@ -1,0 +1,311 @@
+pave:
+  version: 0.3.0
+  name: ammo_stage2_mining
+  status: draft
+  purpose: >-
+    Stage 2 of a batch AMMO campaign as one child run: the Stage 1 baseline and
+    trace already on disk become rounds/<N>/mining/bottleneck_analysis.md that
+    passes references/audit-invariants.md, After Stage 2. One researcher mines
+    the tables, one worker per selected kernel family writes a reviewed dossier
+    in parallel, the researcher writes the report, and the AMMO auditor judges
+    the stage inside this run. No recapture.
+  scope:
+    in:
+      - One round of one batch campaign; the parent passes the round.
+    out:
+      - Any new measurement or capture.
+      - Any proposal, speedup estimate, feasibility or risk score (Stage 3 owns them).
+      - Serving campaigns (references/serving-campaign.md owns their Stage 2).
+      - Writing state.json (the parent lead stamps the result).
+  principles:
+    - scripts/mine_trace.py owns every mined number, including the family selection and each family's physical ceiling. A dossier derives bytes, flops, and bounds from cited inputs and never restates a mined number.
+    - The family partition and the report are single-agent work; a family dossier is local work with its own review loop.
+    - The gate is the AMMO auditor, dispatched the canonical way, so its stamps, hooks, and verdict format are unchanged.
+  entrypoints:
+    - mine_tables
+  roles:
+    lead:
+      purpose: The campaign lead. Orchestrates the family wave with the pave-init orchestrate skill and dispatches the other seats the normal AMMO way.
+      forbidden_effects:
+        - write a mining artifact
+        - judge a dossier or the report
+    ammo_researcher:
+      purpose: One-shot subagent at ammo:ammo-researcher. Runs mine_tables (task_type mining_tables) and synthesize_report (task_type mining_report); the lead may resume the same agent for the report.
+      forbidden_effects:
+        - propose an optimization or estimate an attainable speedup
+    family_worker:
+      purpose: One pave-init orchestrate-worker per selected family. Writes one dossier under rounds/<N>/mining/families/ from references/mining-dossier.md and loops with its reviewer per the orchestrate skill.
+      forbidden_effects:
+        - edit mine_config.json, mined.json, tables.md, or another dossier
+        - recommend a mechanism or a candidate
+    family_reviewer:
+      purpose: One pave-init adversarial-investigator per two or three family workers, assigned by the orchestrate skill. Also reviews the tables while the workers draft.
+      independence:
+        - never edits a dossier
+    ammo_auditor:
+      purpose: One-shot subagent at ammo:ammo-auditor, dispatched with the canonical audit_gate block for stage_2, fresh for every cycle. Phase 1 reconstruction, hook-delivered Phase 2, verdict file.
+      forbidden_effects:
+        - modify source, campaign artifacts, or state.json
+      independence:
+        - never reused across cycles
+        - never repairs its own finding
+    ammo_investigator:
+      purpose: One-shot subagent at ammo:ammo-investigator for a NEEDS_INVESTIGATION finding with one concrete decision question.
+  evidence:
+    mined_tables:
+      kind: derivation
+      produced_by: mine_tables
+      subject: mine_config.json (the researcher's judgment) and the script outputs mined.json (schema mine_trace/1, with selected_families) and tables.md.
+      artifacts:
+        - .ammo/<campaign-id>/rounds/<N>/mining/mine_config.json
+        - .ammo/<campaign-id>/rounds/<N>/mining/mined.json
+        - .ammo/<campaign-id>/rounds/<N>/mining/tables.md
+    family_dossier:
+      kind: derivation
+      produced_by: family_dossier
+      subject: One file per selected family in the shape of references/mining-dossier.md, grounded or marked ungrounded with the reason.
+      artifact: .ammo/<campaign-id>/rounds/<N>/mining/families/
+    bottleneck_analysis:
+      kind: derivation
+      produced_by: synthesize_report
+      subject: bottleneck_analysis.md with every section agents/ammo-researcher.md mandates, the dossiers folded in by reference.
+      artifact: .ammo/<campaign-id>/rounds/<N>/mining/bottleneck_analysis.md
+    audit_verdict:
+      kind: judgment
+      produced_by: whole_goal_review
+      subject: The auditor's Stage 2 verdict file in the shape orchestration/audit-protocol.md defines; re-audits add _cycle_<C>.
+      artifact: .ammo/<campaign-id>/rounds/<N>/audits/
+    mining_blocker:
+      kind: observation
+      produced_by: mine_tables
+      subject: A question only the user can answer, with its evidence.
+      artifact: .ammo/<campaign-id>/blockers/
+  checks:
+    mined_json_valid:
+      style: mechanical
+      question: Does mined.json exist with schema mine_trace/1, a selected_families list, and no suppressed FATAL?
+      evaluated_by: lead
+      on_failure_route: mine_tables
+    families_match_selection:
+      style: mechanical
+      question: Does the fan-out collection equal mined.json selected_families plus the one cross-cutting entry?
+      evaluated_by: lead
+      on_failure_route: mine_tables
+    report_tables_verbatim:
+      style: mechanical
+      question: Is every table in bottleneck_analysis.md identical to tables.md (diff empty)?
+      evaluated_by: lead
+      on_failure_route: synthesize_report
+    audit_cycle_bound:
+      style: mechanical
+      question: Has this round seen fewer audit-fix cycles at stage_2 than orchestration/audit-protocol.md, Repair and Re-audit, allows?
+      evaluated_by: lead
+      on_failure_route: mining_escalated
+    blocker_in_tables:
+      style: mechanical
+      question: Does a BLOCKING or HIGH finding cite mine_config.json, mined.json, tables.md, or a trace slice?
+      evaluated_by: lead
+    blocker_in_dossier:
+      style: mechanical
+      question: Do the BLOCKING or HIGH findings cite only files under mining/families/ or the report?
+      evaluated_by: lead
+    blocker_in_report_only:
+      style: mechanical
+      question: Do the BLOCKING or HIGH findings cite bottleneck_analysis.md and nothing else?
+      evaluated_by: lead
+  nodes:
+    mine_tables:
+      intent: explore
+      purpose: >-
+        One agent. Phase sort, per-bucket slices if missing, mine_config.json
+        with the family patterns and physical ceilings, then scripts/ammo
+        mine_trace.py. Stops after tables.md.
+      roles:
+        - lead
+        - ammo_researcher
+      produces:
+        - mined_tables
+        - mining_blocker
+      outcomes:
+        tables_ready:
+          meaning: mined.json and tables.md exist and name the selected families.
+          required_evidence:
+            - mined_tables
+        input_defect:
+          meaning: The script raised a FATAL on its inputs; the researcher fixes the input or the config and reruns.
+        authority_needed:
+          meaning: The evidence cannot ground a partition and only the user can decide.
+          required_evidence:
+            - mining_blocker
+    family_dossier:
+      intent: explore
+      purpose: >-
+        One run per entry of selected_families, inside one orchestrate wave.
+        The worker writes the dossier from references/mining-dossier.md and
+        loops with its reviewer; on ESCALATE the lead marks the dossier
+        ungrounded with the reason.
+      roles:
+        - lead
+        - family_worker
+        - family_reviewer
+      instance_per: selected_families
+      consumes:
+        - mined_tables
+      produces:
+        - family_dossier
+      outcomes:
+        grounded:
+          meaning: The reviewer passed the dossier.
+          required_evidence:
+            - family_dossier
+        ungrounded:
+          meaning: The loop escalated; the dossier states what could not be grounded and why.
+          required_evidence:
+            - family_dossier
+        partition_wrong:
+          meaning: Trace evidence shows the family mixes two ops, misses one, or carries a wrong ceiling in mine_config.json.
+    synthesize_report:
+      intent: execute
+      purpose: >-
+        One agent. tables.md pasted verbatim, phase narrative, cross-family
+        consistency, every WARN from mined.json addressed in prose, the
+        dossiers folded in by reference, Technology Landscape for the top three.
+      roles:
+        - lead
+        - ammo_researcher
+      consumes:
+        - mined_tables
+        - family_dossier
+      produces:
+        - bottleneck_analysis
+      outcomes:
+        report_written:
+          meaning: Every mandated section is present and every claim cites a dossier or mined.json.
+          required_evidence:
+            - bottleneck_analysis
+        report_incomplete:
+          meaning: A mandated section is missing or a claim has no source.
+    whole_goal_review:
+      intent: review
+      purpose: >-
+        T_AUDIT_S2 inside the child run. The lead dispatches ammo-auditor with
+        the canonical audit_gate block (stage_2, round, cycle); the hooks stamp
+        the start and deliver the checklist; the dossiers are in scope.
+      roles:
+        - lead
+        - ammo_auditor
+        - ammo_investigator
+      consumes:
+        - bottleneck_analysis
+        - mined_tables
+        - family_dossier
+      produces:
+        - audit_verdict
+      outcomes:
+        pass:
+          meaning: 'Overall: PASS, no BLOCKING or HIGH finding remains.'
+          required_evidence:
+            - audit_verdict
+        blocked:
+          meaning: A BLOCKING or HIGH finding remains. The repair goes to the owner of the cited file, upstream first.
+        needs_investigation:
+          meaning: Severity is unclear; a bounded investigator decides, then a fresh re-audit.
+  edges:
+    - id: tables_to_dossiers
+      from: mine_tables.tables_ready
+      to:
+        fan_out: family_dossier
+        for_each: selected_families
+      checks:
+        - mined_json_valid
+        - families_match_selection
+    - id: tables_retry
+      from: mine_tables.input_defect
+      to: mine_tables
+    - id: tables_to_user
+      from: mine_tables.authority_needed
+      to: mining_needs_user
+    - id: dossier_grounded
+      from: family_dossier.grounded
+      to: all_dossiers_terminal
+    - id: dossier_ungrounded
+      from: family_dossier.ungrounded
+      to: all_dossiers_terminal
+    - id: dossier_repartition
+      from: family_dossier.partition_wrong
+      to: mine_tables
+    - id: report_to_review
+      from: synthesize_report.report_written
+      to: whole_goal_review
+      checks:
+        - report_tables_verbatim
+    - id: report_retry
+      from: synthesize_report.report_incomplete
+      to: synthesize_report
+    - id: review_pass
+      from: whole_goal_review.pass
+      to: mining_accepted
+    - id: review_blocked_tables
+      from: whole_goal_review.blocked
+      to: mine_tables
+      checks:
+        - audit_cycle_bound
+        - blocker_in_tables
+    - id: review_blocked_dossiers
+      from: whole_goal_review.blocked
+      to:
+        fan_out: family_dossier
+        for_each: audit_repair_families
+      checks:
+        - audit_cycle_bound
+        - blocker_in_dossier
+      rationale: Only the implicated families reopen; they rejoin the barrier and the report is rewritten from the repaired set.
+    - id: review_blocked_report
+      from: whole_goal_review.blocked
+      to: synthesize_report
+      checks:
+        - audit_cycle_bound
+        - blocker_in_report_only
+    - id: review_investigate
+      from: whole_goal_review.needs_investigation
+      to: whole_goal_review
+      checks:
+        - audit_cycle_bound
+  control_nodes:
+    all_dossiers_terminal:
+      kind: join
+      meaning: Wait until every family run is grounded or ungrounded.
+      resume_at: synthesize_report
+    mining_accepted:
+      kind: terminal
+      meaning: 'rounds/<N>/audits/stage_2.md holds Overall: PASS.'
+      terminal_status: accepted
+    mining_escalated:
+      kind: terminal
+      meaning: Blockers remain at the audit cycle cap.
+      terminal_status: closed_unaccepted
+    mining_needs_user:
+      kind: terminal
+      meaning: Mining needs a decision only the user holds.
+      terminal_status: blocked
+  state:
+    required:
+      - workflow_identity
+      - parent_node_run
+      - round
+      - selected_families
+      - audit_repair_families
+      - active_node_runs
+      - completed_outcomes
+      - evidence_references
+      - traversal_history
+      - open_questions
+      - final_status
+    fields:
+      selected_families:
+        meaning: 'Fan-out collection: mined.json selected_families plus the cross-cutting entry, keyed by label. The label names the worker, the dossier file, and the run.'
+      audit_repair_families:
+        meaning: 'Derived per audit cycle from the verdict file: the labels whose dossiers the BLOCKING or HIGH findings cite. Never stored apart from the verdict.'
+  completion:
+    acceptance: 'mining_accepted: the Stage 2 verdict file holds Overall: PASS.'
+    closure: mining_escalated at the cycle cap, or mining_needs_user.
