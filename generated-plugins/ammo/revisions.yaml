@@ -107,3 +107,174 @@ entries:
   commit: null
   derived_from: null
   run_id: null
+- revision: 3
+  kind: graph
+  applied_at: '2026-10-29T20:17:52Z'
+  digest_before: sha256:9008a22eb8fee98028e3447a8b19ab5855db63cac0805707e43869a772e0d5e4
+  digest_after: sha256:1c888403ffd31478dd601ca6699caedb8012023862137ebf50c66f650c718cf7
+  semantic_diff: "Base: revision 2, digest sha256:9008a22eb8fee98028e3447a8b19ab5855db63cac0805707e43869a772e0d5e4.\
+    \ Stage 2 orchestrated mining (planning-records/ammo/stage2-orchestrated-mining.md),\
+    \ flat in this graph. Counts: 13 nodes become 15, 47 edges become 50, 31 checks\
+    \ become 34, 13 roles become 15, 16 evidence definitions become 18, 45 outcomes\
+    \ become 47, 5 control nodes become 6. 1369 lines become 1529 (190 added, 30 removed,\
+    \ 13 hunks). No package test pins graph size. (1) The gap. One researcher holds\
+    \ the global trace read and five independent source, roofline, and library investigations\
+    \ in one context, and the first independent check of any of it is the stage audit.\
+    \ A family investigation is local work. It can run in parallel and be reviewed\
+    \ alone before the report uses it. The tables and the report are global work and\
+    \ stay with one researcher each (\xA79.12: the parts can run in parallel, and\
+    \ an intermediate result needs its own review). This holds for any target with\
+    \ more than one hot kernel family. It does not depend on one run. (2) The shape.\
+    \ stage_2_bottleneck_mining now mines the tables only (ammo_researcher, task_type\
+    \ mining_tables) and ends tables_ready. tables_to_dossiers fans out family_dossier\
+    \ over selected_families under mined_json_valid: family_worker at pave-init:orchestrate-worker\
+    \ and family_reviewer at pave-init:adversarial-investigator, one wave, four review\
+    \ rounds at most. Each run ends grounded or ungrounded and joins all_dossiers_terminal,\
+    \ which resumes at synthesize_report (ammo_researcher, task_type mining_report).\
+    \ report_written reaches audit_s2 by the live edge mining_to_audit_s2, which now\
+    \ leaves the new node. bottleneck_analysis keeps its name, artifact, and consumers;\
+    \ only its producer moves to synthesize_report. Outcomes mining_grounded and mining_incomplete\
+    \ go; tables_ready, grounded, ungrounded, and report_written come in. user_authority_needed\
+    \ and its pause edge stay, and its meaning now names the case the smoke ended\
+    \ in (item 12). (3) The audit stays, at the same strength. audit_s2 keeps its\
+    \ auditor, audit_gate block, stamps, verdict file, outcome tokens, three-cycle\
+    \ cap (audit_cycle_bound), delegate, and investigator. Its consumes gain mined_tables\
+    \ and family_dossier, so its scope covers the tables and the dossiers. Its blocked\
+    \ meaning no longer names one owner, because two edges now route the repair by\
+    \ the cited file (item 5). audit_nodes, outcome_tokens, audit_s2_passed, and the\
+    \ audit_s2 pass, investigate, and escalation edges are unchanged. (4) The enrichment\
+    \ order is unchanged. mining_enrichment_recorded keeps its question and still\
+    \ guards mining_to_audit_s2, so enrich --mining (or serving-sync for a serving\
+    \ target) lands before every audit cycle, as SKILL.md Stage 2 says today. scripts/ammo_state.py\
+    \ names T_AUDIT_S2 as the next step only after bottleneck_mining.completed_at\
+    \ exists (1967 to 1988). The check's on_failure_route moves to synthesize_report,\
+    \ the node that now writes the report. The design draft moved the check after\
+    \ the audit, which would have flipped that order. (5) Audit repair goes to the\
+    \ owner of the cited file, upstream first. audit_s2_blocked_to_mining gains blocker_in_tables\
+    \ (a BLOCKING or HIGH finding cites a file outside mining/families/ and the report),\
+    \ and the new tables fan out every family again. The new audit_s2_blocked_to_dossiers\
+    \ fans out over audit_repair_families under blocker_in_dossiers_or_report (findings\
+    \ cite only those files). That reopens only the cited families. With none cited\
+    \ it opens no run, the barrier holds, and the report is written again. This is\
+    \ the live S45 pattern (audit_s45_blocked_to_track_repair, audit_repair_tracks).\
+    \ The two checks are exclusive and exhaustive, as pave-yaml.md \xA712.3 requires:\
+    \ a finding that cites no file fails the first and passes the second, so the report\
+    \ is written again. (6) Selection floor and cap (open question 1). The selected_families\
+    \ field states the rule and points at scripts/mine_trace.py, which states the\
+    \ two reasons given here. A family is selected when its highest f_e2e across buckets\
+    \ reaches campaign.config.min_e2e_improvement_pct, read as a share. Families are\
+    \ ranked by that value and at most five are kept. A family below the campaign\
+    \ floor cannot yield a gain at that floor on its own. Five families plus the cross_cutting\
+    \ entry make six workers, which is the orchestrate wave cap (skills/orchestrate/SKILL.md,\
+    \ Cap a wave at 6 workers). So the wave is always one wave. A family the cap drops\
+    \ stays in tables.md. mined_json_valid checks the cap and that the fan-out collection\
+    \ equals the selection plus cross_cutting. It absorbs the draft's families_match_selection\
+    \ check. scripts/mine_trace.py implements the rule. (7) Codex (open question 2).\
+    \ The design record says the orchestrate skill is Claude Code only. That is stale:\
+    \ pave-init 2.8.3 ships codex/skills/orchestrate, and it needs Codex V2 agent\
+    \ tools (codex/README.md, Orchestrate). Claude Code and Codex V2 run the wave\
+    \ through the orchestrate skill. Codex V1 (Bedrock) cannot. The family_worker\
+    \ and family_reviewer purposes say that references/harness-binding.md binds a\
+    \ one-shot seat where the skill cannot run, with the same outcomes and the same\
+    \ round bound. The graph keeps one meaning on every harness, because seats are\
+    \ run setup (\xA72.1) and harness-binding.md is the one AMMO file that chooses\
+    \ a harness. (8) Serving targets run the same nodes. stage_2_bottleneck_mining\
+    \ writes the mining record that references/serving-campaign.md defines, and mined_json_valid\
+    \ checks it with an empty collection. The fan-out opens no run, the barrier holds\
+    \ at once, and the report and the audit run as for a batch target. (9) Cuts against\
+    \ the design record and its draft (\xA74.11: prefer the existing gate, and remove\
+    \ any element whose absence changes nothing). The tables-only reviewer brief goes,\
+    \ and so does a partition_wrong outcome with its route. T_AUDIT_S2's BLOCKING\
+    \ partition bullet checks the same claim before the same harm, and the audit routes\
+    \ it to the tables under the cycle counter that state.json already persists. A\
+    \ worker who finds its family's patterns or ceiling wrong ends its dossier UNGROUNDED\
+    \ with the evidence. The report_tables_verbatim check goes, because the audit's\
+    \ BLOCKING bullet on hand-edited tables covers it. The input_defect and report_incomplete\
+    \ outcomes go, and so does the live mining_retry self-loop: the checks' on_failure_route\
+    \ carries a lead-detected retry, as mining_enrichment_recorded already did. Three\
+    \ blocked edges and three owner checks become two of each. The draft's lead writing\
+    \ UNGROUNDED into a dossier goes: the lead role now forbids a mining artifact\
+    \ write, so the worker writes the last line. Revision 2's names replace stale\
+    \ draft names: adversarial_investigator for ammo_investigator, blocker_record\
+    \ for mining_blocker, and user_authority_needed for authority_needed. The draft's\
+    \ added sentences in audit_s2_passed and audit_verdict go. (10) The composed shape\
+    \ is replaced (\xA79.12.1, \xA74.11). The first draft of this revision put Stage\
+    \ 2 in a child graph file with the audit inside it. \xA79.12.1 keeps a decomposition\
+    \ in one graph unless the subgraph is reused, owned or delivered separately, or\
+    \ too large to review. None holds for Stage 2. \xA74.11 prefers the existing gate,\
+    \ and audit_s2 already is that gate. The composed form grew the bundle by 365\
+    \ lines (the parent at 1342 plus a 392-line child) and moved audit_s2 and its\
+    \ tokens into the child. The flat form grows it by 160 lines, 205 fewer, and keeps\
+    \ audit_s2 where it is. The child's terminals, inputs, exports, the composition\
+    \ block, and the moved audit tokens are gone with it. (11) Cost per run. Today\
+    \ a Stage 2 pass costs one researcher plus one auditor per audit cycle. On Claude\
+    \ Code a pass now costs: one researcher for the tables; up to six orchestrate\
+    \ workers (opus) and two reviewers (fable), with one to four review rounds per\
+    \ dossier and the orchestrate whole-goal review round; one researcher for the\
+    \ report (the miner may be resumed); and one auditor per cycle. That is up to\
+    \ eight added seats per pass when the miner is resumed for the report, and nine\
+    \ when it is not. On Codex V1 (references/harness-binding.md \xA7 Stage 2 Family\
+    \ Wave) every round is a fresh one-shot researcher and a fresh reviewer, so six\
+    \ families at four rounds is up to 48 dispatches in the worst case; the user approved\
+    \ the cost as priced for Claude Code. A serving pass adds one researcher dispatch\
+    \ or resume. An upstream audit blocker reruns the whole wave. A dossier blocker\
+    \ reruns only the cited families. Stage 2 runs in round 1, after every material\
+    \ SHIP, and after invalidated mining. The lead adds two mechanical checks per\
+    \ pass and two per blocked cycle. No run has measured the wave's wall clock or\
+    \ its effect on audit cycles. (12) Usage evidence. No usage log exists: plan.md\
+    \ records neither approval nor usage_log, so approval is treated as always. The\
+    \ only predecessor run is the g6e-cdd smoke. It was unpinned, ran Stage 1 and\
+    \ a Stage 2 mine_trace dry run, and is paused. It changed two things here. First,\
+    \ the principle that scripts/mine_trace.py cuts every per-bucket slice and no\
+    \ slice is cut by hand: in the smoke one researcher cut the slices by hand, recut\
+    \ them, and wrote its own slicer (smoke-g6e-cdd.md 290, 295, 442, 498; prompt-audit/stage-2.md\
+    \ row 9; adoption.md R17). Second, user_authority_needed names the case the smoke\
+    \ ended in: a script FATAL from a toolkit defect that no input or config change\
+    \ fixes (smoke-g6e-cdd.md 7, 25). The round default (row 6) is a script change\
+    \ with no graph change. The smoke never reached the family wave, the report, or\
+    \ T_AUDIT_S2, so nothing in the wave is field-tested. plan_evidence is provisional\
+    \ for that reason. (13) User-only check (revision rule 6): approved by the user\
+    \ on 2026-10-29 for the budget (the approval field quotes it); the lead records\
+    \ the apply step's own approval at apply. Budgets: touched, since a pass adds\
+    \ up to eight or nine seats and one to four review rounds per dossier (item 11).\
+    \ Effects: touched, two forbidden effects added, both tighter. The lead role may\
+    \ no longer write a mining artifact, a family dossier included (the hunk at line\
+    \ 83), and the new family_worker role may edit only its own dossier. No effect\
+    \ that was forbidden is now allowed. Check strength: unchanged. audit_s2 is the\
+    \ same gate with the same cap, and its scope widens. The new checks only add,\
+    \ and the live mining_incomplete self-report becomes a lead check route. requirements.md\
+    \ decision 4 (graph faithfulness): the 7 stages and 4 audits hold, stage_nodes\
+    \ still names one node per stage, and nothing is removed. Stage 2 now spans three\
+    \ nodes; the user reads that with the budget change. Root goal, external access,\
+    \ interfaces, and state authority: unchanged. Mining files stay under the round's\
+    \ mining/ folder. state.json stays the only run state. The plugin already depends\
+    \ on pave-init for the adversarial investigator, and the orchestrate skill and\
+    \ its worker come from the same plugin. Stage 3 reads the same bottleneck_analysis.md.\
+    \ (14) Old wording, searched across the package outside history/ and revisions.yaml:\
+    \ no survivor. The graph names none of the removed outcomes or edges. The companion\
+    \ files no longer name the child run, the child graph file, or a parent outcome,\
+    \ and tests/test_guidance_semantic_contract.py guards that. The README \xA7 8\
+    \ diagram already draws the flat shape; only its validator count line waits for\
+    \ apply. On a scratch copy with this diff applied, tests/test_workflow_pave.py\
+    \ passes 18 and fails 4, all pins: EXPECTED_COUNTS, EXPECTED_NODES, EXPECTED_CONTROL_NODES,\
+    \ and the README and VERSION counts. They are re-pinned after apply. tests/test_codex_port.py\
+    \ fails its two verify tests only because a hand-applied scratch has no revision\
+    \ entry. tests/test_preflight_pumice_host.py fails one test with or without this\
+    \ diff. The audit_s2 keyword in scripts/ammo_state.py (1362, 1545, 1988) is the\
+    \ audit.stage_2 stamp key and this node's name, so it stays."
+  approval: 'User approval, verbatim, 2026-10-29. To "Apply revision 3 to the ammo
+    plugin graph? ... Digest sha256:9008a22e... (revision 2) becomes sha256:1c888403...":
+    "Approve revision 3 sha256:1c888403 (Recommended)". Earlier the same day, to the
+    budget question: "Approve budget (Recommended)"; to the reviewer-seat model question:
+    "fable (Recommended)".'
+  user_only_changes: approved
+  plan_evidence: provisional
+  usage_evidence: field
+  review: reviewer-1 (pave-init:update-reviewer, opus) PASS after 1 round, 0 BLOCKING,
+    0 HIGH, 5 wording notes applied before apply; drafted by updater-1 (pave-init:workflow-updater,
+    opus)
+  written_by: unverified
+  patch: history/v3.patch
+  commit: null
+  derived_from: null
+  run_id: null

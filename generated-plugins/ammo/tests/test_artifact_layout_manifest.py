@@ -97,6 +97,20 @@ def test_every_placeholder_token_is_declared(manifest):
     assert not undeclared, f"templates use undeclared placeholders: {sorted(undeclared)}"
 
 
+def test_mining_families_slot_holds_the_family_dossiers(manifest):
+    """Stage 2 writes one dossier per mined.json selected_families entry here."""
+    slot = manifest["slots"].get("mining_families")
+    assert slot is not None, "artifact_layout.json lacks the mining_families slot"
+    assert slot["path_template"] == "rounds/{N}/mining/families/"
+    assert slot["gate"] == "stage_2"
+    assert slot["kind"] == "authoritative"
+    assert slot["is_gate_slot"] is False
+    assert "selected_families" in slot["notes"]
+    assert "cross_cutting" in slot["notes"]
+    # A serving target runs no family wave, so the slot must not demand files.
+    assert "serving target" in slot["notes"]
+
+
 def test_open_dirs_are_ancestors_of_real_slots(manifest):
     """An `open_dirs` prefix must own at least one enumerated slot.
 
@@ -331,6 +345,8 @@ def _allow_patterns(manifest: dict) -> list[re.Pattern[str]]:
         "rounds/12/audits/stage_45_cycle_2.md",
         "rounds/1/validation_gate_report.json",
         "rounds/1/mining/mined.json",
+        "rounds/1/mining/families/dense_proj_GEMM.md",
+        "rounds/1/mining/families/cross_cutting.md",
         "rounds/1/sweeps/opt/op007/e2e_latency_results.json",
         # Neuron attribution: NTFF captures, view exports, normalized events
         "rounds/1/profiling/neuron/cc_ops_field_report.json",

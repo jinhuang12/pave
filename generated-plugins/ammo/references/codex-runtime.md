@@ -12,4 +12,5 @@ message, or recovery:
 before you start Codex. Never change modes inside an active campaign. After a
 resume or a compaction, the `SessionStart` hook injects the selected guide.
 `references/harness-binding.md` maps each operation to both modes and to
-Claude Code.
+Claude Code. Its § Stage 2 Family Wave binds the Stage 2 family seats, which
+differ between the two modes.

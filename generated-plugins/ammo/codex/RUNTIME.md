@@ -8,8 +8,10 @@ Codex needs three installs. `codex plugin add` installs the plugin with its
 skills, `$ammo:ammo` and `$ammo:ammo-report`. `codex/install_agents.py` installs
 the ten AMMO custom agents into the Pumice checkout. The investigator is
 `pave-init:adversarial-investigator`, so also install pave-init's Codex agents
-with pave-init's own `codex/install_agents.py`. The campaign does not run
-without the agents.
+with pave-init's own `codex/install_agents.py`. That installer also adds
+`pave-init:orchestrate-worker`, which the Stage 2 family wave uses on Codex V2
+through `$pave-init:orchestrate` (`references/harness-binding.md` § Stage 2
+Family Wave). The campaign does not run without the agents.
 
 ## Install
 

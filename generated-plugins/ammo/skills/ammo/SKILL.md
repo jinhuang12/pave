@@ -21,7 +21,8 @@ metadata:
     (ammo:ammo-researcher, ammo:ammo-champion, ammo:ammo-impl-champion,
     ammo:ammo-transcript-monitor, ammo:ammo-auditor, ammo:ammo-delegate,
     ammo:ammo-resolver, ammo:ammo-report-writer), and pave-init supplies
-    pave-init:adversarial-investigator. On Codex, the hook modules that
+    pave-init:adversarial-investigator, plus the orchestrate skill and
+    pave-init:orchestrate-worker for the Stage 2 family wave. On Codex, the hook modules that
     codex/RUNTIME.md lists run, codex/install_agents.py installs the ammo:*
     custom agents, pave-init's own codex/install_agents.py installs
     pave-init:adversarial-investigator, and codex/RUNTIME.md lists the settings
@@ -98,7 +99,7 @@ Every stage and role below is mandatory when its trigger fires.
 | Stage | Required agents | Required outcome | Detailed authority |
 |---|---|---|---|
 | `1_baseline` | lead + fresh `ammo-researcher` | clean production-parity baseline/golden capture and a separate bounded attribution profile | `agents/ammo-researcher.md`, `references/nsys-profiling-guide.md` |
-| `2_bottleneck_mining` | lead + `ammo-researcher` | grounded `bottleneck_analysis.md` with `## Technology Landscape`, workload dilution, component shares, and physical bounds | `agents/ammo-researcher.md`, `references/nsys-profiling-guide.md`, `references/e2e-delta-math.md` |
+| `2_bottleneck_mining` | lead + `ammo-researcher` + one pave-init orchestrate worker per selected family, with reviewers | one reviewed dossier per selected family, and a grounded `bottleneck_analysis.md` with `## Technology Landscape`, workload dilution, component shares, and physical bounds | `orchestration/mining-orchestration.md`, `agents/ammo-researcher.md`, `references/mining-dossier.md`, `references/nsys-profiling-guide.md`, `references/e2e-delta-math.md` |
 | `3_debate` | lead + 2-4 `ammo-champion` | independent candidates, adversarial debate, an eligibility record, and 2-3 winners | `orchestration/debate-protocol.md` |
 | `4_5_parallel_tracks` | one `ammo-impl-champion` and one paired `ammo-transcript-monitor` per winner | isolated implementation, complete gates, a terminal verdict, durable evidence | `orchestration/parallel-tracks.md` |
 | `6_integration` | lead; `ammo-resolver` plus independent merge review when required | the exact validated composition, an integration measurement, SHIP or round EXHAUSTED | `orchestration/integration-logic.md` |
@@ -107,7 +108,7 @@ Every stage and role below is mandatory when its trigger fires.
 
 `ammo-auditor` is mandatory after Stage 1 (`T_AUDIT_S1`), Stage 2 (`T_AUDIT_S2`), Stages 4-5 (`T_AUDIT_S45`), and Stage 6 (`T_AUDIT_S67`, which must pass before Stage 7 starts). Auditors may hand bounded evidence tasks to `ammo-delegate`. `pave-init:adversarial-investigator` is available at any uncertain fork or root-cause problem (§ Lead Role). The implementation role is registered as `ammo-impl-champion` and the report role as `ammo-report-writer`.
 
-**Team-member vs subagent contract:** Only `ammo-champion`, `ammo-impl-champion`, and `ammo-transcript-monitor` are team members. A team member is a named, reusable background agent: give each one a unique name, and while its round is active, reuse it by sending a message to that name. Never spawn a second agent under a name that is still live. Put the campaign round and a bounded attempt suffix in any name that can recur. When a business identifier such as `OP-001` names a track, keep the raw `op_id` in state, prompts, monitor ledgers, and artifact paths. All other roles (`ammo-researcher`, `ammo-auditor`, `pave-init:adversarial-investigator`, `ammo-delegate`, `ammo-report-writer`, and `ammo-resolver`) are one-shot subagents: spawn each one fresh with its role and its prompt, so that its final report returns to its caller. `state.json.team_name` is descriptive bookkeeping, never a runtime handle.
+**Team-member vs subagent contract:** Only `ammo-champion`, `ammo-impl-champion`, and `ammo-transcript-monitor` are team members. A team member is a named, reusable background agent: give each one a unique name, and while its round is active, reuse it by sending a message to that name. Never spawn a second agent under a name that is still live. Put the campaign round and a bounded attempt suffix in any name that can recur. When a business identifier such as `OP-001` names a track, keep the raw `op_id` in state, prompts, monitor ledgers, and artifact paths. All other roles (`ammo-researcher`, `ammo-auditor`, `pave-init:adversarial-investigator`, `ammo-delegate`, `ammo-report-writer`, and `ammo-resolver`) are one-shot subagents: spawn each one fresh with its role and its prompt, so that its final report returns to its caller. The Stage 2 family wave adds named workers and reviewers of its own (§ Stage 2). `state.json.team_name` is descriptive bookkeeping, never a runtime handle.
 
 ### Stage 1: Baseline Capture
 
@@ -120,9 +121,13 @@ Profiler-run timing is never the official E2E timing. When the researcher finish
 
 ### Stage 2: Bottleneck Mining
 
-Dispatch `ammo-researcher` with `task_type: mining`. `agents/ammo-researcher.md` § `mining` names the evidence for each round. Do not add a fresh post-SHIP baseline sweep, profiling pass, or provenance sidecar.
+Stage 2 mines the evidence that already exists. `agents/ammo-researcher.md` § Stage 2 Evidence names it for each round. Do not add a fresh post-SHIP baseline sweep, profiling pass, or provenance sidecar.
 
-When the researcher finishes, run `<root>/scripts/ammo ammo_state.py enrich --state {artifact_dir}/state.json --mining --from {artifact_dir}/rounds/{N}/mining/bottleneck_analysis.md`, then run `T_AUDIT_S2`.
+1. Dispatch `ammo-researcher` with `task_type: mining_tables`. It stops after `tables.md`, and `mined.json` names the selected families.
+2. Run the family wave with the pave-init orchestrate skill as `orchestration/mining-orchestration.md` describes: one reviewed dossier per selected family, plus the cross-cutting slice. The wave's workers and reviewers are that skill's named team members. A serving target opens no family run.
+3. Dispatch `ammo-researcher` with `task_type: mining_report`. It writes `bottleneck_analysis.md` from `tables.md` and the dossiers.
+4. Run `<root>/scripts/ammo ammo_state.py enrich --state {artifact_dir}/state.json --mining --from {artifact_dir}/rounds/{N}/mining/bottleneck_analysis.md`. A serving target runs `ammo_state.py serving-sync --kind mining` instead (`references/serving-campaign.md`).
+5. Run `T_AUDIT_S2`. The dossiers are in its scope.
 
 ### Stage 3: Candidate Proposal and Adversarial Debate
 
@@ -189,7 +194,7 @@ At each real transition:
 - set the current stage and its matching `started_at`/`completed_at` timestamps;
 - write per-track gate, verdict, and metric fields when their primary artifacts land;
 - write the typed `selected_candidates` contract and debate enrichment at selection;
-- write mining enrichment from the structured `f_e2e` table before advancing;
+- write mining enrichment from the structured `f_e2e` table after the Stage 2 report, before `T_AUDIT_S2` (§ Stage 2);
 - keep provenance, attempts, audit records, exhaustion memory, shipped identities, the environment contract, and the direct cumulative speedup.
 
 Use `scripts/ammo_state.py` for state operations and validation.

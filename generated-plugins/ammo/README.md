@@ -38,7 +38,9 @@ The plugin is the directory that holds this README. It runs on either harness.
 
 **Requirements.** Install the pave-init plugin from the same marketplace. It
 provides the `pave-init:adversarial-investigator` agent that the lead spawns
-for ambiguous evidence and unexplained failures. On Claude Code,
+for ambiguous evidence and unexplained failures. It also provides the
+orchestrate skill and the `pave-init:orchestrate-worker` agent: the Stage 2
+family wave uses them to write one reviewed dossier per kernel family. On Claude Code,
 `.claude-plugin/plugin.json` declares pave-init as a dependency, so
 `/plugin install` installs it too. A `--plugin-dir` load does not install
 dependencies, so load pave-init the same way. On Codex, Codex step 2 installs it.
@@ -233,10 +235,10 @@ drops.
 `scripts/validate_pave.py workflow.pave.yaml` reports:
 
 ```text
-PASS workflow.pave.yaml: 13 nodes, 47 edges, 5 control nodes
+PASS workflow.pave.yaml: 15 nodes, 50 edges, 6 control nodes
 ```
 
-The 13 nodes and 47 edges map one to one onto the stages, audits, and gates of
+The 15 nodes and 50 edges map one to one onto the stages, audits, and gates of
 the lead skill. Stage node ids are `stage_` plus the stage name in
 `scripts/transitions.json`. The five binding gates (5.1a, 5.1b, 5.2, 5.3a,
 5.3b) are checks on the edges that leave a passing track. The Stage 7 stop
@@ -244,7 +246,7 @@ rule is the check `stop_rule_met`: stop only when `top_addressable_e2e_pct` is
 below `min_e2e_improvement_pct`.
 
 Solid arrows are the forward path. Dotted arrows are loops, repairs, and
-pauses. The thick arrow is the join's resume point, not one of the 47 edges.
+pauses. The thick arrows are the joins' resume points, not graph edges.
 
 ```mermaid
 flowchart TD
@@ -253,6 +255,8 @@ flowchart TD
   stage_1_baseline[stage_1_baseline]
   audit_s1[audit_s1]
   stage_2_bottleneck_mining[stage_2_bottleneck_mining]
+  family_dossier[family_dossier]
+  synthesize_report[synthesize_report]
   audit_s2[audit_s2]
   stage_3_debate[stage_3_debate]
   stage_4_5_parallel_tracks[stage_4_5_parallel_tracks]
@@ -261,6 +265,7 @@ flowchart TD
   audit_s67[audit_s67]
   stage_7_campaign_eval[stage_7_campaign_eval]
   stage_7b_report[stage_7b_report]
+  all_dossiers_terminal{{all_dossiers_terminal}}
   all_tracks_terminal{{all_tracks_terminal}}
   campaign_complete([campaign_complete])
   campaign_exhausted([campaign_exhausted])
@@ -277,12 +282,16 @@ flowchart TD
   audit_s1 -.->|blocked| stage_1_baseline
   audit_s1 -.->|needs_investigation| audit_s1
   audit_s1 -.->|escalated| paused_for_user
-  stage_2_bottleneck_mining -->|mining_grounded| audit_s2
-  stage_2_bottleneck_mining -.->|mining_incomplete| stage_2_bottleneck_mining
+  stage_2_bottleneck_mining -->|tables_ready, fan-out| family_dossier
   stage_2_bottleneck_mining -.->|user_authority_needed| paused_for_user
+  family_dossier -->|grounded| all_dossiers_terminal
+  family_dossier -->|ungrounded| all_dossiers_terminal
+  all_dossiers_terminal ==>|resume_at| synthesize_report
+  synthesize_report -->|report_written| audit_s2
   audit_s2 -->|pass| stage_3_debate
   audit_s2 -->|pass, post-SHIP below floor| stage_7_campaign_eval
   audit_s2 -.->|blocked| stage_2_bottleneck_mining
+  audit_s2 -.->|blocked, fan-out| family_dossier
   audit_s2 -.->|needs_investigation| audit_s2
   audit_s2 -.->|escalated| paused_for_user
   stage_3_debate -->|winners_selected, fan-out| stage_4_5_parallel_tracks
@@ -322,6 +331,7 @@ flowchart TD
 | `campaign_exhausted` | terminal, exhausted | stop rule fired after an exhausted round |
 | `blocked` | terminal, blocked | target cannot run; nothing scaffolded |
 | `paused_for_user` | pause | state kept; resume continues the campaign |
+| `all_dossiers_terminal` | join | Stage 2 barrier: every dossier is terminal |
 | `all_tracks_terminal` | join | Stage 6 barrier: every track is terminal |
 
 ## 9. Not in v1

@@ -1960,13 +1960,18 @@ def _build_reminder(**kw):
                     "Stage: stage_1." % (ingest, _AUDIT_PHASES))
         if audit_exists:
             return ("T_AUDIT_S1 passed. Set stage → 2_bottleneck_mining and dispatch researcher "
-                    "(task_type: mining). T4.")
+                    "(task_type: mining_tables), the first Stage 2 step (SKILL.md § Stage 2). T4.")
         return ("Baseline done. Ingest %s, then set stage → 2_bottleneck_mining "
-                "and dispatch researcher (task_type: mining). T4." % ingest)
+                "and dispatch researcher (task_type: mining_tables), the first Stage 2 step "
+                "(SKILL.md § Stage 2). T4." % ingest)
 
     if stage == "2_bottleneck_mining":
         if not kw["mining_done"]:
-            return "Next: dispatch ammo-researcher (task_type: mining). Analyzes existing traces. T4."
+            return ("Next: Stage 2 (SKILL.md § Stage 2) on the existing traces: "
+                    "ammo-researcher (task_type: mining_tables), the family wave with the "
+                    "pave-init orchestrate skill (orchestration/mining-orchestration.md), "
+                    "ammo-researcher (task_type: mining_report), `ammo_state.py enrich "
+                    "--mining`, then T_AUDIT_S2. T4.")
         s2_applicable = False
         parts = schema_ver.split(".")
         try:
@@ -1980,9 +1985,10 @@ def _build_reminder(**kw):
         if s_major > 4 or (s_major == 4 and s_minor >= 1):
             s2_applicable = True
         if s2_applicable and audit_exists and not kw["audit_s2"]:
-            return ("AUDIT REQUIRED (T_AUDIT_S2): Stage 2 mining complete. Spawn ammo-auditor "
-                    "%s. Stage: stage_2." % _AUDIT_PHASES)
-        return "Mining done. Set stage → 3_debate."
+            return ("AUDIT REQUIRED (T_AUDIT_S2): Stage 2 report enriched. Spawn ammo-auditor "
+                    "%s. Stage: stage_2. The dossiers are in its scope." % _AUDIT_PHASES)
+        return ("Mining done. Set stage → 3_debate, or → 7_campaign_eval after a SHIP "
+                "whose mined top_addressable_e2e_pct is below the floor.")
 
     if stage == "3_debate":
         if not kw["team_name"]:

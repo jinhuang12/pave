@@ -101,6 +101,9 @@ rounds/{N}/
 │   ├── mine_config.json                 # Researcher JUDGMENT input to mine_trace.py
 │   ├── mined.json                       # mine_trace.py output (schema mine_trace/1)
 │   ├── tables.md                        # DERIVED: mine_trace.py; pasted verbatim below
+│   ├── families/                        # Stage 2 family wave: one dossier per selected family
+│   │   ├── <LABEL>.md                   # one per mined.json selected_families entry
+│   │   └── cross_cutting.md             # the cross-cutting slice
 │   └── bottleneck_analysis.md
 │
 ├── debate/
@@ -297,6 +300,7 @@ An authoritative file is an input to a later stage, so treat it as a contract. A
 | `rounds/{N}/mining/mine_config.json` | `mine_trace.py` (researcher judgment input) | Stage 2 |
 | `rounds/{N}/mining/mined.json` | Auditor, `bottleneck_analysis.md` tables | Stage 2 |
 | `rounds/{N}/mining/tables.md` | Researcher, pasted verbatim (DERIVED) | Stage 2 |
+| `rounds/{N}/mining/families/` | Report author and auditor: one `<LABEL>.md` per selected family plus `cross_cutting.md`, written by the family workers (`references/mining-dossier.md`); a serving target writes none | Stage 2 |
 | `rounds/{N}/mining/bottleneck_analysis.md` | Debate champions, routing | Stage 2 |
 | `rounds/{N}/debate/summary.md` | Report writer (DERIVED) | none |
 | `rounds/{N}/sweeps/opt/{op_id}/e2e_latency_results.json` | Orchestrator, integration | Gate 5.3b |

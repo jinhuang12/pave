@@ -367,6 +367,25 @@ run_test "ammo:ammo-auditor named from a subagent → DENY" 0 deny \
     "must not carry tool_input.name"
 
 # ══════════════════════════════════════════════
+echo ""; echo "== Stage 2 family wave: pave-init orchestrate seats =="
+# ══════════════════════════════════════════════
+# The lead runs the family wave with the pave-init orchestrate skill
+# (orchestration/mining-orchestration.md). Each worker is a named teammate that
+# loops with a named reviewer, so the worker follows the member rule.
+TEST_HOME="$TMPDIR/s2" TEST_CONFIG_DIR=""
+run_test "S2 lead spawns named pave-init:orchestrate-worker → ALLOW" 0 allow \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"pave-init:orchestrate-worker","name":"family-moe-r1"}}'
+run_test "S2 lead spawns named orchestrate-worker (bare) → ALLOW" 0 allow \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"orchestrate-worker","name":"family-attn-r1"}}'
+run_test "S2 lead spawns unnamed pave-init:orchestrate-worker → DENY (reviewer cannot reach it)" 0 deny \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"pave-init:orchestrate-worker"}}' \
+    "pave-init:orchestrate-worker must spawn with a non-empty tool_input.name"
+run_test "S2 lead spawns named family reviewer pave-init:adversarial-investigator → ALLOW" 0 allow \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"pave-init:adversarial-investigator","name":"da-1"}}'
+run_test "S2 family worker spawns unnamed ammo-delegate → ALLOW" 0 allow \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo:ammo-delegate"},"agent_type":"pave-init:orchestrate-worker"}'
+
+# ══════════════════════════════════════════════
 echo ""; echo "== Campaign scope =="
 # ══════════════════════════════════════════════
 cd "$NOCAMP"

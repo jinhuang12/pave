@@ -84,6 +84,13 @@ On Neuron, which v1 does not run, follow `references/accelerator-binding.md` § 
   counted as recoverable without production-boundary evidence.
 - **Mining remains proposal-neutral (HIGH).** The artifact supplies facts and
   bounds; it does not pre-select a mechanism or inflate attainable speedup.
+- **Every selected family has a grounded or disclosed dossier (HIGH).** The
+  dossiers of the current `mined.json` `selected_families` plus
+  `cross_cutting.md`, under `rounds/{N}/mining/families/`, are in scope; a
+  stale dossier from an earlier selection is not. Every family in
+  `mined.json` `selected_families` has a dossier that is grounded, or
+  disclosed as ungrounded in the report. The dossiers obey the same
+  cited-claim and proposal-neutral rules as the report.
 
 ## After Stages 4-5 (`T_AUDIT_S45`)
 

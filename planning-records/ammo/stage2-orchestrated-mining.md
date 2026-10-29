@@ -1,7 +1,15 @@
 # Stage 2 as an orchestrated child graph
 
-Status: draft for user review, 2026-10-29, after one `/simplify` pass. Nothing
-in the plugin changes until this lands through `/pave-evolve` as revision 2.
+Status: landed 2026-10-29 as graph revision 3 (sha256:1c888403...), flat in
+workflow.pave.yaml. The lead ruled the flat shape over the composed child
+graph per pave-spec 9.12.1 and 4.11 (no reuse, separate delivery, or size
+reason); audit_s2 stays as the Stage 2 gate with the tables and dossiers added
+to its scope. The applied semantic diff (history/v3.patch) records four cuts
+against this record: no tables-only reviewer brief, no partition_wrong
+outcome, no report-equals-tables check, and audit blockers reopen only the
+families they cite. Codex V2 runs the wave through pave-init's Codex
+orchestrate port; Codex V1 binds one-shot seats in harness-binding.md. The
+sections below are the design as drafted; where they differ, the patch wins.
 Drafts: `drafts/stage2/` (child graph, parent patch generator, semantic diff).
 
 ## Landed first

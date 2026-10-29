@@ -112,7 +112,9 @@ Send each finding to the narrowest capable fix owner. Pick that owner from the
 finding's evidence, category, and scope. The auditor never repairs its own
 finding, and the lead never repairs a stage deliverable inline. Mining-artifact
 findings go to `ammo-researcher`, which owns the derivation chain and regenerates
-tables from primary data instead of hand-patching values. After a repair, spawn a
+tables from primary data instead of hand-patching values; a dossier finding goes
+to its family worker, and only the cited families reopen
+(`orchestration/mining-orchestration.md` § Audit Repair). After a repair, spawn a
 fresh auditor with the same stage and round; it must verify the repair from
 primary evidence and look for collateral damage.
 

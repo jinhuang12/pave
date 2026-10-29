@@ -26,6 +26,12 @@
 # must be spawned with their role and prompt only, no `name`. This guard is the mechanical backstop for that
 # contract, and that is why the plugin keeps it.
 #
+# The Stage 2 family wave adds one more named seat. The lead runs the pave-init
+# orchestrate skill (orchestration/mining-orchestration.md), which spawns each
+# family worker, `pave-init:orchestrate-worker`, as a named teammate that loops
+# with a named `pave-init:adversarial-investigator` reviewer. A worker without
+# a name never receives its reviewer's verdict, so it follows the member rule.
+#
 # Plugin roles spawn at their plugin address `ammo:<role>`; the rules below
 # match the role with that prefix removed, so both spellings are covered. The
 # investigator keeps its `pave-init:` address, and its bare name also matches.
@@ -37,6 +43,10 @@
 #   - Member type (ammo-champion / ammo-impl-champion / ammo-transcript-monitor)
 #     with empty `name` → DENY (unaddressable).
 #   - Member type WITH a name → ALLOW (forms/joins the implicit team).
+#   - `pave-init:orchestrate-worker` (or `orchestrate-worker`), the Stage 2
+#     family worker, follows the same two rules: empty `name` from the lead
+#     → DENY, a name → ALLOW. Its reviewer is a named investigator spawned by
+#     the lead, which the one-shot rule below already allows.
 #   - `ammo-delegate` with a non-empty `name` → DENY, regardless of caller.
 #     The contract has no delegate-with-a-name case and the trn2 evidence
 #     shows every named delegate spawn leaked its report to the lead.
@@ -107,6 +117,18 @@ case "$SUBAGENT_TYPE" in
         fi
         if [ -z "$NAME" ]; then
             emit_deny "AMMO spawn-guard: $SUBAGENT_TYPE must spawn with a non-empty tool_input.name so it is addressable via SendMessage({to: <name>}) and can receive the shutdown_request handshake. Add a descriptive name (e.g. 'champion-1', 'impl-op001', 'monitor-champion-1') and re-spawn. Do NOT pass team_name — the session has a single implicit team and team_name is ignored."
+        fi
+        exit 0
+        ;;
+    pave-init:orchestrate-worker|orchestrate-worker)
+        # Stage 2 family worker (orchestration/mining-orchestration.md). The
+        # orchestrate skill spawns it as a named teammate; its reviewer and
+        # the lead reach it only by that name. Lead-only, as the member rule.
+        if [ "$CALLER_IS_SUBAGENT" = "1" ]; then
+            exit 0
+        fi
+        if [ -z "$NAME" ]; then
+            emit_deny "AMMO spawn-guard: $SUBAGENT_TYPE must spawn with a non-empty tool_input.name. It is a Stage 2 family worker, and its reviewer and the lead address it by that name. Name it as orchestration/mining-orchestration.md says and re-spawn."
         fi
         exit 0
         ;;

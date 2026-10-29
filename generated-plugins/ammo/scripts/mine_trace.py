@@ -33,6 +33,59 @@ Config (agent judgment only):
       "allow_residual": 0.0
     }
 
+`round` absent: the round comes from state.json `campaign.current_round` in
+artifact_dir, as run_pumice_grpc_bench.py does for `--slot`; with no readable
+state.json it is 1, with a WARN.
+
+Family selection (mined.json `selection` and `selected_families`): rank every
+family by its highest `f_e2e` across buckets, ties by label; keep the families
+whose highest `f_e2e` is at or above the floor; keep at most five of them. The
+floor is state.json `campaign.config.min_e2e_improvement_pct` in artifact_dir,
+as a share (0.5 means 0.005): a family below it cannot clear the campaign's win
+floor even if removed whole. With no readable value the floor is the schema
+default 0.5%, with a WARN. The cap of five plus the cross-cutting slice fills
+one orchestrate wave of six workers. Neither is configurable: a config
+`selection` block is FATAL, because it would let the config choose which
+families get dossiers. `selection` records the floor, the cap, the eligible
+families, and `dropped_by_cap`; a dropped family keeps its tables.md rows.
+The cross-cutting slice is always added on top, under the reserved label in
+`selection.cross_cutting` (`cross_cutting`, so a config family with that label
+is FATAL). `__RESIDUAL__` is never selected. Each selected
+entry carries `chain`: the family's kernels in one decode step (the mined
+window of the bucket where its `f_e2e` is highest), one item per symbol in
+trace order of first launch, with `count`, `sum_ns`, `mean_ns`, and
+`first_offset_ns` from the window start.
+
+Per-bucket slices (subcommand `slice`): cut each bucket out of the one full
+export so mining reads one sqlite per batch size.
+
+    scripts/ammo mine_trace.py slice --config rounds/1/mining/mine_config.json
+        [--sqlite rounds/1/profiling/nsys/baseline.sqlite]
+        [--profile-meta rounds/1/sweeps/profiling/e2e_latency_results.json]
+        [--label baseline] [--bs 8 ...] [--delimiter SYMBOL]
+        [--full-batch-symbol SYMBOL] [--out-dir rounds/1/profiling/nsys]
+
+The bucket window spans its waves with `profiled: true` and `warmup: false` in
+`profile_meta.waves[]`, mapped from wall-clock seconds to trace ns through the
+export's `TARGET_INFO_SESSION_START_TIME.utcEpochNs`. On each rank (deviceId,
+globalPid) the slice ends just before that rank's last delimiter launch inside
+that window, so the rank's final step is closed by its next step's start:
+mining reads a slice from its last delimiter to the slice end as one decode
+step. Every rank must hold the same number of delimiter launches in the
+window, else FATAL. The delimiter is `segmentation.symbol` of a
+`delimiter_symbol` config (a `max_gap` config is refused), or
+`--delimiter` without a config. With a full-batch symbol (flag or
+`segmentation.full_batch_symbol`), the slice instead ends after the last
+closed step holding a launch of that symbol whose `gridX` equals the batch
+size, so a ragged tail of steps that sampled fewer sequences drops out.
+Every table of the export is kept. The kernel table mining reads is cut per
+rank; any other table with a `start` column keeps the rows with window start
+<= start < cut (the earliest rank's cut), a table with a `timestamp` column
+keeps window start <= timestamp < cut, and every other table is copied whole.
+Rows with an `end` column also need end <= window end. Writes
+`{label}_bs{BS}.sqlite` and `{label}_slices.json` (windows, cuts, delimiter and
+kernel counts) to the out dir; the full export is opened read-only.
+
 Neuron traces use the same config with ``events_json`` in place of ``sqlite``.
 Create the normalized ``ammo_intervals/1`` file with ``runtime_ops.py
 normalize``. The interval math and every downstream AMMO criterion are shared.
@@ -53,6 +106,7 @@ import os
 import re
 import sqlite3
 import sys
+from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -80,6 +134,10 @@ DEFAULT_STEP_COUNT_TOLERANCE_PCT = 2.0
 MAX_RANK_BUSY_SPREAD = 0.02
 CLOSURE_TOLERANCE = 0.02
 RESIDUAL_LABEL = "__RESIDUAL__"
+DEFAULT_MIN_E2E_IMPROVEMENT_PCT = 0.5  # schemas/state.schema.json default
+SELECTION_MAX_FAMILIES = 5
+CROSS_CUTTING_LABEL = "cross_cutting"
+SESSION_START_TABLE = "TARGET_INFO_SESSION_START_TIME"
 
 
 class Fatal(Exception):
@@ -293,6 +351,11 @@ def compile_families(families):
         patterns = entry.get("symbol_patterns") or []
         if not label:
             raise Fatal("every config.families entry needs a label")
+        if label == CROSS_CUTTING_LABEL:
+            raise Fatal(
+                f"family label {label!r} is reserved for the cross-cutting slice dossier; "
+                f"rename the family"
+            )
         if not patterns:
             raise Fatal(f"family {label!r} has no symbol_patterns")
         try:
@@ -389,6 +452,7 @@ def mine_one_trace(trace, families, segmentation, warnings):
         }
     residual_sum_ns = family_rows.get(RESIDUAL_LABEL, {}).get("sum_ns", 0)
     assigned_sum_ns = sum_ns - residual_sum_ns
+    chains = {label: family_chain(rows_in, window[0][0]) for label, rows_in in grouped.items()}
 
     separation_ratio = delimiter.get("separation_ratio")
     min_ratio = segmentation.get("min_separation_ratio", DEFAULT_MIN_SEPARATION_RATIO)
@@ -428,6 +492,43 @@ def mine_one_trace(trace, families, segmentation, warnings):
         "residual_symbols": residual,
         "residual_pct": 100.0 * residual_sum_ns / sum_ns if sum_ns else 0.0,
         "partition_coverage": assigned_sum_ns / sum_ns if sum_ns else 0.0,
+        # Private: build() moves the selected families' chains into
+        # selected_families and drops this key before mined.json is written.
+        "_chains": chains,
+    }
+
+
+def family_chain(rows_in, window_start):
+    """One family's kernels in one step window, one item per symbol in trace order.
+
+    ``rows_in`` is ordered by start time, so dict insertion order is the order
+    of each symbol's first launch.
+    """
+    by_symbol = {}
+    for row in rows_in:
+        entry = by_symbol.get(row[2])
+        if entry is None:
+            entry = by_symbol[row[2]] = {
+                "symbol": row[2], "count": 0, "sum_ns": 0,
+                "first_offset_ns": row[0] - window_start,
+            }
+        entry["count"] += 1
+        entry["sum_ns"] += row[1] - row[0]
+    kernels = [
+        {
+            "symbol": e["symbol"],
+            "count": e["count"],
+            "sum_ns": e["sum_ns"],
+            "mean_ns": e["sum_ns"] / e["count"],
+            "first_offset_ns": e["first_offset_ns"],
+        }
+        for e in by_symbol.values()
+    ]
+    return {
+        "n_ranks": len({(r[3], r[5]) for r in rows_in}),
+        "n_kernels": len(rows_in),
+        "sum_ns": duration_sum([(r[0], r[1]) for r in rows_in]),
+        "kernels": kernels,
     }
 
 
@@ -627,6 +728,86 @@ def mine_batch_size(bs, traces, metrics, result, sweep, config, families, warnin
 
 
 # ---------------------------------------------------------------------------
+# family selection (rule, floor source, and cap are fixed here)
+# ---------------------------------------------------------------------------
+
+def selection_floor(artifact_dir, warnings):
+    """state.json campaign.config.min_e2e_improvement_pct as a share; else the default."""
+    state_path = Path(artifact_dir) / "state.json"
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        pct = state["campaign"]["config"]["min_e2e_improvement_pct"]
+    except (OSError, KeyError, json.JSONDecodeError, TypeError):
+        pct = None
+    if isinstance(pct, bool) or not isinstance(pct, (int, float)) or pct < 0:
+        warnings.append(
+            f"selection floor: {state_path} has no usable campaign.config."
+            f"min_e2e_improvement_pct; using the schema default "
+            f"{DEFAULT_MIN_E2E_IMPROVEMENT_PCT}%"
+        )
+        pct = DEFAULT_MIN_E2E_IMPROVEMENT_PCT
+    return pct / 100.0
+
+
+def select_families(per_bs, config, warnings):
+    """Return (selection, selected_families) by the rule in the module docstring."""
+    if "selection" in config:
+        raise Fatal(
+            "config.selection is not accepted: the floor is state.json "
+            "campaign.config.min_e2e_improvement_pct and the cap is "
+            f"{SELECTION_MAX_FAMILIES}; remove the block"
+        )
+    floor = selection_floor(_artifact_dir(config), warnings)
+    cap = SELECTION_MAX_FAMILIES
+    patterns = {f.get("label"): f.get("symbol_patterns") for f in config.get("families") or []}
+    best = {}
+    by_bs = {}
+    for row in per_bs:  # ascending bs, so a tie goes to the larger bucket
+        for fam in row["families"]:
+            label = fam["label"]
+            if label == RESIDUAL_LABEL:
+                continue
+            by_bs.setdefault(label, {})[str(row["bs"])] = fam["f_e2e"]
+            if label not in best or fam["f_e2e"] >= best[label][0]:
+                best[label] = (fam["f_e2e"], row, fam)
+    ranked = sorted(best, key=lambda label: (-best[label][0], label))
+    eligible = [label for label in ranked if best[label][0] >= floor]
+    if not eligible:
+        warnings.append(
+            f"no family reaches the selection floor {floor}; only the cross-cutting "
+            f"slice is selected"
+        )
+    selected = []
+    for rank, label in enumerate(eligible[:cap], start=1):
+        f_e2e, row, fam = best[label]
+        depth = next(d for d in reversed(row["depths"]) if label in d["_chains"])
+        selected.append({
+            "rank": rank,
+            "label": label,
+            "f_e2e": f_e2e,
+            "bs": row["bs"],
+            "f_e2e_by_bs": by_bs[label],
+            "addressable_e2e": fam["addressable_e2e"],
+            "physical_ceiling": fam["physical_ceiling"],
+            "symbol_patterns": patterns.get(label),
+            "chain": {"bs": row["bs"], "source": depth["source"], **depth["_chains"][label]},
+        })
+    selection = {
+        "rule": (
+            "rank families by their highest f_e2e across buckets (ties by label); keep "
+            "f_e2e >= f_e2e_floor (state.json campaign.config.min_e2e_improvement_pct "
+            "/ 100); keep at most max_families; always add the cross-cutting slice"
+        ),
+        "f_e2e_floor": floor,
+        "max_families": cap,
+        "eligible": eligible,
+        "dropped_by_cap": eligible[cap:],
+        "cross_cutting": CROSS_CUTTING_LABEL,
+    }
+    return selection, selected
+
+
+# ---------------------------------------------------------------------------
 # markdown emission
 # ---------------------------------------------------------------------------
 
@@ -757,6 +938,10 @@ def build(config, warnings):
         per_bs.append(
             mine_batch_size(bs, by_bs[bs], metrics, result, sweep, config, families, warnings)
         )
+    selection, selected_families = select_families(per_bs, config, warnings)
+    for row in per_bs:
+        for depth in row["depths"]:
+            depth.pop("_chains", None)
 
     trace_provenance = [
         {
@@ -797,13 +982,324 @@ def build(config, warnings):
         "config_echo": config,
         "e2e_results": str(sweep_path),
         "arm": arm,
+        "selection": selection,
+        "selected_families": selected_families,
         "per_bs": per_bs,
         "warnings": warnings,
     }
 
 
+def resolve_round(config, artifact_dir, warnings):
+    """config round, else state.json campaign.current_round, else 1 with a WARN."""
+    if config.get("round") is not None:
+        return int(config["round"])
+    state_path = Path(artifact_dir) / "state.json"
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        return int(state["campaign"]["current_round"])
+    except (OSError, KeyError, json.JSONDecodeError, TypeError, ValueError):
+        warnings.append(
+            f"round absent from the config and {state_path} has no readable "
+            f"campaign.current_round; using rounds/1"
+        )
+        return 1
+
+
+# ---------------------------------------------------------------------------
+# per-bucket slicer (subcommand `slice`)
+# ---------------------------------------------------------------------------
+
+def _one_setting(flag_value, config_value, flag, key):
+    if flag_value and config_value and flag_value != config_value:
+        raise Fatal(f"{flag} {flag_value!r} disagrees with mine_config.json {key} {config_value!r}")
+    return flag_value or config_value
+
+
+def _to_trace_ns(unix_s, session_start_ns):
+    exact = Decimal(str(unix_s)) * 1_000_000_000
+    return int(exact.to_integral_value(rounding=ROUND_HALF_EVEN)) - session_start_ns
+
+
+def _profiled_waves(meta_path):
+    """Batch size -> its waves with profiled true and warmup false."""
+    if not meta_path.is_file():
+        raise Fatal(f"{meta_path}: profile_meta JSON not found")
+    doc = json.loads(meta_path.read_text(encoding="utf-8"), parse_float=Decimal)
+    meta = doc.get("profile_meta", doc) if isinstance(doc, dict) else None
+    waves = meta.get("waves") if isinstance(meta, dict) else None
+    if not isinstance(waves, list):
+        raise Fatal(f"{meta_path}: no profile_meta.waves[] list")
+    by_bs = {}
+    for wave in waves:
+        if isinstance(wave, dict) and wave.get("profiled") is True and wave.get("warmup") is False:
+            by_bs.setdefault(int(wave["batch_size"]), []).append(wave)
+    if not by_bs:
+        raise Fatal(f"{meta_path}: no wave has profiled true and warmup false")
+    return by_bs
+
+
+def _timed_columns(con, table):
+    columns = {r[1] for r in con.execute(f'PRAGMA table_info("{table}")')}
+    if "start" in columns:
+        return "start", "end" in columns
+    if "timestamp" in columns:
+        return "timestamp", False
+    return None, False
+
+
+def _rank_name(rank):
+    return f"dev{rank[0]}_pid{rank[1]}"
+
+
+def plan_slice(con, kernel_table, bs, waves, session_start_ns, delimiter, full_batch_symbol):
+    """Return the cut for one bucket: window, per-rank cuts, and counts.
+
+    Steps are counted per rank (deviceId, globalPid), the key mine_one_trace
+    uses for per_rank. TP ranks run the same steps a few us apart, so a cut at
+    one global time would leave a leading rank's open-step delimiter in the
+    slice, and the miner would read only the inter-rank skew as the step.
+    """
+    window_start = min(_to_trace_ns(w["start_unix"], session_start_ns) for w in waves)
+    window_end = max(_to_trace_ns(w["end_unix"], session_start_ns) for w in waves)
+    if not 0 <= window_start < window_end:
+        raise Fatal(
+            f"bs={bs}: wave window [{window_start}, {window_end}] ns is not inside the "
+            f"capture; check the session start against profile_meta"
+        )
+    grid = ", k.gridX" if full_batch_symbol else ""
+    try:
+        rows = con.execute(
+            f"SELECT k.start, k.end, s.value, k.deviceId, k.globalPid{grid} "
+            f"FROM {kernel_table} k JOIN StringIds s ON s.id = k.demangledName "
+            f"WHERE k.start >= ? AND k.end <= ? ORDER BY k.start, k.end",
+            (window_start, window_end),
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        raise Fatal(f"bs={bs}: cannot read {kernel_table}: {exc}") from exc
+    by_rank = {}
+    for row in rows:
+        by_rank.setdefault((row[3], row[4]), []).append(row)
+    hits = {
+        rank: [i for i, r in enumerate(rank_rows) if delimiter in r[2]]
+        for rank, rank_rows in by_rank.items()
+    }
+    counts = {_rank_name(rank): len(h) for rank, h in sorted(hits.items())}
+    if len(set(counts.values())) > 1:
+        raise Fatal(
+            f"bs={bs}: ranks disagree on the number of delimiter {delimiter!r} launches "
+            f"inside the wave window ({counts}); every rank must run the same steps"
+        )
+    n_hits = next(iter(counts.values()), 0)
+    if n_hits < 2:
+        raise Fatal(
+            f"bs={bs}: {n_hits} launch(es) of delimiter {delimiter!r} per rank inside the "
+            f"wave window; a closed step needs two"
+        )
+    # Index of the delimiter that opens the first step the slice drops.
+    end = n_hits - 1
+    if full_batch_symbol:
+        for j in range(n_hits - 2, -1, -1):
+            if any(
+                full_batch_symbol in r[2] and r[5] == bs
+                for rank, rank_rows in by_rank.items()
+                for r in rank_rows[hits[rank][j]:hits[rank][j + 1]]
+            ):
+                end = j + 1
+                break
+        else:
+            raise Fatal(
+                f"bs={bs}: no closed step holds a {full_batch_symbol!r} launch with gridX={bs}"
+            )
+    rank_cuts = {rank: by_rank[rank][hits[rank][end]][0] for rank in by_rank}
+    kept = [r for r in rows if r[0] < rank_cuts[(r[3], r[4])]]
+    return {
+        "bs": bs,
+        "waves": [int(w["index"]) for w in waves],
+        "wave_window_ns": [window_start, window_end],
+        "cut_ns": min(rank_cuts.values()),
+        "rank_cuts_ns": {_rank_name(rank): cut for rank, cut in sorted(rank_cuts.items())},
+        "_rank_cuts": rank_cuts,
+        "delimiter_launches": sum(
+            1 for rank, h in hits.items() for i in h if by_rank[rank][i][0] < rank_cuts[rank]
+        ),
+        "n_kernels": len(kept),
+        "sum_ns": duration_sum([(r[0], r[1]) for r in kept]),
+        "dropped_tail_kernels": len(rows) - len(kept),
+    }
+
+
+def write_slice(full_path, dest, kernel_table, window_start, window_end, cut_ns, rank_cuts):
+    """Copy the export; keep each timed table's rows inside the window, before the cut.
+
+    The mined kernel table is cut per rank at ``rank_cuts``; every other timed
+    table at ``cut_ns``, the earliest rank's cut.
+    """
+    tmp = dest.with_name(f".{dest.name}.tmp")
+    tmp.unlink(missing_ok=True)
+    src = sqlite3.connect(f"file:{full_path}?mode=ro", uri=True)
+    out = sqlite3.connect(str(tmp))
+    try:
+        src.backup(out)
+        tables = [r[0] for r in out.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+        for table in tables:
+            time_col, has_end = _timed_columns(out, table)
+            if time_col is None:
+                continue
+            keep = f'"{time_col}" >= ?'
+            params = [window_start]
+            if table == kernel_table:
+                per_rank = []
+                for (device, pid), cut in sorted(rank_cuts.items()):
+                    per_rank.append('("deviceId" = ? AND "globalPid" = ? AND "start" < ?)')
+                    params += [device, pid, cut]
+                keep += f" AND ({' OR '.join(per_rank)})"
+            else:
+                keep += f' AND "{time_col}" < ?'
+                params.append(cut_ns)
+            if has_end:
+                keep += ' AND ("end" IS NULL OR "end" <= ?)'
+                params.append(window_end)
+            out.execute(f'DELETE FROM "{table}" WHERE NOT ({keep})', params)
+        out.commit()
+        out.execute("VACUUM")
+    finally:
+        out.close()
+        src.close()
+    os.replace(tmp, dest)
+
+
+def build_slices(args, config, warnings):
+    artifact_dir = Path(_artifact_dir(config))
+    segmentation = config.get("segmentation") or {}
+    if args.config and segmentation.get("policy") != "delimiter_symbol":
+        raise Fatal(
+            f"mine_config.json segmentation.policy is {segmentation.get('policy')!r}; a slice "
+            f"holds many decode steps, so mining it needs policy delimiter_symbol, and the "
+            f"slicer cuts at that symbol"
+        )
+    delimiter = _one_setting(args.delimiter, segmentation.get("symbol"),
+                             "--delimiter", "segmentation.symbol")
+    if not delimiter:
+        raise Fatal("slice needs a step delimiter: segmentation.symbol in --config, or --delimiter")
+    full_batch_symbol = _one_setting(args.full_batch_symbol,
+                                     segmentation.get("full_batch_symbol"),
+                                     "--full-batch-symbol", "segmentation.full_batch_symbol")
+    rounds_dir = None
+    if not (args.sqlite and args.profile_meta and args.out_dir):
+        rounds_dir = artifact_dir / "rounds" / str(resolve_round(config, artifact_dir, warnings))
+    nsys_dir = rounds_dir / "profiling" / "nsys" if rounds_dir else None
+    full_path = Path(args.sqlite) if args.sqlite else nsys_dir / f"{args.label}.sqlite"
+    meta_path = (Path(args.profile_meta) if args.profile_meta
+                 else rounds_dir / "sweeps" / "profiling" / "e2e_latency_results.json")
+    out_dir = Path(args.out_dir) if args.out_dir else nsys_dir
+    if not full_path.is_file():
+        raise Fatal(f"{full_path}: full sqlite export not found")
+
+    waves_by_bs = _profiled_waves(meta_path)
+    wanted = sorted(set(args.bs)) if args.bs else sorted(waves_by_bs)
+    missing = [bs for bs in wanted if bs not in waves_by_bs]
+    if missing:
+        raise Fatal(f"{meta_path}: no profiled, non-warmup wave for bs {missing}")
+
+    con = sqlite3.connect(f"file:{full_path}?mode=ro", uri=True)
+    try:
+        tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        kernel_table = next((t for t in KERNEL_TABLES if t in tables), None)
+        if kernel_table is None or "StringIds" not in tables:
+            raise Fatal(f"{full_path}: needs a CUPTI kernel table and StringIds")
+        if SESSION_START_TABLE not in tables:
+            raise Fatal(
+                f"{full_path}: no {SESSION_START_TABLE}; cannot map profile_meta wall clock "
+                f"to trace time"
+            )
+        row = con.execute(f"SELECT utcEpochNs FROM {SESSION_START_TABLE}").fetchone()
+        if not row or row[0] is None:
+            raise Fatal(f"{full_path}: {SESSION_START_TABLE} has no utcEpochNs")
+        session_start_ns = int(row[0])
+        plans = [
+            plan_slice(con, kernel_table, bs, waves_by_bs[bs], session_start_ns, delimiter,
+                       full_batch_symbol)
+            for bs in wanted
+        ]
+    finally:
+        con.close()
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for plan in plans:
+        dest = out_dir / f"{args.label}_bs{plan['bs']}.sqlite"
+        if dest.resolve() == full_path.resolve():
+            raise Fatal(f"{dest}: refusing to overwrite the full export")
+        write_slice(full_path, dest, kernel_table, plan["wave_window_ns"][0],
+                    plan["wave_window_ns"][1], plan["cut_ns"], plan.pop("_rank_cuts"))
+        plan["output"] = str(dest)
+    record = {
+        "schema": "mine_trace_slices/1",
+        "source": str(full_path),
+        "profile_meta": str(meta_path),
+        "session_start_ns": session_start_ns,
+        "delimiter": delimiter,
+        "full_batch_symbol": full_batch_symbol,
+        "rule": (
+            "window = the bucket's profiled, non-warmup waves; on each rank (deviceId, "
+            "globalPid) the kernel cut is the start of that rank's delimiter launch that "
+            "opens the step after the last kept closed step; every other table with start "
+            "keeps window start <= start < cut_ns (the earliest rank cut), and end <= "
+            "window end; a table with timestamp keeps window start <= timestamp < cut_ns; "
+            "other tables are copied whole"
+        ),
+        "slices": plans,
+        "warnings": warnings,
+    }
+    record_path = out_dir / f"{args.label}_slices.json"
+    record_path.write_text(json.dumps(record, indent=1) + "\n", encoding="utf-8")
+    return record, record_path
+
+
+def slice_main(argv):
+    parser = argparse.ArgumentParser(
+        prog="mine_trace.py slice",
+        description="Cut one sqlite per bucket from the full export, ending at a complete step.",
+    )
+    parser.add_argument("--config", help="mine_config.json: artifact_dir, round, segmentation")
+    parser.add_argument("--sqlite", help="full export; default {artifact_dir}/rounds/{N}/"
+                        "profiling/nsys/{label}.sqlite")
+    parser.add_argument("--profile-meta", help="JSON holding profile_meta; default "
+                        "{artifact_dir}/rounds/{N}/sweeps/profiling/e2e_latency_results.json")
+    parser.add_argument("--label", default="baseline", help="capture label (default baseline)")
+    parser.add_argument("--bs", type=int, action="append",
+                        help="bucket to cut; repeatable; default every profiled bucket")
+    parser.add_argument("--delimiter", help="step delimiter symbol when there is no --config")
+    parser.add_argument("--full-batch-symbol",
+                        help="end after the last closed step holding this symbol with gridX == BS")
+    parser.add_argument("--out-dir", help="default {artifact_dir}/rounds/{N}/profiling/nsys")
+    args = parser.parse_args(argv)
+
+    config = json.loads(Path(args.config).read_text(encoding="utf-8")) if args.config else {}
+    warnings = []
+    try:
+        record, record_path = build_slices(args, config, warnings)
+    except Fatal as exc:
+        for warning in warnings:
+            print(f"WARN: {warning}", file=sys.stderr)
+        print(f"FATAL: {exc}", file=sys.stderr)
+        return 1
+    for warning in warnings:
+        print(f"WARN: {warning}", file=sys.stderr)
+    for plan in record["slices"]:
+        print(
+            f"bs={plan['bs']}: waves {plan['waves']} cut at {plan['cut_ns']} ns, "
+            f"{plan['delimiter_launches']} delimiter launches, {plan['n_kernels']} kernels "
+            f"({plan['dropped_tail_kernels']} dropped from the tail) -> {plan['output']}"
+        )
+    print(f"wrote {record_path}")
+    return 0
+
+
 def main(argv=None):
     campaign_paths.apply_env()
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv and argv[0] == "slice":
+        return slice_main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", required=True, help="mine_config.json (agent judgment)")
     parser.add_argument("--out-json", help="default: {artifact_dir}/rounds/{N}/mining/mined.json")
@@ -820,9 +1316,13 @@ def main(argv=None):
         print(f"FATAL: {exc}", file=sys.stderr)
         return 1
 
-    mining_dir = Path(_artifact_dir(config)) / "rounds" / str(
-        config.get("round", 1)
-    ) / "mining"
+    if args.out_json and args.out_md:
+        mining_dir = None
+    else:
+        artifact_dir = _artifact_dir(config)
+        mining_dir = Path(artifact_dir) / "rounds" / str(
+            resolve_round(config, artifact_dir, warnings)
+        ) / "mining"
     out_json = Path(args.out_json) if args.out_json else mining_dir / "mined.json"
     out_md = Path(args.out_md) if args.out_md else mining_dir / "tables.md"
     out_json.parent.mkdir(parents=True, exist_ok=True)

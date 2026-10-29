@@ -1,5 +1,5 @@
 name = "ammo:ammo-researcher"
-description = "AMMO Stage 1/2 profiler and bottleneck-mining researcher."
+description = "AMMO Stage 1 profiler and Stage 2 bottleneck-mining researcher: mining tables, the report, and on Codex V1 one family dossier."
 model_reasoning_effort = "high"
 nickname_candidates = ["ammo-researcher-a", "ammo-researcher-b", "ammo-researcher-c"]
 

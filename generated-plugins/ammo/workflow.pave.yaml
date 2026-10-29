@@ -83,6 +83,7 @@ pave:
         - implement or edit an optimization
         - author a track verdict or an audit verdict
         - edit evidence to manufacture a pass
+        - write a mining artifact, a family dossier included
         - use an unreserved GPU or kill a process it does not own
       independence:
         - never judges its own technical claim
@@ -95,9 +96,27 @@ pave:
       purpose: >-
         One-shot subagent, spawned fresh at ammo:ammo-researcher with no name.
         Stage 1 baseline
-        and attribution capture (task_type baseline) and Stage 2 bottleneck
-        mining (task_type mining); owns the mining derivation chain and
+        and attribution capture (task_type baseline) and the Stage 2 tables
+        and report (task_type mining_tables and mining_report; the lead may
+        resume the miner for the report); owns the mining derivation chain and
         regenerates tables from primary data on repair.
+    family_worker:
+      purpose: >-
+        One worker per entry of selected_families, spawned by the pave-init
+        orchestrate skill at pave-init:orchestrate-worker. Writes one dossier
+        from references/mining-dossier.md and loops with its reviewer. Where
+        the orchestrate skill cannot run, references/harness-binding.md binds
+        this role to a one-shot seat with the same outcomes and round bound.
+      forbidden_effects:
+        - edit any file but its own dossier
+    family_reviewer:
+      purpose: >-
+        One pave-init:adversarial-investigator per two or three family
+        workers, assigned by the orchestrate skill, or the seat
+        references/harness-binding.md names where that skill cannot run.
+        Passes a dossier or returns findings.
+      independence:
+        - never edits a dossier
     ammo_champion:
       purpose: >-
         Named team member, spawned at ammo:ammo-champion. Proposes 2-3 grounded
@@ -236,13 +255,36 @@ pave:
         The bounded attribution capture, separate from the baseline timing:
         Nsys traces, and NCU data only where a claim needs counters.
       artifact: .ammo/<campaign-id>/rounds/<N>/profiling/
-    bottleneck_analysis:
+    mined_tables:
       kind: derivation
       produced_by: stage_2_bottleneck_mining
       subject: >-
+        mine_config.json, the researcher's judgment, and the outputs of
+        scripts/mine_trace.py: mined.json (schema mine_trace/1, with
+        selected_families and each selected family's kernel chain) and
+        tables.md. A serving target writes the mining record of
+        references/serving-campaign.md instead.
+      artifacts:
+        - .ammo/<campaign-id>/rounds/<N>/mining/mine_config.json
+        - .ammo/<campaign-id>/rounds/<N>/mining/mined.json
+        - .ammo/<campaign-id>/rounds/<N>/mining/tables.md
+    family_dossier:
+      kind: derivation
+      produced_by: family_dossier
+      subject: >-
+        One file per entry of selected_families, families/<LABEL>.md, in the
+        shape of references/mining-dossier.md. Its worker writes the last
+        line: PASS after the reviewer passes it, or UNGROUNDED with the
+        reason.
+      artifact: .ammo/<campaign-id>/rounds/<N>/mining/families/
+    bottleneck_analysis:
+      kind: derivation
+      produced_by: synthesize_report
+      subject: >-
         bottleneck_analysis.md with Technology Landscape, workload dilution,
-        component shares, physical bounds, and the mine_trace.py tables; the
-        lead's mining enrichment in state.json derives from it.
+        component shares, physical bounds, and the mine_trace.py tables, and
+        the family dossiers under families/ that it cites; the lead's mining
+        enrichment in state.json derives from it.
       artifact: .ammo/<campaign-id>/rounds/<N>/mining/
     debate_record:
       kind: judgment
@@ -401,6 +443,16 @@ pave:
         escalation was recorded, so the scope is uncertain and counts as
         campaign-scoped.
       on_failure_route: paused_for_user
+    mined_json_valid:
+      style: mechanical
+      question: >-
+        Does mined.json exist with schema mine_trace/1, do mined.json
+        selected_families hold at most five labels, and does the fan-out
+        collection equal them plus the cross_cutting entry? For a
+        serving target: does its mining record exist, with an empty
+        collection?
+      evaluated_by: lead
+      on_failure_route: stage_2_bottleneck_mining
     mining_enrichment_recorded:
       style: mechanical
       question: >-
@@ -410,7 +462,20 @@ pave:
         component_breakdown, top_f_e2e_pct) from its structured f_e2e table,
         or the serving mining record for a serving target?
       evaluated_by: lead
-      on_failure_route: stage_2_bottleneck_mining
+      on_failure_route: synthesize_report
+    blocker_in_tables:
+      style: mechanical
+      question: >-
+        Does a BLOCKING or HIGH T_AUDIT_S2 finding cite a file outside
+        mining/families/ and bottleneck_analysis.md, such as mine_config.json,
+        mined.json, tables.md, or a trace slice?
+      evaluated_by: lead
+    blocker_in_dossiers_or_report:
+      style: mechanical
+      question: >-
+        Do the BLOCKING or HIGH T_AUDIT_S2 findings cite only files under
+        mining/families/ and bottleneck_analysis.md?
+      evaluated_by: lead
     debate_warranted:
       style: mechanical
       question: >-
@@ -722,27 +787,73 @@ pave:
     stage_2_bottleneck_mining:
       intent: explore
       purpose: >-
-        Stage 2: a fresh ammo-researcher with task_type mining mines the
-        production evidence already on disk and never recaptures it. In
-        round 1 that is the Stage 1 baseline and attribution; after a material
-        SHIP, the prior round's Stage 6 integration result plus the
-        attribution evidence that still applies; after invalidated mining, the
-        same measured baseline. It grounds every binding claim in primary
-        artifacts and writes bottleneck_analysis.md; the lead writes the
-        mining enrichment to state.json before advancing.
+        Stage 2 tables: a fresh ammo-researcher with task_type mining_tables
+        mines the production evidence already on disk and never recaptures
+        it. In round 1 that is the Stage 1 baseline and attribution; after a
+        material SHIP, the prior round's Stage 6 integration result plus the
+        attribution evidence that still applies; after invalidated mining,
+        the same measured baseline. It writes mine_config.json, runs
+        scripts/mine_trace.py, and stops after tables.md. The script owns
+        every mined number, every per-bucket trace slice, the family
+        selection, and each selected family's kernel chain; no slice is cut
+        by hand. A serving target writes its mining record instead.
       roles: [lead, ammo_researcher, adversarial_investigator]
       consumes: [baseline_capture, attribution_profile, integration_result]
+      produces: [mined_tables]
+      outcomes:
+        tables_ready:
+          meaning: >-
+            mined.json and tables.md exist and name the selected families,
+            or a serving target's mining record exists.
+          required_evidence: [mined_tables]
+        user_authority_needed:
+          meaning: >-
+            Missing authority or an unrecoverable conflict, such as a script
+            FATAL from a toolkit defect that no input or config change fixes.
+
+    family_dossier:
+      intent: explore
+      purpose: >-
+        Stage 2 family wave (orchestration/mining-orchestration.md): one run
+        per entry of selected_families, all in one wave. The worker writes
+        the entry's dossier from references/mining-dossier.md, grounded in
+        the trace, mined.json, and the engine source, and loops with its
+        reviewer for four review rounds at most.
+      roles: [lead, family_worker, family_reviewer]
+      instance_per: selected_families
+      consumes: [mined_tables, attribution_profile, target_contract]
+      produces: [family_dossier]
+      outcomes:
+        grounded:
+          meaning: The reviewer passed the dossier.
+          required_evidence: [family_dossier]
+        ungrounded:
+          meaning: >-
+            The loop ended without a PASS, or the worker found this family's
+            patterns or ceiling in mine_config.json wrong. The dossier's last
+            line says what could not be grounded and why; the report
+            discloses it and T_AUDIT_S2 judges it.
+          required_evidence: [family_dossier]
+
+    synthesize_report:
+      intent: execute
+      purpose: >-
+        Stage 2 report: one ammo-researcher with task_type mining_report, the
+        miner resumed or a fresh one, writes bottleneck_analysis.md: tables.md
+        pasted verbatim, the phase narrative, cross-family consistency, every
+        mined.json WARN addressed in prose, the dossiers cited by path with
+        each ungrounded one disclosed, and Technology Landscape for the top
+        three. The lead then writes the mining enrichment to state.json.
+      roles: [lead, ammo_researcher]
+      consumes: [mined_tables, family_dossier]
       produces: [bottleneck_analysis]
       outcomes:
-        mining_grounded:
-          meaning: bottleneck_analysis.md is complete and grounded in primary artifacts.
-          required_evidence: [bottleneck_analysis]
-        mining_incomplete:
+        report_written:
           meaning: >-
-            The analysis is missing a required section or an ungrounded
-            claim; the researcher regenerates it from primary data.
-        user_authority_needed:
-          meaning: Missing authority or an unrecoverable conflict.
+            bottleneck_analysis.md exists with every section
+            agents/ammo-researcher.md mandates, and every claim cites a
+            dossier, mined.json, or a primary artifact.
+          required_evidence: [bottleneck_analysis]
 
     audit_s2:
       intent: review
@@ -752,7 +863,7 @@ pave:
         candidate frontier are real before debate, or before the post-SHIP
         stop check. Every blocker at this gate is campaign-scoped.
       roles: [lead, ammo_auditor, ammo_delegate, adversarial_investigator]
-      consumes: [bottleneck_analysis]
+      consumes: [bottleneck_analysis, mined_tables, family_dossier]
       produces: [audit_verdict]
       outcomes:
         pass:
@@ -760,8 +871,8 @@ pave:
           required_evidence: [audit_verdict]
         blocked:
           meaning: >-
-            BLOCKED: mining findings go to ammo-researcher, which regenerates
-            the tables from primary data; then a fresh re-audit.
+            BLOCKED: at least one BLOCKING or HIGH finding; repair, then a
+            fresh re-audit.
         needs_investigation:
           meaning: >-
             NEEDS_INVESTIGATION: a bounded investigator resolves severity,
@@ -1059,13 +1170,25 @@ pave:
       from: audit_s1.escalated
       to: paused_for_user
 
+    - id: tables_to_dossiers
+      from: stage_2_bottleneck_mining.tables_ready
+      to:
+        fan_out: family_dossier
+        for_each: selected_families
+      checks: [mined_json_valid]
+    - id: dossier_grounded_to_join
+      from: family_dossier.grounded
+      to: all_dossiers_terminal
+    - id: dossier_ungrounded_to_join
+      from: family_dossier.ungrounded
+      to: all_dossiers_terminal
     - id: mining_to_audit_s2
-      from: stage_2_bottleneck_mining.mining_grounded
+      from: synthesize_report.report_written
       to: audit_s2
       checks: [mining_enrichment_recorded]
-    - id: mining_retry
-      from: stage_2_bottleneck_mining.mining_incomplete
-      to: stage_2_bottleneck_mining
+      rationale: >-
+        The enrichment lands before every audit cycle, because the state
+        engine's Stage 2 next step keys on it.
     - id: mining_authority_to_pause
       from: stage_2_bottleneck_mining.user_authority_needed
       to: paused_for_user
@@ -1085,7 +1208,20 @@ pave:
     - id: audit_s2_blocked_to_mining
       from: audit_s2.blocked
       to: stage_2_bottleneck_mining
-      checks: [audit_cycle_bound]
+      checks: [audit_cycle_bound, blocker_in_tables]
+      rationale: >-
+        A finding upstream of the dossiers reopens the tables, and the new
+        tables fan out every family again.
+    - id: audit_s2_blocked_to_dossiers
+      from: audit_s2.blocked
+      to:
+        fan_out: family_dossier
+        for_each: audit_repair_families
+      checks: [audit_cycle_bound, blocker_in_dossiers_or_report]
+      rationale: >-
+        Only the families the findings cite reopen, and they rejoin the
+        barrier. With none cited the fan-out opens no run, the barrier
+        already holds, and the report is written again.
     - id: audit_s2_investigate
       from: audit_s2.needs_investigation
       to: audit_s2
@@ -1217,6 +1353,13 @@ pave:
       checks: [report_fact_check_ok, report_fact_check_current, status_is_campaign_exhausted]
 
   control_nodes:
+    all_dossiers_terminal:
+      kind: join
+      meaning: >-
+        The Stage 2 barrier: wait until every open family run is grounded or
+        ungrounded. When no run is open, for a serving target or a repair
+        that cites no dossier, the barrier holds at once.
+      resume_at: synthesize_report
     all_tracks_terminal:
       kind: join
       meaning: >-
@@ -1261,6 +1404,8 @@ pave:
       - workflow_identity
       - frozen_target
       - campaign_state
+      - selected_families
+      - audit_repair_families
       - selected_candidates
       - audit_repair_tracks
       - active_node_runs
@@ -1283,6 +1428,21 @@ pave:
           target.json and rounds/1/constraints.md as scaffolded. Only the
           lead's environment promotion on SHIP changes target.json; any other
           change needs explicit user approval recorded in state.json.
+      selected_families:
+        meaning: >-
+          Fan-out collection for the Stage 2 family wave: mined.json
+          selected_families plus the cross_cutting entry, keyed by label. The
+          label names the worker, the dossier file, and the run. A family is
+          selected when its highest f_e2e across buckets reaches
+          campaign.config.min_e2e_improvement_pct read as a share, ranked by
+          that value, at most five; scripts/mine_trace.py applies the rule
+          and states why. A family the cap drops stays in tables.md. Empty
+          for a serving target.
+      audit_repair_families:
+        meaning: >-
+          Derived per T_AUDIT_S2 cycle from the verdict file: the labels whose
+          dossiers its BLOCKING or HIGH findings cite. Never stored apart from
+          the verdict. Empty when only the report is cited.
       selected_candidates:
         meaning: >-
           Fan-out collection: campaign.rounds[N].debate.selected_candidates,

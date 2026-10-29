@@ -94,13 +94,13 @@ The runner takes one capture per label: `StartProfile` before the first bucket a
 
 ## Per-Bucket Slices
 
-`mine_trace.py` takes one `sqlite` (or `events_json`) entry per batch size in `config.traces`. nsys cannot split a `.nsys-rep`, so the slices come from the one report:
+`mine_trace.py` takes one `sqlite` (or `events_json`) entry per batch size in `config.traces`. Export the full report once to `baseline.sqlite` (§ Useful commands below), author `mine_config.json`, then cut the slices with:
 
-1. Export the full report once to `baseline.sqlite` (§ Useful commands below).
-2. For each bucket, take the window of its profiled waves from that bucket's `profile_meta.waves[]` and keep the kernel rows (`CUPTI_ACTIVITY_KIND_KERNEL` or `CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL`, with `StringIds`) whose start and end fall inside it. Write them to `rounds/{N}/profiling/nsys/baseline_bs{BS}.sqlite` with the same tables the full export has, and end each slice at the end of a complete decode step: `mine_trace.py` reads a slice from its cut to the slice end as one step (`e2e-delta-math.md` § Conversion Formula).
-3. Check that the slices together account for the kernel time of the full export inside the capture window. Record each window and row count next to its slice.
+```bash
+<root>/scripts/ammo mine_trace.py slice --config rounds/{N}/mining/mine_config.json
+```
 
-Trace timestamps count nanoseconds from the nsys session start; `profile_meta` holds wall-clock seconds. Convert through the session start time the export records before comparing the two.
+For each bucket it takes the window of the profiled waves from that bucket's `profile_meta.waves[]`, converted through the session start the export records. It keeps every timed table inside that window and ends the slice just before the last delimiter hit, so the last step in the slice is complete. It writes `rounds/{N}/profiling/nsys/{label}_bs{BS}.sqlite` with the same tables as the full export, and `{label}_slices.json` with each window and its step and row counts. It refuses a `max_gap` config, because a slice of several steps needs `delimiter_symbol`. `--help` lists the flags that override the default paths, label, and buckets.
 
 ## TP>1 Per-Rank Caveat
 

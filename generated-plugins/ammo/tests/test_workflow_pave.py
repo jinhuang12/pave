@@ -27,13 +27,15 @@ VALIDATOR = ROOT / "scripts" / "validate_pave.py"
 GRAPH = ROOT / "workflow.pave.yaml"
 TRANSITIONS = ROOT / "scripts" / "transitions.json"
 
-EXPECTED_COUNTS = "13 nodes, 47 edges, 5 control nodes"
+EXPECTED_COUNTS = "15 nodes, 50 edges, 6 control nodes"
 EXPECTED_NODES = {
     "scaffold_target",
     "preflight_engine",
     "stage_1_baseline",
     "audit_s1",
     "stage_2_bottleneck_mining",
+    "family_dossier",
+    "synthesize_report",
     "audit_s2",
     "stage_3_debate",
     "stage_4_5_parallel_tracks",
@@ -44,12 +46,14 @@ EXPECTED_NODES = {
     "stage_7b_report",
 }
 JOIN = "all_tracks_terminal"
+DOSSIER_JOIN = "all_dossiers_terminal"
 EXPECTED_CONTROL_NODES = {
     "campaign_complete": ("terminal", "accepted"),
     "campaign_exhausted": ("terminal", "exhausted"),
     "blocked": ("terminal", "blocked"),
     "paused_for_user": ("pause", None),
     JOIN: ("join", None),
+    DOSSIER_JOIN: ("join", None),
 }
 GATES = {
     "5.1a": "gate_5_1a",
@@ -122,6 +126,25 @@ def test_join_sits_before_integration(pave, transitions):
         e["from"] for e in pave["edges"] if destination(e) == "stage_6_integration"
     }
     assert "audit_s45.pass" in into_integration
+
+
+def edge_by_id(pave, edge_id):
+    (edge,) = [e for e in pave["edges"] if e["id"] == edge_id]
+    return edge
+
+
+def test_stage_2_fans_out_dossiers_and_audits_the_synthesized_report(pave):
+    fan_out = edge_by_id(pave, "tables_to_dossiers")
+    assert fan_out["from"] == "stage_2_bottleneck_mining.tables_ready"
+    assert fan_out["to"] == {"fan_out": "family_dossier", "for_each": "selected_families"}
+    assert "mined_json_valid" in fan_out["checks"]
+    for outcome in ("grounded", "ungrounded"):
+        routes = {destination(e) for e in edges_from(pave, f"family_dossier.{outcome}")}
+        assert routes == {DOSSIER_JOIN}, outcome
+    assert pave["control_nodes"][DOSSIER_JOIN]["resume_at"] == "synthesize_report"
+    to_audit = edge_by_id(pave, "mining_to_audit_s2")
+    assert to_audit["from"] == "synthesize_report.report_written"
+    assert destination(to_audit) == "audit_s2"
 
 
 def test_stage_nodes_cover_the_transitions_ladder(pave, transitions):

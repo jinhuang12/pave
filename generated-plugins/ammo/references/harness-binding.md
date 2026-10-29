@@ -58,6 +58,29 @@ selects V1. Do not change the mode in an active campaign.
 | Recovery note | not used | `recovery_note_path` | `recovery_note_path` |
 | Audit start stamp | `ammo-audit-start-stamp.sh` | Codex post-tool hook | Codex post-tool hook |
 
+## Stage 2 Family Wave
+
+Stage 2 has two seats of its own, the family worker and the family
+reviewer (`orchestration/mining-orchestration.md`). Each harness binds
+them as follows:
+
+| Seat | Claude Code | Codex V2 | Codex V1 |
+|---|---|---|---|
+| Run the wave | the pave-init orchestrate skill | `$pave-init:orchestrate`, pave-init's Codex port | the lead, spawning the two seats below |
+| Family worker | named `pave-init:orchestrate-worker` teammate | `pave-init:orchestrate-worker` | one-shot `ammo:ammo-researcher` with `task_type: mining_dossier` and the worker packet in `context` |
+| Family reviewer | named `pave-init:adversarial-investigator` teammate | `pave-init:adversarial-investigator` | a fresh one-shot `pave-init:adversarial-investigator` for each round |
+
+The orchestrate port needs the V2 agent tools, so V1 binds the seats to
+one-shot agents. On V1 the lead gives the reviewer the dossier and the packet,
+and sends any REVISE findings to a fresh researcher with the same packet.
+On V1 the researcher leaves the status line off. After the reviewer's PASS,
+or after the fourth round without one, the lead sends a fresh researcher the
+same packet and the final verdict, and that researcher writes only the status
+line (`references/mining-dossier.md` § 7. Status Line).
+
+On every harness the outcomes are the same, and the limit is four rounds. A
+dossier with no PASS after four rounds ends `UNGROUNDED: <reason>`.
+
 ## Claude Code Notes
 
 - A one-shot role (researcher, auditor, delegate, investigator, resolver,

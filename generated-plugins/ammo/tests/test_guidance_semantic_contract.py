@@ -665,3 +665,169 @@ def test_debate_critique_assignments_remain_independent_under_churn() -> None:
     assert "champion who did not propose it" in debate
     assert "fewer than two champions survive" in debate
     assert "repair the affected critique assignment" in debate
+
+
+# Stage 2 with an orchestrated family wave (planning-records/ammo/
+# stage2-orchestrated-mining.md, landed as flat nodes in workflow.pave.yaml).
+# One researcher mines the tables, one orchestrate worker per selected family
+# writes a reviewed dossier, the researcher writes the report, then
+# T_AUDIT_S2 runs as before.
+def _skill_stage2() -> str:
+    return SKILL.split("### Stage 2: Bottleneck Mining")[1].split("### Stage 3")[0]
+
+
+def test_researcher_splits_mining_into_tables_and_report() -> None:
+    researcher = _agent_text("ammo-researcher")
+    assert "`baseline`, `mining_tables`, `mining_report`, or `mining_dossier`" in researcher
+    tables = researcher.index("### `mining_tables`: Stage 2")
+    report = researcher.index("### `mining_report`: Stage 2")
+    dossier = researcher.index("### `mining_dossier`: Stage 2")
+    assert tables < report < dossier
+    assert "Stop after `tables.md`" in researcher[tables:report]
+    assert "Start from `tables.md` and the dossiers" in researcher[report:dossier]
+    # mining_dossier is the seat binding where the orchestrate skill cannot run;
+    # the role file names no harness (references/harness-binding.md chooses it).
+    assert "`references/harness-binding.md`" in researcher[dossier:]
+    assert "Codex" not in researcher
+    for gone in ("`baseline` or `mining`", "### `mining`: Stage 2", "Mining task:"):
+        assert gone not in researcher
+
+
+def test_dossier_template_lives_in_its_reference() -> None:
+    dossier = _text("references/mining-dossier.md")
+    researcher = _agent_text("ammo-researcher")
+    # The Technology Landscape block moved unchanged (stage-2.md row 4); the
+    # researcher keeps the report rule and points at the block.
+    for line in (
+        "- Authoring class: <Triton | CuTeDSL | CUTLASS | CUDA C++ | library:name | unknown>",
+        "- SM generation (this deployment):",
+        "- Op character:",
+        "- Library coverage for this op+shape+dtype:",
+    ):
+        assert line in dossier
+        assert line not in researcher
+    assert "`references/mining-dossier.md` § Technology Landscape" in researcher
+    for heading in (
+        "### 1. Kernel Chain in One Decode Step",
+        "### 2. Source Map",
+        "### 3. Physical Ceiling",
+        "### 4. Removable Fraction",
+        "### 5. Technology Landscape",
+        "### 6. Correctness Invariants",
+        "### 7. Status Line",
+        "## Cross-Cutting Dossier",
+    ):
+        assert heading in dossier
+    assert "`UNGROUNDED: <reason>`" in dossier
+    assert "`chain`" in dossier and "`selected_families`" in dossier
+    assert "`rounds/{N}/mining/families/cross_cutting.md`" in dossier
+    assert "Search the engine source and its vendored libraries" in dossier
+    # R1: Neuron text lives only in references/accelerator-binding.md.
+    assert "Neuron" not in dossier and "vllm-" not in dossier
+
+
+def test_mining_orchestration_states_only_the_ammo_additions() -> None:
+    text = _text("orchestration/mining-orchestration.md")
+    for part in (
+        "## Goal",
+        "## Worker Packet",
+        "## Ungrounded Dossiers",
+        "SUBTASK family-<LABEL>",
+        "`references/mining-dossier.md`",
+        "`references/harness-binding.md` § Stage 2 Family Wave",
+    ):
+        assert part in text
+    # Cut in revision 3: no tables-only brief, no partition outcome, and the
+    # lead never writes a dossier; enrichment runs inside the child before the
+    # audit, so the pass row only advances.
+    for cut in ("Tables-Only", "partition_wrong", "the lead writes", "enrich"):
+        assert cut not in text
+    assert "the worker writes `UNGROUNDED: <reason>`" in text
+    # The pave-init orchestrate skill owns wave size, reviewer count and
+    # assignment, the review loop, ESCALATE at round four, and the run log.
+    for owned in ("ceil(", "round-robin", "orchestrate_log.py", "6 workers", "round 4", "da-1"):
+        assert owned not in text
+
+
+def test_skill_stage2_runs_tables_wave_report_then_audit() -> None:
+    stage2 = _skill_stage2()
+    assert "`orchestration/mining-orchestration.md`" in stage2
+    assert "orchestrate skill" in stage2
+    assert "task_type: mining_tables" in stage2 and "task_type: mining_report" in stage2
+    assert "Do not add a fresh post-SHIP baseline sweep, profiling pass, or provenance sidecar." in stage2
+    # The enrichment runs after the report and before the audit, as today.
+    assert stage2.index("task_type: mining_report") < stage2.index(
+        "enrich --state {artifact_dir}/state.json --mining"
+    ) < stage2.index("T_AUDIT_S2")
+    assert "serving-sync" in stage2 and "--kind mining" in stage2
+    assert "task_type: mining`" not in SKILL
+
+
+def test_stage2_wave_binding_covers_every_harness() -> None:
+    binding = _text("references/harness-binding.md")
+    wave = binding.split("## Stage 2 Family Wave")[1].split("\n## ")[0]
+    assert "$pave-init:orchestrate" in wave
+    assert "task_type: mining_dossier" in wave
+    assert "four rounds" in wave and "UNGROUNDED" in wave
+    assert "pave-init:orchestrate-worker" in SKILL.split("---")[1]
+
+
+def test_status_line_is_written_only_after_the_review() -> None:
+    # On Codex V1 a one-shot researcher writes the dossier, so the status line
+    # must wait for the reviewer's final verdict and a fresh researcher.
+    binding = _text("references/harness-binding.md")
+    wave = " ".join(binding.split("## Stage 2 Family Wave")[1].split("\n## ")[0].split())
+    assert "On V1 the researcher leaves the status line off." in wave
+    assert "writes only the status line" in wave
+    researcher = _agent_text("ammo-researcher")
+    task = researcher.split("### `mining_dossier`: Stage 2")[1].split("\n## ")[0]
+    assert "end it with its status line" not in task
+    assert "write only the status line" in task
+    packet = " ".join(_text("orchestration/mining-orchestration.md").split())
+    assert "status line when the review ends" in packet
+
+
+def test_audit_repair_reopens_only_the_cited_families() -> None:
+    packet = _text("orchestration/mining-orchestration.md")
+    repair = " ".join(packet.split("## Audit Repair")[1].split("\n## ")[0].split())
+    assert "reopen only the cited families" in repair
+    assert "every family again" in repair
+    protocol = " ".join(_text("orchestration/audit-protocol.md").split())
+    assert "`orchestration/mining-orchestration.md` § Audit Repair" in protocol
+
+
+def test_slices_come_from_the_slicer_command() -> None:
+    guide = _text("references/nsys-profiling-guide.md")
+    slices = guide.split("## Per-Bucket Slices")[1].split("\n## ")[0]
+    assert "mine_trace.py slice --config rounds/{N}/mining/mine_config.json" in slices
+    assert "nsys cannot split" not in slices
+
+
+def test_layout_names_the_families_slot() -> None:
+    layout = _text("references/artifact-layout.md")
+    assert "`rounds/{N}/mining/families/`" in layout
+    assert "cross_cutting.md" in layout
+
+
+def test_stage2_lands_as_flat_nodes_not_a_child_run() -> None:
+    # Lead ruling (pave-spec 9.12.1): no separate graph file, so no text may
+    # describe a child run or name the child graph.
+    docs = [ROOT / "skills" / "ammo" / "SKILL.md", ROOT / "README.md"]
+    docs += sorted(AGENTS.glob("ammo-*.md"))
+    docs += sorted((ROOT / "orchestration").glob("*.md"))
+    docs += sorted((ROOT / "references").glob("*.md"))
+    docs += [ROOT / "scripts" / "ammo_state.py", ROOT / "codex" / "RUNTIME.md"]
+    for stale in ("child run", "stage2-mining", "parent outcome"):
+        offenders = [
+            str(path.relative_to(ROOT))
+            for path in docs
+            if stale in path.read_text(encoding="utf-8").lower()
+        ]
+        assert not offenders, (stale, offenders)
+
+
+def test_audit_after_stage2_checks_the_dossiers() -> None:
+    invariants = _text("references/audit-invariants.md")
+    after_s2 = invariants.split("## After Stage 2")[1].split("## After Stages 4-5")[0]
+    assert "- **Every selected family has a grounded or disclosed dossier (HIGH).**" in after_s2
+    assert "`selected_families`" in after_s2

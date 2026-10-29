@@ -1980,7 +1980,37 @@ class TestAdoptedReminderText:
             "audit.stage_1.passed_at": "2026-01-01T00:01:00Z",
         })
         msg, _ = _ns(st)
-        assert "T_AUDIT_S1 passed" in msg and "task_type: mining" in msg
+        assert "T_AUDIT_S1 passed" in msg and "task_type: mining_tables" in msg
+
+    # Stage 2 runs the miner, the family wave, the report, the enrichment,
+    # then T_AUDIT_S2 (the enrichment-before-audit order is unchanged).
+    def test_stage2_pending_names_the_child_run_in_order(self):
+        st = _stage(_base_state(), "2_bottleneck_mining",
+                    **{"baseline.completed_at": "2026-01-01T00:00:00Z"})
+        msg, _ = _ns(st)
+        assert "Stage 2 (SKILL.md § Stage 2)" in msg
+        order = ["task_type: mining_tables", "orchestrate", "task_type: mining_report",
+                 "enrich --mining", "T_AUDIT_S2"]
+        positions = [msg.index(part) for part in order]
+        assert positions == sorted(positions), msg
+
+    def test_stage2_audit_reminder_puts_the_dossiers_in_scope(self):
+        st = _stage(_base_state(), "2_bottleneck_mining",
+                    **{"baseline.completed_at": "x", "bottleneck_mining.completed_at": "x",
+                       "audit": {}})
+        msg, _ = _ns(st)
+        assert "AUDIT REQUIRED (T_AUDIT_S2)" in msg
+        assert "The dossiers are in its scope" in msg
+
+    def test_mining_done_names_the_post_ship_route(self):
+        st = _stage(_base_state(), "2_bottleneck_mining",
+                    **{"baseline.completed_at": "x", "bottleneck_mining.completed_at": "x",
+                       "audit.stage_2.passed_at": "2026-01-01T00:01:00Z"})
+        msg, _ = _ns(st)
+        assert "Mining done" in msg and "3_debate" in msg and "7_campaign_eval" in msg
+
+    def test_no_reminder_names_the_single_mining_task(self):
+        assert "task_type: mining)" not in _ENGINE.read_text(encoding="utf-8")
 
     def test_no_audit_reminder_says_4_phase(self):
         cases = [

@@ -249,6 +249,14 @@
       "kind": "derived",
       "notes": "The two mandated tables. Regenerated from mined.json; never hand-edited."
     },
+    "mining_families": {
+      "path_template": "rounds/{N}/mining/families/",
+      "writer": "pave-init:orchestrate-worker, one per family dossier, or the seat references/harness-binding.md binds (Codex V1: ammo-researcher, task_type mining_dossier)",
+      "gate": "stage_2",
+      "is_gate_slot": false,
+      "kind": "authoritative",
+      "notes": "When the family wave runs: one {LABEL}.md per mined.json selected_families entry plus cross_cutting.md for the cross-cutting slice (mined.json selection.cross_cutting), in the shape of references/mining-dossier.md. The report and the T_AUDIT_S2 audit read them. A serving target runs no family wave, so the directory may be absent."
+    },
     "debate_eligibility": {
       "path_template": "rounds/{N}/debate/eligibility_verdicts.md",
       "writer": "orchestrator (lead-owned)",

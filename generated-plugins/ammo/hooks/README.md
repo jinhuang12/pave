@@ -34,7 +34,7 @@ The intent of each hook comes from the ammo-server intent map (`docs/ammo-intent
 
 | Hook | Event | Matcher | Intent |
 |---|---|---|---|
-| `ammo-team-spawn-guard.sh` | PreToolUse | Agent | Deny a team-member spawn without a name |
+| `ammo-team-spawn-guard.sh` | PreToolUse | Agent | Deny a team-member or Stage 2 family-worker spawn without a name |
 | `ammo-pretool-guard.sh` | PreToolUse | Bash | Block commands that break measurement integrity |
 | `ammo-skill-files-guard.sh` | PreToolUse | Edit, Write, MultiEdit, NotebookEdit | Deny subagent edits under the plugin root |
 | `ammo-env-default-guard.sh` | PreToolUse | Edit, Write | Block a new engine flag with a truthy default |
