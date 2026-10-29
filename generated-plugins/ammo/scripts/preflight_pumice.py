@@ -416,6 +416,32 @@ def _check_pumice_rust_import() -> Result:
     return (label, True, f"pumice_rust imports from {getattr(module, '__file__', '?')}")
 
 
+def _check_plugin_python_deps() -> Result:
+    """The engine venv imports the plugin's own packages (campaign_paths.PLUGIN_PYTHON_DEPS).
+
+    scripts/ammo runs every plugin script with the engine python, so a venv
+    that imports pumice but not, for example, jsonschema stops the scaffold.
+    """
+    label = "plugin python deps"
+    missing: List[str] = []
+    reasons: List[str] = []
+    for name in campaign_paths.PLUGIN_PYTHON_DEPS:
+        try:
+            importlib.import_module(name)
+        except Exception as exc:  # noqa: BLE001 - a broken install counts as missing
+            missing.append(name)
+            reasons.append(f"{name}: {exc}")
+    if missing:
+        return (
+            label,
+            False,
+            f"the engine python {sys.executable} cannot import {', '.join(missing)} "
+            f"({'; '.join(reasons)}); install with "
+            f"{campaign_paths.plugin_deps_hint(sys.executable, missing)}",
+        )
+    return (label, True, f"{', '.join(campaign_paths.PLUGIN_PYTHON_DEPS)} import")
+
+
 def _resolve_model_runner(
     model_dir: Optional[Path],
     extra_args: Sequence[str],
@@ -820,6 +846,7 @@ CHECKS: Tuple[str, ...] = (
     "_check_engine_venv",
     "_check_pumice_imports",
     "_check_pumice_rust_import",
+    "_check_plugin_python_deps",
 )
 
 #: Checks that take no input, by name, in run order after the pins check.

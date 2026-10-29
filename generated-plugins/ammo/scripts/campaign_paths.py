@@ -33,6 +33,25 @@ DEFAULT_GPU_RES_DIR = "/tmp/ammo_gpu_res"
 APPLIED_ENV = "AMMO_APPLIED_ENV"
 _RESTORABLE = re.compile(r"AMMO_[A-Z0-9_]+|CARGO_TARGET_DIR")
 
+#: Third-party modules the plugin's own scripts import. scripts/ammo runs every
+#: script with the engine python, so the engine venv must carry them. The engine
+#: owns pumice, vllm, torch and the rest; preflight_pumice.py checks both sets.
+PLUGIN_PYTHON_DEPS = ("httpx", "jsonschema", "psutil", "pydantic", "yaml")
+#: The pip name where it differs from the import name.
+_PIP_NAMES = {"yaml": "pyyaml"}
+
+
+def plugin_pip_names(names=None) -> list:
+    """pip names for the import names (default: PLUGIN_PYTHON_DEPS), in order."""
+    return [_PIP_NAMES.get(name, name) for name in (PLUGIN_PYTHON_DEPS if names is None else names)]
+
+
+def plugin_deps_hint(python, names=None) -> str:
+    """The install command for the plugin packages, in the pip form and the uv form."""
+    packages = " ".join(plugin_pip_names(names))
+    return (f"`{python} -m pip install {packages}` "
+            f"(a uv venv without pip: `uv pip install --python {python} {packages}`)")
+
 
 def _load_json(path: Path) -> dict:
     try:

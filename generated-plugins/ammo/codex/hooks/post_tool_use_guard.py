@@ -15,6 +15,7 @@ from common import (
     CAMPAIGN_SEGMENT,
     CampaignResolutionError,
     campaign_for_hook,
+    invokes_state_writer,
     normalize_role,
     path_in_campaign,
     plugin_path,
@@ -297,8 +298,14 @@ def _candidate_paths(include_active_state: bool = True) -> list[Path]:
             paths.append(_resolve_payload_path(match))
     if _command_may_mutate_state(cmd):
         paths.extend(_first_party_state_paths(cmd))
-        has_concrete_state = any(path.name == "state.json" for path in paths)
-        if not has_concrete_state:
+        state_paths = [path for path in paths if path.name == "state.json"]
+        # No path names a campaign's state.json. When the command names no
+        # state.json, or a token does not resolve ($A/state.json, a relative
+        # path the command may cd to), it may have written the found
+        # campaign's state: validate that one (the Claude twin's rule).
+        if not any(_is_campaign_path(path) for path in state_paths) and (
+            not state_paths or _has_unresolved_state_token(cmd)
+        ):
             artifact = active_artifact_dir(find_repo_root(payload.get("cwd")), payload)
             if artifact is not None:
                 paths.append((artifact / "state.json").resolve())
@@ -318,12 +325,60 @@ def _candidate_paths(include_active_state: bool = True) -> list[Path]:
     return seen
 
 
+# A state.json token in command text, optionally behind a shell variable
+# ($A/state.json, ${A}/state.json); the Claude twin's token pattern.
+_STATE_TOKEN_RE = re.compile(r"(?:\$\{?[A-Za-z_][A-Za-z0-9_]*\}?)?[A-Za-z0-9_./-]*state\.json")
+
+
+def _state_writer_arg_values(command: str, flag: str) -> list[str]:
+    """Values of --state / --artifact-dir after the first ammo_state.py, quotes removed."""
+    if not invokes_state_writer(command):
+        return []
+    tail = command.split("ammo_state.py", 1)[1]
+    values = re.findall(r"(?:^|\s)" + re.escape(flag) + r"(?:=|\s+)([^\s;&|]*)", tail)
+    return [value.replace('"', "").replace("'", "") for value in values]
+
+
+def _has_unresolved_state_token(command: str) -> bool:
+    """True when a state.json token in command cannot be placed.
+
+    A shell variable the hook process does not hold ($A/state.json), a prefix
+    lost to a quote or $(...) ("$A"/state.json reads as /state.json), or a
+    relative path that does not exist at the tool cwd (the command may cd
+    first). A campaign path, an absolute path, or an existing relative path
+    names a concrete file.
+    """
+    tokens = _STATE_TOKEN_RE.findall(command)
+    tokens += [
+        value.rstrip("/") + "/state.json"
+        for value in _state_writer_arg_values(command, "--artifact-dir")
+    ]
+    for raw in tokens:
+        path = _resolve_payload_path(raw)
+        if path.name != "state.json":
+            continue
+        if raw == "/state.json" or any(char in str(path) for char in "${}"):
+            return True
+        if _is_campaign_path(path) or raw.startswith("/"):
+            continue
+        if not path.exists():
+            return True
+    return False
+
+
 def _first_party_state_paths(command: str) -> list[Path]:
+    paths: list[Path] = [
+        _resolve_payload_path(value) for value in _state_writer_arg_values(command, "--state")
+    ]
+    paths += [
+        _resolve_payload_path(value) / "state.json"
+        for value in _state_writer_arg_values(command, "--artifact-dir")
+        if value
+    ]
     try:
         parts = shlex.split(command)
     except ValueError:
         parts = []
-    paths: list[Path] = []
     for idx, token in enumerate(parts):
         script = Path(token.strip("\"'")).name
         tail = parts[idx + 1 :]
@@ -333,14 +388,18 @@ def _first_party_state_paths(command: str) -> list[Path]:
                     paths.append(_resolve_payload_path(tail[arg_idx + 1]) / "state.json")
                 elif arg.startswith("--artifact-dir="):
                     paths.append(_resolve_payload_path(arg.split("=", 1)[1]) / "state.json")
-        elif script == "ammo_state.py" and any(
-            verb in tail for verb in {"set", "advance", "enrich", "backfill"}
-        ):
+        elif script == "ammo_state.py" and invokes_state_writer(command):
+            # shlex keeps a quoted path with spaces whole; the regex values above
+            # cover the $S form, where the script name is inside a variable.
             for arg_idx, arg in enumerate(tail):
                 if arg == "--state" and arg_idx + 1 < len(tail):
                     paths.append(_resolve_payload_path(tail[arg_idx + 1]))
                 elif arg.startswith("--state="):
                     paths.append(_resolve_payload_path(arg.split("=", 1)[1]))
+                elif arg == "--artifact-dir" and arg_idx + 1 < len(tail):
+                    paths.append(_resolve_payload_path(tail[arg_idx + 1]) / "state.json")
+                elif arg.startswith("--artifact-dir="):
+                    paths.append(_resolve_payload_path(arg.split("=", 1)[1]) / "state.json")
         elif script == "reconcile_track_state.py" and "--write" in tail:
             for arg_idx, arg in enumerate(tail):
                 if arg == "--artifact-dir" and arg_idx + 1 < len(tail):
@@ -355,6 +414,9 @@ def _first_party_state_paths(command: str) -> list[Path]:
 
 
 def _invokes_first_party_state_writer(command: str) -> bool:
+    # ammo_state.py writers are derived from the engine (common.state_writer_verbs).
+    if invokes_state_writer(command):
+        return True
     try:
         parts = shlex.split(command)
     except ValueError:
@@ -364,10 +426,6 @@ def _invokes_first_party_state_writer(command: str) -> bool:
         tail = parts[idx + 1 :]
         if script == "new_target.py" and any(
             arg == "--artifact-dir" or arg.startswith("--artifact-dir=") for arg in tail
-        ):
-            return True
-        if script == "ammo_state.py" and any(
-            verb in tail for verb in {"set", "advance", "enrich", "backfill"}
         ):
             return True
         if script == "reconcile_track_state.py" and "--write" in tail and any(

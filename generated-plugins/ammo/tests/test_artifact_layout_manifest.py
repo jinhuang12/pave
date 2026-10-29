@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -360,3 +362,97 @@ def test_prohibited_paths_still_warn(manifest, rel):
     """The allowlist must not widen into the doc's Prohibited Patterns."""
     patterns = _allow_patterns(manifest)
     assert not any(p.search(rel) for p in patterns), f"{rel} should warn"
+
+
+# ---------------------------------------------------------------------------
+# one regex dialect: Python re and POSIX ERE (grep -E) read every pattern alike
+# ---------------------------------------------------------------------------
+
+#: Python-only regex syntax that POSIX ERE does not have: `(?` groups, flags and
+#: lookarounds, the `\d`-style class escapes and anchors, and lazy quantifiers.
+#: GNU grep -E prints "? at start of expression" for `(?:` and then fails to
+#: match; macOS grep accepts it, so this check makes it red on every host.
+_NOT_ERE = re.compile(r"\(\?|\\[dDwWsSbBAZz]|[*+?}]\?")
+
+#: One value per placeholder that its fragment must accept.
+_SAMPLES = {
+    "{campaign_id}": "20261028-120000-abc123",
+    "{N}": "12",
+    "{D}": "2",
+    "{C}": "3",
+    "{BS}": "32",
+    "{op_id}": "op-007",
+    "{champion_id}": "champion_2",
+    "{monitor_id}": "monitor-1",
+    "{stage}": "stage_45",
+    "{date}": "2026-10-28T12:00:00Z",
+    "{slot}": "opt_correctness",
+    "{timestamp}": "2026-10-28T181212Z",
+    "{root_thread_id}": "thread_01-ab",
+    "{task_path_without_leading_slash}": "audit_gate/stage_1/cycle_2",
+}
+
+#: Values a fragment must refuse, so the dialect change keeps the match set.
+_REFUSED = {
+    "{campaign_id}": "-lead",
+    "{N}": "1a",
+    "{task_path_without_leading_slash}": "audit_gate//stage_1",
+}
+
+
+def _grep_e(patterns: list[str], lines: list[str], tmp_path: Path) -> tuple[set[str], str]:
+    """Lines that `grep -E -f patterns` selects, and grep's stderr."""
+    grep = shutil.which("grep")
+    if grep is None:
+        pytest.skip("grep is not on PATH")
+    pattern_file = tmp_path / "patterns.txt"
+    pattern_file.write_text("\n".join(patterns) + "\n", encoding="utf-8")
+    line_file = tmp_path / "lines.txt"
+    line_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    result = subprocess.run([grep, "-E", "-f", str(pattern_file), str(line_file)],
+                            capture_output=True, text=True, timeout=30)
+    assert result.returncode in (0, 1), result.stderr
+    return set(result.stdout.splitlines()), result.stderr
+
+
+def _sample_path(template: str) -> str:
+    for token, value in sorted(_SAMPLES.items(), key=lambda kv: -len(kv[0])):
+        template = template.replace(token, value)
+    return template.rstrip("/")
+
+
+def test_every_placeholder_has_a_sample(manifest):
+    assert set(manifest["placeholders"]) == set(_SAMPLES)
+
+
+@pytest.mark.parametrize("token", sorted(_SAMPLES))
+def test_placeholder_fragments_use_posix_ere_syntax(manifest, token):
+    fragment = manifest["placeholders"][token]
+    assert not _NOT_ERE.search(fragment), f"{token}: {fragment!r} is not POSIX ERE"
+    re.compile(fragment)
+
+
+def test_placeholder_fragments_match_alike_in_python_and_grep_e(manifest, tmp_path):
+    for token, fragment in manifest["placeholders"].items():
+        anchored = f"^({fragment})$"
+        lines = [_SAMPLES[token]] + ([_REFUSED[token]] if token in _REFUSED else [])
+        python = {line for line in lines if re.search(anchored, line)}
+        grep, stderr = _grep_e([anchored], lines, tmp_path)
+        assert stderr == "", f"{token}: {stderr}"
+        assert python == grep == {_SAMPLES[token]}, (token, python, grep)
+
+
+def test_allowlist_matches_alike_in_python_and_grep_e(manifest, tmp_path):
+    """Every slot sample conforms and every prohibited path warns, in both dialects."""
+    patterns = _allow_patterns(manifest)
+    templates = [slot["path_template"] for slot in manifest["slots"].values()]
+    templates += manifest.get("open_dirs", [])
+    allowed = sorted({_sample_path(t) for t in templates})
+    prohibited = ["monitor_log_champion_1.md", "e2e_latency_opt3/x.json",
+                  "rounds/1/tracks/op-001/validation_results_DRAFT.md",
+                  "recovery/thread_01/Audit/context.md"]
+    lines = allowed + prohibited
+    python = {line for line in lines if any(p.search(line) for p in patterns)}
+    grep, stderr = _grep_e([p.pattern for p in patterns], lines, tmp_path)
+    assert stderr == ""
+    assert python == grep == set(allowed)

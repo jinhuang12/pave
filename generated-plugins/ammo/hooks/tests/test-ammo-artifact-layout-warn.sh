@@ -145,6 +145,71 @@ bash_case "engine-relative drift token" warn "mkdir -p .ammo/tgt/monitoring"
 bash_case "bash drift is still caught" warn "mkdir -p $ART/monitoring/logs"
 bash_case '$AMMO_ARTIFACT_DIR token, canonical' silent 'ls "$AMMO_ARTIFACT_DIR/rounds/1/sweeps"'
 bash_case '${AMMO_ARTIFACT_DIR} token, drift' warn 'mkdir -p ${AMMO_ARTIFACT_DIR}/monitoring/logs'
+# The same ancestor rule through a command that writes, so it does not rest
+# on the read-only skip below.
+bash_case "mkdir of a round dir" silent "mkdir -p $ART/rounds/12"
+bash_case "mkdir of the opt slot parent" silent "mkdir -p $ART/rounds/1/sweeps/opt"
+bash_case "cp into a canonical slot" silent "cp /tmp/m.json .ammo/tgt/rounds/1/mining/mined.json"
+
+# ══════════════════════════════════════════════
+echo ""; echo "== Read-only commands land no file =="
+# ══════════════════════════════════════════════
+# A read lands nothing, so it never warns. The read/write judgement is the
+# shared classifier's (scripts/hook_cmd_classify.py --mode readonly): every
+# segment inspection-class, no redirection, no command substitution. A live
+# lead's `ls rounds/1/profiling/*` warned "outside the canonical layout".
+bash_case "ls with a glob under a canonical dir" silent "ls $ART/rounds/1/profiling/*"
+bash_case "ls | head with a glob" silent "ls $ART/rounds/1/profiling/* | head -5"
+bash_case "cat of a drift-shaped path (a read)" silent "cat $ART/monitoring/logs/x.md"
+bash_case "grep in a drift-shaped dir (a read)" silent "grep -r TODO .ammo/tgt/investigation"
+bash_case "a write after a read still warns" warn "ls $ART/rounds/1 && mkdir -p $ART/monitoring/logs"
+bash_case "a redirect into the campaign still warns" warn "cat /tmp/x > $ART/monitor_log_x.md"
+bash_case "tee into the campaign still warns" warn "echo hi | tee $ART/monitor_log_x.md"
+
+# ══════════════════════════════════════════════
+echo ""; echo "== Placeholder regex forms: (...) and (?:...) =="
+# ══════════════════════════════════════════════
+# The hook matches in python re, which reads both group forms. It fed them to
+# grep -E, which printed "grep: warning: ? at start of expression" on every
+# Bash call for a (?:...) fragment (GNU grep) or never matched it (BSD grep).
+# Each case also asserts an empty stderr.
+# form_case LABEL silent|warn HOOK PAYLOAD
+form_case() {
+    local label="$1" want="$2" hook="$3" payload="$4" rc=0 pass=true
+    TOTAL=$((TOTAL + 1))
+    printf '%s' "$payload" | bash "$hook" >"$TMPDIR/out" 2>"$TMPDIR/err" || rc=$?
+    [ "$rc" -ne 0 ] && pass=false
+    if grep -q "LAYOUT WARN:" "$TMPDIR/out" 2>/dev/null; then
+        [ "$want" = "warn" ] || pass=false
+    else
+        [ "$want" = "silent" ] || pass=false
+    fi
+    [ -s "$TMPDIR/err" ] && pass=false
+    if $pass; then
+        echo "  PASS [$TOTAL]: $label"; PASS=$((PASS + 1))
+    else
+        echo "  FAIL [$TOTAL]: $label (want $want, exit $rc)"
+        echo "        stdout: $(head -c 200 "$TMPDIR/out")"
+        echo "        stderr: $(head -c 200 "$TMPDIR/err")"
+        FAIL=$((FAIL + 1))
+    fi
+}
+REC_WRITE=$(jq -n -c --arg p "$ART/recovery/thr1/a/b_c/context.md" --arg cwd "$ENG" '{tool_name:"Write",cwd:$cwd,tool_input:{file_path:$p}}')
+REC_BASH=$(jq -n -c --arg c "mkdir -p $ART/recovery/thr1/a/b_c && cp /tmp/n.md $ART/recovery/thr1/a/b_c/context.md" --arg cwd "$ENG" '{tool_name:"Bash",cwd:$cwd,tool_input:{command:$c}}')
+DRIFT_BASH=$(jq -n -c --arg c "mkdir -p $ART/monitoring/logs" --arg cwd "$ENG" '{tool_name:"Bash",cwd:$cwd,tool_input:{command:$c}}')
+for form in plain noncap; do
+    FORM_DIR="$TMPDIR/form-$form"
+    mkdir -p "$FORM_DIR"
+    cp -R "$PLUGIN/hooks" "$PLUGIN/scripts" "$FORM_DIR/"
+    cp "$HOOK" "$FORM_DIR/hooks/ammo-artifact-layout-warn.sh"
+    if [ "$form" = plain ]; then frag='[a-z0-9_]+(/[a-z0-9_]+)*'; else frag='[a-z0-9_]+(?:/[a-z0-9_]+)*'; fi
+    python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); m["placeholders"]["{task_path_without_leading_slash}"]=sys.argv[3]; json.dump(m, open(sys.argv[2],"w"))' \
+        "$MANIFEST" "$FORM_DIR/scripts/artifact_layout.json" "$frag"
+    FORM_HOOK="$FORM_DIR/hooks/ammo-artifact-layout-warn.sh"
+    form_case "$form form: recovery note Write is canonical, clean stderr" silent "$FORM_HOOK" "$REC_WRITE"
+    form_case "$form form: recovery note via Bash is canonical, clean stderr" silent "$FORM_HOOK" "$REC_BASH"
+    form_case "$form form: Bash drift still warns, clean stderr" warn "$FORM_HOOK" "$DRIFT_BASH"
+done
 
 # ══════════════════════════════════════════════
 echo ""; echo "== Out of scope =="

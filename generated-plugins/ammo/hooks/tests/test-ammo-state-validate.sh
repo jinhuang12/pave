@@ -1066,6 +1066,242 @@ run_bash_test "Read-only json.load + print (no write idiom) still ignored" 0 "fa
 
 # ══════════════════════════════════════════════════
 echo ""
+echo "== Bash: lead state writes through shell variables (live-campaign gap) =="
+# ══════════════════════════════════════════════════
+# A live campaign's lead wrote every state change through two shell variables:
+#   A=<engine>/.ammo/<id>; S="/mnt/ammo/scripts/ammo ammo_state.py"
+#   $S set --state $A/state.json ...; $S ingest-baseline --state $A/state.json --from ...
+# The path regex read `$A/state.json` as the relative path `A/state.json`,
+# nothing resolved, and the hook exited silently on every write. Also,
+# ingest-baseline and audit-started were not in the writer list. When no path
+# token resolves to an existing file, the hook now validates the found
+# campaign's own state.json.
+
+# The exact shape of the live lead command; $A and $S stay literal.
+LEAD_VARS="A=$ARTIFACT_DIR; "'S="/mnt/ammo/scripts/ammo ammo_state.py"'
+
+# _expect_snapshot NAME: the last hook run reached the validator. The hook
+# refreshes the PREV_STATE snapshot only after validate has run, and
+# run_bash_test clears it first, so a silent pass with a fresh snapshot equal
+# to the state file is a validated pass, not an early exit.
+_expect_snapshot() {
+    local snap
+    TOTAL=$((TOTAL + 1))
+    snap=$(ls "$AMMO_REMINDER_STATE_DIR"/ammo-state-prev-*.json 2>/dev/null | head -1 || true)
+    if [ -n "$snap" ] && cmp -s "$snap" "$STATE_FILE"; then
+        echo "  PASS [$TOTAL]: $1"; PASS=$((PASS + 1))
+    else
+        echo "  FAIL [$TOTAL]: $1 (no fresh PREV_STATE snapshot: the hook never validated)"; FAIL=$((FAIL + 1))
+    fi
+}
+
+# L1: the live set command on a valid state passes, and it was validated.
+write_state '.'
+run_bash_test "L1 \$S set --state \$A/state.json (valid) passes" 0 "false" \
+    "$LEAD_VARS"'; $S set --state $A/state.json --field campaign.current_round --value 1'
+_expect_snapshot "L1b \$S set --state \$A/state.json reached the validator"
+
+# L2: the same command blocks on a bad campaign.status.
+write_state '.campaign.status = "in_progress"'
+run_bash_test "L2 \$S set --state \$A/state.json (bad campaign.status) blocks" 0 "true" \
+    "$LEAD_VARS"'; $S set --state $A/state.json --field campaign.status --value in_progress' \
+    "is not one of"
+
+# L3-L4: ingest-baseline through a variable path.
+write_state '.campaign.status = "in_progress"'
+run_bash_test "L3 \$S ingest-baseline --state \$A/state.json (invalid) blocks" 0 "true" \
+    "$LEAD_VARS"'; $S ingest-baseline --state $A/state.json --from $A/rounds/1/baseline/e2e_latency_results.json' \
+    "is not one of"
+write_state '.'
+run_bash_test "L4 \$S ingest-baseline --state \$A/state.json (valid) passes" 0 "false" \
+    "$LEAD_VARS"'; $S ingest-baseline --state $A/state.json --from $A/rounds/1/baseline/e2e_latency_results.json'
+_expect_snapshot "L4b \$S ingest-baseline reached the validator"
+
+# L5: audit-started names the campaign by --artifact-dir, not by state.json.
+write_state '.campaign.status = "in_progress"'
+run_bash_test "L5 \$S audit-started --artifact-dir \$A (invalid) blocks" 0 "true" \
+    "$LEAD_VARS"'; $S audit-started --artifact-dir $A --stage stage_1 --round 1 --cycle 1' \
+    "is not one of"
+
+# L6-L7: braced, quoted and quote-split variable paths.
+write_state '.campaign.status = "in_progress"'
+run_bash_test "L6 --state \"\${A}/state.json\" (invalid) blocks" 0 "true" \
+    "$LEAD_VARS"'; $S set --state "${A}/state.json" --field campaign.current_round --value 1' \
+    "is not one of"
+write_state '.campaign.status = "in_progress"'
+run_bash_test "L7 --state \"\$A\"/state.json (quote split, invalid) blocks" 0 "true" \
+    "$LEAD_VARS"'; $S set --state "$A"/state.json --field campaign.current_round --value 1' \
+    "is not one of"
+
+# L8: a jq rewrite through the variable path (not ammo_state.py) blocks.
+write_state '.campaign.status = "in_progress"'
+run_bash_test "L8 jq > \$T && mv \$T \$A/state.json (invalid) blocks" 0 "true" \
+    "A=$ARTIFACT_DIR; T=\$(mktemp); jq '.campaign.status = \"in_progress\"' \$A/state.json > \$T && mv \$T \$A/state.json" \
+    "is not one of"
+
+# L9: python that joins the dir and the name: the bare state.json token does
+# not exist at the tool cwd, so it does not resolve.
+write_state '.campaign.status = "in_progress"'
+run_bash_test "L9 python os.path.join(A, 'state.json') + json.dump (invalid) blocks" 0 "true" \
+    "python3 - <<'PY'
+import json, os
+p = os.path.join(os.environ['A'], 'state.json')
+s = json.load(open(p)); json.dump(s, open(p, 'w'))
+PY" \
+    "is not one of"
+
+# L10-L11: a literal path to an existing state.json outside the campaign still
+# names that file: no fallback, no block on the invalid campaign state.
+write_state '.campaign.status = "in_progress"'
+mkdir -p "$TMPDIR/other"
+base_v2 > "$TMPDIR/other/state.json"
+run_bash_test "L10 jq rewrite of an existing outside state.json (absolute) is ignored" 0 "false" \
+    "jq '.x = 1' $TMPDIR/other/state.json > /tmp/x.json && mv /tmp/x.json $TMPDIR/other/state.json"
+run_bash_test "L11 jq rewrite of an existing outside state.json (relative) is ignored" 0 "false" \
+    "jq '.x = 1' other/state.json > /tmp/x.json && mv /tmp/x.json other/state.json"
+
+# L12: a variable path still wins over an outside file in the same command: a
+# restore into \$A must not hide behind the literal source path.
+write_state '.campaign.status = "in_progress"'
+run_bash_test "L12 cp <outside state.json> \$A/state.json (invalid) blocks" 0 "true" \
+    "A=$ARTIFACT_DIR; cp $TMPDIR/other/state.json \$A/state.json" \
+    "is not one of"
+rm -rf "$TMPDIR/other"
+
+# L13: reads through the variable path stay ignored.
+write_state '.campaign.status = "in_progress"'
+run_bash_test "L13 cat \$A/state.json | jq (read) is ignored" 0 "false" \
+    "A=$ARTIFACT_DIR; cat \$A/state.json | jq .campaign.status"
+
+# L14: outside a campaign the variable form stays silent. TMPDIR here is the
+# engine root (and exported on macOS), so the scratch dir is made under /tmp.
+NOCAMP=$(TMPDIR=/tmp mktemp -d)
+TOTAL=$((TOTAL + 1))
+_clear_prev_snapshot
+actual_exit=0
+jq -c -n --arg cmd "A=$NOCAMP/x; "'S="/mnt/ammo/scripts/ammo ammo_state.py"; $S set --state $A/state.json --field a --value 1' \
+    --arg cwd "$NOCAMP" '{"tool_input": {"command": $cmd}, "cwd": $cwd}' | \
+    (cd "$NOCAMP" && bash "$HOOK") >"$TMPDIR/hook-stdout" 2>"$TMPDIR/hook-stderr" || actual_exit=$?
+if [ "$actual_exit" -eq 0 ] && [ ! -s "$TMPDIR/hook-stdout" ]; then
+    echo "  PASS [$TOTAL]: L14 \$S set outside a campaign is silent"; PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: L14 \$S set outside a campaign is silent"
+    echo "        stdout: $(cat "$TMPDIR/hook-stdout")"; FAIL=$((FAIL + 1))
+fi
+rm -rf "$NOCAMP"
+
+# ══════════════════════════════════════════════════
+echo ""
+echo "== Bash: every ammo_state.py subcommand, derived from the engine =="
+# ══════════════════════════════════════════════════
+# The writer verbs are not a hand list. This reads scripts/ammo_state.py with
+# the python ast module: a subcommand writes when its handler reaches a call
+# that replaces, renames or writes a file (atomic_write today). Each writer
+# must make the hook validate (invalid state blocks); each reader must not.
+# A new mutating subcommand that the hook does not treat as a write fails here.
+VERBS_PY="$TMPDIR/state_verbs.py"
+cat > "$VERBS_PY" <<'PY'
+import ast, sys
+tree = ast.parse(open(sys.argv[1], encoding="utf-8").read())
+funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+
+def is_sink_call(c):
+    f = c.func
+    if isinstance(f, ast.Attribute):
+        if f.attr in ("write_text", "write_bytes"):
+            return True
+        if isinstance(f.value, ast.Name) and f.value.id == "os":
+            if f.attr in ("replace", "rename"):
+                return True
+            if f.attr == "fdopen":
+                return any(isinstance(a, ast.Constant) and isinstance(a.value, str)
+                           and a.value[:1] in "wax" for a in c.args[1:2])
+    if isinstance(f, ast.Name) and f.id == "open":
+        mode = c.args[1] if len(c.args) > 1 else next(
+            (k.value for k in c.keywords if k.arg == "mode"), None)
+        return (isinstance(mode, ast.Constant) and isinstance(mode.value, str)
+                and mode.value[:1] in "wax")
+    return False
+
+graph, sinks = {}, set()
+for name, fn in funcs.items():
+    refs = set()
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Call) and is_sink_call(n):
+            sinks.add(name)
+        if isinstance(n, ast.Name) and n.id in funcs:
+            refs.add(n.id)
+    graph[name] = refs
+
+def writes(start):
+    seen, stack = set(), [start]
+    while stack:
+        x = stack.pop()
+        if x in seen:
+            continue
+        seen.add(x)
+        if x in sinks:
+            return True
+        stack.extend(graph.get(x, ()))
+    return False
+
+bp = funcs["build_parser"]
+var_verb, verb_func, verb_args = {}, {}, {}
+for n in ast.walk(bp):
+    if (isinstance(n, ast.Assign) and isinstance(n.value, ast.Call)
+            and isinstance(n.value.func, ast.Attribute) and n.value.func.attr == "add_parser"):
+        var_verb[n.targets[0].id] = n.value.args[0].value
+for n in ast.walk(bp):
+    if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+            and isinstance(n.func.value, ast.Name) and n.func.value.id in var_verb):
+        verb = var_verb[n.func.value.id]
+        if n.func.attr == "set_defaults":
+            for kw in n.keywords:
+                if kw.arg == "func":
+                    verb_func[verb] = kw.value.id
+        elif n.func.attr == "add_argument" and n.args and isinstance(n.args[0], ast.Constant):
+            verb_args.setdefault(verb, []).append(n.args[0].value)
+for verb in sorted(var_verb.values()):
+    args = verb_args.get(verb, [])
+    form = "state" if "--state" in args else ("artifact-dir" if "--artifact-dir" in args else "target")
+    print(verb, "write" if writes(verb_func[verb]) else "read", form)
+PY
+VERB_TABLE=$(python3 "$VERBS_PY" "$PLUGIN_SRC/scripts/ammo_state.py" 2>&1) || VERB_TABLE=""
+
+# Sanity: the parse found the known writers and readers, so the loop below
+# cannot pass on an empty table.
+TOTAL=$((TOTAL + 1))
+if printf '%s\n' "$VERB_TABLE" | grep -qx 'set write state' \
+    && printf '%s\n' "$VERB_TABLE" | grep -qx 'ingest-baseline write state' \
+    && printf '%s\n' "$VERB_TABLE" | grep -qx 'audit-started write artifact-dir' \
+    && printf '%s\n' "$VERB_TABLE" | grep -qx 'get read target' \
+    && printf '%s\n' "$VERB_TABLE" | grep -qx 'validate read state'; then
+    echo "  PASS [$TOTAL]: D0 ammo_state.py subcommand table derived ($(printf '%s\n' "$VERB_TABLE" | wc -l | tr -d ' ') verbs)"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: D0 ammo_state.py subcommand table: $VERB_TABLE"
+    FAIL=$((FAIL + 1))
+fi
+
+while read -r _verb _kind _form; do
+    [ -n "$_verb" ] || continue
+    case "$_form" in
+        state)        _args='--state $A/state.json' ;;
+        artifact-dir) _args='--artifact-dir $A' ;;
+        *)            _args='$A/state.json' ;;
+    esac
+    write_state '.campaign.status = "in_progress"'
+    if [ "$_kind" = "write" ]; then
+        run_bash_test "D $_verb (writer) through \$S validates (invalid blocks)" 0 "true" \
+            "$LEAD_VARS; \$S $_verb $_args" "is not one of"
+    else
+        run_bash_test "D $_verb (reader) through \$S is ignored" 0 "false" \
+            "$LEAD_VARS; \$S $_verb $_args"
+    fi
+done <<< "$VERB_TABLE"
+
+# ══════════════════════════════════════════════════
+echo ""
 echo "== P4#6: fail-CLOSED validation (default-on; decision:block; escape hatch) =="
 # ══════════════════════════════════════════════════
 # These pin the Phase-4 flip: when validation CANNOT run (missing python3/engine,

@@ -10,6 +10,17 @@
 # (<engine>/.ammo/<campaign-id>/, realpath containment via ammo_in_campaign) is
 # validated. The schema is the plugin's own schemas/state.schema.json. Outside
 # a campaign the hook exits 0 and prints nothing.
+#
+# Bash path tokens: a state.json token that names the campaign's state.json is
+# validated. A token that names an existing state.json elsewhere is another
+# file. A token that does not resolve (a shell variable such as $A/state.json,
+# or a relative name that does not exist at the tool cwd) makes the hook
+# validate the found campaign's own <campaign dir>/state.json, because the
+# command may have written it. A live lead wrote every state change as
+# `S="<plugin>/scripts/ammo ammo_state.py"; $S set --state $A/state.json`.
+#
+# ammo_state.py writers are derived from the engine, not listed here: every
+# subcommand in its build_parser except the read-only STATE_READ_VERBS.
 set -euo pipefail
 trap 'exit 0' ERR
 
@@ -45,6 +56,27 @@ _campaign_state() {
     [ "${1##*/}" = "state.json" ] && ammo_in_campaign "$1"
 }
 
+# The ammo_state.py subcommands that never write state. Every other
+# subcommand in the engine's build_parser counts as a writer, so a new
+# subcommand is a writer until it is listed here. The harness checks this
+# list against the engine's own write calls (python ast).
+STATE_READ_VERBS=" get validate next-step "
+
+# _state_cli_writes CMD: true when CMD calls an ammo_state.py writer. The verb
+# may follow the script name or a variable that holds it ($S set ...), so any
+# whole word after the first ammo_state.py counts.
+_state_cli_writes() {
+    local engine="$PLUGIN_ROOT/scripts/ammo_state.py" verb words
+    [ -f "$engine" ] || return 1
+    words=" $(printf '%s' "${1#*ammo_state.py}" | tr -cs 'A-Za-z0-9_-' ' ') "
+    while IFS= read -r verb; do
+        [ -n "$verb" ] || continue
+        case "$STATE_READ_VERBS" in *" $verb "*) continue ;; esac
+        case "$words" in *" $verb "*) return 0 ;; esac
+    done < <(grep -oE 'add_parser\("[a-z][a-z0-9-]*"' "$engine" | sed -E 's/^add_parser\("//; s/"$//')
+    return 1
+}
+
 # No python3 means no campaign lookup (the helper is fail-open). The
 # fail-closed branch below must still fire for a write to a campaign's own
 # state.json, so this one case reads the marker contract directly:
@@ -71,11 +103,24 @@ if [ -z "$FILE_PATH" ]; then
     [ -z "$COMMAND" ] && exit 0
 
     # Fast filter: bail unless the command names state.json, or names a
-    # first-party writer that resolves the path itself from --artifact-dir.
+    # first-party writer (it may name the campaign by --artifact-dir only).
     case "$COMMAND" in
         *state.json*) ;;
+        *'ammo_state.py'*) ;;
         *'reconcile_track_state.py'*) ;;
         *) exit 0;;
+    esac
+
+    # First-party writers: an ammo_state.py writer subcommand, or
+    # reconcile_track_state.py --write, the canonical per-track lead write
+    # path (parallel-tracks.md § Track State Reconciliation). The Codex twin
+    # (post_tool_use_guard.py:_first_party_state_paths) covers both.
+    FIRST_PARTY=false
+    case "$COMMAND" in
+        *'ammo_state.py'*) if _state_cli_writes "$COMMAND"; then FIRST_PARTY=true; fi ;;
+    esac
+    case "$COMMAND" in
+        *'reconcile_track_state.py'*'--write'*) FIRST_PARTY=true ;;
     esac
 
     # Exclude read-only commands (cat, grep, jq without redirect, head, tail, etc.)
@@ -104,48 +149,72 @@ if [ -z "$FILE_PATH" ]; then
         *'NamedTemporaryFile'*|*'mkstemp'*) LOOKS_LIKE_WRITE=true;;
         *'shutil.move'*|*'shutil.copy'*) LOOKS_LIKE_WRITE=true;;
         *'write_text'*|*'write_bytes'*) LOOKS_LIKE_WRITE=true;;
-        *'ammo_state.py'*' set '*|*'ammo_state.py'*' advance'*|*'ammo_state.py'*' enrich'*|*'ammo_state.py'*' backfill'*) LOOKS_LIKE_WRITE=true;;
-        # reconcile_track_state.py --write is the canonical per-track lead write
-        # path (parallel-tracks.md § Track State Reconciliation). It reached
-        # state.json completely unvalidated until this arm existed; the Codex
-        # twin (post_tool_use_guard.py:_first_party_state_paths) already had it.
-        *'reconcile_track_state.py'*'--write'*) LOOKS_LIKE_WRITE=true;;
     esac
+    [ "$FIRST_PARTY" = "true" ] && LOOKS_LIKE_WRITE=true
     [ "$LOOKS_LIKE_WRITE" = "false" ] && exit 0
 
     # Outside a campaign there is no campaign state.json to validate.
     _find_campaign "$INPUT" || exit 0
 
-    # Extract the actual target path from the command: the first state.json
-    # token (absolute, relative to the tool cwd, or $AMMO_ARTIFACT_DIR-prefixed)
-    # that resolves inside the campaign dir. Path chars include those inside
-    # quotes (Python open('path/state.json','w')).
+    # Path tokens: every state.json path in the command (absolute, relative to
+    # the tool cwd, or behind a variable such as $A, ${A}, $AMMO_ARTIFACT_DIR;
+    # path chars include those inside quotes, as in open('p/state.json','w')).
+    # A first-party writer's --artifact-dir X adds X/state.json (the Codex
+    # twin's `_resolve_payload_path(...) / "state.json"`); both `--artifact-dir X`
+    # and `--artifact-dir=X`, optionally quoted.
+    _TOKENS=$(printf '%s\n' "$COMMAND" | grep -oE '(\$\{?[A-Za-z_][A-Za-z0-9_]*\}?)?[A-Za-z0-9_./-]*state\.json' || true)
+    UNRESOLVED=0
+    if [ "$FIRST_PARTY" = "true" ]; then
+        while IFS= read -r _AD; do
+            [ -n "$_AD" ] || continue
+            _AD=$(printf '%s' "$_AD" | sed -E 's/^--artifact-dir[= ]+["'"'"']?//')
+            if [ -z "$_AD" ]; then
+                UNRESOLVED=1    # a value the regex cannot read, such as $(...)
+            else
+                _TOKENS="$_TOKENS
+${_AD%/}/state.json"
+            fi
+        done < <(printf '%s\n' "$COMMAND" | grep -oE -- '--artifact-dir[= ]+["'"'"']?(\$\{?[A-Za-z_][A-Za-z0-9_]*\}?)?[A-Za-z0-9_./-]*' || true)
+    fi
+
+    # Classify each token whose file name is exactly state.json:
+    #   inside the campaign                -> EXTRACTED (the first one wins)
+    #   an absolute path outside it        -> another file, skipped
+    #   a relative path that exists        -> another file, skipped
+    #   a variable; a relative path that does not exist at the tool cwd (the
+    #   command may cd first); or exactly /state.json (its prefix was lost to
+    #   a quote, a brace or $(...), as in "$A"/state.json) -> UNRESOLVED
     EXTRACTED=""
+    HAS_TOKEN=false
     while IFS= read -r _tok; do
         [ -n "$_tok" ] || continue
         _cand=$(_abs "$_tok")
-        if _campaign_state "$_cand"; then EXTRACTED="$_cand"; break; fi
-    done < <(printf '%s\n' "$COMMAND" | grep -oE '(\$\{?AMMO_ARTIFACT_DIR\}?)?[A-Za-z0-9_./-]*state\.json' || true)
-
-    # reconcile_track_state.py takes --artifact-dir, not a state.json path, so
-    # derive state.json from the dir (matching the Codex twin's
-    # `_resolve_payload_path(...) / "state.json"`). Both `--artifact-dir X` and
-    # `--artifact-dir=X` spellings.
-    if [ -z "$EXTRACTED" ]; then
-        case "$COMMAND" in
-            *'reconcile_track_state.py'*)
-                _AD=$(echo "$COMMAND" | grep -oE -- '--artifact-dir[= ]+(\$\{?AMMO_ARTIFACT_DIR\}?)?[A-Za-z0-9_./-]*' | head -1 | sed -E 's/^--artifact-dir[= ]+//') || true
-                if [ -n "$_AD" ]; then
-                    _cand="$(_abs "$_AD")"
-                    _cand="${_cand%/}/state.json"
-                    _campaign_state "$_cand" && EXTRACTED="$_cand"
-                fi
-                ;;
+        [ "${_cand##*/}" = "state.json" ] || continue
+        HAS_TOKEN=true
+        case "$_cand" in
+            *'$'*|*'{'*|*'}'*) UNRESOLVED=1; continue ;;
         esac
-    fi
+        if [ "$_tok" = "/state.json" ]; then UNRESOLVED=1; continue; fi
+        if _campaign_state "$_cand"; then EXTRACTED="$_cand"; break; fi
+        case "$_tok" in
+            /*) continue ;;
+        esac
+        if [ ! -e "$_cand" ]; then UNRESOLVED=1; fi
+    done <<< "$_TOKENS"
 
-    # Command mentions state.json + looks like a write but names no state.json
-    # inside the campaign: an unrelated state.json write. Bail.
+    # No token names the campaign's state.json. When a token does not resolve,
+    # or a first-party writer named no path, the command may have written the
+    # campaign's state: validate the found campaign's own state.json. A token
+    # that does not resolve wins over an outside file in the same command (a
+    # restore such as `cp /backup/state.json $A/state.json`). Otherwise every
+    # token names another file: an unrelated write. Bail.
+    if [ -z "$EXTRACTED" ]; then
+        if [ "$UNRESOLVED" = 1 ]; then
+            EXTRACTED="${AMMO_ARTIFACT_DIR%/}/state.json"
+        elif [ "$FIRST_PARTY" = "true" ] && [ "$HAS_TOKEN" = "false" ]; then
+            EXTRACTED="${AMMO_ARTIFACT_DIR%/}/state.json"
+        fi
+    fi
     [ -n "$EXTRACTED" ] || exit 0
     FILE_PATH="$EXTRACTED"
     [ -f "$FILE_PATH" ] || exit 0

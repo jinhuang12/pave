@@ -442,6 +442,52 @@ def test_main_drops_the_active_campaign_env_before_reading_env(in_process, monke
     assert "serving_manifest" not in target
 
 
+def _deps_message(missing: str, engine: Path) -> str:
+    return (f"engine python {sys.executable} lacks {missing}; the plugin needs these "
+            "packages in the engine venv: httpx, jsonschema, psutil, pydantic, pyyaml; run "
+            f"`scripts/ammo preflight_pumice.py --engine-root {engine}` for the full check")
+
+
+def test_engine_python_without_jsonschema_exits_2_and_writes_nothing(in_process, monkeypatch,
+                                                                     capsys):
+    engine, run = in_process
+    monkeypatch.setitem(sys.modules, "jsonschema", None)
+    assert run() == 2
+    err = " ".join(capsys.readouterr().err.split())
+    assert _deps_message("'jsonschema'", engine) in err
+    assert "cannot validate" not in err
+    assert not (engine / ".ammo").exists()
+
+
+def test_serving_scaffold_also_needs_pydantic(in_process, monkeypatch, capsys, tmp_path):
+    engine, run = in_process
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+    for name in ("jsonschema", "pydantic"):
+        monkeypatch.setitem(sys.modules, name, None)
+    monkeypatch.setattr(sys, "argv", ["new_target.py", "--serving-manifest", str(manifest)])
+    with pytest.raises(SystemExit) as exc:
+        new_target.main()
+    assert exc.value.code == 2
+    err = " ".join(capsys.readouterr().err.split())
+    assert _deps_message("'jsonschema', 'pydantic'", engine) in err
+    assert not (engine / ".ammo").exists()
+
+
+def test_bare_engine_python_scaffold_names_the_venv(tmp_path):
+    """The smoke defect: a subprocess scaffold whose interpreter has no jsonschema."""
+    engine = _git_repo(tmp_path / "pumice")
+    shim = ("import runpy, sys; sys.modules['jsonschema'] = None; "
+            f"sys.path.insert(0, {str(_SCRIPTS)!r}); "
+            f"sys.argv = [{str(_NEW_TARGET)!r}] + sys.argv[1:]; "
+            f"runpy.run_path({str(_NEW_TARGET)!r}, run_name='__main__')")
+    result = subprocess.run([sys.executable, "-c", shim, *_BASE_ARGS], cwd=str(engine),
+                            capture_output=True, text=True, env=_plain_env())
+    assert result.returncode == 2
+    assert _deps_message("'jsonschema'", engine) in " ".join(result.stderr.split())
+    assert not (engine / ".ammo").exists()
+
+
 def test_a_refused_profile_writes_nothing(in_process, monkeypatch):
     engine, run = in_process
 

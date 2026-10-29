@@ -707,3 +707,73 @@ def test_conftest_deselects_neuron_and_gpu_by_default(tmp_path):
     assert code == 0 and "1 passed, 2 deselected" in summary, summary
     code, summary = outcome("-m", "neuron or requires_gpu or not neuron")
     assert code == 0 and "3 passed" in summary, summary
+
+
+# --------------------------------------------------------------------------- plugin python deps
+
+#: Third-party imports the engine stack owns. Preflight checks pumice and
+#: pumice_rust; the rest come with Pumice's own dependencies.
+ENGINE_OWNED = frozenset({
+    "pumice", "pumice_pb", "vllm", "torch", "transformers", "grpc", "numpy", "huggingface_hub",
+})
+#: Imports behind an ImportError fallback: runtime_ops reads a Neuron parquet
+#: profile with pyarrow, else pandas, else it names both.
+OPTIONAL = frozenset({"pyarrow", "pandas"})
+
+
+def _top_imports(source: str) -> set:
+    import ast
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            names.add(node.module.split(".")[0])
+    return names
+
+
+def _third_party_imports() -> set:
+    """Top-level imports in scripts/*.py, scripts/ammo and the inline Python of hooks/*.sh."""
+    local = {path.stem for path in SCRIPTS.glob("*.py")}
+    found = set()
+    for path in [*sorted(SCRIPTS.glob("*.py")), SCRIPTS / "ammo"]:
+        found |= _top_imports(path.read_text(encoding="utf-8"))
+    for path in sorted((R / "hooks").glob("*.sh")):
+        text = path.read_text(encoding="utf-8")
+        for match in re.finditer(r"<<-?\s*['\"]?(\w+)['\"]?\n(.*?)\n\s*\1\b", text, re.S):
+            found |= _top_imports(match.group(2))
+        for match in re.finditer(r"python3?\S*\s+-c\s+(['\"])(.*?)(?<!\\)\1", text, re.S):
+            found |= _top_imports(match.group(2))
+    return {name for name in found
+            if name not in sys.stdlib_module_names and name not in local and name != "__future__"}
+
+
+def test_plugin_python_deps_match_the_imports():
+    found = _third_party_imports()
+    assert set(cp.PLUGIN_PYTHON_DEPS) == found - ENGINE_OWNED - OPTIONAL
+    assert not (ENGINE_OWNED | OPTIONAL) - found, "stale exclusion: no script imports it"
+    assert list(cp.PLUGIN_PYTHON_DEPS) == sorted(set(cp.PLUGIN_PYTHON_DEPS))
+
+
+def test_plugin_pip_names_use_the_distribution_name():
+    assert cp.plugin_pip_names() == ["httpx", "jsonschema", "psutil", "pydantic", "pyyaml"]
+    assert cp.plugin_pip_names(["yaml"]) == ["pyyaml"]
+
+
+def test_install_hint_gives_pip_and_uv_forms():
+    hint = cp.plugin_deps_hint("/e/.venv/bin/python", ["yaml", "jsonschema"])
+    assert "/e/.venv/bin/python -m pip install pyyaml jsonschema" in hint
+    assert "uv pip install --python /e/.venv/bin/python pyyaml jsonschema" in hint
+
+
+def test_readme_lists_every_plugin_python_dep():
+    readme = (R / "README.md").read_text(encoding="utf-8")
+    assert "Python packages the plugin needs in the engine venv" in readme
+    for name in cp.plugin_pip_names():
+        assert f"`{name}`" in readme, name
+    assert f"<checkout>/.venv/bin/python -m pip install {' '.join(cp.plugin_pip_names())}" in readme

@@ -96,7 +96,7 @@ Then seed the revision folder (step 7 below).
 
 ## 3. What you build before the first campaign
 
-The plugin does not build the engine. Preflight checks the first five items
+The plugin does not build the engine. Preflight checks the first six items
 below and pauses the campaign, naming the gap, when one is missing.
 
 | Item | What it must be |
@@ -105,9 +105,21 @@ below and pauses the campaign, naming the gap, when one is missing.
 | Pumice checkout | at the commit `scripts/pumice_pins.py` pins; the campaign runs inside it |
 | Rust build | `cargo build --release` done in that checkout |
 | Engine venv | default `<checkout>/.venv`, with `pumice` and `pumice_rust` importable |
+| Plugin packages | the Python packages below, importable from the engine venv |
 | Model weights | a plain model directory that holds `config.json` (not the HF cache layout) |
 | Python | 3.11 or later for the plugin scripts |
 | Test battery | `uv`, or `pytest`, `pyyaml`, `jsonschema`, `pydantic`, `httpx`, `numpy` |
+
+Python packages the plugin needs in the engine venv: `httpx`, `jsonschema`,
+`psutil`, `pydantic`, `pyyaml`. The plugin scripts run with the engine python,
+so these must be in the engine venv. Install them with:
+
+```bash
+<checkout>/.venv/bin/python -m pip install httpx jsonschema psutil pydantic pyyaml
+```
+
+A venv that uv made has no pip. For it, run
+`uv pip install --python <checkout>/.venv/bin/python httpx jsonschema psutil pydantic pyyaml`.
 
 Check the venv by hand with
 `<checkout>/.venv/bin/python -c "import pumice, pumice_rust"`. The model and

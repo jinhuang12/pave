@@ -25,6 +25,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import os
 import secrets
@@ -794,6 +795,32 @@ def _require_supported_profile(profile: str, p: argparse.ArgumentParser) -> None
         p.error(str(exc))
 
 
+def _require_plugin_modules(names: List[str], args: argparse.Namespace,
+                            p: argparse.ArgumentParser) -> None:
+    """Exit 2 naming the engine python when one of the plugin's packages is missing.
+
+    scripts/ammo runs this script with the engine python, so the engine venv
+    must carry campaign_paths.PLUGIN_PYTHON_DEPS (README section 3). This runs
+    before anything is written.
+    """
+    missing = []
+    for name in names:
+        try:
+            importlib.import_module(name)
+        except ImportError:
+            missing.append(name)
+    if not missing:
+        return
+    engine = (Path(args.engine_root).expanduser().resolve() if args.engine_root
+              else _git_toplevel(Path.cwd()))
+    preflight = "scripts/ammo preflight_pumice.py" + (f" --engine-root {engine}" if engine else "")
+    p.error(
+        f"engine python {sys.executable} lacks {', '.join(repr(n) for n in missing)}; "
+        "the plugin needs these packages in the engine venv: "
+        f"{', '.join(campaign_paths.plugin_pip_names())}; run `{preflight}` for the full check"
+    )
+
+
 def _drop_active_campaign_env() -> None:
     """Undo the launcher's campaign_paths.apply_env() before any env read.
 
@@ -913,6 +940,8 @@ def main() -> None:
         if args.serving_manifest and Path(args.serving_manifest).resolve() != Path(assigned).resolve():
             p.error("a P/D campaign must use the AMMO_SERVING_MANIFEST manifest")
         args.serving_manifest = assigned
+    _require_plugin_modules(["jsonschema"] + (["pydantic"] if args.serving_manifest else []),
+                            args, p)
     serving_spec = None
     serving_manifest_path = None
     if args.serving_manifest:
@@ -1046,10 +1075,7 @@ def main() -> None:
         target.pop("workload", None)
         target.pop("bench", None)
         target.pop("gating", None)
-    try:
-        from jsonschema import Draft202012Validator
-    except ImportError as exc:
-        p.error(f"cannot validate generated state against schema: {exc}")
+    from jsonschema import Draft202012Validator  # _require_plugin_modules checked it
     schema = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
     errors = sorted(
         Draft202012Validator(schema).iter_errors(state),

@@ -3012,3 +3012,186 @@ def test_prefixed_auditor_gets_phase2_and_cannot_stop_without_it(tmp_path):
 
     blocked = _run_hook("post_tool_use_guard.py", dict(base, hook_event_name="SubagentStop"), env)
     assert json.loads(blocked.stdout)["decision"] == "block"
+
+
+# ---------------------------------------------------------------------------
+# ammo_state.py writers, derived from the engine. The Codex hook takes every
+# build_parser subcommand except its read-only STATE_READ_VERBS as a writer
+# (the Claude twin's rule, hooks/ammo-state-validate.sh). The table below is
+# read from the engine with ast, the hooks/tests/test-ammo-state-validate.sh D0
+# rule: a subcommand writes when its handler reaches a file write, replace or
+# rename. A new mutating subcommand the hook misses fails here.
+# ---------------------------------------------------------------------------
+
+import ast  # noqa: E402
+
+ENGINE = ROOT / "scripts" / "ammo_state.py"
+
+
+def _engine_verb_table() -> dict[str, tuple[bool, str]]:
+    """verb -> (writes, path form), read from scripts/ammo_state.py."""
+    tree = ast.parse(ENGINE.read_text(encoding="utf-8"))
+    funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+
+    def is_sink(call):
+        f = call.func
+        if isinstance(f, ast.Attribute):
+            if f.attr in ("write_text", "write_bytes"):
+                return True
+            if isinstance(f.value, ast.Name) and f.value.id == "os":
+                if f.attr in ("replace", "rename"):
+                    return True
+                if f.attr == "fdopen":
+                    return any(isinstance(a, ast.Constant) and isinstance(a.value, str)
+                               and a.value[:1] in "wax" for a in call.args[1:2])
+        if isinstance(f, ast.Name) and f.id == "open":
+            mode = call.args[1] if len(call.args) > 1 else next(
+                (k.value for k in call.keywords if k.arg == "mode"), None)
+            return (isinstance(mode, ast.Constant) and isinstance(mode.value, str)
+                    and mode.value[:1] in "wax")
+        return False
+
+    graph, sinks = {}, set()
+    for name, fn in funcs.items():
+        refs = set()
+        for n in ast.walk(fn):
+            if isinstance(n, ast.Call) and is_sink(n):
+                sinks.add(name)
+            if isinstance(n, ast.Name) and n.id in funcs:
+                refs.add(n.id)
+        graph[name] = refs
+
+    def writes(start):
+        seen, stack = set(), [start]
+        while stack:
+            x = stack.pop()
+            if x in seen:
+                continue
+            seen.add(x)
+            if x in sinks:
+                return True
+            stack.extend(graph.get(x, ()))
+        return False
+
+    parser = funcs["build_parser"]
+    var_verb, verb_func, verb_args = {}, {}, {}
+    for n in ast.walk(parser):
+        if (isinstance(n, ast.Assign) and isinstance(n.value, ast.Call)
+                and isinstance(n.value.func, ast.Attribute) and n.value.func.attr == "add_parser"):
+            var_verb[n.targets[0].id] = n.value.args[0].value
+    for n in ast.walk(parser):
+        if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                and isinstance(n.func.value, ast.Name) and n.func.value.id in var_verb):
+            verb = var_verb[n.func.value.id]
+            if n.func.attr == "set_defaults":
+                for kw in n.keywords:
+                    if kw.arg == "func":
+                        verb_func[verb] = kw.value.id
+            elif n.func.attr == "add_argument" and n.args and isinstance(n.args[0], ast.Constant):
+                verb_args.setdefault(verb, []).append(n.args[0].value)
+    table = {}
+    for verb in var_verb.values():
+        args = verb_args.get(verb, [])
+        form = "state" if "--state" in args else ("artifact-dir" if "--artifact-dir" in args else "target")
+        table[verb] = (writes(verb_func[verb]), form)
+    return table
+
+
+ENGINE_VERBS = _engine_verb_table()
+ENGINE_WRITERS = sorted(verb for verb, (writes, _) in ENGINE_VERBS.items() if writes)
+
+
+def test_engine_verb_table_finds_the_known_writers_and_readers():
+    # Sanity: the parse cannot pass the checks below on an empty table.
+    assert ENGINE_VERBS["set"] == (True, "state")
+    assert ENGINE_VERBS["ingest-baseline"] == (True, "state")
+    assert ENGINE_VERBS["audit-started"] == (True, "artifact-dir")
+    assert ENGINE_VERBS["get"] == (False, "target")
+    assert ENGINE_VERBS["validate"] == (False, "state")
+
+
+def test_codex_writer_verbs_cover_every_mutating_engine_subcommand():
+    common = _common_module()
+    hook_writers = common.state_writer_verbs()
+    missing = sorted(set(ENGINE_WRITERS) - hook_writers)
+    assert not missing, f"the Codex hook does not treat these ammo_state.py writers as writes: {missing}"
+    readers = {verb for verb, (writes, _) in ENGINE_VERBS.items() if not writes}
+    wrong = sorted(common.STATE_READ_VERBS - readers)
+    assert not wrong, f"STATE_READ_VERBS lists subcommands that write: {wrong}"
+
+
+def _invalid_campaign(tmp_path):
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    state_path = artifact / "state.json"
+    doc = json.loads(state_path.read_text(encoding="utf-8"))
+    doc["campaign"]["status"] = "in_progress"  # not in the schema enum
+    state_path.write_text(json.dumps(doc), encoding="utf-8")
+    # The hook must not learn the campaign from AMMO_ARTIFACT_DIR expansion.
+    return repo, artifact, _env(repo, artifact)
+
+
+def _engine_args(form: str) -> str:
+    return {"state": "--state $A/state.json", "artifact-dir": "--artifact-dir $A"}.get(form, "$A/state.json")
+
+
+@pytest.mark.parametrize("verb", ENGINE_WRITERS)
+@pytest.mark.parametrize("launcher", ["variable", "explicit"])
+def test_every_engine_writer_makes_the_codex_hook_validate(tmp_path, verb, launcher):
+    # The live lead shape: A=<campaign>; S="<plugin>/scripts/ammo ammo_state.py"; $S <verb> ...
+    repo, artifact, env = _invalid_campaign(tmp_path)
+    args = _engine_args(ENGINE_VERBS[verb][1])
+    if launcher == "variable":
+        command = f'A={artifact}; S="{ROOT}/scripts/ammo ammo_state.py"; $S {verb} {args}'
+    else:
+        command = f"A={artifact}; python3 {ENGINE} {verb} {args}"
+
+    result = _run_hook(
+        "post_tool_use_guard.py",
+        {"cwd": str(repo), "tool_name": "Bash", "tool_input": {"command": command}},
+        env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert '"decision":"block"' in result.stdout.replace(" ", ""), result.stdout + result.stderr
+    assert "is not one of" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "state_arg",
+    ["$A/state.json", "${A}/state.json", '"$A"/state.json', "state.json"],
+    ids=["dollar", "braced", "quoted-prefix", "relative-after-cd"],
+)
+def test_unresolved_state_path_falls_back_to_the_campaign_state(tmp_path, state_arg):
+    repo, artifact, env = _invalid_campaign(tmp_path)
+    command = (
+        f"A={artifact}; cd $A && python3 {ENGINE} set --state {state_arg} "
+        "--field campaign.current_round --value 1"
+    )
+
+    result = _run_hook(
+        "post_tool_use_guard.py",
+        {"cwd": str(repo), "tool_name": "Bash", "tool_input": {"command": command}},
+        env,
+    )
+
+    assert '"decision":"block"' in result.stdout.replace(" ", ""), result.stdout + result.stderr
+    assert "is not one of" in result.stdout
+
+
+def test_resolved_outside_state_path_does_not_pull_in_the_campaign_state(tmp_path):
+    # Negative control: an existing state.json outside the campaign is another file.
+    repo, _, env = _invalid_campaign(tmp_path)
+    other = tmp_path / "elsewhere" / "state.json"
+    other.parent.mkdir()
+    other.write_text("{}", encoding="utf-8")
+    command = f"python3 {ENGINE} set --state {other} --field campaign.current_round --value 1"
+
+    result = _run_hook(
+        "post_tool_use_guard.py",
+        {"cwd": str(repo), "tool_name": "Bash", "tool_input": {"command": command}},
+        env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert '"decision":"block"' not in result.stdout.replace(" ", ""), result.stdout

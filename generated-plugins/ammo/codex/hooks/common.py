@@ -77,6 +77,33 @@ def role_markers():
         if not docs: docs.add('agents/'+role+'.md')
     _ROLE_MARKERS={role:(frozenset(docs),frozenset(names)) for role,(docs,names) in found.items()}
     return _ROLE_MARKERS
+# The ammo_state.py subcommands that never write state (the Claude twin's
+# STATE_READ_VERBS in hooks/ammo-state-validate.sh). Every other subcommand in
+# the engine's build_parser counts as a writer, so a new subcommand is a writer
+# until it is listed here. tests/test_hook_semantics.py checks this list
+# against the engine's own write calls (python ast).
+STATE_READ_VERBS=frozenset({'get','validate','next-step'})
+_STATE_WRITER_VERBS=None
+def state_writer_verbs():
+    """The ammo_state.py writer subcommands, read from the engine's build_parser."""
+    global _STATE_WRITER_VERBS
+    if _STATE_WRITER_VERBS is None:
+        try: text=script_path('ammo_state.py').read_text(encoding='utf-8')
+        except OSError: text=''
+        verbs=set(re.findall(r'add_parser\(\s*["\']([a-z][a-z0-9-]*)["\']',text))
+        _STATE_WRITER_VERBS=frozenset(verbs-STATE_READ_VERBS)
+    return _STATE_WRITER_VERBS
+def invokes_state_writer(command):
+    """True when command calls an ammo_state.py writer.
+
+    The verb may follow the script name or a variable that holds it
+    (S="<plugin>/scripts/ammo ammo_state.py"; $S set ...), so any whole word
+    after the first ammo_state.py counts, as in the Claude twin.
+    """
+    text=str(command or '')
+    if 'ammo_state.py' not in text: return False
+    words=set(re.findall(r'[A-Za-z0-9_-]+',text.split('ammo_state.py',1)[1]))
+    return bool(words & state_writer_verbs())
 def role_from_markers(message,agent_path):
     """The role whose roster doc the message names or whose agent file agent_path is; else ''."""
     agent_file=Path(str(agent_path or '')).name

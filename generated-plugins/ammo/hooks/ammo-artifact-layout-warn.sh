@@ -9,7 +9,12 @@
 #   - Bash: scans the command for path tokens that name the campaign dir: the
 #     campaign_root form from scripts/artifact_layout.json (for example an
 #     engine-relative token), or a $AMMO_ARTIFACT_DIR / ${AMMO_ARTIFACT_DIR}
-#     prefix.
+#     prefix. A read-only command lands no file, so it never warns; the
+#     read/write judgement is scripts/hook_cmd_classify.py --mode readonly.
+#
+# Patterns match in python re, never grep -E: re reads a manifest regex
+# fragment in either group form, (...) or (?:...). grep -E printed
+# "grep: warning: ? at start of expression" for (?:...) on every Bash call.
 #
 # Campaign scope (_find_campaign.sh): a path is checked only when it resolves
 # inside the campaign dir (ammo_in_campaign), and is checked relative to it.
@@ -60,7 +65,7 @@ REL_BASE="${HOOK_CWD:-${CLAUDE_PROJECT_DIR:-$PWD}}"
 LAYOUT_MANIFEST="$PLUGIN_ROOT/scripts/artifact_layout.json"
 
 PATTERN_TEXT=$(AMMO_LAYOUT_MANIFEST="$LAYOUT_MANIFEST" python3 -c '
-import json, os, sys
+import json, os, re, sys
 
 _ERE_SPECIAL = set(r".^$*+?()[]{}|\\")
 
@@ -107,6 +112,7 @@ for template in templates:
         prefix = "/".join(segments[:cut])
         ancestors.add("^" + compile_template(prefix, tokens, placeholders) + "$")
 for pattern in patterns + sorted(ancestors):
+    re.compile(pattern)  # a fragment python re cannot read disables checking
     sys.stdout.write(pattern + "\n")
 ' 2>/dev/null) || PATTERN_TEXT=""
 
@@ -174,22 +180,38 @@ for raw in sys.stdin.read().splitlines():
 ' 2>/dev/null || true
 }
 
+# Helper: true when REL ($1) matches an allowed pattern (one per line on
+# stdin). Python re, so a manifest fragment in either group form matches (see
+# the header). An internal error counts as a match: the hook fails open and
+# silent.
+conforms() {
+    printf '%s\n' "${ALLOWED_PATTERNS[@]}" | python3 -c '
+import re, sys
+try:
+    rel = sys.argv[1]
+    pats = [p for p in sys.stdin.read().splitlines() if p]
+    sys.exit(0 if any(re.search(p, rel) for p in pats) else 1)
+except SystemExit:
+    raise
+except Exception:
+    sys.exit(0)
+' "$1" 2>/dev/null
+}
+
 # Helper: classify one resolved path. Returns 0 (conforming) or 1 (warn-worthy).
 # Prints the relative path on warning.
 check_path() {
     local p="$1" rel="$2"
     ammo_in_campaign "$p" || return 0
 
-    # Walk allowed patterns. A bare directory token — which the Bash extractor
-    # below yields from ordinary `ls`/`grep` commands — matches either its own
-    # directory-prefix pattern or one of the manifest-derived ancestor patterns,
-    # so `rounds/1/mining` and `rounds/1/sweeps/opt` do not warn.
+    # A bare directory token (from `mkdir -p rounds/1/sweeps`, say) matches
+    # either its own directory-prefix pattern or one of the manifest-derived
+    # ancestor patterns, so `rounds/1/mining` and `rounds/1/sweeps/opt` do not
+    # warn.
     rel="${rel%/}"
-    for pat in "${ALLOWED_PATTERNS[@]}"; do
-        if echo "$rel" | grep -Eq "$pat"; then
-            return 0
-        fi
-    done
+    if conforms "$rel"; then
+        return 0
+    fi
 
     emit_warn "$rel"
     return 1
@@ -228,6 +250,12 @@ for m in token.finditer(text):
 for p in out:
     print(p)
 ' 2>/dev/null) || true
+        # A read-only command lands no file. The shared classifier owns the
+        # judgement; asked only when a campaign path token was found, so most
+        # Bash calls never start it. Exit 1 (writes) or 2 (fault) keeps checking.
+        if [ -n "$PATHS" ] && ammo_python hook_cmd_classify.py --mode readonly "$CMD" >/dev/null 2>&1; then
+            exit 0
+        fi
         ;;
 esac
 

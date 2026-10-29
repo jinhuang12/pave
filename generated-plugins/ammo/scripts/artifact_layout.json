@@ -18,9 +18,9 @@
     "{slot}": "[A-Za-z0-9_-]+",
     "{timestamp}": "[0-9A-Za-z:_.-]+",
     "{root_thread_id}": "[A-Za-z0-9_-]+",
-    "{task_path_without_leading_slash}": "[a-z0-9_]+(?:/[a-z0-9_]+)*"
+    "{task_path_without_leading_slash}": "[a-z0-9_]+(/[a-z0-9_]+)*"
   },
-  "_placeholders_comment": "Placeholder token -> regex fragment. A template segment holding no placeholder is matched literally. A trailing '/' makes the template a directory PREFIX (anything below it conforms); no trailing '/' makes it an exact file path. Consumers also accept every proper directory ancestor of a template, so a bare `rounds/3/sweeps` token is a directory reference, not drift.",
+  "_placeholders_comment": "Placeholder token -> regex fragment, written in the syntax Python re and POSIX ERE (grep -E) share: plain (...) groups and bracket classes only, no Python-only syntax (non-capturing groups, class escapes, lazy quantifiers). A template segment holding no placeholder is matched literally. A trailing '/' makes the template a directory PREFIX (anything below it conforms); no trailing '/' makes it an exact file path. Consumers also accept every proper directory ancestor of a template, so a bare `rounds/3/sweeps` token is a directory reference, not drift.",
   "open_dirs": [
     "rounds/{N}/mining/",
     "rounds/{N}/audits/"
