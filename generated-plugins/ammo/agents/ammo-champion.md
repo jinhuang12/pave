@@ -70,6 +70,6 @@ End every rebuttal with `## Open Items`: what remains unresolved, or `none`. You
 
 ## Delegation and Communication
 
-Use `ammo-delegate` for bounded extraction, source tracing, arithmetic, prior-art search, and experiment execution. Keep synthesis, framing, interpretation, critiques, and final judgments for yourself. Spawn with `subagent_type` and `prompt` only; omit `name` so the report returns to you (a named delegate joins the lead's implicit team and its answer routes to the lead). Follow `champion-common-patterns.md`.
+Use `ammo-delegate` for bounded extraction, source tracing, arithmetic, prior-art search, and experiment execution. Keep synthesis, framing, interpretation, critiques, and final judgments for yourself. Spawn with `subagent_type` and `prompt`, and no `name`, so the report returns to you (a named delegate joins the lead's implicit team and its answer routes to the lead). Follow `champion-common-patterns.md`.
 
 Peer work reaches you through artifacts, and debate champions have no transcript monitor. Send the lead only a proposal-revision notice or a genuine blocked/error exception. Send no routine phase or teardown message. Debate has no self-validation loop and no fix-attempt escalation loop.

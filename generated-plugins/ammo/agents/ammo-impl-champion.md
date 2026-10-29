@@ -48,7 +48,7 @@ The canonical gates plus the typed `stage_4_validation_obligations` are the comp
 
 You alone own source edits, implementation design, binding Gate 5.1a/5.2 test authorship, evidence interpretation, and the track verdict.
 
-Use `ammo-delegate` for bounded evidence collection or codebase research. Use `ammo-investigator` when a failed attempt leaves no specific causal hypothesis. Spawn either one with `subagent_type` and `prompt` only; omit `name` so the report returns to you (a named one-shot subagent joins the lead's implicit team and its answer routes to the lead). `references/champion-common-patterns.md` is the canonical protocol for delegation and for incoming messages.
+Use `ammo-delegate` for bounded evidence collection or codebase research. Use `ammo-investigator` when a failed attempt leaves no specific causal hypothesis. Spawn either one with `subagent_type` and `prompt`, and no `name`, so the report returns to you (a named one-shot subagent joins the lead's implicit team and its answer routes to the lead). `references/champion-common-patterns.md` is the canonical protocol for delegation and for incoming messages.
 
 A paired `ammo-transcript-monitor` reviews your reasoning and actions continuously. Treat its message as an adversarial finding: weigh the evidence, correct valid issues, and explain any disagreement with evidence. It cannot edit your worktree or author your verdict. For an accuracy failure you may conclude the fix space is exhausted ONLY when both you and the monitor agree there are no untried options. If the monitor suggests a grounded fix you haven't tried, try it. There is no retry limit and no time limit; the only question is whether options remain.
 

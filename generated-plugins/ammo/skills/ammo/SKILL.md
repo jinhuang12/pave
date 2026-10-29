@@ -8,8 +8,8 @@ description: >-
   that takes hours; not for a one-off kernel question, a code review, or a
   single benchmark run, which a direct subagent handles.
   Registers campaign-scoped hooks from hooks/hooks.json on Claude Code and
-  codex/hooks.json on Codex. Every hook stays silent outside a campaign, as
-  hooks/README.md records.
+  codex/hooks.json on Codex. Every hook but the two worktree hooks stays
+  silent outside a campaign, as hooks/README.md records.
   Manual-only: use only when the user invokes /ammo:ammo.
 metadata:
   compatibility: >-
@@ -20,8 +20,8 @@ metadata:
     registers the nine role agents (ammo:ammo-researcher, ammo:ammo-champion,
     ammo:ammo-impl-champion, ammo:ammo-transcript-monitor, ammo:ammo-auditor,
     ammo:ammo-delegate, ammo:ammo-investigator, ammo:ammo-resolver,
-    ammo:ammo-report-writer). On Codex, the trusted Codex hooks that
-    hooks/README.md lists run, codex/install_agents.py installs the eleven
+    ammo:ammo-report-writer). On Codex, the hook modules that
+    codex/RUNTIME.md lists run, codex/install_agents.py installs the eleven
     ammo:* custom agents, and codex/RUNTIME.md lists the settings that turn on
     multi-agent work. The campaign needs a pre-built Pumice checkout at the
     commit scripts/pumice_pins.py pins, with its venv (pumice and pumice_rust

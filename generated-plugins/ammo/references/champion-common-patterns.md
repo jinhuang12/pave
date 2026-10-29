@@ -38,7 +38,7 @@ independent delegates in parallel when that helps. Pass `model="opus"` when the
 work needs deeper reasoning, such as cross-system analysis or an ambiguous
 root-cause investigation.
 
-Spawn with `subagent_type="ammo:ammo-delegate"` and `prompt` only. Omit `name`. A named delegate
+Spawn with `subagent_type="ammo:ammo-delegate"` and `prompt`, and no `name`. A named delegate
 joins the lead's implicit team and its final report routes to the lead
 instead of back to you; the spawn guard denies a named `ammo-delegate` for
 that reason. Keep any identifier you need for citation in the prompt text.

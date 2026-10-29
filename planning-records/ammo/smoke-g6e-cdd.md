@@ -341,7 +341,7 @@ The two Codex files were behind on the mirror since 276aa6f. Claude Code does no
 | `ammo:ammo-researcher` | `opus` | `claude-opus-5-5` | 3 |
 | `ammo:ammo-auditor` | `opus` | `claude-opus-5-5` | 3: one killed in session 1, two gave a verdict |
 | `ammo:ammo-investigator` | `opus` | `claude-opus-5-5` | 1 |
-| `ammo:ammo-delegate` | `sonnet` | `claude-sonnet-5` | 31 |
+| `ammo:ammo-delegate` | `sonnet` | `claude-sonnet-5` | 33 |
 | clean-room session (step 1) | `--model haiku` | `global.anthropic.claude-haiku-4-5-20251001-v1:0` | 1 |
 | post-fix hook session (section 4.2) | `--model sonnet` | `anthropic.claude-sonnet-5` | 1 |
 
@@ -490,7 +490,7 @@ The Nsys report at `rounds/1/sweeps/profiling/nsys/baseline.nsys-rep` sits insid
 
 T_AUDIT_S1 verdicts, from the audit files:
 - Cycle 1 (`rounds/1/audits/stage_1.md`): **Overall: BLOCKED**. BLOCKING-1: the attribution capture is not bounded per bucket, and Stage 2's `mine_trace.py` cannot use it. HIGH-1: the timing ran after 744 s of GSM8K load, which no later arm repeats. 10 LOW.
-- Cycle 2 (`rounds/1/audits/stage_1_cycle_2.md:518`): **Overall: BLOCKED**. BLOCKING-1 and HIGH-1 are resolved. New BLOCKING-1R: `mine_trace.py` FATALs on the BS1 and BS8 slices (`decode_busy` 1.0023 and 1.0158) because of inherited defect (b). Its own words: "The cause is a toolkit contract conflict, not a Stage-1 execution defect, and no compliant Stage-1 or Stage-2 action resolves it." 0 HIGH, 7 new LOW. LOW-C independently reports finding 7.
+- Cycle 2 (`rounds/1/audits/stage_1_cycle_2.md:518`): **Overall: BLOCKED**. BLOCKING-1 and HIGH-1 are resolved. New BLOCKING-1R: `mine_trace.py` FATALs on the BS1 and BS8 slices (`decode_busy` 1.0023 and 1.0158) because of inherited defect (b). Its own words: "The cause is a toolkit contract conflict, not a Stage-1 execution defect, and no compliant Stage-1 or Stage-2 action resolves it." 0 HIGH, 8 new LOW (LOW-A to LOW-H). LOW-C independently reports finding 7.
 
 The repair, in short:
 - Attempt 2 (00:47 to 01:10): a control launch with no golden phase. BS1 -0.014%, BS8 +0.94%, BS32 +0.2% against the baseline (recomputed from both `e2e_latency_results.json`: -0.014%, +0.936%, +0.224%). Per-BS `.sqlite` slices were cut from the one report and cross-checked against `baseline.sqlite`. The original report stayed byte-identical.
@@ -623,7 +623,7 @@ Fix files for 276aa6f: `new_target.py:798,943` (`_require_plugin_modules`), `pre
 
 ### Plugin defects open at the end of the run
 
-team-lead ruling at 02:26: 4, 8, 9 and 10 are being fixed now (fixed in commit a0c0f7f). 7 and 11 are inherited and stay open as LOW.
+team-lead ruling at 02:26: 4, 8, 9 and 10 routed to worker-18, fixed in commit a0c0f7f. 7 and 11 are inherited and stay open as LOW.
 
 | # | Severity | Defect | Evidence | Fix shape |
 |---|---|---|---|---|
@@ -702,7 +702,7 @@ From the first command to the last: 22:53 to 02:21, about 3 h 30 min. Session co
 | 02:01 | Layout warn drops all warnings with 2+ paths, and warns on glob tokens | Fixed in 7fcb0fe |
 | 02:09 | The 02:15 cap lands in the middle of cycle 2 Phase 2 | Cap moved to 02:25. The lead paused at 02:14:27 |
 | 02:17 | Next-step reminder ignores a paused campaign | Agreed: inherited LOW 11, not fixed here |
-| 02:23 | Open findings 4 and 7 to 10 not yet routed | 4, 8, 9, 10 being fixed now (commit a0c0f7f); 7 stays open as inherited LOW |
+| 02:23 | Open findings 4 and 7 to 10 not yet routed | ruled at 02:26: 4, 8, 9, 10 routed to worker-18 (fixed in a0c0f7f); 7 and 11 stay open as inherited LOW |
 
 ## 9. What I left behind
 
@@ -711,3 +711,16 @@ From the first command to the last: 22:53 to 02:21, about 3 h 30 min. Session co
 - My scripts and logs: `/tmp/w11/` (launchers, stream logs, replays, `final.sh`, `final.txt`). The throwaway clone `/tmp/engine-check` and the venvs `/tmp/badvenv`, `/tmp/badvenv2` are kept for re-checks. The lead left `/tmp/state_backup_pre_pause.json`.
 - `/root/.claude*`: the transcripts of the clean-room session, both campaign sessions and the post-fix session.
 - On the host: nothing outside `~/ammo-plugin-smoke/`. On the Mac: only this record. Two scratch files I wrote in the Mac's `/tmp` (a `git status` capture before the run and a file list for this record) were removed before the review request.
+
+
+## 10. Corrections after the whole-goal review (team-lead, 2026-10-29)
+
+da-2's whole-goal review passed at cd6e52d with five record notes. Applied here:
+
+- `claude plugin validate` also reports LICENSE_MISSING (a directory submission would be refused) and ICON_MISSING (warning). Neither blocks install or load. Directory submission is not a goal of this port, so both stay as they are.
+- Section 5 delegate count corrected from 31 to 33 transcripts, and the cycle 2 audit count from 7 to 8 new LOW findings (LOW-A to LOW-H), both from the container files.
+- The 02:26 ruling line and the 02:23 table row now say the same thing: the four findings were routed to worker-18 and fixed in a0c0f7f.
+- File ctimes in section 4 are approximate: the container shows times that differ from the record by minutes.
+- `/workspace/pumice` also holds four untracked files (`.docker_commit`, `.docker_local_commit`, `.docker_version`, `Cargo.lock`) next to the sm80 toml change. They predate the smoke and are not plugin output.
+- The first `campaign.status --value paused` attempt at 02:14:08 failed; the retry succeeded. The record keeps the successful one.
+- Two values cannot be re-verified from the container: the R-side md5 at 22:53 and the overwritten cycle 1 audit stamp. Neither hides a defect.
