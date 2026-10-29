@@ -1116,8 +1116,8 @@ def gate_violation(state, transitions, prev_state=None, artifact_dir=None):
                 return (
                     "Round-advance blocked: bottleneck_mining enrichment incomplete — "
                     "%s null/missing on the current round while current_stage=%s. "
-                    "Parse rounds/{N}/mining/bottleneck_analysis.md and write the fields "
-                    "(SKILL.md § FE Metric Enrichment), or run "
+                    "Run `scripts/ammo ammo_state.py enrich --state <state.json> --mining "
+                    "--from <artifact_dir>/rounds/{N}/mining/bottleneck_analysis.md`, or run "
                     "`.venv/bin/python scripts/ammo_state.py backfill "
                     "--state <state.json> --artifact-dir <artifact_dir>`. "
                     "Writes that do not advance the round past mining are not blocked."

@@ -34,15 +34,13 @@ f_e2e = f_decode × decode_busy × decode_share_of_e2e
 
 | Variable | Definition | Data source |
 |----------|-----------|-------------|
-| `f_decode` | Component's share of decode-step GPU time | nsys trace; ranking metric only |
+| `f_decode` | Component's share of decode-step GPU time | nsys trace; decode diagnostic |
 | `decode_busy` | `decode_kernel_time / decode_wall_time`. Fraction of decode wall-time that is actual GPU kernel work (vs scheduling, launch gaps). | Tier-0: `merged_busy_per_step × n_decode_steps / decode_avg_s`. Union overlapping kernel intervals (`merged_busy`); never sum concurrent kernels, and scale the per-step profiled window up to the full `decode_avg_s` before dividing. Tier-1: `Σ all_kernel_dur / (avg_latency × num_profiled_iters)` (sweep-level aggregate; **never** mix trace timestamps with the runner's client-side `time.monotonic` per-request timestamps: they are different clocks in different processes). |
-| `decode_share_of_e2e` | `decode_avg_s / avg_s`. Fraction of the authoritative E2E wall that is decode. | `e2e_latency_results.json`. Never read the stored key (Denominator rule below). If phase metrics are unavailable, `OL / (IL + OL)` is a disclosed heuristic, not a timing bound. |
+| `decode_share_of_e2e` | `decode_avg_s / avg_s`. Fraction of the authoritative E2E wall that is decode. | `e2e_latency_results.json`. Never read the stored key (Denominator rule below). Without phase metrics `mine_trace.py` stops. |
 
 **Denominator rule.** Both factors denominate the authoritative E2E wall (`avg_s`). Never normalize a share to `prefill_avg + decode_avg`: that sum is a per-request-mean sub-interval, it discards the admission/ramp residual (real wall time, ~40% of the wall on prefill-heavy workloads), and it can attribute more E2E to decode kernels than decode physically occupies. `mine_trace.py` re-derives both shares from `avg_s` and `decode_avg_s` at point of use and WARNs when the stored key disagrees; never read `decode_share_of_e2e` from JSON. `decode_busy` likewise denominates the decode region's own wall taken from the **same** trace as its merged-busy numerator, never a per-step figure divided by a window from a different run or shape.
 
-Consumers (`verify_validation_gates.py`, `generate_validation_report.py`, `ammo_state.py`) derive `decode_avg_s / avg_s` at point of use and never trust the stored key, because a persisted baseline outlives the emitter that wrote it.
-
-**Ceiling and closure are transcription checks, not accuracy checks.** Under the mandated formulas the four-slice closure is an algebraic identity (`(avg−dec)/avg + busy·(dec/avg) + (1−busy)·(dec/avg) ≡ 1` for any inputs) and the ceiling reduces to `busy ≤ 1`. Both hold exactly for correct and badly wrong numbers alike. Run them, because a violation is arithmetic proof of a denominator or transcription slip. But never cite passing them as evidence the measurement is right.
+**Ceiling and closure are transcription checks, not accuracy checks.** Under the mandated formulas the four-slice closure is an algebraic identity (`(avg−dec)/avg + busy·(dec/avg) + (1−busy)·(dec/avg) ≡ 1` for any inputs) and the ceiling reduces to `busy ≤ 1`. Both hold exactly for correct and badly wrong numbers alike. Never cite passing them as evidence the measurement is right.
 
 **Provenance is what validates the numbers.** Read the derivation, not just the identities:
 
@@ -50,9 +48,9 @@ Consumers (`verify_validation_gates.py`, `generate_validation_report.py`, `ammo_
 - `decode_busy`: the numerator is merged (union) busy over the decode region; the denominator is that region's wall in the same trace. Publish per-rank values. A spread wider than a few points means a wrong region boundary or a leaked warmup gap.
 - `inter_kernel_share` must be corroborated by *measured* idle (summed true gaps from the merged sweep), not only by `(1−busy)·decode_share`. Disagreement means the busy figure is wrong.
 - State the capture's shape. A capture of a short-output bucket has a short, ragged decode tail: its prefill region is still valid (prefill depends on ISL and batch, not OSL), but it cannot supply decode step counts or decode shares.
-- Segment phases by a per-step marker plus a phase-distinguishing kernel signature (e.g. attention `gridZ` at chunk size vs decode size), not by wall-clock gap size. Resolve the marker to a single kernel ID. Name-substring matches can inflate the step count by an integer factor.
+- `mine_trace.py` takes the step count from the sweep (`step_count_source`). Its window runs from the cut to the slice end and counts as one decode step. The cut is the last `delimiter_symbol` hit, or the largest gap under `max_gap`. `symbol` is a substring match, so pick one that starts each step and occurs once per step. Check `occurrences` and `n_kernels_window` against one step. The `gridZ` signature (attention at chunk size vs decode size) still helps tell prefill from decode in the prose.
 
-The researcher computes `decode_busy` and `decode_share_of_e2e` once per BS in Stage 2 and writes both into the `## Workload Dilution` table in `bottleneck_analysis.md`. Champions read those values; they do not re-derive them.
+`mine_trace.py` computes `decode_busy` and `decode_share_of_e2e` once per BS in Stage 2, and the researcher pastes its `## Workload Dilution` table into `bottleneck_analysis.md`. Champions read those values; they do not re-derive them.
 
 ## Worked Example: Qwen3.6-27B-FP8, H100, BS=8
 
@@ -102,7 +100,7 @@ Equivalently, in the dimensionless shares the researcher publishes:
 
 ```
 1.0 = prefill_share_of_e2e + (decode_busy × decode_share_of_e2e) + inter_kernel_share + other_share
-        prefill              decode_kernel                          decode_inter_kernel  other (small)
+        prefill              decode_kernel                          decode_inter_kernel  other (0)
 ```
 
 Where:
@@ -110,13 +108,13 @@ Where:
 - `prefill_share_of_e2e` = `(total_e2e_s - decode_avg_s) / total_e2e_s`: the prefill/ramp region wall. Never `prefill_avg_s / total_e2e_s`: per-request `prefill_avg_s` (`first_token_ts - scheduled_ts`) excludes admission wait and the batch-fill ramp under chunked prefill, understating the slice several-fold on prefill-heavy workloads.
 - `decode_busy × decode_share_of_e2e`: the slice that is actual decode-step kernel execution (sum of all `f_e2e` values for decode-only kernels equals this slice, modulo measurement noise).
 - `inter_kernel_share = (1 - decode_busy) × decode_share_of_e2e`: decode wall time spent NOT in kernels (scheduling, launch gaps, host-side overhead).
-- `other`: small residual (warmup, KV management, cleanup); typically < 0.02.
+- `other`: zero under these formulas, because `prefill_share_of_e2e` above takes the whole non-decode wall. `mine_trace.py` still checks it.
 
 Each mechanism attacks a different slice; the slice decides which scope is EV-eligible (§ Pre-Implementation Magnitude: Slice Split).
 
 **Window rule.** All three factors of a phase row (`f_phase`, `phase_busy`, `phase_share_of_e2e`) must use the **same** step window. A transient excluded from one side must be excluded from the other: the span from the wall, the kernel from the busy numerator; either alone is a silent ~10% error. Publish the step range and transient treatment beside the table, and verify the stated formula reproduces the published number.
 
-**Family rule.** Define component families by **enumerated symbol lists**, not substring rules (prefix matchers under-count 15-30%). Completeness requires an **exhaustive partition**: every symbol assigned to one family, families summing to the window total with a stated residual; until one exists, family rows are lower bounds. Reconcile instance counts against per-step cadence (k× expected rate = k call sites). Publish the in-CUDA-graph fraction of any launch-overhead row. Derive secondary tables from the partition or delete them. Never hand-maintain two tables over one window.
+**Family rule.** Define each family by `symbol_patterns` regexes in `mine_config.json`. `mine_trace.py` gives each symbol to the first family that matches and fails when the unmatched rest exceeds `allow_residual`, so the partition is exhaustive. Check each family's published `symbols` list for kernels a broad pattern pulled in. Reconcile instance counts against per-step cadence (k× expected rate = k call sites). Publish the in-CUDA-graph fraction of any launch-overhead row. Derive secondary tables from the partition or delete them. Never hand-maintain two tables over one window.
 
 ## Projection Authority: One Boundary Equation
 

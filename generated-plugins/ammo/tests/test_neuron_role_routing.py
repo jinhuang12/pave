@@ -233,7 +233,8 @@ def test_role_guidance_does_not_apply_cuda_evidence_rules_to_neuron() -> None:
     assert "On `vllm-neuron`, use `--accelerator-profile` for NeuronProfiler" not in researcher
     assert "Attribution on Neuron is a standalone `neuron-explorer` chain, not a runner flag" in binding
     assert "`scripts/runtime_ops.py normalize`" in binding
-    # Stage 2 mining keeps its own Neuron lines until the Stage 2 redesign.
-    assert "On `vllm-neuron`, query NeuronProfiler/neuron-explorer" in researcher
-    assert "Use this template on `vllm-cuda`; on `vllm-neuron`" in researcher
-    assert "Match the profiler evidence to the claim. Nsys supports" not in researcher
+    # Stage 2 mining: the Neuron clauses moved to the binding (R1).
+    assert "On `vllm-neuron`, query NeuronProfiler/neuron-explorer" not in researcher
+    assert "Use this template on `vllm-cuda`" not in researcher
+    assert "replace `SM generation` with the NeuronCore generation" in binding
+    assert "`neuron-explorer-profile-schema` for version-matched fields and units" in binding

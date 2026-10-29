@@ -2134,9 +2134,9 @@ def summarize_waves(
         raw["decode_avg_s"] = dc_avg
         raw["prefill_p50_s"] = percentile(sorted(prefills), 0.5)
         raw["decode_p50_s"] = percentile(sorted(decodes), 0.5)
-        total = pf_avg + dc_avg
-        if total > 0:
-            raw["decode_share_of_e2e"] = dc_avg / total
+        wall = raw["avg_latency"]
+        if wall > 0:
+            raw["decode_share_of_e2e"] = dc_avg / wall
         raw["num_request_metric_samples"] = len(prefills)
         # Length-matched per-iteration phase means feed the phase-level Welch
         # test in generate_validation_report.py. A partial series is dropped
@@ -2237,9 +2237,8 @@ def _aggregate_launches(launches: Sequence[Dict[str, Any]]) -> Optional[Dict[str
         out["decode_avg_s"] = sum(decodes) / len(decodes)
     pf_avg, dc_avg = out.get("prefill_avg_s"), out.get("decode_avg_s")
     if isinstance(pf_avg, (int, float)) and isinstance(dc_avg, (int, float)):
-        total = pf_avg + dc_avg
-        if total > 0:
-            out["decode_share_of_e2e"] = dc_avg / total
+        if mean_latency > 0:
+            out["decode_share_of_e2e"] = dc_avg / mean_latency
     return out
 
 

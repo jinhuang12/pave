@@ -433,6 +433,21 @@ class TestRawBucketSchema:
         assert len(raw["prefill_iter_means_s"]) == len(raw["latencies"])
         assert len(raw["decode_iter_means_s"]) == len(raw["latencies"])
 
+    def test_stored_decode_share_divides_the_wall(self):
+        """The wall (10.0) exceeds prefill + decode (0.2 + 7.8): the stored key is decode / wall."""
+        waves = [_wave(i, 10.0, pf=0.2, dc=7.8) for i in (1, 2, 3)]
+        raw = bench.summarize_waves(waves)
+        assert raw["decode_share_of_e2e"] == pytest.approx(7.8 / 10.0)
+        agg = bench._aggregate_launches(
+            [
+                {"launch_id": 1, "warmup": False, "avg_latency": 10.0,
+                 "prefill_avg_s": 0.2, "decode_avg_s": 7.8},
+                {"launch_id": 2, "warmup": False, "avg_latency": 10.0,
+                 "prefill_avg_s": 0.2, "decode_avg_s": 7.8},
+            ]
+        )
+        assert agg["decode_share_of_e2e"] == pytest.approx(7.8 / 10.0)
+
     def test_phase_keys_omitted_when_unavailable(self):
         raw = bench.summarize_waves([_wave(1, 1.0), _wave(2, 2.0)])
         for key in (

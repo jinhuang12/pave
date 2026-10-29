@@ -69,6 +69,8 @@ On `pumice-cuda` this binding adds nothing: CUDA graphs, Nsys, NCU, cache, reser
 
 Use `neuron-nki-profiling` only to identify the NEFF to capture (its `identify-neffs.py` technique); capture itself goes through `scripts/runtime_ops.py capture-neff`, never through the skill's own capture path, which pins cores and LNC. Use `neuron-nki-profile-querying` for measured queries, `neuron-explorer-profile-schema` for version-matched fields and units, `neuron-nki-docs` for API or architecture facts, and `experimental-neuron-hardware-entitlement` for the physical bound (mandatory FLOPs and HBM bytes per operator) behind `physical_ceiling`. Supply measurements and physical bounds only. Do not propose an optimization. Preserve raw Neuron outputs and the normalized intervals. Time with `scripts/run_pumice_grpc_bench.py`, which has no `--accelerator-profile` flag on Neuron. If a capture fails, keep the raw NeuronProfiler and `neuron-explorer` output and diagnose through `scripts/runtime_ops.py` and the skills above.
 
+In the Stage 2 Technology Landscape template (`agents/ammo-researcher.md`), replace `SM generation` with the NeuronCore generation, and replace the CUDA authoring and library classes with the measured plugin, PyTorch/XLA, NKI, or Neuron library path.
+
 ## Champion
 
 Stage 3 debate. Use `neuron-nki-docs` for API and architecture facts, `experimental-neuron-hardware-entitlement` for the physical bound behind a projection, and `experimental-neuron-memory-system` for SBUF, PSUM, and HBM placement of a kernel candidate. A bounded NKI prototype allowed by the protocol's Evidence section uses `neuron-nki-writing` and `neuron-nki-debugging` in the track worktree. Reuse the Stage 1 profile; do not recapture it.

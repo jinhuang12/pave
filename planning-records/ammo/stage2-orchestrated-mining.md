@@ -4,6 +4,10 @@ Status: draft for user review, 2026-10-29, after one `/simplify` pass. Nothing
 in the plugin changes until this lands through `/pave-evolve` as revision 2.
 Drafts: `drafts/stage2/` (child graph, parent patch generator, semantic diff).
 
+## Landed first
+
+Four Stage 2 prompt-audit rows landed in the live text on 2026-10-29, ahead of this redesign (prompt-audit/stage-2.md rows 1, 2, 4, 7; adoption.md R17). Carry them into the rewrite: SKILL.md Stage 2 keeps only the dispatch sentence and the no-new-capture ban and points at `agents/ammo-researcher.md` § `mining` for each round's evidence (row 1); the lead runs `ammo_state.py enrich --mining` when the researcher finishes, then `T_AUDIT_S2`, so the command belongs in the child run's pass action (row 2); the Technology Landscape template has no Neuron clause, because its substitution lives in `references/accelerator-binding.md` § Researcher (row 4); and the template tells the researcher to search the engine source and its vendored libraries, with the Pumice paths in `references/nsys-profiling-guide.md` § Stage 2 Mining (row 7).
+
 ## Decision
 
 Stage 2 becomes a PAVE composed node. The campaign lead runs the child graph.
@@ -156,6 +160,11 @@ most five) so the lead copies instead of picks, and one ordered kernel chain
 per selected family (symbols, counts, durations for one decode step) so the
 workers and reviewers cite fields instead of re-querying the sqlite.
 
+Two more items come from the prompt audit (adoption.md R17):
+
+- `mine_trace.py` reads `round` from state.json when `mine_config.json` has none, as the runner does for `--slot`. Today a missing `round` writes to `rounds/1/mining/` (prompt-audit/stage-2.md row 6).
+- The per-bucket slice cut moves into code. It reads each bucket's `profile_meta.waves[]` and the export's session start, cuts the bucket from `baseline.sqlite`, and ends it at a complete decode step. `references/nsys-profiling-guide.md` § Per-Bucket Slices then names the command (row 9).
+
 ## Dependency
 
 The ammo plugin would require the pave-init plugin from the same marketplace:
@@ -178,7 +187,7 @@ The ammo plugin already requires pave-init since the 2026-10-29 prompt-audit wav
    the T_AUDIT_S2 row says where it runs. Other T_AUDIT_S2 mentions follow:
    `agents/ammo-auditor.md`, `references/artifact-layout.md`,
    `references/serving-campaign.md`.
-6. `scripts/mine_trace.py`: selection and chains. `scripts/ammo_state.py`:
+6. `scripts/mine_trace.py`: selection, chains, the `round` default, and the slicer (§ Script changes). `scripts/ammo_state.py`:
    the Stage 2 next-step text only; stamps unchanged.
 7. `scripts/artifact_layout.json` and `references/artifact-layout.md`: the
    `mining/families/` slot.

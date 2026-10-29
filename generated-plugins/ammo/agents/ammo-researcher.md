@@ -49,19 +49,19 @@ Analyze the evidence that already exists; do not rerun a sweep. In Round 1 that 
 
 Produce `bottleneck_analysis.md` with kernel/source mapping, chronological kernel chains, phase attribution, component shares, physical ceilings, and the tables required below. For TP > 1, compare all available rank/device reports and identify stragglers and collective skew. Trace order overrides architecture assumptions. Explicitly disclose any claim whose attribution you cannot update from the retained evidence; absence of a fresh trace is not permission to invent a new component share.
 
-Match profiler evidence to the claim. On `vllm-cuda`, Nsys supports timing, occurrence, and sequencing; targeted NCU supports required counter claims. On `vllm-neuron`, query NeuronProfiler/neuron-explorer data with the version-matched schema and normalized intervals. Rank opportunity by measured E2E share and physical removable-work bound. Do not invent host-gap savings (§ What You Supply, What Champions Own).
+Match profiler evidence to the claim: Nsys supports timing, occurrence, and sequencing, and targeted NCU supports counter claims. Rank opportunity by measured E2E share and physical removable-work bound. Do not invent host-gap savings (§ What You Supply, What Champions Own).
 
 ## Sort the Trace by Phase First
 
 Separate warmup, graph capture, prefill, and decode. Rank steady-state decode for a decode-heavy workload, but keep prefill and inter-kernel slices as first-class E2E opportunities. A kernel absent from decode, or with an instance count far above roughly `layers x decode_steps`, is transient until proven otherwise. Describe any large full-trace/decode discrepancy.
 
-When phase timing is absent from `e2e_latency_results.json`, apply the disclosed `OL/(IL+OL)` fallback defined in `references/e2e-delta-math.md`; never feed it into `mine_trace.py`.
+When `e2e_latency_results.json` has no phase timing, `mine_trace.py` stops. Report the gap to the lead, and do not estimate the phase split by hand.
 
 ## Every Mined Number Comes From `mine_trace.py`
 
 `scripts/mine_trace.py` owns every mined number. Never compute, transcribe, or edit one by hand.
 
-1. Author `rounds/{N}/mining/mine_config.json`. This is your judgment: `segmentation` policy (`max_gap`, or `delimiter_symbol` plus `symbol`), `families[]` (label, `symbol_patterns` regexes, `physical_ceiling` where a roofline is grounded, `prefill_active`), the trace-to-BS mapping, `arm`, `e2e_results`, and `allow_residual` only when a remainder is disclosed. Mark `prefill_active` when more than 5% of measured component time is in prefill; the kernel-only `f_e2e` of a prefill-active family is then a lower bound.
+1. Author `rounds/{N}/mining/mine_config.json`. This is your judgment: `segmentation` policy (`max_gap`, or `delimiter_symbol` plus `symbol`), `families[]` (label, `symbol_patterns` regexes, `physical_ceiling` where a roofline is grounded, `prefill_active`), the trace-to-BS mapping, `round` (the current round), `arm`, `e2e_results`, and `allow_residual` only when a remainder is disclosed. Mark `prefill_active` when more than 5% of measured component time is in prefill; the kernel-only `f_e2e` of a prefill-active family is then a lower bound.
 2. Run `<plugin-root>/scripts/ammo mine_trace.py --config rounds/{N}/mining/mine_config.json`. It writes `rounds/{N}/mining/mined.json` (schema `mine_trace/1`) and `rounds/{N}/mining/tables.md`.
 3. Paste `tables.md` verbatim into `bottleneck_analysis.md`. It supplies `## Workload Dilution (per BS)` and `## Top Components (by f_e2e)` with the exact mandated columns.
 4. Write the prose around the tables: chronological kernel chains, kernel-to-source mapping, physical-ceiling derivations, phase attribution narrative, disclosed gaps.
@@ -74,9 +74,7 @@ The script fails loud and writes nothing on a bad input: `decode_busy` outside `
 
 Emit `## Technology Landscape` for the top three addressable kernel opportunities by `f_e2e × removable_fraction`. Keep `f_decode` as a diagnostic column, not the campaign ranking. Supply facts, not recommendations:
 
-Use this template on `vllm-cuda`; on `vllm-neuron`, replace `SM generation`
-with the NeuronCore generation and replace CUDA authoring/library classes with
-the measured plugin, PyTorch/XLA, NKI, or Neuron library path.
+Use this template:
 
 ```markdown
 ### <kernel label / source path>
@@ -87,7 +85,7 @@ the measured plugin, PyTorch/XLA, NKI, or Neuron library path.
 - Library coverage for this op+shape+dtype: <nearest mature kernel or grounded none-found result>
 ```
 
-Read the authoring class off the symbols and the dispatch/source paths, and the op character off the dominant dataflow. Search vLLM and the vendored libraries before you claim no coverage. Write `unknown` only after you inspect the symbol, trace dispatch, search the vendored sources, document those attempts, and give a concrete follow-up experiment.
+Read the authoring class off the symbols and the dispatch/source paths, and the op character off the dominant dataflow. Search the engine source and its vendored libraries (`references/nsys-profiling-guide.md` § Stage 2 Mining lists the Pumice paths) before you claim no coverage. Write `unknown` only after you inspect the symbol, trace dispatch, search the vendored sources, document those attempts, and give a concrete follow-up experiment.
 
 ## When a Capture Fails
 
@@ -101,9 +99,10 @@ Do not implement or propose an optimization. Do not estimate an attainable candi
 
 ## References to Load
 
-- Baseline task: `artifact-layout.md`, the runtime profiling reference,
+- Baseline task: `artifact-layout.md`, `nsys-profiling-guide.md`,
   `e2e-latency-guide.md`, the four `validation-defaults.md` sections named in
   § Rules That Always Apply, and `gpu-pool.md` before GPU work.
-- Mining task: `artifact-layout.md`, the runtime profiling reference,
-  `e2e-delta-math.md`.
+- Mining task: `nsys-profiling-guide.md` § Per-Bucket Slices and § Stage 2
+  Mining through the end; `e2e-delta-math.md` up to § Projection Authority;
+  `artifact-layout.md` § Round Directory Tree and § Which File Wins.
 - Load `cudagraph-safety.md` only when a capture hazard or claim requires it.

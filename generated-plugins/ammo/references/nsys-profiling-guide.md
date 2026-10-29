@@ -97,7 +97,7 @@ The runner takes one capture per label: `StartProfile` before the first bucket a
 `mine_trace.py` takes one `sqlite` (or `events_json`) entry per batch size in `config.traces`. nsys cannot split a `.nsys-rep`, so the slices come from the one report:
 
 1. Export the full report once to `baseline.sqlite` (§ Useful commands below).
-2. For each bucket, take the window of its profiled waves from that bucket's `profile_meta.waves[]` and keep the kernel rows (`CUPTI_ACTIVITY_KIND_KERNEL` or `CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL`, with `StringIds`) whose start and end fall inside it. Write them to `rounds/{N}/profiling/nsys/baseline_bs{BS}.sqlite` with the same tables the full export has.
+2. For each bucket, take the window of its profiled waves from that bucket's `profile_meta.waves[]` and keep the kernel rows (`CUPTI_ACTIVITY_KIND_KERNEL` or `CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL`, with `StringIds`) whose start and end fall inside it. Write them to `rounds/{N}/profiling/nsys/baseline_bs{BS}.sqlite` with the same tables the full export has, and end each slice at the end of a complete decode step: `mine_trace.py` reads a slice from its cut to the slice end as one step (`e2e-delta-math.md` § Conversion Formula).
 3. Check that the slices together account for the kernel time of the full export inside the capture window. Record each window and row count next to its slice.
 
 Trace timestamps count nanoseconds from the nsys session start; `profile_meta` holds wall-clock seconds. Convert through the session start time the export records before comparing the two.
@@ -156,7 +156,7 @@ Minimum analysis:
 - Map top kernels to source paths or generated backends when possible. On the Pumice runner: `src/pumice/kernels/`, `src/pumice/layers/`, `csrc/`, `src/pumice/third_party/triton_kernels/`. `triton_poi_fused_*` and `triton_red_*` names come from Inductor and point at `src/pumice/compilation/`, not at a hand-written kernel. On the vLLM runner, kernels come from the installed vLLM package (the pinned version). Host-side gaps point at `pumice-rust/src/engine.rs` or the Python model runner.
 - For TP > 1 or DP > 1, compare all rank/device reports and report per-rank skew. TP ranks 1..N-1 and each DP rank are separate processes (§ TP>1 Per-Rank Caveat).
 - Separate compute kernels from communication kernels and memcpy/P2P traffic.
-- Compute `f_decode`, `decode_share_of_e2e`, and `f_e2e` from measured Stage 1 data.
+- Get `f_decode`, `decode_share_of_e2e`, and `f_e2e` from `mine_trace.py` (`agents/ammo-researcher.md` § Every Mined Number Comes From `mine_trace.py`).
 
 Useful commands:
 
@@ -180,7 +180,9 @@ Report approximate trace timings honestly. A value such as `~74 us` is valid whe
 
 If node and graph mode disagree, use node-mode timing for bottleneck ranking (§ Required Stage 1 Commands) and explain why graph mode was captured.
 
-Graph diagnostic command:
+This run reuses slot `profiling`, so the runner moves the node run's slot dir, with its bucket JSONs and `profile_meta`, to `rounds/{N}/_archive/`. Copy and slice the node report first, and cite the archived bucket JSON paths.
+
+Graph diagnostic command, after that copy:
 
 ```bash
 scripts/ammo run_pumice_grpc_bench.py \
@@ -200,15 +202,14 @@ Graph diagnostics use the same hardware-derived trace backend as node mode.
 
 ## Targeted NCU
 
-The physical-ceiling gate is disjunctive: back the claim with targeted Nsight Compute, or with an explicitly cited hardware spec plus the math. Either one alone is enough. Nsys alone is not.
-
-These count as physical-ceiling claims:
+Counter claims need targeted Nsight Compute. These are counter claims:
 
 - Occupancy or achieved occupancy.
 - SM utilization or tensor-core utilization.
 - Achieved memory bandwidth from hardware counters.
 - Register pressure, shared-memory pressure, or stall-reason claims.
-- "Kernel X can improve by at most Y%" where Y comes from a hardware ceiling.
+
+A physical-ceiling claim ("kernel X can improve by at most Y%", where Y comes from a hardware ceiling) takes targeted Nsight Compute, or an explicitly cited hardware spec plus the math. Either one alone is enough. Nsys alone backs neither kind.
 
 Keep NCU narrow. Profile only the top kernels identified by nsys, with representative bucket sizes. Store results under:
 
@@ -225,7 +226,8 @@ Acceptable:
 - `rounds/{N}/profiling/nsys/*.nsys-rep`
 - nsys stats/export tables derived from those reports
 - `profile_meta` from the profiling bucket JSON, for capture-window and wave correlation
-- sweep JSON from `rounds/{N}/sweeps/baseline/`
+- the Stage 1 sweep JSON under `rounds/1/sweeps/baseline/`
+- after a material SHIP, the promoted integration result of the prior round and the earlier-round traces that still apply (`artifact-layout.md` § Which File Wins, items 1 and 2)
 - targeted NCU CSV/report for hardware-counter claims
 - source-code mapping used only to explain what a measured kernel is
 

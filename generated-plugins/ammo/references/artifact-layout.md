@@ -164,7 +164,7 @@ scripts/ammo run_pumice_grpc_bench.py \
 |----------------|-------------|---------|
 | `baseline` | `rounds/{N}/sweeps/baseline/` | Stage 1 clean E2E (profiling flags forbidden) |
 | `profiling` | `rounds/{N}/sweeps/profiling/` | Stage 1 profiling (latency here is contaminated) |
-| `profiling_prefill` | `rounds/{N}/sweeps/profiling_prefill/` | Stage 1 prefill-inclusive capture at reduced `--nsys-output-len`; latency contaminated, and the shortened OSL means any decode-shape claim must be cross-checked against a production-depth capture |
+| `profiling_prefill` | `rounds/{N}/sweeps/profiling_prefill/` | Stage 1 prefill-inclusive capture at a reduced output length (`--nsys-output-len`, vLLM runner only); latency contaminated, and the shortened OSL means any decode-shape claim must be cross-checked against a production-depth capture |
 | `opt/{op_id}` | `rounds/{N}/sweeps/opt/{op_id}/` | Stage 5 per-track opt |
 | `opt_correctness/{op_id}` | `rounds/{N}/sweeps/opt_correctness/{op_id}/` | Gate 5.1b clean full-model correctness |
 | `opt_profiling/{op_id}` | `rounds/{N}/sweeps/opt_profiling/{op_id}/` | Gate 5.3a activation evidence; never timing authority |

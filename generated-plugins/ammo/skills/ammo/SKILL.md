@@ -98,7 +98,7 @@ Every stage and role below is mandatory when its trigger fires.
 | Stage | Required agents | Required outcome | Detailed authority |
 |---|---|---|---|
 | `1_baseline` | lead + fresh `ammo-researcher` | clean production-parity baseline/golden capture and a separate bounded attribution profile | `agents/ammo-researcher.md`, `references/nsys-profiling-guide.md` |
-| `2_bottleneck_mining` | lead + `ammo-researcher` | grounded `bottleneck_analysis.md` with `## Technology Landscape`, workload dilution, component shares, and physical bounds | `agents/ammo-researcher.md`, `references/e2e-delta-math.md` |
+| `2_bottleneck_mining` | lead + `ammo-researcher` | grounded `bottleneck_analysis.md` with `## Technology Landscape`, workload dilution, component shares, and physical bounds | `agents/ammo-researcher.md`, `references/nsys-profiling-guide.md`, `references/e2e-delta-math.md` |
 | `3_debate` | lead + 2-4 `ammo-champion` | independent candidates, adversarial debate, an eligibility record, and 2-3 winners | `orchestration/debate-protocol.md` |
 | `4_5_parallel_tracks` | one `ammo-impl-champion` and one paired `ammo-transcript-monitor` per winner | isolated implementation, complete gates, a terminal verdict, durable evidence | `orchestration/parallel-tracks.md` |
 | `6_integration` | lead; `ammo-resolver` plus independent merge review when required | the exact validated composition, an integration measurement, SHIP or round EXHAUSTED | `orchestration/integration-logic.md` |
@@ -120,9 +120,9 @@ Profiler-run timing is never the official E2E timing. When the researcher finish
 
 ### Stage 2: Bottleneck Mining
 
-Dispatch `ammo-researcher` with `task_type: mining`. It mines the production evidence that already exists; it never recaptures just to make a better story. In Round 1 that evidence is the Stage-1 baseline and attribution capture. After a material SHIP, the promoted E2E baseline is the prior round's Stage-6 integration result (a single-pass short-circuit writes its copy into that same slot), plus the attribution and activation evidence already on disk that still applies. Do not add a fresh post-SHIP baseline sweep, profiling pass, or provenance sidecar. Ground every binding claim in primary artifacts.
+Dispatch `ammo-researcher` with `task_type: mining`. `agents/ammo-researcher.md` § `mining` names the evidence for each round. Do not add a fresh post-SHIP baseline sweep, profiling pass, or provenance sidecar.
 
-Run `T_AUDIT_S2`. The audit must independently confirm that the measured bottleneck, the opportunity math, the code mapping, and the candidate frontier are real before debate starts.
+When the researcher finishes, run `<root>/scripts/ammo ammo_state.py enrich --state {artifact_dir}/state.json --mining --from {artifact_dir}/rounds/{N}/mining/bottleneck_analysis.md`, then run `T_AUDIT_S2`.
 
 ### Stage 3: Candidate Proposal and Adversarial Debate
 
@@ -156,7 +156,7 @@ When the stop condition fires, the terminal token records how the round ended: u
 
 To continue, open the next round with `<root>/scripts/ammo ammo_state.py advance --state {artifact_dir}/state.json --outcome SHIP` or `--outcome EXHAUSTED`. It picks the next stage and writes the new round entry. Set `mining_invalidated` and `exhausted_technologies` on the current round first, because `advance` moves `current_round` and reads `mining_invalidated`.
 
-- After SHIP, `advance` opens Stage 2 to mine the promoted Stage-6 evidence. If the newly mined addressable impact is below the floor, terminate as `campaign_complete` from the audited SHIP outcome. Otherwise finish Stage 2 with `T_AUDIT_S2` and enter `3_debate`. If every shipped track is `diluted:true`, `advance` enters `3_debate` on the valid mining instead, because the measured baseline did not materially move.
+- After SHIP, `advance` opens Stage 2 to mine the promoted Stage-6 evidence. Finish Stage 2 with `T_AUDIT_S2`. Then, if the newly mined addressable impact is below the floor, terminate as `campaign_complete`; otherwise enter `3_debate`. If every shipped track is `diluted:true`, `advance` enters `3_debate` on the valid mining instead, because the measured baseline did not materially move.
 - After EXHAUSTED, append structured `exhausted_technologies` first. `advance` then enters `3_debate` on the mining that is still valid, and the debate needs a genuine mechanism pivot.
 - If mining was proven wrong, set boolean `mining_invalidated:true` with a reason before you advance EXHAUSTED. `advance` then re-enters Stage 2.
 

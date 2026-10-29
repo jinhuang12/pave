@@ -1,0 +1,24 @@
+skills/ammo/SKILL.md	In Round 1 that evidence is the Stage-1 baseline and attribution capture.
+skills/ammo/SKILL.md	The audit must independently confirm that the measured bottleneck, the opportunity math, the code mapping, and the candidate frontier are real before debate starts.
+agents/ammo-researcher.md	On `vllm-neuron`, query NeuronProfiler/neuron-explorer data with the version-matched schema and normalized intervals.
+agents/ammo-researcher.md	Use this template on `vllm-cuda`; on `vllm-neuron`, replace `SM generation`
+agents/ammo-researcher.md	When phase timing is absent from `e2e_latency_results.json`, apply the disclosed `OL/(IL+OL)` fallback defined in `references/e2e-delta-math.md`; never feed it into `mine_trace.py`.
+agents/ammo-researcher.md	the trace-to-BS mapping, `arm`, `e2e_results`, and `allow_residual` only when a remainder is disclosed.
+agents/ammo-researcher.md	Search vLLM and the vendored libraries before you claim no coverage.
+agents/ammo-researcher.md	- Mining task: `artifact-layout.md`, the runtime profiling reference,
+references/nsys-profiling-guide.md	nsys cannot split a `.nsys-rep`, so the slices come from the one report:
+references/nsys-profiling-guide.md	Write them to `rounds/{N}/profiling/nsys/baseline_bs{BS}.sqlite` with the same tables the full export has.
+references/nsys-profiling-guide.md	- Compute `f_decode`, `decode_share_of_e2e`, and `f_e2e` from measured Stage 1 data.
+references/nsys-profiling-guide.md	Graph diagnostic command:
+references/nsys-profiling-guide.md	These count as physical-ceiling claims:
+references/nsys-profiling-guide.md	- sweep JSON from `rounds/{N}/sweeps/baseline/`
+references/audit-invariants.md	capture's `--nsys-output-len`. A reduced-OSL capture can ground prefill
+references/audit-invariants.md	the raw artifact, schema version, and normalization fingerprint.
+references/e2e-delta-math.md	nsys trace; ranking metric only
+references/e2e-delta-math.md	Consumers (`verify_validation_gates.py`, `generate_validation_report.py`, `ammo_state.py`) derive `decode_avg_s / avg_s` at point of use and never trust the stored key, because a persisted baseline outlives the emitter that wrote it.
+references/e2e-delta-math.md	Run them, because a violation is arithmetic proof of a denominator or transcription slip.
+references/e2e-delta-math.md	Name-substring matches can inflate the step count by an integer factor.
+references/e2e-delta-math.md	The researcher computes `decode_busy` and `decode_share_of_e2e` once per BS in Stage 2 and writes both into the `## Workload Dilution` table in `bottleneck_analysis.md`.
+references/e2e-delta-math.md	- `other`: small residual (warmup, KV management, cleanup); typically < 0.02.
+references/e2e-delta-math.md	Define component families by **enumerated symbol lists**, not substring rules (prefix matchers under-count 15-30%).
+scripts/run_pumice_grpc_bench.py	raw["decode_share_of_e2e"] = dc_avg / total

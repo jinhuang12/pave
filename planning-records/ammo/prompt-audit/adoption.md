@@ -210,6 +210,52 @@ These sit outside every wave-1 scope. They go to the mechanics worker unless nam
 - agents/ammo-delegate.md:11 adds "except the fact-check verdict at Stage 7b".
 - tests/test_guidance_semantic_contract.py:244 comment (w5-26).
 
+### stage-2.md (w7), follow-up run 2026-10-29
+
+Result: 23 adopted, 1 deferred (row 9). Rows 6 and 12 land as prose; their mechanics options go to the deferred list. Five cross-scope pointers from the record land in the same wave because no other worker is open.
+
+New rulings:
+
+| # | Ruling | Reason |
+|---|---|---|
+| R17 | Rows 1, 2, 4, 7 land now in the live text. The Stage 2 redesign record gets a short "Landed first" paragraph that lists them, and its § Script changes inherits two items: `mine_trace.py` reads `round` from state.json when the field is absent (row 6 option) and the per-bucket slice cut moves into code (row 9). | The redesign has no landing date. Live text does not keep a known defect waiting on it. |
+| R18 | No phase-timing fallback. `mine_trace.py` is FATAL without `avg_s` and `decode_avg_s`, so the `OL/(IL+OL)` heuristic leaves agents/ammo-researcher.md:58 and the e2e-delta-math.md:39 table cell. Code comments in the vLLM runner stay. | A number no table takes and no audit passes is a wrong instruction (row 5, cross-scope pointer). |
+| R19 | Counter claims (occupancy, SM or tensor-core utilization, counter bandwidth, register, shared-memory, stall reasons) need targeted NCU. A ceiling claim ("at most Y%") takes NCU, or a cited hardware spec plus the math. | nsys-profiling-guide.md:203 and :236 disagree today; a spec cannot supply a measured counter (row 13). Intent map line 65 is stale and read-only. |
+| R20 | The stored `decode_share_of_e2e` is the wall share in both runner twins. The vLLM runner already writes `dc_avg / avg_latency` (run_vllm_bench_latency_sweep.py:4767); the Pumice runner moves to match at :2139 and :2242. Consumers keep deriving first. | The phase-sum value fires the stored-vs-derived WARN on every real bucket (row 24). tests/fixtures/mining/real_campaign_bottleneck_analysis.md:62 is a campaign record and stays. |
+| R21 | A reference that names a runner flag says which runner has it. `--nsys-output-len` is vLLM-only. | audit-invariants.md:70 and artifact-layout.md:167 name it as if every runner had it (row 15). |
+| R22 | SKILL.md:159: the below-floor termination after a SHIP happens after `T_AUDIT_S2`, not "from the audited SHIP outcome". | ammo_state.py:1018-1042 makes `stage_2` the audit key of a mining-only post-SHIP round, and workflow.pave.yaml:1077-1080 routes through the audit. |
+
+| Row | Decision | Note |
+|---|---|---|
+| 1 | Adopt | R17. Keep the dispatch sentence and the no-new-capture ban. |
+| 2 | Adopt | R17. The `enrich --mining` command lands at SKILL.md:125 once; SKILL.md:192 keeps its bullet. |
+| 3 | Adopt | R1. Retarget tests/test_neuron_role_routing.py:237 and :239; worker-7 owns the file this wave (R16). |
+| 4 | Adopt | R1, R17. Neuron substitution lands in accelerator-binding.md § Researcher. Retarget :238. |
+| 5 | Adopt | R18. |
+| 6 | Adopt prose | `round` joins the field list. Mechanics option deferred to the redesign (R17). |
+| 7 | Adopt | R17. |
+| 8 | Adopt | Also apply to the baseline load line at agents/ammo-researcher.md:104 (cross-scope pointer). |
+| 9 | Defer | R17: the slicer goes to the redesign § Script changes. Row 9's quote stays in the text. |
+| 10 | Adopt | Row 9 is deferred, so the slice-end sentence lands now. |
+| 11 | Adopt | |
+| 12 | Adopt prose | `profiling_graph` slot option deferred. |
+| 13 | Adopt | R19. |
+| 14 | Adopt | |
+| 15 | Adopt | R21. Also reword artifact-layout.md:167. |
+| 16 | Adopt | R1. |
+| 17 | Adopt | |
+| 18 | Adopt | |
+| 19 | Adopt | |
+| 20 | Adopt | |
+| 21 | Adopt | |
+| 22 | Adopt | |
+| 23 | Adopt | |
+| 24 | Adopt | R20. One new case in tests/test_pumice_bench_contract.py with a wall above prefill plus decode. |
+
+Cross-scope pointers adopted into worker-7's wave: SKILL.md:101 authority column adds `references/nsys-profiling-guide.md`; SKILL.md:159 (R22); scripts/ammo_state.py:1117-1124 error text points at `enrich --mining` and drops the nonexistent "SKILL.md § FE Metric Enrichment"; agents/ammo-researcher.md:104 (row 8); references/artifact-layout.md:167 (R21).
+
+Deferred from this record: row 9 slicer and row 6 mechanics option (redesign § Script changes, R17); row 12 `profiling_graph` slot; ammo_state.py:1967-1985 Stage 2 reminders and workflow.pave.yaml:722-733 (the redesign rewrites both); `decode_frac` mean-over-BS in ammo_state.py:2394 against the largest-BS value in mine_trace.py:654-661 (mechanics, waits with defect b); intent map line 65; nsys-profiling-guide.md:177-199 saying which stage may run the graph capture (low value).
+
 ## Deferred (outside this audit)
 
 - scripts/verify_validation_gates.py:183-191 and :1877 expect the Stage 1 baseline under `rounds/{current_round}/sweeps/baseline`, which the R2 comparator rule contradicts in round 2 and later. Script change for a later wave.

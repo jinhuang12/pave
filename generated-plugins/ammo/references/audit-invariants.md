@@ -66,10 +66,10 @@ On Neuron, which v1 does not run, follow `references/accelerator-binding.md` § 
     versions actually used. No FATAL is suppressed and every `warnings[]` entry
     is addressed in the artifact prose.
   - The delimiter policy is defensible: `separation_ratio` is not marginal and
-    `first_kernel_after` fits a steady-state step boundary. On CUDA, state the
-    capture's `--nsys-output-len`. A reduced-OSL capture can ground prefill
-    attribution but not decode step counts or decode shares. On Neuron, record
-    the raw artifact, schema version, and normalization fingerprint.
+    `first_kernel_after` fits a steady-state step boundary. State the profiled
+    output length: the bucket's `output_len` in `target.json`, or
+    `--nsys-output-len` on the vLLM runner. A reduced-OSL capture can ground
+    prefill attribution but not decode step counts or decode shares.
   - The family partition is semantically right: labels match their symbols,
     `partition_coverage` is complete, and any `residual_pct` is small and
     disclosed. `step_count_source` is the strongest rung the artifacts support.
