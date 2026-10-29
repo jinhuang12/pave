@@ -24,6 +24,14 @@
 # {"decision": "block"} — layout drift is an organizational hazard, not a
 # correctness violation.
 #
+# Output: at most ONE JSON object per call, with every warning joined in its
+# additionalContext. Claude Code parses the whole stdout as one JSON value, so
+# one object per flagged path made it drop every warning. No warning, no
+# output.
+#
+# A Bash token with a glob character (* ? [) is a pattern the shell expands,
+# not a path, so it is not checked.
+#
 # Fail-open: any internal error (jq missing, malformed JSON) exits 0 silently.
 set -euo pipefail
 trap 'exit 0' ERR
@@ -140,18 +148,12 @@ if [ "${#ALLOWED_PATTERNS[@]}" -eq 0 ]; then
     exit 0
 fi
 
-# Helper: emit a warning for a single non-conforming relative path.
+# Helper: record a warning for a single non-conforming relative path. The
+# warnings print together, as one JSON object, at the end (see the header).
+WARNINGS=()
 emit_warn() {
     local rel="$1"
-    local msg
-    msg="LAYOUT WARN: ${rel} is outside the canonical AMMO V2 layout. Expected: rounds/{N}/{profiling|sweeps|mining|debate|tracks|audits|_archive}/... See ${PLUGIN_ROOT}/references/artifact-layout.md § Prohibited Patterns."
-    jq -c -n --arg msg "$msg" '
-    {
-        hookSpecificOutput: {
-            hookEventName: "PostToolUse",
-            additionalContext: $msg
-        }
-    }'
+    WARNINGS+=("LAYOUT WARN: ${rel} is outside the canonical AMMO V2 layout. Expected: rounds/{N}/{profiling|sweeps|mining|debate|tracks|audits|_archive}/... See ${PLUGIN_ROOT}/references/artifact-layout.md § Prohibited Patterns.")
 }
 
 # Helper: resolve path tokens (one per line on stdin). A leading
@@ -199,7 +201,7 @@ except Exception:
 }
 
 # Helper: classify one resolved path. Returns 0 (conforming) or 1 (warn-worthy).
-# Prints the relative path on warning.
+# Records a warning for the relative path.
 check_path() {
     local p="$1" rel="$2"
     ammo_in_campaign "$p" || return 0
@@ -244,6 +246,9 @@ seen = set()
 out = []
 for m in token.finditer(text):
     p = m.group(0).rstrip("/.,;:")
+    # A glob is a pattern the shell expands, not a path (see the header).
+    if any(c in p for c in "*?["):
+        continue
     if p and p not in seen:
         seen.add(p)
         out.append(p)
@@ -264,6 +269,17 @@ if [ -n "$PATHS" ]; then
         [ -n "$abs" ] && [ -n "$rel" ] || continue
         check_path "$abs" "$rel" || true
     done < <(printf '%s\n' "$PATHS" | resolve_paths)
+fi
+
+# One JSON object, every warning on its own line of additionalContext.
+if [ "${#WARNINGS[@]}" -gt 0 ]; then
+    jq -c -n --arg msg "$(printf '%s\n' "${WARNINGS[@]}")" '
+    {
+        hookSpecificOutput: {
+            hookEventName: "PostToolUse",
+            additionalContext: $msg
+        }
+    }'
 fi
 
 exit 0

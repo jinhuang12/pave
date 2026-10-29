@@ -167,6 +167,56 @@ bash_case "a redirect into the campaign still warns" warn "cat /tmp/x > $ART/mon
 bash_case "tee into the campaign still warns" warn "echo hi | tee $ART/monitor_log_x.md"
 
 # ══════════════════════════════════════════════
+echo ""; echo "== One JSON object per call; glob tokens are not paths =="
+# ══════════════════════════════════════════════
+# A live ammo-delegate command flagged three glob tokens and the hook printed
+# three JSON objects, one per path. Claude Code read the whole stdout as one
+# JSON value, rejected it ("Hook output looks like a JSON object but is not
+# valid JSON"), and dropped every warning.
+# json_case LABEL PAYLOAD N: stdout is exactly one valid JSON object whose
+# additionalContext names N flagged paths (N=0: stdout is empty).
+json_case() {
+    local label="$1" payload="$2" want_n="$3" rc=0 pass=true got_n
+    TOTAL=$((TOTAL + 1))
+    printf '%s' "$payload" | bash "$HOOK" >"$TMPDIR/out" 2>"$TMPDIR/err" || rc=$?
+    [ "$rc" -ne 0 ] && pass=false
+    if [ "$want_n" = 0 ]; then
+        [ -s "$TMPDIR/out" ] && pass=false
+    else
+        python3 -c 'import json,sys; json.load(sys.stdin)' <"$TMPDIR/out" 2>/dev/null || pass=false
+        got_n=$(jq -r '.hookSpecificOutput.additionalContext' "$TMPDIR/out" 2>/dev/null | grep -c 'LAYOUT WARN:' || true)
+        [ "$got_n" = "$want_n" ] || pass=false
+    fi
+    if $pass; then
+        echo "  PASS [$TOTAL]: $label"; PASS=$((PASS + 1))
+    else
+        echo "  FAIL [$TOTAL]: $label (want $want_n warnings in one JSON object, exit $rc)"
+        echo "        stdout: $(head -c 300 "$TMPDIR/out")"
+        FAIL=$((FAIL + 1))
+    fi
+}
+bash_json() { jq -n -c --arg c "$1" --arg cwd "$ENG" '{tool_name:"Bash",cwd:$cwd,tool_input:{command:$c}}'; }
+
+json_case "two flagged paths: one valid JSON object, both named" \
+    "$(bash_json "mkdir -p $ART/monitoring/logs $ART/investigation/notes")" 2
+json_case "three flagged paths across segments: one valid JSON object" \
+    "$(bash_json "mkdir -p $ART/monitoring && touch $ART/monitor_log_x.md; cp /tmp/a $ART/e2e_latency_opt3/a.json")" 3
+json_case "a flagged path next to a canonical one: one object, one warning" \
+    "$(bash_json "mkdir -p $ART/rounds/1/sweeps/baseline $ART/monitoring")" 1
+
+# The exact live command (ammo-delegate, campaign path replaced by ART).
+WORKER11_CMD="find $ART/rounds/1/sweeps/integration* -maxdepth 2 2>/dev/null
+echo \"---\"
+find $ART/rounds/1/sweeps/opt* -maxdepth 2 2>/dev/null
+echo \"---status files---\"
+for f in $ART/rounds/1/sweeps/*/status/*.json; do echo \"== \$f ==\"; cat \"\$f\" 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); print(d if isinstance(d,dict) else d)\" 2>/dev/null | head -5; done"
+json_case "the live find/for glob command: no output" "$(bash_json "$WORKER11_CMD")" 0
+json_case "a glob in a write command is skipped" "$(bash_json "rm -f $ART/rounds/1/sweeps/*/status/*.tmp $ART/monitor_log_?.md")" 0
+json_case "a [class] glob is skipped" "$(bash_json "rm -f $ART/rounds/[0-9]/scratch_*.md")" 0
+json_case "a glob does not hide a literal drift path" \
+    "$(bash_json "rm -f $ART/rounds/1/sweeps/*/x.tmp && mkdir -p $ART/monitoring/logs")" 1
+
+# ══════════════════════════════════════════════
 echo ""; echo "== Placeholder regex forms: (...) and (?:...) =="
 # ══════════════════════════════════════════════
 # The hook matches in python re, which reads both group forms. It fed them to
