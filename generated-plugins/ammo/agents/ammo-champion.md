@@ -1,7 +1,7 @@
 ---
 name: ammo-champion
 description: Argues for a specific GPU kernel optimization candidate in adversarial debate, runs micro-experiments to gather evidence, and critiques competing candidates.
-model: global.anthropic.claude-opus-5-5[1m]
+model: opus[1m]
 effort: xhigh
 ---
 

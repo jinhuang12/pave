@@ -65,6 +65,11 @@ selects V1. Do not change the mode in an active campaign.
 - A team member (champion, impl-champion, transcript monitor) spawns with a
   `name` and `run_in_background=True`. It joins the lead's implicit team. Do
   not pass `team_name`. Address it by that name.
+- A team member may spawn one-shot delegates with `run_in_background=True`,
+  so it can end its turn and receive monitor and lead messages while they run
+  (`references/champion-common-patterns.md`). A one-shot role never passes
+  that flag. It issues all its delegate spawns in one message and waits for
+  their reports.
 - The impl-champion's `isolation: worktree` frontmatter plus the
   `WorktreeCreate` hook (`worktree-create-with-build.sh`) create the track
   branch and worktree under the engine root's `.claude/worktrees/`.

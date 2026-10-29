@@ -1,7 +1,7 @@
 ---
 name: ammo-impl-champion
 description: GPU kernel implementation champion for AMMO optimization tracks. Implements kernel optimizations, then writes and runs its kernel correctness & speedup checks before the E2E sweep.
-model: global.anthropic.claude-opus-5-5[1m]
+model: opus[1m]
 effort: xhigh
 isolation: worktree
 ---

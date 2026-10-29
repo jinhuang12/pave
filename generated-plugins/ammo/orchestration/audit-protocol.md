@@ -39,7 +39,6 @@ reuse an auditor. Never hand it an earlier audit's conclusions as facts.
 ```python
 Agent(
     subagent_type="ammo:ammo-auditor",
-    run_in_background=True,
     prompt=f"""
     plugin_root: {plugin_root}
     task: audit_gate

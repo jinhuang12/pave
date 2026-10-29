@@ -160,6 +160,10 @@ blocker, or when a stage needs authority only you hold. To resume, invoke
 the `.ammo/active` marker and continues from the last verified gate in
 `state.json`.
 
+For a headless run (`claude -p`), set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`
+or use an interactive session. In print mode, Claude Code stops background
+agents after 600 seconds.
+
 ## 5. Campaign workspace
 
 One campaign lives in one directory inside the Pumice checkout:

@@ -10,21 +10,32 @@ description: >-
   Manual-only: use only when the user invokes /ammo:ammo.
 metadata:
   compatibility: >-
-    Requires the harness's plugin hooks (hooks/hooks.json on Claude Code; the
-    trusted Codex hooks that hooks/README.md lists), the ammo:* role agents
-    (registered from agents/*.md on Claude Code; installed with
-    codex/install_agents.py, with multi-agent work turned on, on Codex), bash,
-    jq, flock, git, Python 3.11 or later, and a pre-built Pumice checkout at
-    the pinned commit with its venv, cargo build, model weights, and NVIDIA
-    GPUs. The test battery needs uv, or pytest, pyyaml, jsonschema, pydantic,
-    httpx, numpy, and psutil.
+    Requires the harness's plugin hooks, the ammo:* role agents, bash, jq,
+    flock, git, and Python 3.11 or later. On Claude Code, hooks/hooks.json
+    registers the PreToolUse, PostToolUse, PreCompact, SessionStart, Stop,
+    SubagentStop, WorktreeCreate, and WorktreeRemove hooks, and agents/*.md
+    registers the nine role agents (ammo:ammo-researcher, ammo:ammo-champion,
+    ammo:ammo-impl-champion, ammo:ammo-transcript-monitor, ammo:ammo-auditor,
+    ammo:ammo-delegate, ammo:ammo-investigator, ammo:ammo-resolver,
+    ammo:ammo-report-writer). On Codex, the trusted Codex hooks that
+    hooks/README.md lists run, codex/install_agents.py installs the eleven
+    ammo:* custom agents, and codex/RUNTIME.md lists the settings that turn on
+    multi-agent work. The campaign needs a pre-built Pumice checkout at the
+    commit scripts/pumice_pins.py pins, with its venv (pumice and pumice_rust
+    importable), cargo build --release done, model weights in a plain model
+    directory, and NVIDIA GPUs with nvidia-smi. Preflight checks these and
+    pauses the campaign, naming the gap. The runtime profile is pumice-cuda
+    only. Graph validation (scripts/validate_pave.py) and the revision log
+    tool (scripts/record_revision.py) need pyyaml and jsonschema and fail
+    closed without them. The test battery needs uv, or pytest, pyyaml,
+    jsonschema, pydantic, httpx, numpy, and psutil.
 ---
 
 # AMMO - Automated Model Micro-Optimizer
 
 AMMO is a staged, multi-agent accelerator optimization campaign. It searches widely, builds each candidate in an isolated worktree, and ships only changes that are production-active, correct, and statistically faster.
 
-Resolve the plugin root as the absolute directory that holds `skills/`, `agents/`, `orchestration/`, `references/`, `schemas/`, and `scripts/` (from `<root>/skills/ammo/SKILL.md`, use `<root>`). Every `agents/...`, `orchestration/...`, `references/...`, `schemas/...`, and `scripts/...` path in this file and in the files it links resolves under that root, never under the engine checkout. Run plugin scripts through the launcher, `<root>/scripts/ammo <script> [args]`: it finds the campaign and runs the script with the campaign's Python. Start every dispatch prompt with a `plugin_root: <absolute plugin root>` line, and give the absolute campaign dir on an `artifact_dir:` line. A child has no other way to find the plugin root. On Codex the same skill is `$ammo:ammo`.
+Resolve the plugin root as the absolute directory that holds `skills/`, `agents/`, `orchestration/`, `references/`, `schemas/`, and `scripts/` (from `<root>/skills/ammo/SKILL.md`, use `<root>`). Every `agents/...`, `orchestration/...`, `references/...`, `schemas/...`, and `scripts/...` path in this file and in the files it links resolves under that root, never under the engine checkout. Treat the plugin root as read-only, and do not test it for write access: campaign files go to the campaign workspace `<engine>/.ammo/<campaign-id>/`, and source edits go to the engine checkout or a track worktree. Run plugin scripts through the launcher, `<root>/scripts/ammo <script> [args]`: it finds the campaign and runs the script with the campaign's Python. Start every dispatch prompt with a `plugin_root: <absolute plugin root>` line, and give the absolute campaign dir on an `artifact_dir:` line. A child has no other way to find the plugin root. On Codex the same skill is `$ammo:ammo`.
 
 The Lead Role and stage-dispatch instructions apply to the root orchestrator. Child agents use the shared campaign constraints and their own role assignment. Reading this file does not change a child's role. Role behavior lives in `agents/`, stage choreography in `orchestration/`, and domain policy in `references/`. Open a linked file when its stage or decision becomes active. Do not preload the whole corpus.
 

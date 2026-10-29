@@ -95,8 +95,12 @@ class PackageStructureTests(unittest.TestCase):
             self.assertTrue((PLUGIN_ROOT / "skills" / skill / "SKILL.md").is_file(), skill)
 
     def test_claude_compatibility_names_every_hook_event_and_role(self) -> None:
+        # The Claude Code manifest schema has no compatibility key, and
+        # `claude plugin validate` warns on it, so the text lives in the lead
+        # skill's metadata.compatibility.
         claude = json.loads((PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        compatibility = claude["compatibility"]
+        self.assertNotIn("compatibility", claude)
+        compatibility = " ".join(_frontmatter(LEAD_SKILL).partition("compatibility: >-\n")[2].split())
         events = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
         for event in events:
             self.assertIn(event, compatibility)
