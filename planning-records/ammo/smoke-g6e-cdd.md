@@ -623,7 +623,7 @@ Fix files for 276aa6f: `new_target.py:798,943` (`_require_plugin_modules`), `pre
 
 ### Plugin defects open at the end of the run
 
-team-lead ruling at 02:26: 4, 8, 9 and 10 are being fixed now (fix in flight, commit id to follow). 7 and 11 are inherited and stay open as LOW.
+team-lead ruling at 02:26: 4, 8, 9 and 10 are being fixed now (fixed in commit a0c0f7f). 7 and 11 are inherited and stay open as LOW.
 
 | # | Severity | Defect | Evidence | Fix shape |
 |---|---|---|---|---|
@@ -702,7 +702,7 @@ From the first command to the last: 22:53 to 02:21, about 3 h 30 min. Session co
 | 02:01 | Layout warn drops all warnings with 2+ paths, and warns on glob tokens | Fixed in 7fcb0fe |
 | 02:09 | The 02:15 cap lands in the middle of cycle 2 Phase 2 | Cap moved to 02:25. The lead paused at 02:14:27 |
 | 02:17 | Next-step reminder ignores a paused campaign | Agreed: inherited LOW 11, not fixed here |
-| 02:23 | Open findings 4 and 7 to 10 not yet routed | 4, 8, 9, 10 being fixed now (commit id to follow); 7 stays open as inherited LOW |
+| 02:23 | Open findings 4 and 7 to 10 not yet routed | 4, 8, 9, 10 being fixed now (commit a0c0f7f); 7 stays open as inherited LOW |
 
 ## 9. What I left behind
 
