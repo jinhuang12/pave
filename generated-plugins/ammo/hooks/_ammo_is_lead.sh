@@ -1,8 +1,8 @@
 #!/bin/bash
 # _ammo_is_lead.sh — source-able helper for AMMO hooks.
 #
-# Consolidates 4 divergent lead-detection paths (stop-guard, next-step-reminder,
-# monitor-reminder, msg-check) into a single predicate.
+# Consolidates the lead-detection paths (stop-guard, next-step-reminder,
+# monitor-reminder) into a single predicate.
 #
 # Usage:
 #   HELPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

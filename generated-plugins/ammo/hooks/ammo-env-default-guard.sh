@@ -10,12 +10,26 @@
 # False/0/"0"; the sweep harness enables it explicitly via opt_env in
 # target.json.
 #
-# PUMICE_* rule (.py and .rs edits). Pumice owns its engine env names. Blocks an
-# edit that:
-#   - reads a PUMICE_* env name that is NOT in the allowlist (a new engine env),
-#     or
+# PUMICE_* rule (.py and .rs edits). A campaign flag on the Pumice runner is
+# PUMICE_<SCOPE>_<MECHANISM>[_<ARCH>], read with os.environ.get (or env::var),
+# default off; the sweep enables it per arm through opt_env in target.json.
+# This is the VLLM_* rule applied to Pumice reads. It blocks an edit that:
+#   - reads a PUMICE_* name that is NOT in the allowlist (a new campaign flag)
+#     with a default that is not off, or
 #   - sets a default for a PUMICE_* name that IS in the allowlist (a default
-#     change to a known engine env).
+#     change to a known engine env; Pumice owns those defaults).
+# A new name passes only in a default-off form at the read:
+#   Python (per line): no default (getenv(N), environ.get(N), environ[N],
+#     N in os.environ) or a default of None, False, 0, "0", "", or "false";
+#     the line does not negate or replace the value (!=, not, or) and does not
+#     write os.environ[N].
+#   Rust (per statement, lines joined up to ";"): no fallback, or only
+#     unwrap_or_default(), unwrap_or(false|0|"0"|""), map_or(false, ...); and no
+#     negation (!, !=). Any other unwrap_or*, map_or*, match, else, or Err in
+#     the statement blocks.
+# A later statement that negates a stored value is not seen here; the Stage 4-5
+# audit owns that check. A false block costs one turn; a false allow corrupts
+# an A/B arm.
 # The allowlist is pumice_env_allowlist.txt beside this hook (the Codex twin
 # reads the same file). A PUMICE_* token
 # is only inspected when it appears in an env-access idiom (os.getenv,
@@ -204,30 +218,57 @@ fi
 # ── PUMICE_* branch (.py and .rs) ──
 # A PUMICE_* name is inspected only where it sits in an env-access idiom, so the
 # _PUMICE_MODELS registry dict (never read via getenv/env::var) is not flagged.
+# The unit is a line for Python and a statement (lines joined up to ";") for
+# Rust, so a chained .unwrap_or(...) on a later line is part of its read.
 PUMICE_OFFENDERS_NEW=""
 PUMICE_OFFENDERS_DEFAULT=""
+_OFF_PY="(None|False|0|${_Q}0${_Q}|${_Q}${_Q}|${_Q}(false|False)${_Q})"
+# _pumice_new_read_off UNIT NAME: exit 0 when a new name's read defaults off.
+_pumice_new_read_off() {
+    local unit="$1" name="$2" after
+    if [ "$_IS_RS" = "true" ]; then
+        printf '%s\n' "$unit" | grep -qE '!=|(^|[^[:alnum:]_])!' && return 1
+        printf '%s\n' "$unit" \
+            | sed -E 's/unwrap_or_default[[:space:]]*\([[:space:]]*\)//g; s/unwrap_or[[:space:]]*\([[:space:]]*(false|0|"0"|"")[[:space:]]*\)//g; s/map_or[[:space:]]*\([[:space:]]*false[[:space:]]*,//g' \
+            | grep -qE '(unwrap_or|map_or)|(^|[^[:alnum:]_])(match|else|Err)([^[:alnum:]_]|$)' && return 1
+        return 0
+    fi
+    printf '%s\n' "$unit" | grep -qE '!=|(^|[^[:alnum:]_])(not|or)([^[:alnum:]_]|$)' && return 1
+    after="${unit#*[\"\']"$name"[\"\']}"
+    printf '%s\n' "$after" | grep -qE '^[[:space:]]*\][[:space:]]*=([^=]|$)' && return 1
+    printf '%s\n' "$after" | grep -qE '^[[:space:]]*[])]' && return 0
+    printf '%s\n' "$after" | grep -qE '^[[:space:]]+in[[:space:]]+os\.environ' && return 0
+    printf '%s\n' "$after" | grep -qE "^[[:space:]]*,[[:space:]]*(default[[:space:]]*=[[:space:]]*)?${_OFF_PY}[[:space:]]*[),]" && return 0
+    return 1
+}
 if [ "$_IS_PY" = "true" ] || [ "$_IS_RS" = "true" ]; then
-    # Env-access idiom on the line: python getenv/environ, rust env::var/std::env.
+    # Env-access idiom on the unit: python getenv/environ, rust env::var/std::env.
     _ACCESSOR_RE='(getenv|environ|env::var|env::var_os|std::env|env![[:space:]]*\()'
+    if [ "$_IS_RS" = "true" ]; then
+        # Drop // comments, then join lines and split on ";".
+        PUMICE_UNITS=$(printf '%s\n' "$CONTENT_NO_COMMENTS" | sed -E 's#//.*$##' | tr '\n' ' ' | tr ';' '\n')
+    else
+        PUMICE_UNITS="$CONTENT_NO_COMMENTS"
+    fi
     while IFS= read -r _line; do
         [ -z "$_line" ] && continue
         echo "$_line" | grep -qE "$_ACCESSOR_RE" || continue
         while IFS= read -r _name; do
             [ -z "$_name" ] && continue
             if printf '%s\n' "$ALLOWLIST_NAMES" | grep -qxF "$_name"; then
-                # Known engine env. Flag only when this line supplies a default:
+                # Known engine env. Flag only when this unit supplies a default:
                 # python getenv/get with a 2nd arg, or a rust unwrap_or* fallback.
                 if echo "$_line" | grep -qE "${_Q}${_name}${_Q}[[:space:]]*,"; then
                     case "$PUMICE_OFFENDERS_DEFAULT" in *" $_name "*) ;; *) PUMICE_OFFENDERS_DEFAULT="$PUMICE_OFFENDERS_DEFAULT $_name " ;; esac
                 elif echo "$_line" | grep -qE 'unwrap_or(_else|_default)?[[:space:]]*\('; then
                     case "$PUMICE_OFFENDERS_DEFAULT" in *" $_name "*) ;; *) PUMICE_OFFENDERS_DEFAULT="$PUMICE_OFFENDERS_DEFAULT $_name " ;; esac
                 fi
-            else
-                # Unknown engine env — a new PUMICE_* name.
+            elif ! _pumice_new_read_off "$_line" "$_name"; then
+                # A new PUMICE_* name whose read does not default off.
                 case "$PUMICE_OFFENDERS_NEW" in *" $_name "*) ;; *) PUMICE_OFFENDERS_NEW="$PUMICE_OFFENDERS_NEW $_name " ;; esac
             fi
         done < <(printf '%s\n' "$_line" | grep -oE "${_Q}PUMICE_[A-Z0-9_]{3,}${_Q}" | tr -d "\"'" | sort -u)
-    done < <(printf '%s\n' "$CONTENT_NO_COMMENTS")
+    done < <(printf '%s\n' "$PUMICE_UNITS")
 fi
 
 if [ -n "${OFFENDERS// /}" ]; then
@@ -261,21 +302,26 @@ if [ -n "${PUMICE_OFFENDERS_NEW// /}" ] || [ -n "${PUMICE_OFFENDERS_DEFAULT// /}
     {
         echo "BLOCKED: PUMICE_* engine env change."
         echo ""
-        [ -n "${PUMICE_OFFENDERS_NEW// /}" ] && echo "New env(s) not in the allowlist:$PUMICE_OFFENDERS_NEW"
+        [ -n "${PUMICE_OFFENDERS_NEW// /}" ] && echo "New env(s) read with a default that is not off:$PUMICE_OFFENDERS_NEW"
         [ -n "${PUMICE_OFFENDERS_DEFAULT// /}" ] && echo "Default change to allowlisted env(s):$PUMICE_OFFENDERS_DEFAULT"
         echo ""
         cat <<EOF
-Pumice owns its engine env names and their defaults. AMMO must not invent a new
-PUMICE_* env, nor change the default of a known one, inside a campaign — either
-silently changes the runtime the A/B arms measure.
+A campaign flag on the Pumice runner is PUMICE_<SCOPE>_<MECHANISM>[_<ARCH>],
+read with os.environ.get (or env::var), default off. The sweep enables it per
+arm through opt_env in target.json. A default that is not off turns the path on
+when the key is absent, and the key is absent in the baseline arm. Pumice owns
+the defaults of the names it already reads.
 
 Fix:
-  - New env: use an env name Pumice already reads, or surface the need to the
-    lead so the Pumice team owns it. The known names are in
+  - New flag: default it off at the read. Examples:
+      os.environ.get("PUMICE_MOE_TWO_STREAM_SM90", "0") == "1"
+      std::env::var("PUMICE_MOE_TWO_STREAM_SM90").map(|v| v == "1").unwrap_or(false)
+    Do not negate the value (!=, not, !) or replace a missing value
+    (or "1", unwrap_or(true)).
+  - Default change to a known name: leave the Pumice default alone and set the
+    value per arm via opt_env in target.json. The known names are in
     $HOOK_DIR/pumice_env_allowlist.txt (regenerate at the next Pumice
     pin with the seed grep in that file's header).
-  - Default change: leave the Pumice default alone; set the value per arm via
-    opt_env in target.json instead.
 EOF
     } >&2
     exit 2

@@ -2,7 +2,7 @@
 
 Pumice runs model code under torch.compile and CUDA graphs. That machinery imposes assumptions on any model or kernel change you make, and eager-mode testing never shows you when you broke one. Read this before you edit compiled code, and again before you claim a result.
 
-This document defines 6 invariants. Each one gives the rule, what breaks if you violate it, the fix, source paths you can verify in this worktree, and the validation check that proves you complied. After the invariants come the three sanctioned ways to pick a kernel per batch size, the one thing you must never do, and the checklist to run after integration.
+This document defines 6 invariants. Each one gives the rule, what breaks if you violate it, the fix, source paths you can verify in this worktree, and the validation check that proves you complied. After the invariants come the three sanctioned ways to pick a kernel per batch size and the checklist to run after integration.
 
 ## Which Runner You Compile Under
 
@@ -11,47 +11,16 @@ The six invariants hold for both Pumice CUDA runners, because the Pumice compile
 - The server log line `Backends from confdb` and the `model_runner` field of every bench row give the runner kind. confdb sets it per model and SM family (`model_runner = "vllm"` for gpt-oss in `pumice-rust/confdb/gpt_oss.toml`).
 - **Runner `vllm`** (gpt-oss on CUDA): the model runs in the embedded vLLM runner at the pinned version. The compile stack is the vLLM one, under `vllm/compilation/` in the installed package (`<engine venv>/lib/python3.12/site-packages/vllm/`, where the engine venv is `target.json` `engine.venv`). That package is pinned (`scripts/pumice_pins.py` checks it against `pumice.config.REQUIRED_VLLM_VERSION`) and is not in your worktree. Pumice passes compile settings to it through `compilation_config` (`src/pumice/vllm_adapter/bootstrap.py`: the confdb keys `max_cudagraph_capture_size`, `cudagraph_capture_sizes`, and `vllm_cudagraph_mode`). Every `vllm/...` path below applies. Verify each one in the installed package, not from memory.
 - **Runner `pumice`** (the native runner): the compile stack is in your worktree under `src/pumice/compilation/` and `src/pumice/engine/`. Each invariant below gives the Pumice path next to the vLLM path. Cite the path of the runner that the row used.
-- **Runner `neuron`**: torch-xla and neuronx-cc compile the graph. This contract does not apply; see `references/accelerator-binding.md`.
 
 `--enforce-eager`, `--no-compile`, and `PUMICE_COMPILE_TARGET=0` turn off parts of this machinery. Use them for diagnosis only. A binding measurement never uses them.
-
-## Quick Reference
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ torch.compile Contract, 6 Invariants (vllm and pumice runners)          │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  1. SINGLE TRACE: forward() traced ONCE → ONE FX graph.                │
-│     Python `if shape` bakes at trace time. Dead code at other shapes.  │
-│                                                                         │
-│  2. PER-RANGE VARIATION: Only via InductorPass or _pass_context.       │
-│     compile_range.start is a concrete int. NOT model attrs or SymInts. │
-│                                                                         │
-│  3. MUTATION: mutates_args inside IR op fused impls → stale SSA.       │
-│     Always mutates_args=[] + return new tensor.                        │
-│                                                                         │
-│  4. DATA_PTR: Triton in IR op → data_ptr() crash under make_fx.       │
-│     Wrap Triton in direct_register_custom_op.                          │
-│                                                                         │
-│  5. PARTITIONS: Only splitting_ops create CUDA graph boundaries.       │
-│     direct_register_custom_op alone does NOT cause partitions.         │
-│                                                                         │
-│  6. RANGE OVERHEAD: compile_ranges_endpoints adds ~0.5-1% overhead     │
-│     to batch sizes in the smaller range. Not a bug: structural cost.  │
-│                                                                         │
-│  VALIDATION: accuracy all BS + kernel fires + partition count +         │
-│              dispatch correctness + E2E latency + structural overhead   │
-└─────────────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
 ## Invariant 1: Single Trace, Multiple Compilations
 
-Dynamo traces the model `forward()` ONCE and produces ONE FX graph. That single graph is then compiled N times (once per compile range) with different `example_inputs`. So Python control flow in `forward()` evaluates once, at trace time, and its result is baked as a constant into every compiled artifact.
+Dynamo traces the model `forward()` once and produces one FX graph. That single graph is then compiled N times (once per compile range) with different `example_inputs`. So Python control flow in `forward()` evaluates once, at trace time, and its result is baked as a constant into every compiled artifact.
 
-Any Python `if` that depends on tensor shapes, batch size, or runtime state therefore specializes to ONE path. At other shapes the wrong branch executes, which gives you an accuracy regression or a silent correctness failure.
+Any Python `if` that depends on tensor shapes, batch size, or runtime state therefore specializes to one path. At other shapes the wrong branch executes, which gives you an accuracy regression or a silent correctness failure.
 
 **Source**: `vllm/compilation/piecewise_backend.py`: `self.graph` (singular) is passed to `.compile()` in a loop over `range_entries`:
 ```python
@@ -240,12 +209,6 @@ def _fused_supports_args(x, residual, norm_w, eps, weight, weight_scale, ...):
 4. Return mutated tensors as outputs (never in-place)
 5. Set `compile_ranges_endpoints=[N-1]` in compilation config
 6. Test dispatch under each range with a smoke test
-
----
-
-### NEVER: Python `if tensor.shape[0] < N` in compiled forward
-
-Bakes at trace time. One path for all shapes. Wrong results guaranteed at non-traced batch sizes.
 
 ---
 

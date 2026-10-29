@@ -1,0 +1,36 @@
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Dispatch a fresh `ammo-researcher` with `task_type: baseline`, `artifact_dir`, the round, and the attempt.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	When the researcher finishes, run the mechanical gate and `T_AUDIT_S1`.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-researcher.md	description: Accelerator analysis, profiling, bottleneck mining, and validation for vLLM optimization workflows.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-researcher.md	A separate `ammo-auditor` adversarially reviews your artifacts; fix every accepted finding before Stage 2 is accepted.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-researcher.md	For `vllm-neuron`, read `references/accelerator-binding.md` § Researcher, run `scripts/run_pumice_grpc_bench.py` for timing
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-researcher.md	Never mix profiling flags into the clean baseline. Never invoke the underlying vLLM benchmark directly.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-researcher.md	Report the values below in the baseline artifact. The lead records them through `scripts/ammo_state.py`; the researcher never mutates canonical `state.json`.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-researcher.md	`e2e-latency-guide.md`, the relevant baseline/correctness sections of
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-latency-guide.md	# Stage 1b: Profiling traces (separate invocation, so the overhead does not pollute the baseline)
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-latency-guide.md	# Round >= 2 MUST append `--baseline-from-arm opt` to the command below: the
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-latency-guide.md	--artifact-dir {artifact_dir} --round {CR} --slot baseline
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-latency-guide.md	`{SLOT}` is one of: `baseline` (Stage 1), `opt/{op_id}` (Stage 5 per-track), `integration` (Stage 6 combined sweep), `golden_capture` (post-SHIP golden-ref refresh).
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-latency-guide.md	Nsys profiles need a **separate short profiling invocation** (`--slot profiling`), run after the clean baseline.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-latency-guide.md	The runner sets the cache root AFTER `_sanitize_engine_op_env`.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-latency-guide.md	**cmb-api note.** `pumice-rust/Cargo.toml` depends on the internal crate `amzn-mantle-cmb-api`, and Pumice ships no `Cargo.lock`.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-latency-guide.md	On Neuron, `model_runner` is `neuron` and `vllm_version` is null.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-latency-guide.md	- Use `--fresh-cache` on all compared arms or on none.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/nsys-profiling-guide.md	Stage 2 has one default profiling workflow:
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/nsys-profiling-guide.md	Do not use profiler-contaminated latency as the official E2E baseline.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/nsys-profiling-guide.md	there is no hand-maintained hardware matrix to read or keep current.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/gpu-pool.md	- `pumice-neuron` (legacy `vllm-neuron`): one resource is one logical NeuronCore. The pool and
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/gpu-pool.md	**Never kill processes on accelerator resources you don't own.**
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/gpu-pool.md	The script does NOT auto-extend profiler leases.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/accelerator-binding.md	For `target.json.serving`, use `serving-campaign.md` for measurement and objective policy.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/workload-invocation.md	`--verify-correctness`) always builds real GSM8K questions through the chat
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/workload-invocation.md	gpt-oss-20b campaigns (L40S and trn2) lost one launch to this.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/workload-invocation.md	live here, not in SKILL.md, so the orchestrator does not read them cold.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/workload-invocation.md	On `pumice-neuron`, `new_target.py` freezes `--max-num-batched-tokens 4096` in
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	# REQUIRED: Measure the actual kernel time on the confdb-resolved backend
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	section "Baseline E2E latency"
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	For Stage 5 timing slots, run `scripts/run_pumice_grpc_bench.py` with
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	**Gate 5.1b is a hard gate.** Correctness failure blocks the track from proceeding to latency benchmarks.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	The result is deterministic, so no validator is involved.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	(the vLLM-era runner passed the same list as `stop=`)
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/audit-invariants.md	and is clearly marked non-timing evidence. CUDA uses Nsys; Neuron uses raw
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/audit-invariants.md	Profiling or golden-capture latency is never substituted.

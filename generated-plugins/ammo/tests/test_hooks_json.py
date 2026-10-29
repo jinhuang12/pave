@@ -22,18 +22,24 @@ PREFIX = "${CLAUDE_PLUGIN_ROOT}/hooks/"
 # Conventions §7. team-spawn-guard stays: it enforces the SKILL.md
 # team-member-vs-subagent contract (its header records the reason).
 REGISTERED = {
-    "ammo-msg-check.sh", "ammo-pretool-guard.sh", "ammo-skill-files-guard.sh",
+    "ammo-pretool-guard.sh", "ammo-skill-files-guard.sh",
     "ammo-env-default-guard.sh", "worktree-create-with-build.sh", "worktree-remove-cleanup.sh",
     "ammo-precompact.sh", "ammo-postcompact.sh", "ammo-stop-guard.sh", "ammo-subagent-release.sh",
     "ammo-gpu-release.sh", "ammo-monitor-reminder.sh", "ammo-audit-start-stamp.sh",
     "ammo-state-validate.sh", "ammo-next-step-reminder.sh", "ammo-artifact-layout-warn.sh",
     "audit-phase2-guard.sh", "inject-audit-phase2.sh", "ammo-team-spawn-guard.sh",
 }
-SOURCED_HELPERS = {"_ammo_is_lead.sh", "_ammo_msg_identity.sh", "_find_campaign.sh"}
+SOURCED_HELPERS = {"_ammo_is_lead.sh", "_find_campaign.sh"}
 DROPPED = {
     "ammo-venv-python-guard.sh", "ammo-pip-guard.sh", "ammo-agent-cwd-guard.sh",
-    "ammo-msg-mirror.sh", "ammo-statusline.sh",
+    "ammo-msg-mirror.sh", "ammo-msg-check.sh", "ammo-statusline.sh",
 }
+
+
+def test_dropped_message_hooks_are_gone():
+    # The msg-check hook and its identity helper went with msg-mirror.
+    for name in ("ammo-msg-check.sh", "_ammo_msg_identity.sh", "tests/test-ammo-msg-check.sh"):
+        assert not (R / "hooks" / name).exists(), name
 
 
 def load() -> dict:

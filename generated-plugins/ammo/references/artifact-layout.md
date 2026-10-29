@@ -11,8 +11,7 @@ This file says where every AMMO campaign artifact lives. Read it before you writ
 5. [Authoritative vs Diagnostic Artifacts](#authoritative-vs-diagnostic-artifacts)
 6. [Which File Wins](#which-file-wins)
 7. [Prohibited Patterns](#prohibited-patterns)
-8. [Layout Detection (for scripts)](#layout-detection-for-scripts)
-9. [Hook Enforcement](#hook-enforcement)
+8. [Hook Enforcement](#hook-enforcement)
 
 ---
 
@@ -105,7 +104,7 @@ rounds/{N}/
 │   └── bottleneck_analysis.md
 │
 ├── debate/
-│   ├── eligibility_verdicts.md          # Lead-owned: CUT-4 four-gate verdict + gated_revision (write-once-then-append)
+│   ├── eligibility_verdicts.md          # Lead-owned: id, name, proposal path and section, accepted revision, verdict
 │   ├── proposals/                       # {champion_id}_proposal.md
 │   ├── round_{D}/                       # Debate rounds (D=1,2,...; NOT campaign rounds)
 │   │   └── {op_id}_{argument|critique_{target}|rebuttal}.md
@@ -134,7 +133,6 @@ rounds/{N}/
 ├── audits/
 │   ├── stage_1.md                       # T_AUDIT_S1 verdict
 │   ├── stage_2.md                       # T_AUDIT_S2 verdict
-│   ├── stage_45_partial_{op_id}.md      # Optional early per-track evidence (pre-T_AUDIT_S45); NOT a verdict
 │   ├── stage_45.md                      # T_AUDIT_S45 verdict
 │   ├── stage_67.md                      # T_AUDIT_S67 verdict
 │   └── stage_{stage}_cycle_{C}.md       # Re-audit on BLOCKED (C=2,3)
@@ -185,7 +183,7 @@ scripts/ammo run_pumice_grpc_bench.py \
 
 ### Per-Bucket nsys Traces (sweep `--nsys-profile`)
 
-Traces from `--nsys-profile` go to **`rounds/{N}/profiling/nsys/`**. They do NOT go inside the runner output dir. The bench runner reads `--round` and writes the traces to that sibling profiling dir.
+The bench runner writes the raw `--nsys-profile` report under its own output dir, `rounds/{N}/sweeps/profiling/nsys/`. The researcher copies it to `rounds/{N}/profiling/nsys/`, which is the only place Stage 2 reads traces from (`references/nsys-profiling-guide.md`).
 
 Legacy campaigns may still contain `rounds/{N}/profiling/probe/` or `rounds/{N}/profiling/torch_profile/`. Readers may keep compatibility for those paths, but new campaigns do not scaffold or recommend them.
 
@@ -227,7 +225,7 @@ This shared diagnostic slot has no gate authority and does not change Claude rol
 | `state.json` | Every stage transition, gate result, track update |
 | `target.json` | SHIP env promotion |
 | `rounds/{N}/debate/summary.md` (lead-authored) | After debate winner selection |
-| `rounds/{N}/debate/eligibility_verdicts.md` | At op_id minting: CUT-4 four-gate verdict + `gated_revision` per surviving op_id; appended on any critique-triggered Gate-1/Gate-2 re-derivation (write-once-then-append; lead-owned) |
+| `rounds/{N}/debate/eligibility_verdicts.md` | At op_id minting: id, name, proposal path and section, accepted revision, and verdict for each surviving candidate (lead-owned) |
 | `blockers/{stage}_{date}.md` | On escalation |
 
 ### ammo-researcher
@@ -243,11 +241,11 @@ This shared diagnostic slot has no gate authority and does not change Claude rol
 ### ammo-champion (debate)
 | Writes to | When |
 |-----------|------|
-| `rounds/{N}/debate/proposals/{champion_id}_proposal.md` | Phase 0 |
-| `rounds/{N}/debate/round_{D}/{op_id}_argument.md` | Phase A (debate sub-rounds 2+ only; sub-round 1 has no Phase A, and the Phase 0 proposal is its argument-of-record) |
-| `rounds/{N}/debate/round_{D}/{op_id}_critique_{target}.md` | Phase B |
-| `rounds/{N}/debate/round_{D}/{op_id}_rebuttal.md` | Phase C |
-| `rounds/{N}/debate/micro_experiments/{champion_id}_*.py` | Phase 0 (optional) |
+| `rounds/{N}/debate/proposals/{champion_id}_proposal.md` | Proposals |
+| `rounds/{N}/debate/round_{D}/{op_id}_argument.md` | A second round only. In round 1 the proposal is the argument of record. |
+| `rounds/{N}/debate/round_{D}/{op_id}_critique_{target}.md` | Critique and rebuttal |
+| `rounds/{N}/debate/round_{D}/{op_id}_rebuttal.md` | Critique and rebuttal |
+| `rounds/{N}/debate/micro_experiments/{champion_id}_*.py` | Proposals (optional) |
 
 ### ammo-impl-champion
 | Writes to | When |
@@ -273,7 +271,6 @@ This shared diagnostic slot has no gate authority and does not change Claude rol
 | `rounds/{N}/audits/stage_2.md` | T_AUDIT_S2 |
 | `rounds/{N}/audits/stage_45.md` | T_AUDIT_S45 |
 | `rounds/{N}/audits/stage_67.md` | T_AUDIT_S67 |
-| `rounds/{N}/audits/stage_45_partial_{op_id}.md` | Optional. Early per-track evidence, written by an `ammo-delegate` dispatched directly by the orchestrator (not by `ammo-auditor` itself) as soon as that track reaches terminal status, ahead of the full T_AUDIT_S45 gate. Consumed (not produced) by the real auditor at T_AUDIT_S45. See `orchestration/audit-protocol.md` § Optional Early S45 Evidence. |
 
 ### ammo-report-writer
 | Writes to | When |
@@ -327,7 +324,6 @@ The Confusion Risk column says how easily a reader mistakes the file for an auth
 | `rounds/{N}/debate/micro_experiments/*` | Feasibility evidence | LOW |
 | `rounds/{N}/tracks/{op_id}/_scratch/*` | Champion iteration | MEDIUM: drafts look like finals |
 | `rounds/{N}/tracks/{op_id}/monitor_audits/*` | DA enforcement (impl-stage) | LOW |
-| `rounds/{N}/audits/stage_45_partial_{op_id}.md` | Early per-track evidence | MEDIUM: not a verdict |
 | `rounds/{N}/sweeps/post_ship_profiling/` | Post-SHIP re-attribution | HIGH: latency is contaminated |
 | `rounds/{N}/_archive/{slot}_{timestamp}/` | Superseded runs | LOW (quarantined) |
 
@@ -345,7 +341,7 @@ Use these answers when more than one candidate file exists.
 
 4. **"Which opt sweep is authoritative?"** → `rounds/{N}/sweeps/opt/{op_id}/e2e_latency_results.json`. Only one per track per round (superseded runs archived).
 
-5. **"What are the golden refs for correctness?"** → For the CURRENT round's opt sweeps: `rounds/{N}/sweeps/baseline/json/golden_refs.json`. For round N+1 after SHIP: `rounds/{N}/sweeps/golden_capture/json/golden_refs.json`.
+5. **"What are the golden refs for correctness?"** → In Round 1, `rounds/1/sweeps/baseline/json/golden_refs.json`. In round 2 and later, `rounds/{P}/sweeps/golden_capture/json/golden_refs.json`, where `{P}` is the latest round that shipped. If no round has shipped yet, keep the Round 1 file. `references/e2e-latency-guide.md` § Tool Selection owns this rule.
 
 6. **"Is this file authoritative or derived?"** → `debate/summary.md` is DERIVED (lead-authored from `state.json`; champions never write it). If it disagrees with `state.json.campaign.rounds[N-1].debate.selected_candidates`, state.json wins and the lead corrects the summary.
 
@@ -357,32 +353,12 @@ Never create any of these. Each item names the replacement or the reason.
 
 1. **Writing to campaign root** (except `state.json`, `state.json.lock`, `target.json`, `REPORT.md`, `report_assets/`)
 2. **Timestamped directory names in active slots** (only `_archive/` may carry timestamps)
-3. **Ad-hoc `--out-name`** on the bench runner (use `--round` + `--slot`)
-4. **`monitor_log_*` at campaign root**: must be under `monitor_audits/`
-5. **`validation_results_DRAFT.md`** or similar at track root: use `_scratch/`
-6. **Nested `.ammo/` paths**: monitors must receive absolute `output_dir`
-7. **`e2e_latency_opt*`, `e2e_latency_combined/`** at campaign root: use semantic slots
-8. **`investigation/`, `runs/`, `monitoring/`** directories at root: not part of the layout; the Root Layout list is complete
-9. **Writing nsys traces into sweep output**: traces go to `profiling/nsys/`, not `sweeps/*/nsys/`
-10. **`debate/campaign_round_{N}/` nesting**: replaced by top-level `rounds/{N}/debate/`
-11. **`audits/stage_{N}_round_{M}.md` at campaign root**: replaced by `rounds/{M}/audits/stage_{N}.md`
-12. **`bottleneck_analysis.md` at campaign root**: replaced by `rounds/{N}/mining/bottleneck_analysis.md`
-13. **`constraints.md` at campaign root**: replaced by `rounds/{N}/constraints.md`
-
----
-
-## Layout Detection (for scripts)
-
-A script that must serve both v1 (legacy flat) and v2 (round-scoped) layouts uses one filesystem check:
-
-```python
-def _is_v2_layout(artifact_dir: Path) -> bool:
-    return (artifact_dir / "rounds").is_dir()
-```
-
-This check is independent of `state.json["schema_version"]`; layout is detected by filesystem presence of `rounds/`, never by the schema version.
-
-When `_is_v2_layout(artifact_dir)` is `True`, scripts MUST emit v2 paths. When `False`, scripts MAY fall back to legacy paths (typically only relevant for old campaigns started before this spec).
+3. **`monitor_log_*` at campaign root**: must be under `monitor_audits/`
+4. **`validation_results_DRAFT.md`** or similar at track root: use `_scratch/`
+5. **Nested `.ammo/` paths**: monitors must receive absolute `output_dir`
+6. **`e2e_latency_opt*`, `e2e_latency_combined/`** at campaign root: use semantic slots
+7. **`investigation/`, `runs/`, `monitoring/`** directories at root: not part of the layout; the Root Layout list is complete
+8. **Mining from a trace in a sweep dir**: the runner's raw report under `sweeps/profiling/nsys/` is staging only. Copy it to `profiling/nsys/`, the only trace dir Stage 2 reads.
 
 ---
 

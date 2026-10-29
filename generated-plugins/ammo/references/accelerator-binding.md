@@ -1,7 +1,5 @@
 # AMMO Accelerator Binding
 
-For `target.json.serving`, use `serving-campaign.md` for measurement and objective policy. The batch-only invocation and instrument rules below apply to other targets. Accelerator ownership and runtime binding remain unchanged.
-
 Read this file only when `AMMO_ACCELERATOR_KIND=neuron` or when you must verify runtime routing. `target.json` `runtime.profile` selects the profile at scaffold time. Do not ask the user to choose a backend.
 
 ## Profiles
@@ -42,7 +40,18 @@ On `pumice-cuda` this binding adds nothing: CUDA graphs, Nsys, NCU, cache, reser
 
 - Pumice Neuron code lives under `src/pumice/neuron_inference_core/` and `src/pumice/engine/neuron_model_runner.py`. The runner passes `--model-runner pumice` on Neuron. `default_model_runner()` returns `pumice` when the accelerator is Neuron, and the launch command adds the flag. It is required: confdb has no Neuron section, so without the flag a gpt-oss `[sm90]` row selects the vLLM runner, and a Neuron engine venv has no vLLM.
 - Rebuild with `scripts/ammo pumice-stage-native.sh <worktree>/.venv/bin/python <worktree> --features nixl-stub`. Never compile `_ops` on Neuron (there is no nvcc).
-- Rows carry `model_runner=neuron` and `vllm_version` null. TP must be a multiple of the LNC. Spec-decode and grammar tracks are off on Neuron.
+- Rows carry `model_runner=neuron` and `vllm_version` null. The Pumice Neuron registry is llama3, gpt_oss, qwen3_moe, and qwen3_vl. TP must be a multiple of the LNC. Spec-decode and grammar tracks are off on Neuron.
+- Prefill chunk budget. When `max_model_len` is greater than 4096 and `--max-num-batched-tokens` is absent, `new_target.py` freezes `--max-num-batched-tokens 4096` in `bench.extra_args` and prints a WARNING that says so. Pass the flag to choose another supported value. The Neuron runner (`src/pumice/engine/neuron_model_runner.py`) sets `kv_segment_size` to `max_num_batched_tokens` when that value equals `max_model_len`, and the segmented attention kernel (`neuron_inference_core/functional/attention/attention_segmented_cte.py`) compiles only `kv_segment_size` in `{512, 1024, 2048, 4096}`. Without the cap, `--max-model-len 8192` makes every TP rank die at warmup with `ValueError: kv_segment_size=8192 is not supported`, before `HealthCheck`. The Pumice gpt-oss-20b Neuron smoke test uses `--max-num-batched-tokens 4096`. Record the resolved value from the `NeuronModelRunner config:` log line in `constraints.md`. A prefill of `batch x input_len` tokens at or under the budget is unaffected by the cap.
+- Reservation. One `gpu_reservation.py` resource is one logical NeuronCore, and every count in `references/gpu-pool.md` § How Much to Reserve means logical NeuronCores. The pool and every child reservation are contiguous. For an engine or serving-level command, assign the printed `start-end` value to `NEURON_VISIBLE_DEVICES`:
+
+  ```bash
+  NVD=$(scripts/ammo gpu_reservation.py reserve \
+    --num-resources N --session-id {gpu_session_id} --no-auto-release) && \
+    NEURON_VISIBLE_DEVICES=$NVD <engine-or-serving-profile-command>
+  ```
+
+  The engine maps each worker rank to one core and sets that worker's `NEURON_RT_VISIBLE_CORES`. Set `NEURON_RT_VISIBLE_CORES` yourself only for a direct, single-process NKI or runtime command, from the same reservation. Never pass it to an engine parent (the Pumice server or `run_pumice_grpc_bench.py`). An empty Neuron visibility value is not a no-core sentinel. A Neuron Profile or NKI capture reserves the count its declared production topology needs. If an unknown process uses your visible core range, report it to the lead and wait.
+- Nsys, NCU, and CUDA graphs do not exist on Neuron. Take runtime facts from `scripts/runtime_ops.py` fingerprints and the `neuron-explorer` attribution below.
 - Use `scripts/runtime_ops.py` for device synchronization, control tensors, device identity, compile-cache mapping, profile start/stop, NEFF capture, event normalization, activation proof, and runtime/source fingerprints.
 - A stack fingerprint names commits at two scopes. `execution_source.cwd_git.commit` and `sources[<dir>].commit` are the worktree HEAD when the fingerprint was taken. `server_stack_fingerprint.pumice_commit` is the engine commit that `preflight_pumice.py` recorded at scaffold time (`AMMO_STACK_FINGERPRINT`). The track worktrees branch from the campaign branch, and this value stays the same when you commit to a worktree. `run_pumice_grpc_bench.py` stamps a fresh fingerprint into every `e2e_latency_results.json`. A successful `--slot baseline` run also copies it into `state.json` `runtime.stack_fingerprint`, which `new_target.py` first wrote at scaffold time. Never edit a fingerprint by hand: that breaks its digest. To record a new source state, rerun the measurement.
 - Compile cache: `NEURON_CACHE_ROOT` holds the NEFF cache. `--fresh-cache` has the same meaning as on CUDA. An arm whose Python or confdb sources changed since the last NEFF runs with `NEURON_DISABLE_COMPILE_CACHE=1`. A warm relaunch runs with `NEURON_ASSERT_CACHE_HIT=1`.
@@ -53,11 +62,12 @@ On `pumice-cuda` this binding adds nothing: CUDA graphs, Nsys, NCU, cache, reser
   3. Normalize. The export holds several row tables. Feed each table's row list to `scripts/runtime_ops.py normalize` on its own: `active_time` (labelled by `engine`), `cc_ops` (labelled by `operation`), and `dma` (no label field, so add `"name": "dma"` to each row before normalize). Then take the interval union across `pcore_idx`. LNC2 has two physical cores per logical core, so summing double counts.
 - Record the mechanism, the raw per-rank NTFF artifacts, the profiler and schema versions, and the normalization fingerprint. Do not read the HBM gauges in `neuron_metrics.py`; no gate may use them.
 - Keep profiled evidence separate from authoritative profiler-free E2E timing. Normalize Neuron events before `scripts/mine_trace.py` applies the existing interval-union, phase-share, physical-ceiling, and `f_e2e` calculations.
-- At Gate 5.3a, record expected NEFF/bucket compilation, compile-cache use, execution of the Pumice Neuron runner from the worktree, and absence of fallback. This is the Neuron activation proof in the existing gate position.
+- At Gate 5.2, measure the production-parity plugin/NEFF-bucket compiled boundary of the Pumice Neuron runner, with the Stage 1 bucket set and runtime synchronization. Confirm that execution through `scripts/runtime_ops.py`, and record the runtime profile, bucket set, and compile/cache state. A raw or uncompiled proxy violates the same production-parity invariant. CUDA graphs and `torch.cuda.Event` do not apply. An isolated NKI microbenchmark stays proxy-only unless dispatch evidence proves that it reproduces that boundary.
+- At Gate 5.3a, record expected NEFF/bucket compilation, compile-cache use, execution of the Pumice Neuron runner from the worktree, and absence of fallback. This is the Neuron activation proof in the existing gate position. Prove it with NeuronProfiler or `neuron-explorer` plus `scripts/runtime_ops.py`.
 
 ## Researcher
 
-Use `neuron-nki-profiling` only to identify the NEFF to capture (its `identify-neffs.py` technique); capture itself goes through `scripts/runtime_ops.py capture-neff`, never through the skill's own capture path, which pins cores and LNC. Use `neuron-nki-profile-querying` for measured queries, `neuron-explorer-profile-schema` for version-matched fields and units, `neuron-nki-docs` for API or architecture facts, and `experimental-neuron-hardware-entitlement` for the physical bound (mandatory FLOPs and HBM bytes per operator) behind `physical_ceiling`. Supply measurements and physical bounds only. Do not propose an optimization. Preserve raw Neuron outputs and the normalized intervals.
+Use `neuron-nki-profiling` only to identify the NEFF to capture (its `identify-neffs.py` technique); capture itself goes through `scripts/runtime_ops.py capture-neff`, never through the skill's own capture path, which pins cores and LNC. Use `neuron-nki-profile-querying` for measured queries, `neuron-explorer-profile-schema` for version-matched fields and units, `neuron-nki-docs` for API or architecture facts, and `experimental-neuron-hardware-entitlement` for the physical bound (mandatory FLOPs and HBM bytes per operator) behind `physical_ceiling`. Supply measurements and physical bounds only. Do not propose an optimization. Preserve raw Neuron outputs and the normalized intervals. Time with `scripts/run_pumice_grpc_bench.py`, which has no `--accelerator-profile` flag on Neuron. If a capture fails, keep the raw NeuronProfiler and `neuron-explorer` output and diagnose through `scripts/runtime_ops.py` and the skills above.
 
 ## Champion
 
@@ -69,16 +79,12 @@ Use `neuron-nki-docs` for API facts, `neuron-nki-writing` for an assigned NKI im
 
 ## Monitor
 
-Judge Neuron evidence by the same rules as CUDA. Profiler-free timing from `scripts/run_pumice_grpc_bench.py` is the only E2E authority. Attribution must come from the `neuron-explorer` chain above, and activation proof is the Gate 5.3a NEFF/bucket record. Use `neuron-nki-profile-querying` and `neuron-explorer-profile-schema` to check a cited profile value. Nsys does not exist on Neuron; a champion who cites it has the wrong runtime.
-
-## Investigator
-
-Remain read-only. Use `neuron-nki-docs`, `neuron-nki-debugging`, `neuron-nki-profile-querying`, and `neuron-explorer-profile-schema` to test one evidence question; add `experimental-neuron-perf-compiler-artifact-debugging` for a compiler-artifact question and `experimental-neuron-infra-runtime-troubleshooting` for a device or runtime error. Inspect `scripts/runtime_ops.py` fingerprints, activation proof, and normalized intervals. Do not change the environment or evidence.
+Judge Neuron evidence by the same rules as CUDA. Profiler-free timing from `scripts/run_pumice_grpc_bench.py` is the only E2E authority. Attribution must come from the `neuron-explorer` chain above, and activation proof is the Gate 5.3a NEFF/bucket record. Use `neuron-nki-profile-querying` and `neuron-explorer-profile-schema` to check a cited profile value. A champion who cites Nsys has the wrong runtime.
 
 ## Auditor
 
-Apply the same audit questions to both runtimes. On Neuron, reconstruct claims from raw profile outputs, version-matched schema, normalized intervals, activation proof, and fingerprints. Use `neuron-nki-profile-querying`, `neuron-explorer-profile-schema`, and `neuron-nki-docs`. A Neuron skill adds no audit gate or verdict rule.
+Apply the same audit questions to both runtimes. On Neuron, reconstruct claims from raw profile outputs, version-matched schema, normalized intervals, activation proof, and fingerprints. Verify the `scripts/runtime_ops.py` evidence behind the activation proof, the intervals, and the fingerprints. Use `neuron-nki-profile-querying`, `neuron-explorer-profile-schema`, and `neuron-nki-docs`. A Neuron skill adds no audit gate or verdict rule.
 
 ## Delegate
 
-Use only the skills named by the bounded prompt. `neuron-nki-writing` is allowed only for an assigned NKI micro-experiment. Preserve commands, raw values, raw profile files, normalized intervals, and source citations. The caller owns interpretation and decisions.
+Use only the skills named by the bounded prompt, from `neuron-nki-docs`, `neuron-nki-writing`, `neuron-nki-debugging`, `neuron-nki-profiling`, `neuron-nki-profile-querying`, and `neuron-explorer-profile-schema`. `neuron-nki-writing` is allowed only for an assigned NKI micro-experiment. Match the profiler to the claim: NeuronProfiler or `neuron-explorer` for timing and sequencing, `neuron-nki-profiling` and `neuron-nki-profile-querying` for kernel counters. A valid single-unit kernel experiment holds one logical NeuronCore; use the assigned production topology when the claim needs it. Use `scripts/runtime_ops.py` for runtime operations and to inspect fingerprints, activation proof, and normalized intervals. Preserve commands, raw values, raw profile files, normalized intervals, and source citations. The caller owns interpretation and decisions.

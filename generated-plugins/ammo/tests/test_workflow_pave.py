@@ -246,3 +246,57 @@ def test_readme_and_version_quote_the_validator_counts():
         assert found, f"{name} quotes no node and edge counts"
         for pair in found:
             assert pair == (nodes, edges), f"{name} says {pair}, validator says {(nodes, edges)}"
+
+
+# Graph text adopted in the prompt audit (lead-owned items). Each check names
+# the owner file or the exact steps, so the graph and the prose say one thing.
+def test_fallback_ladder_points_to_its_owner_and_defines_the_retry_rung(pave):
+    question = " ".join(pave["checks"]["fallback_ladder_exhausted"]["question"].split())
+    assert "validation-defaults.md § Per-BS Verdicts and Track-Level Fallback Ladder" in question
+    assert "impl-track-rules.md" not in question
+    assert "Production integration line names a fallback mechanism" in question
+    assert "reruns Gates 5.1a to 5.2" in question
+
+
+def test_pre_ship_check_lists_the_four_checks(pave):
+    question = " ".join(pave["checks"]["pre_ship_checks_passed"]["question"].split())
+    for check in (
+        "the added lines of the integration diff hold no conflict markers",
+        "integration.per_bs_verdict holds no REGRESSED or CATASTROPHIC",
+        "every integration sweep row has opt.returncode == 0",
+        "ammo_state.py validate passes",
+    ):
+        assert check in question
+
+
+def test_stage_1_names_ingest_baseline_before_the_audit(pave):
+    purpose = " ".join(pave["nodes"]["stage_1_baseline"]["purpose"].split())
+    assert "mechanical gate" not in purpose
+    assert purpose.index("ingest-baseline") < purpose.index("T_AUDIT_S1")
+
+
+def test_stage_7b_reentry_keys_on_the_fact_check_record(pave):
+    purpose = " ".join(pave["nodes"]["stage_7b_report"]["purpose"].split())
+    assert "report_fact_check.json" in purpose.split("):")[0]
+    assert "report_sha256 of the current" in purpose
+
+
+def test_investigator_is_the_pave_init_agent(pave):
+    assert "ammo_investigator" not in pave["roles"]
+    purpose = " ".join(pave["roles"]["adversarial_investigator"]["purpose"].split())
+    assert "pave-init:adversarial-investigator" in purpose
+    assert "One-shot" in purpose
+    text = GRAPH.read_text(encoding="utf-8")
+    assert "ammo-investigator" not in text and "ammo_investigator" not in text
+
+
+def test_audit_s45_has_no_early_partial_step(pave):
+    # R9: the early per-track S45 partials went; the audit reads the cohort.
+    assert "partial" not in pave["nodes"]["audit_s45"]["purpose"]
+
+
+def test_audit_s67_question_reads_the_verdict_file(pave):
+    # The canonical-copy step went (w6-8): verdict_file names the passing cycle file.
+    question = " ".join(pave["checks"]["audit_s67_passed"]["question"].split())
+    assert "copied to the canonical" not in question
+    assert "verdict_file" in question

@@ -188,6 +188,14 @@ else
     echo "  FAIL [$TOTAL]: Stage 7 nudge lacks the plugin address: $(head -c 300 "$TMPDIR/hook-stderr")"
     FAIL=$((FAIL + 1))
 fi
+TOTAL=$((TOTAL + 1))
+if grep -qF "report_fact_check.json" "$TMPDIR/hook-stderr"; then
+    echo "  PASS [$TOTAL]: Stage 7 report nudge names the fact-check gate"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: Stage 7 report nudge lacks the fact-check gate: $(head -c 300 "$TMPDIR/hook-stderr")"
+    FAIL=$((FAIL + 1))
+fi
 
 # Test 6: Solo orchestrator (no team configs) → should still get nudged
 rm -rf "$TMPDIR/.claude/teams"
@@ -304,7 +312,29 @@ rm -f "$ARTIFACT_DIR/state.json"
 run_test "No state.json → silent pass" 0 \
     '{"session_id": "lead-session-123"}'
 
-# Test 14: Terminal campaign + REPORT.md → silent pass
+# write_fact_check OK SHA: write report_assets/report_fact_check.json.
+# The SHA comes from python3 here, so the test does not reuse the hook's hash code.
+report_sha() {
+    python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$1"
+}
+write_fact_check() {
+    mkdir -p "${ARTIFACT_DIR}/report_assets"
+    jq -n --argjson ok "$1" --arg sha "$2" '{ok: $ok, findings: [], report_sha256: $sha}' \
+        > "${ARTIFACT_DIR}/report_assets/report_fact_check.json"
+}
+expect_stderr() {
+    local label="$1" needle="$2"
+    TOTAL=$((TOTAL + 1))
+    if grep -qF -- "$needle" "$TMPDIR/hook-stderr"; then
+        echo "  PASS [$TOTAL]: $label"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL [$TOTAL]: $label: $(head -c 300 "$TMPDIR/hook-stderr")"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# Test 14: Terminal campaign + REPORT.md + accepted fact-check → silent pass
 write_state "$ARTIFACT_DIR/state.json" '
   .campaign.status = "campaign_complete" |
   .campaign.current_round = 3 |
@@ -316,11 +346,40 @@ write_state "$ARTIFACT_DIR/state.json" '
   ]
 '
 echo "# Optimization Report" > "${ARTIFACT_DIR}/REPORT.md"
+write_fact_check true "$(report_sha "${ARTIFACT_DIR}/REPORT.md")"
 
-run_test "Terminal campaign + REPORT.md → silent pass" 0 \
+run_test "Terminal campaign + REPORT.md + accepted fact-check → silent pass" 0 \
     '{"session_id": "lead-session-123"}'
 
-rm -f "${ARTIFACT_DIR}/REPORT.md"
+# Test 14b: REPORT.md without a fact-check file → fact-check nudge
+rm -rf "${ARTIFACT_DIR}/report_assets"
+run_test "Terminal campaign + REPORT.md, no fact-check → nudge" 2 \
+    '{"session_id": "lead-session-123"}'
+expect_stderr "Unchecked report nudge names report_fact_check.json" "report_assets/report_fact_check.json"
+expect_stderr "Unchecked report nudge names the fact-check assignment" "ammo-delegate"
+
+# Test 14c: fact-check bound to older report bytes → nudge
+write_fact_check true "$(report_sha "${ARTIFACT_DIR}/REPORT.md")"
+echo "# Edited after the check" >> "${ARTIFACT_DIR}/REPORT.md"
+run_test "Terminal campaign + stale fact-check SHA → nudge" 2 \
+    '{"session_id": "lead-session-123"}'
+
+# Test 14d: fact-check rejected the current report → nudge
+write_fact_check false "$(report_sha "${ARTIFACT_DIR}/REPORT.md")"
+run_test "Terminal campaign + fact-check ok=false → nudge" 2 \
+    '{"session_id": "lead-session-123"}'
+
+# Test 14e: campaign_exhausted with an accepted report → silent pass
+write_state "$ARTIFACT_DIR/state.json" '
+  .campaign.status = "campaign_exhausted" |
+  .campaign.current_round = 3 |
+  .campaign.current_stage = "7_campaign_eval"
+'
+write_fact_check true "$(report_sha "${ARTIFACT_DIR}/REPORT.md")"
+run_test "campaign_exhausted + accepted fact-check → silent pass" 0 \
+    '{"session_id": "lead-session-123"}'
+
+rm -rf "${ARTIFACT_DIR}/REPORT.md" "${ARTIFACT_DIR}/report_assets"
 
 # Test 15: Paused campaign → silent pass
 write_state "$ARTIFACT_DIR/state.json" '
@@ -382,6 +441,14 @@ if grep -qF "subagent_type=ammo:ammo-report-writer" "$TMPDIR/hook-stderr"; then
     PASS=$((PASS + 1))
 else
     echo "  FAIL [$TOTAL]: Stage 7b nudge lacks the plugin address: $(head -c 300 "$TMPDIR/hook-stderr")"
+    FAIL=$((FAIL + 1))
+fi
+TOTAL=$((TOTAL + 1))
+if grep -qF "report_fact_check.json" "$TMPDIR/hook-stderr"; then
+    echo "  PASS [$TOTAL]: Stage 7b nudge names the fact-check gate"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL [$TOTAL]: Stage 7b nudge lacks the fact-check gate: $(head -c 300 "$TMPDIR/hook-stderr")"
     FAIL=$((FAIL + 1))
 fi
 

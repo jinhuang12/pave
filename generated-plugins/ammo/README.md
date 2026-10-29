@@ -27,7 +27,7 @@ campaign does this:
 7. Repeat from step 3 until the mechanical stop rule fires, then write a
    fact-checked `REPORT.md`.
 
-An independent auditor checks the work after stages 1, 2, 4-5, and 6-7. The
+An independent auditor checks the work after stages 1, 2, 4-5, and 6. The
 lead never implements a change and never judges its own claim.
 
 v1 ships and tests the CUDA path only.
@@ -35,6 +35,13 @@ v1 ships and tests the CUDA path only.
 ## 2. Install
 
 The plugin is the directory that holds this README. It runs on either harness.
+
+**Requirements.** Install the pave-init plugin from the same marketplace. It
+provides the `pave-init:adversarial-investigator` agent that the lead spawns
+for ambiguous evidence and unexplained failures. On Claude Code,
+`.claude-plugin/plugin.json` declares pave-init as a dependency, so
+`/plugin install` installs it too. A `--plugin-dir` load does not install
+dependencies, so load pave-init the same way. On Codex, Codex step 2 installs it.
 
 **Claude Code.** Add the marketplace that lists this package and install it.
 The role agents (`agents/*.md`), the two skills (`ammo:ammo` and
@@ -56,10 +63,13 @@ Then seed the revision folder (step 7 below).
    codex plugin add ammo@<marketplace>
    ```
 
-2. Install the custom agents into your Pumice checkout:
+2. Install the AMMO custom agents into your Pumice checkout. Then run
+   pave-init's own installer, so that `pave-init:adversarial-investigator` is
+   also in the checkout's `.codex/agents`:
 
    ```bash
    python3 /path/to/ammo/codex/install_agents.py --project /path/to/pumice-checkout
+   python3 /path/to/pave-init/codex/install_agents.py --project /path/to/pumice-checkout
    ```
 
 3. Trust the checkout. Accept the Codex trust prompt, or add this to
@@ -77,6 +87,7 @@ Then seed the revision folder (step 7 below).
 
    ```bash
    python3 /path/to/ammo/codex/install_agents.py --project /path/to/pumice-checkout --check
+   python3 /path/to/pave-init/codex/install_agents.py --project /path/to/pumice-checkout --check
    ```
 
 6. Open `/hooks`, review the registered campaign hooks, and trust them when
@@ -315,8 +326,7 @@ flowchart TD
 
 ## 9. Not in v1
 
-- Neuron. The `pumice-neuron` and `vllm-neuron` profiles are refused at scaffold
-  and preflight. The Neuron code paths stay in the scripts, but this package
+- Neuron. A Neuron profile is refused at scaffold and preflight. The Neuron code paths stay in the scripts, but this package
   does not ship or test them, and it does not bundle the Neuron skills.
 - The `eval/` harness and the role-play agent prompts of the source tree.
 - Server features: the web UI, the archive store, remote pause and resume,

@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import copy
 import fcntl
+import hashlib
 import json
 import os
 import re
@@ -1074,7 +1075,7 @@ def gate_violation(state, transitions, prev_state=None, artifact_dir=None):
                 passed = _audit_passed_at(audit, "stage_6")
             if not passed:
                 return (
-                    "Audit gate (4-phase audit): transition to %s blocked — "
+                    "Audit gate (two-phase audit): transition to %s blocked: "
                     "audit.%s.passed_at not set in current round. Spawn ammo-auditor "
                     "for %s first (see orchestration/audit-protocol.md)."
                     % (stage, audit_key, audit_key)
@@ -1137,7 +1138,7 @@ def gate_violation(state, transitions, prev_state=None, artifact_dir=None):
                 prev_passed = _audit_passed_at(audit, "stage_7")
             if not prev_passed:
                 return (
-                    "Audit gate (4-phase audit): new round start blocked — "
+                    "Audit gate (two-phase audit): new round start blocked: "
                     "audit.stage_67.passed_at not set on previous round (round %d). "
                     "Spawn ammo-auditor for stage_67 first." % (prev_idx + 1)
                 )
@@ -1704,7 +1705,7 @@ def _build_socratic(**kw):
             "config under rounds/%s/sweeps/baseline/ (cite file:line) that the baseline covered "
             "exactly those values, not the 64/512 defaults; a baseline on the wrong workload makes "
             "the mined bottleneck irrelevant. decode_share_of_e2e = %s must be consistent with "
-            "ISL/OSL = %s/%s. If the coverage cannot be cited, spawn ammo-investigator to compare "
+            "ISL/OSL = %s/%s. If the coverage cannot be cited, spawn pave-init:adversarial-investigator to compare "
             "the swept workload against target.json before mining."
             % (isl, osl, bs_list, cr, decode_share, isl, osl)
         )
@@ -1718,7 +1719,7 @@ def _build_socratic(**kw):
             "last round). Before Stage 3, append the technology the previous round shipped or "
             "exhausted for %s to exhausted_technologies[], and confirm from the pre-SHIP attribution "
             "and the promoted Stage-6 activation evidence that the remaining technology classes for "
-            "%s differ from it. If that cannot be cited, spawn ammo-investigator before champions "
+            "%s differ from it. If that cannot be cited, spawn pave-init:adversarial-investigator before champions "
             "repeat a closed path."
             % (top_component, f_e2e, f_e2e_prev, top_component, top_component)
         )
@@ -1729,7 +1730,7 @@ def _build_socratic(**kw):
             "AMMO CHECK (mining complete): top component %s at f_e2e = %s%%, amdahl_ceiling = %s. "
             "f_e2e is the component's share of total wall time: f_e2e = f_decode × decode_busy × "
             "decode_share_of_e2e. Before Stage 3, confirm from the sidecar metrics that the three "
-            "factors reproduce %s%%; if they do not, spawn ammo-investigator to recompute f_e2e from "
+            "factors reproduce %s%%; if they do not, spawn pave-init:adversarial-investigator to recompute f_e2e from "
             "raw traces before champions commit."
             % (top_component, f_e2e, amdahl_ceiling, f_e2e)
         )
@@ -1749,7 +1750,7 @@ def _build_socratic(**kw):
             "min_e2e_improvement_pct = %s%%, except a recorded long_shot or contingent_host_spike; "
             "if all winners target one component, record the portfolio's contingency in "
             "selection_rationale. If a projection cannot be cited against %s%%, spawn "
-            "ammo-investigator to check for overlooked candidates."
+            "pave-init:adversarial-investigator to check for overlooked candidates."
             % (winner_list, detail_line, threshold, threshold)
         )
 
@@ -1763,7 +1764,7 @@ def _build_socratic(**kw):
             "is justified only by a factual disagreement that a bounded experiment can settle "
             "(orchestration/debate-protocol.md § A second round). Otherwise select the strongest "
             "candidates now; if a factual dispute cannot be settled from existing artifacts, spawn "
-            "ammo-investigator to surface the ground truth."
+            "pave-init:adversarial-investigator to surface the ground truth."
             % (kw["debate_rounds_completed"], kw["debate_max_rounds"])
         )
 
@@ -1800,7 +1801,7 @@ def _build_socratic(**kw):
             "(f_e2e/100)/kernel_speedup). An E2E above the ceiling indicates contamination (cache "
             "bleed, env-var leak, wrong baseline); a fast kernel with E2E near 1.0 indicates the "
             "optimized path is not dispatching in the sweep. Confirm the causal chain from "
-            "e2e_latency_results.json; if it does not hold, spawn ammo-investigator before "
+            "e2e_latency_results.json; if it does not hold, spawn pave-init:adversarial-investigator before "
             "accepting the verdict."
             % (op_id, ks, es, track_f_e2e, top_component)
         )
@@ -1814,7 +1815,7 @@ def _build_socratic(**kw):
             "references/validation-defaults.md § Track-Level Fallback Ladder (gating, contingency, "
             "crossover probing) tried and cited in validation_results.md, and no batch size at PASS "
             "or NOISE (which would allow GATED_PASS). If a rung is untried or uncited, the track is "
-            "not terminal; spawn ammo-investigator to assess the untried paths."
+            "not terminal; spawn pave-init:adversarial-investigator to assess the untried paths."
             % op_id
         )
 
@@ -1826,7 +1827,7 @@ def _build_socratic(**kw):
             "crossover-probing sweep (references/crossover-probing.md), not from the original "
             "sweep buckets. Check whether the regressing batch sizes include the user's primary BS "
             "in target.json; that weighs against GATED_PASS. If the crossover cannot be cited, "
-            "spawn ammo-investigator before shipping the gate."
+            "spawn pave-init:adversarial-investigator before shipping the gate."
             % op_id
         )
 
@@ -1839,7 +1840,7 @@ def _build_socratic(**kw):
             "artifacts and state.json. Every track needs a written, committed "
             "validation_results.md and a verdict mirrored into state.json; %s track(s) currently "
             "have per_bs_verdict but null e2e_latency_opt. Fix those before draining, or spawn "
-            "ammo-investigator to inventory rounds/%s/tracks/ against state.json."
+            "pave-init:adversarial-investigator to inventory rounds/%s/tracks/ against state.json."
             % (kw["tracks_missing_lat_opt"], cr)
         )
 
@@ -1854,7 +1855,7 @@ def _build_socratic(**kw):
             "(Amdahl), so a worse actual result is recognized as an interaction effect. Two tracks "
             "on the same component: one ships (best E2E). GATED_PASS tracks: check the env-var "
             "default, because a default-on gate ships any regressing BS to production. If the "
-            "prediction cannot be derived, spawn ammo-investigator to compute it from each track's "
+            "prediction cannot be derived, spawn pave-init:adversarial-investigator to compute it from each track's "
             "gating block."
             % (n_pass, n_gated)
         )
@@ -1868,11 +1869,10 @@ def _build_socratic(**kw):
             "AMMO CHECK (SHIP): the integrated result becomes the baseline for all later rounds. "
             "cumulative_speedup = round_1_baseline_latency_s / current_integrated_latency_s "
             "(round_1_baseline_latency_s = %s, recorded cumulative_speedup_vs_round1 = %s); never "
-            "a product of round deltas. Cite the output line of each pre-ship mechanical check "
-            "(merge-conflict residue, integration regression, opt returncode, env promotion) and "
-            "confirm target.json holds the promoted baseline_env keys. If any check cannot be "
-            "cited, spawn ammo-investigator before shipping."
-            % (kw["r1_baseline_s"], cum_s)
+            "a product of round deltas. Cite the output line of each pre-ship check: %s. "
+            "Then confirm target.json holds the promoted baseline_env keys. If any check cannot be "
+            "cited, spawn pave-init:adversarial-investigator before shipping."
+            % (kw["r1_baseline_s"], cum_s, _PRE_SHIP_CHECKS)
         )
 
     # Stage 7 terminal
@@ -1905,11 +1905,25 @@ def _build_socratic(**kw):
             "diagnosis held and every approach failed, so mining stays valid and Stage 3 pivots "
             "technology. Cite the track artifact (file:line) that shows the diagnosis, not the fix, "
             "was wrong; without it leave the flag false, because re-mining without cause costs a "
-            "full round. If unsure, spawn ammo-investigator to read all track results."
+            "full round. If unsure, spawn pave-init:adversarial-investigator to read all track results."
             % mi_str
         )
 
     return socratic
+
+
+# Pre-SHIP checks, in the words of orchestration/integration-logic.md.
+_PRE_SHIP_CHECKS = (
+    "(1) the added lines of the integration diff hold no conflict markers; "
+    "(2) `integration.per_bs_verdict` holds no REGRESSED or CATASTROPHIC; "
+    "(3) every integration sweep row has `opt.returncode == 0`; "
+    "(4) `ammo_state.py validate` passes"
+)
+# The audit has two phases (orchestration/audit-protocol.md).
+_AUDIT_PHASES = (
+    "(two phases: Phase 1 Independent Reconstruction, then the Phase 2 "
+    "checklist that the hook delivers)"
+)
 
 
 def _build_reminder(**kw):
@@ -1924,23 +1938,31 @@ def _build_reminder(**kw):
 
     # Terminal campaign
     if status in set(kw["transitions"]["terminal_statuses"]):
-        artifact_dir = state.get("_artifact_dir")
-        report_present = bool(state.get("_report_present"))
-        if report_present:
+        if state.get("_report_accepted"):
             return "Campaign complete. Session may stop."
-        return "Campaign terminal. Spawn ammo-report-writer (background)."
+        if state.get("_report_present"):
+            return ("Campaign terminal. REPORT.md has no accepted fact-check. Run the Stage 7b "
+                    "fact-check gate: spawn a fresh ammo-delegate with the fact-check assignment "
+                    "in agents/ammo-report-writer.md, then write "
+                    "report_assets/report_fact_check.json with ok, findings, and the "
+                    "report_sha256 of the current REPORT.md.")
+        return "Campaign terminal. Spawn ammo-report-writer."
 
     if stage == "1_baseline":
         if not kw["baseline_done"]:
             return "Next: dispatch ammo-researcher (task_type: baseline). T2."
+        ingest = ("the sweep with `ammo_state.py ingest-baseline "
+                  "--state <state.json> --from rounds/%s/sweeps/baseline/e2e_latency_results.json` "
+                  "(never retype the per-BS numbers)" % kw["cr"])
         if audit_exists and not kw["audit_s1"]:
-            return ("AUDIT REQUIRED (T_AUDIT_S1): Stage 1 baseline complete. Spawn ammo-auditor "
-                    "(4-phase: inventory → reconstruction → checklist → reconciliation). "
-                    "Stage: stage_1.")
-        return ("Baseline done. Ingest the sweep with `ammo_state.py ingest-baseline "
-                "--state <state.json> --from rounds/%s/sweeps/baseline/e2e_latency_results.json` "
-                "(never retype the per-BS numbers), then set stage → 2_bottleneck_mining "
-                "and dispatch researcher (task_type: mining). T4." % kw["cr"])
+            return ("AUDIT REQUIRED (T_AUDIT_S1): Stage 1 baseline complete. First ingest %s, "
+                    "so the auditor reads the ingested baseline. Then spawn ammo-auditor %s. "
+                    "Stage: stage_1." % (ingest, _AUDIT_PHASES))
+        if audit_exists:
+            return ("T_AUDIT_S1 passed. Set stage → 2_bottleneck_mining and dispatch researcher "
+                    "(task_type: mining). T4.")
+        return ("Baseline done. Ingest %s, then set stage → 2_bottleneck_mining "
+                "and dispatch researcher (task_type: mining). T4." % ingest)
 
     if stage == "2_bottleneck_mining":
         if not kw["mining_done"]:
@@ -1959,8 +1981,7 @@ def _build_reminder(**kw):
             s2_applicable = True
         if s2_applicable and audit_exists and not kw["audit_s2"]:
             return ("AUDIT REQUIRED (T_AUDIT_S2): Stage 2 mining complete. Spawn ammo-auditor "
-                    "(4-phase: inventory → reconstruction → checklist → reconciliation). "
-                    "Stage: stage_2.")
+                    "%s. Stage: stage_2." % _AUDIT_PHASES)
         return "Mining done. Set stage → 3_debate."
 
     if stage == "3_debate":
@@ -1989,15 +2010,14 @@ def _build_reminder(**kw):
         if kw["track_count"] > 0 and kw["tracks_non_terminal"] == 0 and not kw["integ_started"]:
             if audit_exists and not kw["audit_s45"]:
                 return ("AUDIT REQUIRED (T_AUDIT_S45): All parallel tracks terminal. Spawn ammo-auditor "
-                        "(4-phase: inventory → reconstruction → checklist → reconciliation). "
-                        "Stage: stage_45.")
+                        "%s. Stage: stage_45." % _AUDIT_PHASES)
             if kw["tracks_passing"] == 1:
                 return ("All tracks terminal (1 passer). Shut down round-team agents via SendMessage "
                         "shutdown_request, confirm shutdown_approved (bounded 5-min wait per "
                         "shutdown-protocol.md; idle transcript = drained), then Stage 6 single-track short-circuit: "
-                        "copy Stage 5 results to integration slot, set status=single_pass, run Pre-SHIP "
-                        "checks, SHIP. See orchestration/integration-logic.md § Single-Track "
-                        "Short-Circuit.")
+                        "copy Stage 5 results to integration slot, set status=gated_pass for a GATED_PASS "
+                        "passer or single_pass for PASS, run Pre-SHIP checks, SHIP. See "
+                        "orchestration/integration-logic.md § Single-Track Short-Circuit.")
             return ("All tracks terminal. Shut down round-team agents via SendMessage shutdown_request, "
                     "confirm shutdown_approved, then proceed to Stage 6 integration (file-set conflict "
                     "analysis). Bounded 5-min wait per shutdown-protocol.md; idle transcript = drained.")
@@ -2009,9 +2029,8 @@ def _build_reminder(**kw):
         integ_terminal = integ_status in set(kw["transitions"]["integration_terminal_statuses"])
         if shipped_count > 0 or integ_terminal:
             if audit_exists and not kw["audit_s67"]:
-                return ("AUDIT REQUIRED (T_AUDIT_S67): Spawn ammo-auditor (4-phase: inventory → "
-                        "reconstruction → checklist → reconciliation). Stage: stage_67. No "
-                        "auto-pass — auditor always runs.")
+                return ("AUDIT REQUIRED (T_AUDIT_S67): Spawn ammo-auditor %s. Stage: stage_67. "
+                        "No auto-pass: the auditor always runs." % _AUDIT_PHASES)
             if shipped_count > 0:
                 return ("T_AUDIT_S67 passed. Set stage → 7_campaign_eval. A material "
                         "SHIP must create the next round at 2_bottleneck_mining and mine "
@@ -2026,36 +2045,39 @@ def _build_reminder(**kw):
             )
         if shipped_count == 0:
             if kw["tracks_passing"] == 1:
-                return ("Single passer — run short-circuit: copy Stage 5 results into "
-                        "rounds/{CR}/sweeps/integration/, set integration.status=single_pass, write "
-                        "e2e_latency_combined. Then Pre-SHIP checks + SHIP. See "
-                        "orchestration/integration-logic.md § Single-Track Short-Circuit.")
+                return ("Single passer: run short-circuit. Copy Stage 5 results into "
+                        "rounds/{CR}/sweeps/integration/, set integration.status=gated_pass for a "
+                        "GATED_PASS passer or single_pass for PASS, and write e2e_latency_combined. "
+                        "Then run the four Pre-SHIP checks: %s. If all four pass, SHIP. See "
+                        "orchestration/integration-logic.md § Single-Track Short-Circuit."
+                        % _PRE_SHIP_CHECKS)
             if kw["tracks_passing"] > 1:
-                return ("Multiple passers — run combined integration sweep with .venv/bin/python + "
-                        "--fresh-cache. Pre-SHIP checks: grep merge-conflict residue, jq dual-verdict "
-                        "override, jq opt returncode. If all pass → SHIP + merge + env promotion + "
-                        "golden-refs capture (~15s).")
+                return ("Multiple passers: run the combined integration sweep with .venv/bin/python + "
+                        "--fresh-cache. Pre-SHIP checks: %s. If all four pass → SHIP + merge + "
+                        "env promotion + golden-refs capture (~15s)." % _PRE_SHIP_CHECKS)
             return "Run integration decision matrix. No passing tracks → round EXHAUSTED."
         return ""
 
     if stage.startswith("7_campaign_eval"):
         if audit_exists and not kw["audit_s67"]:
             return ("AUDIT REQUIRED (T_AUDIT_S67): audit.stage_67.passed_at not set. Spawn ammo-auditor "
-                    "(4-phase: inventory → reconstruction → checklist → reconciliation). "
-                    "Stage: stage_67.")
+                    "%s. Stage: stage_67." % _AUDIT_PHASES)
         return ("Shut down any remaining round-team agents (SendMessage shutdown_request, confirm each "
                 "shutdown_approved under the bounded 5-min wait of shutdown-protocol.md, idle transcript "
                 "= drained — the implicit team auto-cleans on session exit; no TeamDelete). "
                 "Mechanical check: compare "
                 "bottleneck_mining.top_addressable_e2e_pct with campaign.config."
-                "min_e2e_improvement_pct — no qualitative judgment. Material SHIP → create the next "
-                "round at 2_bottleneck_mining, mine promoted Stage-6 evidence without "
-                "reprofiling, then re-run the same mechanical check; "
+                "min_e2e_improvement_pct, with no qualitative judgment. "
+                "`ammo_state.py advance --state <state.json> --outcome SHIP` (or "
+                "`--outcome EXHAUSTED`) opens the next round and picks its stage. "
+                "Material SHIP → advance to 2_bottleneck_mining, mine promoted Stage-6 evidence "
+                "without reprofiling, then re-run the same mechanical check; "
                 "all-diluted SHIP → 3_debate (reuse valid mining). "
                 "EXHAUSTED → compare the still-valid mining now: below the floor is "
-                "campaign_exhausted, otherwise 3_debate with a technology pivot. "
-                "Override: set mining_invalidated=true on the previous round if mining was "
-                "wrong, then re-enter Stage 2 on the same measured baseline. No user prompting.")
+                "campaign_exhausted; otherwise append exhausted_technologies, then advance to "
+                "3_debate with a technology pivot. Override: if mining was wrong, set "
+                "mining_invalidated=true on the current round before advance; advance then "
+                "re-enters Stage 2 on the same measured baseline. No user prompting.")
 
     return ""
 
@@ -3030,6 +3052,27 @@ def _schema_path_str(state_path, explicit):
     return str(sp) if sp else "(schema)"
 
 
+def _report_fact_check_accepted(artifact_dir):
+    """True when REPORT.md exists and report_assets/report_fact_check.json holds
+    ok: true with a report_sha256 equal to the SHA-256 of REPORT.md. The same rule
+    as codex/hooks/stop_gate_guard.py and hooks/ammo-stop-guard.sh."""
+    report = Path(artifact_dir) / "REPORT.md"
+    if not report.is_file():
+        return False
+    try:
+        fact = json.loads(
+            (Path(artifact_dir) / "report_assets" / "report_fact_check.json").read_text(encoding="utf-8")
+        )
+        report_sha256 = hashlib.sha256(report.read_bytes()).hexdigest()
+    except (OSError, ValueError):
+        return False
+    return (
+        isinstance(fact, dict)
+        and fact.get("ok") is True
+        and fact.get("report_sha256") == report_sha256
+    )
+
+
 def cmd_next_step(args):
     state_path = Path(args.state)
     if not state_path.is_file():
@@ -3045,10 +3088,12 @@ def cmd_next_step(args):
         except json.JSONDecodeError:
             prev = None
 
-    # surface REPORT.md presence for terminal reminder (artifact_dir = state's parent)
+    # surface REPORT.md presence and its fact-check for the terminal reminder
+    # (artifact_dir = state's parent)
     artifact_dir = state_path.parent
     doc["_artifact_dir"] = str(artifact_dir)
     doc["_report_present"] = (artifact_dir / "REPORT.md").is_file()
+    doc["_report_accepted"] = _report_fact_check_accepted(artifact_dir)
 
     transitions = load_transitions()
     schema, _ = load_schema(state_path, getattr(args, "schema", None))

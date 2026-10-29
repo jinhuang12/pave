@@ -177,7 +177,7 @@ def test_native_v2_root_audit_provenance_is_idempotent(tmp_path, tool_name):
 
 @pytest.mark.parametrize("extra,response", [
     ({}, {"error": "spawn rejected"}),
-    ({"agent_id": "child", "agent_type": "ammo-investigator"}, {"agent_id": "auditor"}),
+    ({"agent_id": "child", "agent_type": "ammo-researcher"}, {"agent_id": "auditor"}),
 ])
 def test_native_v2_failed_or_child_spawn_does_not_stamp_audit(tmp_path, extra, response):
     repo = _hook_repo(tmp_path)
@@ -228,7 +228,7 @@ def test_opaque_native_audit_message_uses_exact_public_route(tmp_path, stage):
 
 
 @pytest.mark.parametrize("name,message,extra,response", [
-    ("audit_stage_1_r1_c2", None, {"agent_id": "child", "agent_type": "ammo-investigator"}, {}),
+    ("audit_stage_1_r1_c2", None, {"agent_id": "child", "agent_type": "ammo-researcher"}, {}),
     ("audit_stage_1_r1_c2", None, {}, {"error": "spawn failed"}),
     ("audit_stage_1_r0_c2", None, {}, {}),
     ("audit_stage_1_r1_c0", None, {}, {}),

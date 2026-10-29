@@ -56,3 +56,54 @@ entries:
   commit: null
   derived_from: null
   run_id: null
+- revision: 2
+  kind: graph
+  applied_at: '2026-10-29T15:50:54Z'
+  digest_before: sha256:0cb5e922e1a8b74c8baef6dfe6c5b2eba3a8e80ed6ce65f11711d5e7d0d1f6ba
+  digest_after: sha256:9008a22eb8fee98028e3447a8b19ab5855db63cac0805707e43869a772e0d5e4
+  semantic_diff: 'Base: revision 1, digest sha256:0cb5e922e1a8b74c8baef6dfe6c5b2eba3a8e80ed6ce65f11711d5e7d0d1f6ba.
+    Prompt audit adoption, wave 2 (planning-records/ammo/prompt-audit/adoption.md).
+    Counts: 13 nodes, 47 edges, 13 roles, 31 checks, 16 evidence definitions, and
+    5 control nodes unchanged. 18 hunks, 47 added lines against 34 removed; 1356 lines
+    become 1369. (1) Investigator role rename (R11, user ruling): role ammo_investigator
+    becomes adversarial_investigator, the pave-init agent spawned at pave-init:adversarial-investigator
+    with no name. It gets plugin_root, the primary artifacts, and one decision question,
+    and returns a verdict with file:line evidence. The roles lists of 9 nodes, the
+    escalation principle, and the fallback ladder question follow. (2) fallback_ladder_exhausted
+    points to its owner, references/validation-defaults.md section Per-BS Verdicts
+    and Track-Level Fallback Ladder, in place of references/impl-track-rules.md, and
+    defines the RETRY_WITH_CONTINGENCY rung (R12): one named fallback, implemented
+    once, reruns Gates 5.1a to 5.2. (3) pre_ship_checks_passed lists the four checks
+    of orchestration/integration-logic.md: no conflict markers in the added integration
+    diff lines, no REGRESSED or CATASTROPHIC in integration.per_bs_verdict, opt.returncode
+    == 0 on every integration sweep row, and ammo_state.py validate passes. Same strength
+    as before, named exactly. (4) stage_1_baseline: the lead runs scripts/ammo_state.py
+    ingest-baseline on the baseline sweep before T_AUDIT_S1, so the auditor reads
+    the ingested numbers. (5) audit_s45: the early per-track partial step goes (R9,
+    user ruling that amends decision 4; nothing read the partials). (6) stage_7b_report
+    re-entry: a terminal campaign re-enters Stage 7b when REPORT.md is absent or has
+    no accepted report_fact_check.json (ok true, report_sha256 of the current REPORT.md).
+    The old text re-entered only when REPORT.md was absent. The Claude and Codex stop
+    guards and the next-step reminder check the same condition. (7) Fact-check wording:
+    role report_fact_checker, evidence report_fact_check, and check report_fact_check_ok
+    call the fact-checker''s list findings, not violations, matching the returned
+    findings field in agents/ammo-report-writer.md. (8) audit_s67_passed: the passing
+    verdict is the file that audit.stage_67.verdict_file names (stage_67.md for the
+    first cycle, stage_67_cycle_{C}.md for a re-audit), in place of a copy to the
+    canonical stage_67.md; the copy step went (w6-8, orchestration/audit-protocol.md).'
+  approval: 'User approval, verbatim, 2026-10-29. To "Amend decision 4 so a step may
+    go when the record cites such evidence?": "Amend, drop both (Recommended)". To
+    "Drop it?" (msg-check hook): "Drop it (Recommended)". To "Replace the ammo-investigator
+    role with the pave-init adversarial-investigator?": first "Keep ammo-investigator
+    (Recommended)"; then, to "If you would rather have it in this wave, say so and
+    I route it to worker-6 and worker-2 now.": "yes".'
+  user_only_changes: approved
+  plan_evidence: verified
+  usage_evidence: none
+  review: Submitted to da-1 after apply as wave-2 round 1; the verdict is in the DONE
+    report to team-lead.
+  written_by: unverified
+  patch: history/v2.patch
+  commit: null
+  derived_from: null
+  run_id: null

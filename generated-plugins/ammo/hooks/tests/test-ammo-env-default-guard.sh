@@ -5,7 +5,8 @@
 # Contract: block an envs.py edit that registers a CAMPAIGN VLLM_* gating flag
 # with a truthy default (exit 2 + stderr naming the flag); allow default-off
 # spellings, infra-legit allowlisted names, platform prefixes, comments, and
-# non-envs.py files.
+# non-envs.py files. PUMICE_* (.py and .rs): block a new name whose read does
+# not default off, and a default change to an allowlisted name (R4).
 #
 # The pre-fix hook keyed on VLLM_OP\d+ only. impl-track-rules.md § Env Flag
 # Naming (PR-Ready) FORBIDS that shape, so every conforming flag name sailed
@@ -132,14 +133,23 @@ run_test "30 empty new_string (deletion)" 0 ''
 run_test "31 short name below the {3,} floor" 0 'VLLM_X = True'
 
 echo ""; echo "== BLOCK: PUMICE_* engine env changes in .py / .rs (new) =="
-run_test "32 new PUMICE env via os.getenv (not allowlisted)" 2 \
+# R4: a new PUMICE_* name is a campaign flag and must default off at the read.
+run_test "32 new PUMICE env via os.getenv with default \"1\"" 2 \
     'x = os.getenv("PUMICE_NEW_CAMPAIGN_FLAG", "1")' "$ENGINE/src/pumice/config.py" "BLOCKED"
 run_test "33 allowlisted PUMICE default change (getenv 2nd arg)" 2 \
     'x = os.getenv("PUMICE_CACHE_ROOT", "/tmp/new")' "$ENGINE/src/pumice/config.py" "PUMICE_CACHE_ROOT"
-run_test "34 rust new PUMICE env via std::env::var" 2 \
-    'let v = std::env::var("PUMICE_MADE_UP_THING");' "$ENGINE/pumice-rust/src/foo.rs" "PUMICE_MADE_UP_THING"
+run_test "34 rust new PUMICE env with unwrap_or(true)" 2 \
+    'let v = std::env::var("PUMICE_MADE_UP_THING").map(|v| v == "1").unwrap_or(true);' \
+    "$ENGINE/pumice-rust/src/foo.rs" "PUMICE_MADE_UP_THING"
 run_test "35 rust allowlisted default via unwrap_or" 2 \
     'let v = env::var("PUMICE_LOG_LEVEL").unwrap_or("info".into());' "$ENGINE/pumice-rust/src/foo.rs" "PUMICE_LOG_LEVEL"
+run_test "35b new PUMICE env negated (!= \"0\" defaults on)" 2 \
+    'x = os.environ.get("PUMICE_NEW_CAMPAIGN_FLAG") != "0"' "$ENGINE/src/pumice/config.py" "PUMICE_NEW_CAMPAIGN_FLAG"
+run_test "35c rust new PUMICE env, unwrap_or(true) on a later line" 2 \
+    $'let on = std::env::var("PUMICE_MADE_UP_THING")\n    .map(|v| v == "1")\n    .unwrap_or(true);' \
+    "$ENGINE/pumice-rust/src/foo.rs" "PUMICE_MADE_UP_THING"
+run_test "35d new PUMICE env written into os.environ" 2 \
+    'os.environ["PUMICE_NEW_CAMPAIGN_FLAG"] = "1"' "$ENGINE/src/pumice/config.py" "PUMICE_NEW_CAMPAIGN_FLAG"
 
 echo ""; echo "== ALLOW: PUMICE_* reads, the registry dict, prose, non-code files =="
 # PUMICE_MODELS is the _PUMICE_MODELS registry dict, not an env var. The seed
@@ -154,6 +164,15 @@ run_test "39 PUMICE env in a comment is documentation → ALLOW" 0 \
     '# os.getenv("PUMICE_MADE_UP", "1") is documented here' "$ENGINE/src/pumice/config.py"
 run_test "40 new PUMICE env in a non .py/.rs file → ALLOW" 0 \
     'os.getenv("PUMICE_MADE_UP_THING", "1")' "$ENGINE/docs/readme.md"
+run_test "40b new PUMICE env with default \"0\" → ALLOW (R4)" 0 \
+    'x = os.environ.get("PUMICE_NEW_CAMPAIGN_FLAG", "0") == "1"' "$ENGINE/src/pumice/config.py"
+run_test "40c new PUMICE env with no default → ALLOW (R4)" 0 \
+    'x = os.getenv("PUMICE_NEW_CAMPAIGN_FLAG") == "1"' "$ENGINE/src/pumice/config.py"
+run_test "40d rust new PUMICE env, unwrap_or(false) on a later line → ALLOW (R4)" 0 \
+    $'let on = std::env::var("PUMICE_MADE_UP_THING")\n    .map(|v| v == "1")\n    .unwrap_or(false);' \
+    "$ENGINE/pumice-rust/src/foo.rs"
+run_test "40e rust new PUMICE env read with no fallback → ALLOW (R4)" 0 \
+    'let v = std::env::var("PUMICE_MADE_UP_THING");' "$ENGINE/pumice-rust/src/foo.rs"
 
 echo ""; echo "== Allowlist at the pinned Pumice commit =="
 # These names were added to Pumice after the previous seed; a plain read of

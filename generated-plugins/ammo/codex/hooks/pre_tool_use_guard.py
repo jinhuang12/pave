@@ -4,7 +4,7 @@ import shlex
 import sys
 from pathlib import Path
 from common import CampaignResolutionError, campaign_for_hook, codex_script_path, plugin_path, script_path
-from common import is_child_agent_payload, is_v1_session, normalize_role, tool_name_from_payload, v1_agent_binding, v1_registry
+from common import is_child_agent_payload, is_v1_bound_role, is_v1_session, normalize_role, tool_name_from_payload, v1_agent_binding, v1_registry
 from common import active_artifact_dir,additional_context,block_pretool,blocking_monitor_records,command_from_payload,command_invokes_gpu_heavy_tool,command_invokes_vllm_bench_latency,find_repo_root,format_monitor_records,is_ammo_context,is_static_inspection_command,load_json,pending_monitor_pairs,read_stdin_json,record_session_id,session_id_from_payload,spawn_role_and_name,state_session_id,task_names_equivalent
 
 # Outside a campaign every Codex hook exits 0 with empty stdout (conventions
@@ -23,11 +23,11 @@ def _guard_v1_identity():
     spawning=tool_name_from_payload(p) == 'spawn_agent'
     spawn_role=normalize_role(ti.get('agent_type')) if isinstance(ti,dict) else ''
     try:
-        if is_child_agent_payload(p) and role.startswith('ammo-') and v1_agent_binding(p) is None:
+        if is_child_agent_payload(p) and is_v1_bound_role(role) and v1_agent_binding(p) is None:
             if cmd and is_static_inspection_command(cmd): return
             block_pretool('AMMO task registration is pending. Read your role and wait for the parent spawn result before campaign work.')
             raise SystemExit(0)
-        if spawning and spawn_role.startswith('ammo-'):
+        if spawning and is_v1_bound_role(spawn_role):
             registry=v1_registry()
             binding=registry.validate_dispatch(registry.codex_home(),p)
             artifact=active_artifact_dir(repo,p)
@@ -146,11 +146,30 @@ def _guard_vllm_op_defaults():
     if _vllm_op_default_on(haystack):
         block_pretool('VLLM_OP feature flags in envs.py must default off. Use default=False/0 and require explicit opt-in before enabling optimized paths.')
         raise SystemExit(0)
-# PUMICE_* engine-env guard (twin of ammo-env-default-guard.sh). Pumice owns its
-# engine env names; on a .py or .rs edit, block a PUMICE_* name that is not on
-# the allowlist (a new engine env) or a default change to an allowlisted name.
+# PUMICE_* engine-env guard (twin of ammo-env-default-guard.sh). A campaign flag
+# on the Pumice runner is PUMICE_<SCOPE>_<MECHANISM>[_<ARCH>], read with
+# os.environ.get (or env::var), default off. On a .py or .rs edit, block a
+# PUMICE_* name that is not on the allowlist when its read does not default off,
+# and block a default change to an allowlisted name. The default-off forms are
+# listed in the Claude twin's header; the unit is a line for Python and a
+# statement (lines joined up to ";") for Rust.
 # The allowlist is the one the Claude twin reads: <plugin>/hooks/pumice_env_allowlist.txt.
 _PUMICE_ACCESSOR_RE=re.compile(r'getenv|environ|env::var|env::var_os|std::env|env!\s*\(')
+_PUMICE_OFF_PY=r'(?:None|False|0|["\']0["\']|["\']["\']|["\'](?:false|False)["\'])'
+def _pumice_new_read_off(unit,name,is_rust):
+    if is_rust:
+        if re.search(r'!=|(?:^|[^\w])!',unit): return False
+        rest=re.sub(r'unwrap_or_default\s*\(\s*\)','',unit)
+        rest=re.sub(r'unwrap_or\s*\(\s*(?:false|0|"0"|"")\s*\)','',rest)
+        rest=re.sub(r'map_or\s*\(\s*false\s*,','',rest)
+        return not re.search(r'unwrap_or|map_or|(?:^|[^\w])(?:match|else|Err)(?:[^\w]|$)',rest)
+    if re.search(r'!=|(?:^|[^\w])(?:not|or)(?:[^\w]|$)',unit): return False
+    m=re.search(r'["\']'+re.escape(name)+r'["\']',unit)
+    after=unit[m.end():] if m else ''
+    if re.match(r'\s*\]\s*=(?:[^=]|$)',after): return False
+    if re.match(r'\s*[\])]',after): return True
+    if re.match(r'\s+in\s+os\.environ',after): return True
+    return bool(re.match(r'\s*,\s*(?:default\s*=\s*)?'+_PUMICE_OFF_PY+r'\s*[),]',after))
 def _pumice_allowlist_names():
     names=set()
     try:
@@ -168,30 +187,35 @@ def _pumice_new_content():
         value=ti.get(key)
         if isinstance(value,str) and value: texts.append(value)
     return '\n'.join(texts)
-def _pumice_env_offenders(text,allow):
+def _pumice_env_offenders(text,allow,is_rust=False):
     new_names=[]; default_names=[]
-    for raw in text.splitlines():
-        line=re.sub(r'(^|\s)#.*$','',raw)
-        line=re.sub(r'//.*$','',line)
+    lines=[re.sub(r'(^|\s)#.*$','',raw) for raw in text.splitlines()]
+    if is_rust:
+        units=' '.join(re.sub(r'//.*$','',line) for line in lines).split(';')
+    else:
+        units=lines
+    for line in units:
         if not line.strip() or not _PUMICE_ACCESSOR_RE.search(line): continue
         for match in re.finditer(r'["\'](PUMICE_[A-Z0-9_]{3,})["\']',line):
             name=match.group(1)
             if name in allow:
                 if re.search(r'["\']'+re.escape(name)+r'["\']\s*,',line) or re.search(r'unwrap_or(_else|_default)?\s*\(',line):
                     if name not in default_names: default_names.append(name)
-            elif name not in new_names:
+            elif name not in new_names and not _pumice_new_read_off(line,name,is_rust):
                 new_names.append(name)
     return new_names,default_names
 def _guard_pumice_env():
-    if not any(pth.endswith(('.py','.rs')) for pth in _env_default_guard_paths()): return
+    paths=_env_default_guard_paths()
+    if not any(pth.endswith(('.py','.rs')) for pth in paths): return
     text=_pumice_new_content()
     if 'PUMICE_' not in text: return
-    new_names,default_names=_pumice_env_offenders(text,_pumice_allowlist_names())
+    is_rust=any(pth.endswith('.rs') for pth in paths)
+    new_names,default_names=_pumice_env_offenders(text,_pumice_allowlist_names(),is_rust)
     if not new_names and not default_names: return
     parts=[]
-    if new_names: parts.append('new env(s) not in the allowlist: '+', '.join(new_names))
+    if new_names: parts.append('new env(s) read with a default that is not off: '+', '.join(new_names))
     if default_names: parts.append('default change to allowlisted env(s): '+', '.join(default_names))
-    block_pretool('BLOCKED: PUMICE_* engine env change ('+'; '.join(parts)+'). Pumice owns its engine env names and defaults; use a name Pumice already reads, or set the value per arm via opt_env in target.json.')
+    block_pretool('BLOCKED: PUMICE_* engine env change ('+'; '.join(parts)+'). A campaign flag is PUMICE_<SCOPE>_<MECHANISM>[_<ARCH>], read with os.environ.get (or env::var), default off, and enabled per arm through opt_env in target.json. Default a new flag off at the read, for example os.environ.get("PUMICE_MOE_TWO_STREAM_SM90", "0") == "1", and do not negate or replace a missing value. Pumice owns the defaults of the names it already reads: set those per arm via opt_env instead.')
     raise SystemExit(0)
 def _worktree_root(cwd):
     if not cwd: return None
@@ -527,7 +551,7 @@ def _is_neuron_runtime():
         or 'NEURON_VISIBLE_DEVICES' in os.environ
         or 'NEURON_RT_VISIBLE_CORES' in os.environ
     )
-if not _is_neuron_runtime() and any(re.search(x,cmd) for x in [r'TORCH_COMPILE_DISABLE\s*=\s*1',r'VLLM_TORCH_COMPILE_LEVEL\s*=\s*[01]\b',r'--enforce-eager\b',r'--disable-cuda-graph\b']) and os.environ.get('AMMO_ALLOW_NONPARITY')!='1' and 'AMMO_ALLOW_NONPARITY=1' not in cmd: warnings.append('AMMO reminder: command appears to disable production parity. Official AMMO evidence should use CUDA graphs/torch.compile parity.')
+if not _is_neuron_runtime() and any(re.search(x,cmd) for x in [r'TORCH_COMPILE_DISABLE\s*=\s*1',r'VLLM_TORCH_COMPILE_LEVEL\s*=\s*[01]\b',r'--enforce-eager\b',r'--disable-cuda-graph\b',r'(?:^|\s)--no-compile(?:[\s=]|$)',r'PUMICE_COMPILE_TARGET\s*=\s*["\']?0["\']?(?:[\s;&|]|$)']) and os.environ.get('AMMO_ALLOW_NONPARITY')!='1' and 'AMMO_ALLOW_NONPARITY=1' not in cmd: warnings.append('AMMO reminder: command appears to disable production parity. Official AMMO evidence should use CUDA graphs/torch.compile parity.')
 def _profiles_official_sweep(command):
     if 'run_vllm_bench_latency_sweep.py' not in command:
         return False

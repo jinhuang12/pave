@@ -33,16 +33,18 @@ NEW_COMMAND = '"${{CLAUDE_PLUGIN_ROOT}}/hooks/{}"'
 
 # team-spawn-guard stays: it enforces the SKILL.md team-member-vs-subagent contract.
 KEEP = (
-    "ammo-msg-check.sh", "ammo-team-spawn-guard.sh", "ammo-pretool-guard.sh",
+    "ammo-team-spawn-guard.sh", "ammo-pretool-guard.sh",
     "ammo-skill-files-guard.sh", "ammo-env-default-guard.sh", "worktree-create-with-build.sh",
     "ammo-precompact.sh", "ammo-postcompact.sh", "ammo-stop-guard.sh", "ammo-subagent-release.sh",
     "ammo-gpu-release.sh", "ammo-monitor-reminder.sh", "ammo-audit-start-stamp.sh",
     "ammo-state-validate.sh", "ammo-next-step-reminder.sh", "ammo-artifact-layout-warn.sh",
     "worktree-remove-cleanup.sh",
 )
+# msg-check goes with msg-mirror: its channel has no writer, and Claude Code
+# 2.1.202 and later delivers team messages at turn boundaries.
 DROP = (
     "ammo-venv-python-guard.sh", "ammo-pip-guard.sh", "ammo-agent-cwd-guard.sh",
-    "ammo-msg-mirror.sh",
+    "ammo-msg-mirror.sh", "ammo-msg-check.sh",
 )
 # (event, matcher, script, timeout seconds). The frontmatter said 5000, meant as ms.
 FRONTMATTER = (

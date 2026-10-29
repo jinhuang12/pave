@@ -771,8 +771,9 @@ def enforce_gate_slot_invocation(args: argparse.Namespace) -> List[str]:
                 f"ERROR: --slot {slot} cannot be combined with profiling flags "
                 "(--nsys-profile/--nsys-extra-flags). The Stage 1 baseline is "
                 "the reference arm for every later gate; profiler overhead in "
-                "it would bias all downstream comparisons. Profile via an "
-                "opt_profiling/ or integration_profiling slot instead."
+                "it would bias all downstream comparisons. Profile in a separate "
+                "run instead: --slot profiling at Stage 1, opt_profiling/{op_id} for "
+                "a track, or integration_profiling at Stage 6."
             )
     if not _is_gate_slot(slot):
         return []
@@ -3492,8 +3493,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default="baseline",
         help=(
             "Comma-separated labels to run: 'baseline', 'opt' or 'baseline,opt'. "
-            "Stage 5 validation uses '--labels opt --baseline-from <stage1_dir>' — "
-            "never re-run a baseline from the worktree."
+            "Stage 5 validation uses '--labels opt --baseline-from <stage1_dir>', or "
+            "the latest promoted integration dir in round 2 and later. Never re-run a "
+            "baseline from the worktree."
         ),
     )
     p.add_argument(
@@ -4889,7 +4891,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             )
             print(
                 "WARNING: --labels opt without --baseline-from; baseline data will be "
-                "null in results. Pass --baseline-from <stage1_dir>.",
+                "null in results. Pass --baseline-from <stage1_dir>, or the latest "
+                "promoted integration dir in round 2 and later.",
                 file=sys.stderr,
             )
 

@@ -40,7 +40,7 @@ def native(tmp_path, monkeypatch):
     env = _env(repo, artifact, AMMO_CODEX_AGENT_MODE="v1", CODEX_HOME=str(home), CODEX_SESSION_ID=root)
     monkeypatch.setenv("AMMO_SESSION_ID", "sess-test")
 
-    def spawn(name="worker_r1_a1", role="ammo-investigator", parent=None, parent_path="/root"):
+    def spawn(name="worker_r1_a1", role="ammo-delegate", parent=None, parent_path="/root"):
         child = str(uuid.uuid4())
         transcript = home / f"{child}.jsonl"
         transcript.write_text(json.dumps({"type": "session_meta", "payload": {"id": child}}) + "\n")
@@ -55,7 +55,7 @@ def native(tmp_path, monkeypatch):
                                   "message": "AMMO_TASK=" + json.dumps(metadata)},
                    "tool_response": json.dumps({"agent_id": child, "nickname": "Native name"})}
         if parent:
-            payload.update(agent_id=parent, agent_type="ammo-investigator")
+            payload.update(agent_id=parent, agent_type="ammo-researcher")
         return child, payload
 
     return repo, artifact, root, home, env, spawn
@@ -122,7 +122,7 @@ def test_closed_and_reopened_native_thread_retains_same_binding(native):
 
 
 # `ammo:<role>` is the agent address on both harnesses (references/harness-binding.md).
-@pytest.mark.parametrize("role", ["ammo-investigator", "ammo:ammo-investigator"])
+@pytest.mark.parametrize("role", ["ammo-delegate", "ammo:ammo-delegate"])
 def test_unbound_child_can_read_but_cannot_mutate_before_parent_completion(native, role):
     repo, _, root, home, env, spawn = native
     child, payload = spawn(role=role)
@@ -143,7 +143,7 @@ def test_unbound_child_can_read_but_cannot_mutate_before_parent_completion(nativ
 
 def test_prefixed_spawn_role_is_validated_before_dispatch(native):
     _, _, _, _, env, spawn = native
-    _, payload = spawn(role="ammo:ammo-investigator")
+    _, payload = spawn(role="ammo:ammo-delegate")
     payload["tool_input"]["message"] = "Investigate OP-001."  # no AMMO_TASK line
     pre = _run_hook("pre_tool_use_guard.py", dict(payload, hook_event_name="PreToolUse"), env)
     assert "AMMO V1 agent binding must be resolved" in pre.stdout, pre.stdout + pre.stderr

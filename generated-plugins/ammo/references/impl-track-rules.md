@@ -1,31 +1,31 @@
 # Implementation Track Rules
 
-These are the agent-facing rules for a Stages 4-5 parallel implementation track. The impl-champion owns the track and must follow every rule here. Read it before you edit a source file, and again before you record a gate result. It covers who may change code, when a rebuild is required, the fixed gate sequence, the one-attempt recovery path when per-batch-size results are mixed, and how the env flag you register reaches a vLLM maintainer.
+These are the agent-facing rules for a Stages 4-5 parallel implementation track. The impl-champion owns the track and must follow every rule here. Read it before you edit a source file, and again before you record a gate result. It covers who may change code, when a rebuild is required, the fixed gate sequence, the one-attempt recovery path when per-batch-size results are mixed, and how to name the env flag you add.
 
 ## Worktree Build Rules
 
 The champion compiles. The kernel correctness & speedup checks run against the committed, compiled code.
 
-The C++ kernel row applies to the vllm-* profiles. The Rust engine and confdb rows apply to the pumice-* profiles.
-
 | Change Type | Required Action | Time |
 |-------------|----------------|------|
 | **Pure Python** (model code, Triton kernels, CuTeDSL kernels, configs) | Edit, test, commit. **No rebuild.** | Immediate (CuTeDSL JIT-compiles on first import; cache under `$CUTE_DSL_CACHE_DIR` or `/tmp/{user}/cutlass_python_cache`) |
-| **C++ kernel** (csrc/ changes, including CUTLASS C++ templates) | `cmake --preset release && cmake --build --preset release --target install` | ~5-55s (ccache) |
-| **Pumice Rust engine** (`pumice-rust/src/**`, `pumice-rust/build.rs`, `Cargo.toml`) | From the worktree root: `scripts/ammo pumice-stage-native.sh "$PWD/.venv/bin/python" "$PWD" --features "nixl-stub cmb"` on CUDA, or `--features nixl-stub` on Neuron. These are the engine build features; without `cmb` on CUDA, the server ignores `--cmb-port`. The script runs `cargo build --release` and then stages the new `pumice_rust` extension into `.venv`. A plain `cargo build` does not stage; the server then loads the old extension. The user adds this `[patch.crates-io]` entry to `$CARGO_HOME/config.toml` before the first engine build, with the path of their cmb-api checkout: `amzn-mantle-cmb-api = { path = "/home/ubuntu/AWSMantle/share/common/cmb-api" }`. `scripts/preflight_pumice.py` checks that it is there. | Minutes when cold. Less with a warm `sccache`. |
+| **`csrc/`** (the prebuilt `pumice/_ops` libraries) | The worktree build stages the engine's prebuilt `_ops` libraries and has no `_ops` build step. Do not start a `csrc/` track unless the lead approves a build path. The vLLM runner (gpt-oss on CUDA) does not load `_ops`. | n/a |
+| **Pumice Rust engine** (`pumice-rust/src/**`, `pumice-rust/build.rs`, `Cargo.toml`) | From the worktree root: `scripts/ammo pumice-stage-native.sh "$PWD/.venv/bin/python" "$PWD" --features "nixl-stub cmb"`. These are the engine build features; without `cmb`, the server ignores `--cmb-port`. The script runs `cargo build --release` and then stages the new `pumice_rust` extension into `.venv`. A plain `cargo build` does not stage; the server then loads the old extension. `scripts/preflight_pumice.py` checks the cmb-api patch entry (`references/e2e-latency-guide.md` § Troubleshooting). | Minutes when cold. Less with a warm `sccache`. |
 | **Pumice confdb TOML** (`pumice-rust/confdb/*.toml`) | Same as the Rust engine row. `build.rs` compiles the TOML files into the engine, so a TOML edit is a source change. | Same as the Rust engine row |
 
 A Rust or confdb edit has no effect until you rebuild and re-stage. The sweep runner refuses to measure a build that is older than its Rust or confdb sources.
 
+Keep `CARGO_HOME`, `CARGO_TARGET_DIR`, `SCCACHE_DIR`, `RUSTC_WRAPPER`, and `RUSTUP_HOME` as they are set, unless the approved task changes them. `references/campaign-env.md` sets `CARGO_TARGET_DIR`. The other four come from your environment.
+
 ## Source Modification Rules
 
-- Only the champion modifies source files (`csrc/`, `vllm/`, etc.).
+- Only the champion modifies source files (`src/pumice/`, `pumice-rust/`, `csrc/`).
 - Write your kernel-gate artifacts to `{artifact_dir}/rounds/{CR}/tracks/{op_id}/validator_tests/`, where `{CR}` is `campaign.current_round`. The `validator_tests/` dirname is kept as a historical label because downstream consumers read from this exact path: the state.json merge and the layout manifest (`scripts/artifact_layout.json`).
-- These gates run before the E2E sweep, so they need no GPU coordination.
+- Kernel gates hold one assigned unit from `references/gpu-pool.md`.
 
 ## Write the Kernel Gates From the Plan
 
-Derive your kernel correctness tests and benchmarks from the **optimization plan and debate summary**, not from the code you wrote. Test what the optimization SHOULD do (the plan) rather than only what it DOES do (the implementation). Hold yourself to the plan's intent: keep assertions tight, and report benchmark numbers straight.
+Derive your kernel correctness tests and benchmarks from **the selected proposal and the typed validation obligations**, not from the code you wrote. Test what the optimization SHOULD do (the plan) rather than only what it DOES do (the implementation). Hold yourself to the plan's intent: keep assertions tight, and report benchmark numbers straight.
 
 ## Champion-Owned Validation
 
@@ -54,12 +54,12 @@ When a kernel correctness or speedup check fails:
 1. Champion records the gate failure details
 2. Champion diagnoses root cause
 3. Champion fixes implementation, recompiles if needed
-4. Champion completes the Self-Validation Gate checklist (root cause reasoning, smoke test, fix-attempt counter)
+4. Champion states the causal hypothesis, runs a focused smoke test, and counts the attempt
 5. Champion commits and re-runs the kernel gates (no E2E sweep until 5.1a PASSes)
 
 Never "fix" a failure by loosening your own test. The gate exists to catch a broken kernel before the expensive E2E sweep. A weakened assertion only defers the failure to Gate 5.1b (GSM8K) or 5.3b (latency), where it surfaces anyway. By then you have lost the kernel-level diagnosis you would have had here.
 
-**DILUTED_PASS is not a target you implement toward.** A track whose e2e verdict lands in FAIL-by-all-NOISE may still SHIP as diluted (`status=PASS`, `diluted=true`) when `generate_validation_report.py` finds all 7 significance-gated conditions hold (`references/validation-defaults.md` § DILUTED_PASS Ship Path). That is a validation-stage OUTCOME discovered after the sweep runs. It is never something to design a mechanism toward. Do not build a decode-only optimization and count on dilution to rescue the ship. Do not argue for a small projected e2e delta on that basis either: EV ranking uses projected e2e only (`orchestration/debate-protocol.md` § Winner selection).
+The report generator finds DILUTED_PASS after the sweep, so never design a mechanism toward it (`references/validation-defaults.md` § DILUTED_PASS Ship Path).
 
 ## Track State Reconciliation
 
@@ -75,8 +75,6 @@ The reconciled track entry must carry a `status` and `verdict` that agree with t
 
 ## GATING_REQUIRED Workflow
 
-> **This is the canonical definition.** Other files reference this section.
-
 When per-BS verdicts show mixed results (some PASS + some REGRESSED), the track enters GATING_REQUIRED:
 
 1. Sweep reports per-BS verdict table showing mixed results
@@ -84,7 +82,7 @@ When per-BS verdicts show mixed results (some PASS + some REGRESSED), the track 
 3. If feasible: champion runs crossover probing benchmarks itself
 4. Champion runs the kernel sweep + E2E confirmation per `crossover-probing.md`
 5. Champion implements gating mechanism per § Batch-Size Dispatch Mechanisms below (decision tree)
-6. Champion registers env var in `vllm/envs.py`, defaulting off (`=0`). **The flag name is the PR-facing public name of the optimization.** Derive it from the mechanism per § Env Flag Naming (PR-Ready) below, never from the internal `op_id`.
+6. Champion adds the enable flag, default off. The flag name is the public name of the optimization: derive it from the mechanism per § Env Flag Naming (PR-Ready) below, never from the internal `op_id`.
 7. Champion commits gated implementation
 8. Champion re-runs the kernel gates on the gated kernel (correctness & speedup)
 9. Champion re-runs separate activation profiling, clean correctness, and clean E2E on gated code (5.3a, 5.1b, 5.3b). All BS must be PASS or NOISE
@@ -92,33 +90,19 @@ When per-BS verdicts show mixed results (some PASS + some REGRESSED), the track 
 
 One gating attempt per track. No nested gating.
 
+The `crossover_probe` validation obligation means the track runs crossover probing when its per-BS verdicts are mixed. All-PASS verdicts satisfy it through the sweep itself.
+
 ## Env Flag Naming (PR-Ready)
 
-> **This is the canonical naming rule.** Other files reference this section.
+Every campaign flag you add is a public name. This holds for a GATED_PASS dispatch gate and for any opt-in optimization. The name ships in your diff, it is promoted into `target.json:bench.baseline_env` on SHIP, and the enable instructions copy it verbatim. So the name a reviewer reads is the name you type here.
 
-Every `VLLM_*` env flag you register in `vllm/envs.py` is **not an internal label**. This holds for a GATED_PASS dispatch gate and for any opt-in optimization. Three routes carry the name outward: it ships verbatim in the `vllm/envs.py` diff, it gets promoted into `target.json:bench.baseline_env` on SHIP, and it is copied straight into the PR's enable instructions (the PR workflow reads `baseline_env` keys verbatim, so it cannot rename a flag without rewriting your merged code). So the name a reviewer reads in the PR is the name you type here. A name that doesn't communicate what the optimization does reads as low-effort and gets the PR bounced.
+On the Pumice runner, name the flag `PUMICE_<SCOPE>_<MECHANISM>[_<ARCH>]`. Read it with `os.environ.get` in Python or `env::var` in Rust, and default it off. The bench runner sets it on the opt arm from `target.json` `bench.opt_env` (for example `{"PUMICE_MY_OPT": "1"}`). On the vLLM runner (gpt-oss on CUDA), a `VLLM_*` flag lives in the installed vLLM package, so it ships only through `runtime_pkg.patch`.
 
-**Never let the internal `op_id` become the flag name.** An `op_id` (`op007`, `OP-003`) is a campaign tracking handle for wiring up agents, tracks, and artifact dirs. It is meaningless to a vLLM maintainer.
+- `<SCOPE>`: the model family or subsystem the flag governs (`NEMOTRON3`, `MAMBA2`, `MOE`, `ATTN`). Use the model family when the optimization is checkpoint-specific; use the subsystem when it is general.
+- `<MECHANISM>`: what the kernel or dispatch does (`FP8_PREFILL_GEMM`, `GATED_RMS_NORM_FUSION`, `TWO_STREAM`, `SSD_FUSED_STATE`).
+- `<ARCH>`: an optional hardware tag when the path is architecture-gated (`SM100`, `SM90`).
 
-**Convention:** describe the optimization, not its tracking number:
-
-```
-VLLM_<SCOPE>_<MECHANISM>[_<ARCH>]
-```
-
-- `<SCOPE>`: the model family or subsystem the flag governs (`NEMOTRON3`, `MAMBA2`, `MOE`, `ATTN`). Use the model family when the optimization is checkpoint-specific; use the subsystem when it's general.
-- `<MECHANISM>`: what the kernel/dispatch actually does (`FP8_PREFILL_GEMM`, `GATED_RMS_NORM_FUSION`, `TWO_STREAM`, `SSD_FUSED_STATE`).
-- `<ARCH>`: optional hardware tag when the path is architecture-gated (`SM100`, `SM90`).
-
-**Example 1 (good):**
-Optimization: a CUTLASS SM100 FP8 dense GEMM for the prefill path of Nemotron-3.
-Flag: `VLLM_NEMOTRON3_FP8_PREFILL_GEMM_SM100`
-
-**Example 2 (bad, rejected):**
-Same optimization, named off the tracking id.
-Flag: `VLLM_OP004`. A maintainer cannot tell what it does, what it touches, or whether it's safe to enable. This is exactly the leak that gets a PR bounced on naming.
-
-**Rule of thumb**: if you deleted the campaign's `state.json`, would the flag name still tell a stranger what the optimization does? If not, rename it before you commit. A flag whose name is just `VLLM_OP<n>` / `VLLM_OPT<n>` (the op_id with a `VLLM_` prefix) is never acceptable. The Stage 4-5 audit treats it as a BLOCKING finding.
+Good: `PUMICE_NEMOTRON3_FP8_PREFILL_GEMM_SM100` for a CUTLASS SM100 FP8 dense GEMM on the Nemotron-3 prefill path. Bad: `PUMICE_OP004`. An `op_id` is a campaign tracking handle, so a stranger cannot tell what that flag does or whether it is safe to enable. If you deleted the campaign's `state.json`, the name must still tell a stranger what the optimization does. A name that is only the `op_id` with a prefix is a BLOCKING finding at the Stage 4-5 audit.
 
 **Reserved names:** `PUMICE_PLATFORM` and `PUMICE_VLLM_RUNNER_ONLY` are engine platform names, set by the engine build or the host environment, that the bench runner always keeps (`ENGINE_INFRA_ENV` in `run_pumice_grpc_bench.py`), so do not use them as A/B flags.
 
@@ -132,7 +116,7 @@ A `GATED_PASS` optimization needs a dispatch mechanism so it activates only at t
 1. Is the dispatch site inside a fullgraph-compiled region (torch.compile fullgraph=True)?
    YES -> Use torch.cond() (Variant 1)
 
-2. Is the dispatch site inside a custom op, layer forward(), or CUDA-graphed path?
+2. Is the dispatch site inside a registered custom op, whose Python body Dynamo does not trace?
    YES -> Use Python if/else on M dimension (Variant 2)
          Sub-decision: Is the threshold architectural or empirical?
            ARCHITECTURAL (e.g., kernel's BLOCK_M determines max M) -> hardcode threshold
@@ -147,7 +131,7 @@ A `GATED_PASS` optimization needs a dispatch mechanism so it activates only at t
 Use this when `torch.compile(fullgraph=True)` traces through the dispatch site. A standard Python `if` on tensor shape causes graph breaks under fullgraph mode.
 
 ```python
-# Reference: `torch.cond` in the fp8 GEMM dispatch (quantization/utils/fp8_utils.py)
+# Exemplars: the `torch.cond` row in torch-compile-contract.md § Source Files
 condition = input.shape[0] < crossover_threshold
 return torch.cond(
     condition,
@@ -159,22 +143,23 @@ return torch.cond(
 
 Both branches must return same-shape tensors.
 
-### Variant 2: Python if/else (CUDA-Graphed / Layer Forward Paths)
+### Variant 2: Python if/else (Inside a Custom Op)
 
-> In the dispatch templates below, `{OP_NAME}` is a **descriptive mechanism name** (e.g. `MOE_TWO_STREAM`, `FP8_PREFILL_GEMM_SM100`). It is the public, PR-facing flag name, NOT the internal `op_id`. `VLLM_OP003`-style names leak the tracking handle and are a BLOCKING Stage 4-5 audit finding. See § Env Flag Naming (PR-Ready) above.
+> In the templates below, `{MECHANISM}` stands for everything after `PUMICE_` in the flag name (for example `MOE_TWO_STREAM` or `NEMOTRON3_FP8_PREFILL_GEMM_SM100`), per § Env Flag Naming (PR-Ready) above.
 
-Use this for code paths captured by CUDA graphs. The Python conditional is evaluated at graph capture time and frozen -- no runtime cost during replay. Each batch-size bucket captures a separate graph with the correct branch.
+Use this inside a registered custom op, whose Python body Dynamo does not trace. The conditional runs at CUDA graph capture and is frozen there, so replay has no runtime cost. Each batch-size bucket captures a separate graph with the correct branch. A shape `if` in traced `forward()` code bakes at trace time instead (`torch-compile-contract.md` § Invariant 1).
 
 ```python
-# Two-level dispatch: env var enables, M-check selects
+# Two-level dispatch: env flag enables, M-check selects
+import os
 
-# Level 1: Env var gate (checked once at init)
-if envs.VLLM_{OP_NAME}:
+# Level 1: env flag gate (read once at init, default off)
+if os.environ.get("PUMICE_{MECHANISM}", "0") == "1":
     gemm_fn = gated_optimized_gemm
 else:
     gemm_fn = default_gemm
 
-# Level 2: Runtime M-check (frozen in CUDA graph per bucket)
+# Level 2: M-check inside the custom op (frozen in the CUDA graph per bucket)
 def gated_optimized_gemm(layer, x, weight, bias=None):
     M = x.numel() // x.shape[-1]
     if M <= crossover_threshold:  # Beneficial range
@@ -187,9 +172,9 @@ def gated_optimized_gemm(layer, x, weight, bias=None):
 Use this for dispatch at module or platform level. It costs nothing per call.
 
 ```python
-# Reference: `dispatch_unquantized_gemm` in vllm/model_executor/layers/utils.py
+# Pattern: init-time selection, as `dispatch_unquantized_gemm` does in the vLLM runner
 def dispatch_kernel():
-    if envs.VLLM_{OP_NAME} and M_typical <= crossover_threshold:
+    if os.environ.get("PUMICE_{MECHANISM}", "0") == "1" and M_typical <= crossover_threshold:
         return optimized_fn
     return default_fn
 ```
@@ -201,8 +186,8 @@ Use this for the rare case where 2+ gated optimizations share a call site:
 ```python
 AMMO_DISPATCH_CHAIN = [
     # (condition, kernel_fn, name) -- first match wins
-    (lambda M: 2 <= M <= 16, fused_qkv_fn, "op012"),
-    (lambda M: 2 <= M <= 32, selective_fn, "op007"),
+    (lambda M: 2 <= M <= 16, fused_qkv_fn, "fused_qkv"),
+    (lambda M: 2 <= M <= 32, selective_fn, "selective_gemm"),
 ]
 
 def ammo_dispatch(layer, x, weight, bias=None):
@@ -223,8 +208,8 @@ The rule and the baseline artifact paths live in `validation-defaults.md`
 These constraints apply to the champion, including its kernel gates:
 
 1. **All batch sizes.** Test every batch size in target.json. No exceptions. No cherry-picking.
-2. **Production parity.** Per `references/validation-defaults.md` § Production Parity Requirement. NEVER use `--enforce-eager`, `TORCH_COMPILE_DISABLE=1`, or `VLLM_TORCH_COMPILE_LEVEL=0` to simplify the production comparator.
-3. **vLLM baseline.** Per `references/validation-defaults.md` § Dual Baseline Requirement. Never use naive PyTorch.
+2. **Production parity.** Per `references/validation-defaults.md` § Production Parity Requirement.
+3. **Production baseline.** Per `references/validation-defaults.md` § Dual Baseline Requirement. Never use naive PyTorch.
 
 ## References
 

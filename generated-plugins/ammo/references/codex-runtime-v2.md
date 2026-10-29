@@ -6,10 +6,9 @@ recovery rules unchanged.
 
 ## Dispatch and identity
 
-Read `references/context-recovery.md` before dispatch. Every AMMO custom-role
-spawn uses `fork_turns="none"` for independent context and a unique lowercase
-`task_name` containing only `a-z`, `0-9`, and `_`. Names that recur include the
-round and attempt. Call native tools directly, outside execution cells. Spawn
+Read `references/context-recovery.md` before dispatch. It owns task names.
+Every AMMO custom-role spawn uses `fork_turns="none"` for independent context and
+a `task_name` from that file. Call native tools directly, outside execution cells. Spawn
 each role at its plugin address, `ammo:<role>`. Start each message with the
 `plugin_root:` line and give the campaign dir on an `artifact_dir:` line.
 

@@ -5,12 +5,15 @@
 # and work remains. Exits silently when:
 #   - No campaign (_find_campaign.sh finds no .ammo/active marker and no
 #     AMMO_ARTIFACT_DIR), or the campaign dir has no state.json
-#   - Campaign is terminal (complete/exhausted) AND REPORT.md exists
+#   - Campaign is terminal (complete/exhausted), REPORT.md exists, and
+#     report_assets/report_fact_check.json holds ok: true with a report_sha256
+#     equal to the SHA-256 of REPORT.md (the same rule as
+#     codex/hooks/stop_gate_guard.py)
 #
 # Nudges at:
 #   - Stage 7 (active): proceed to next round or set terminal status + 7b
-#   - Stage 7 (terminal, no report): spawn report subagent (closes the 7b gap)
-#   - Stage 7b: spawn report subagent
+#   - Stage 7 (terminal, no accepted report): run Stage 7b, writer or fact-check
+#   - Stage 7b: run Stage 7b, writer or fact-check
 #
 # Teammates are excluded via the agent_type JSON field (present for subagents,
 # absent for the lead) with a fallback to session_id / team-config check.
@@ -51,15 +54,48 @@ ARTIFACT_DIR="${AMMO_ARTIFACT_DIR%/}/"
 STATE_FILE="${ARTIFACT_DIR}state.json"
 [ -f "$STATE_FILE" ] || exit 0  # campaign dir without state yet
 
-# ── Fully done check: terminal status + report exists → nothing left to do ──
 STATUS=$(jq -r '.campaign.status // empty' "$STATE_FILE" 2>/dev/null)
-if [[ "$STATUS" != "active" ]] && [[ -f "${ARTIFACT_DIR}REPORT.md" ]]; then
-    exit 0
-fi
 
 # ── Paused check: user explicitly paused → allow stop ──
 if [[ "$STATUS" = "paused" ]]; then
     exit 0
+fi
+
+# ── Report state: missing, unchecked, or accepted ──
+# Accepted means report_fact_check.json holds ok: true and a report_sha256
+# equal to the SHA-256 of the current REPORT.md bytes.
+_report_sha256() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+REPORT_FILE="${ARTIFACT_DIR}REPORT.md"
+FACT_FILE="${ARTIFACT_DIR}report_assets/report_fact_check.json"
+REPORT_STATE="missing"
+REPORT_SHA=""
+if [[ -f "$REPORT_FILE" ]]; then
+    REPORT_STATE="unchecked"
+    REPORT_SHA=$(_report_sha256 "$REPORT_FILE" || true)
+    FACT_SHA=$(jq -r 'if .ok == true then (.report_sha256 // "") else "" end' "$FACT_FILE" 2>/dev/null || true)
+    if [[ -n "$REPORT_SHA" ]] && [[ "$FACT_SHA" = "$REPORT_SHA" ]]; then
+        REPORT_STATE="accepted"
+    fi
+fi
+
+# ── Fully done check: terminal status + accepted report → nothing left to do ──
+if [[ "$STATUS" != "active" ]] && [[ "$REPORT_STATE" = "accepted" ]]; then
+    exit 0
+fi
+
+# Stage 7b work left, named for the nudges below.
+if [[ "$REPORT_STATE" = "missing" ]]; then
+    REPORT_STEP="REPORT.md has not been generated. Run Stage 7b now: spawn a fresh ammo-report-writer (subagent_type=ammo:ammo-report-writer) with artifact_dir=${ARTIFACT_DIR}; it reads skills/ammo-report/SKILL.md itself. Then run the fact-check gate in SKILL.md Stage 7b: the session may stop only when report_assets/report_fact_check.json holds ok: true and the report_sha256 of the current REPORT.md."
+elif [[ "$REPORT_STATE" = "accepted" ]]; then
+    REPORT_STEP="REPORT.md has an accepted fact-check. Set campaign_complete or campaign_exhausted per SKILL.md Stage 7."
+else
+    REPORT_STEP="REPORT.md exists, but report_assets/report_fact_check.json is missing, stale, or not accepted. Run the fact-check gate in SKILL.md Stage 7b: spawn a fresh ammo-delegate with the fact-check assignment in agents/ammo-report-writer.md, then write report_assets/report_fact_check.json with ok, findings, and report_sha256=${REPORT_SHA:-<SHA-256 of REPORT.md>}. On ok: false, spawn a fresh ammo-report-writer (subagent_type=ammo:ammo-report-writer) with the findings."
 fi
 
 STAGE=$(jq -r '.campaign.current_stage // "unknown"' "$STATE_FILE" 2>/dev/null)
@@ -78,15 +114,14 @@ case "$STAGE" in
             NUDGE="You are at Stage 7 (Campaign Evaluation) and the campaign is still active, so keep going without asking the user.
 Run the mechanical stop check from SKILL.md Stage 7: compare the current production baseline's bottleneck_mining.top_addressable_e2e_pct with campaign.config.min_e2e_improvement_pct in state.json.
 - At or above the floor: open the next round and continue (mine the promoted baseline after a SHIP, pivot technology after EXHAUSTED).
-- Below the floor: set campaign_complete or campaign_exhausted per SKILL.md, drain the roster, then run Stage 7b (spawn a fresh ammo-report-writer)."
+- Below the floor: set campaign_complete or campaign_exhausted per SKILL.md, drain the roster, then run Stage 7b (spawn a fresh ammo-report-writer, then the fact-check gate)."
         else
-            # Terminal status but no REPORT.md (we passed the fully-done check above)
-            NUDGE="Campaign is $STATUS but REPORT.md has not been generated.
-Run Stage 7b now: spawn a fresh ammo-report-writer (subagent_type=ammo:ammo-report-writer) with artifact_dir=${ARTIFACT_DIR}; it reads skills/ammo-report/SKILL.md itself."
+            # Terminal status without an accepted report (we passed the fully-done check above)
+            NUDGE="Campaign is $STATUS. $REPORT_STEP"
         fi
         ;;
     7b_report*|*report_gen*)
-        NUDGE="You are at Stage 7b (Report Generation). Spawn a fresh ammo-report-writer (subagent_type=ammo:ammo-report-writer) with the artifact_dir now; the session cannot end until REPORT.md exists."
+        NUDGE="You are at Stage 7b (Report and Fact Check). $REPORT_STEP"
         ;;
 esac
 

@@ -5,7 +5,8 @@
 # One env name per line. Blank lines and lines that start with "#" are ignored.
 #
 # PUMICE_* rule (a .py or .rs edit):
-#   - a PUMICE_* env name NOT in this list is a new engine env -> BLOCK.
+#   - a PUMICE_* env name NOT in this list is a new campaign flag. Its read
+#     must default off; a default that is not off                  -> BLOCK.
 #   - a change to the default of a PUMICE_* name IN this list      -> BLOCK.
 # VLLM_* rule (an envs.py edit): the VLLM_* names below default on by design,
 # so the guard does not treat them as campaign gating flags.

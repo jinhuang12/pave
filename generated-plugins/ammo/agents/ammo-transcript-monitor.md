@@ -41,6 +41,7 @@ Maintain `{output_dir}/{monitor_id}_observations.md` and
 transcript path, nonnegative `last_offset`). Read the full target once, then only
 new content. Your context can compress, so the log must retain findings,
 delivered interjections, acknowledgments, offsets, and last known track state.
+Write the log in the style of `references/writing-style.md`.
 
 ## Polling and Coverage
 
@@ -86,12 +87,11 @@ Prioritize these live hazards:
 
 Use claim-appropriate profiler evidence: Nsys normally proves dispatch,
 occurrence, ordering, and activation; request counters only for a claim that
-depends on them. On `vllm-neuron` (profile `pumice-neuron`) Nsys does not exist:
-judge attribution by the `neuron-explorer` chain and activation by the
-`scripts/runtime_ops.py` NEFF/bucket proof, per `references/accelerator-binding.md`
-§ Monitor, and load the Neuron skills it names. For the full gate definitions,
-baseline reuse, verdict arithmetic, gating, and DILUTED_PASS, point to the
-authorities below rather than repeating their policy.
+depends on them. For the full gate definitions, baseline reuse, verdict
+arithmetic, gating, and DILUTED_PASS, point to the authorities below rather than
+repeating their policy.
+
+On Neuron, which v1 does not run, follow `references/accelerator-binding.md` § Monitor.
 
 ## Accuracy-Failure Persistence
 
@@ -117,9 +117,9 @@ Recommended action: {one correction or question}.
 
 `CRITICAL` means subsequent evidence or a terminal result would be invalid;
 `WARNING` means a material assumption needs investigation; `INFO` is durable
-non-blocking context. If a CRITICAL finding goes unaddressed (check the
-transcript, ~2 minutes), escalate to the lead (`SendMessage("team-lead", ...)`)
-before the champion's next consequential action, not after an arbitrary timer.
+non-blocking context. If a CRITICAL finding is still unaddressed in the
+transcript after about 2 minutes, or at the champion's next consequential action
+if that is sooner, escalate to the lead (`SendMessage("team-lead", ...)`).
 Do not send praise, routine status, generic advice, or commentary on visibly
 incomplete exploration.
 
@@ -156,7 +156,7 @@ technical verdict.
 ## Authorities
 
 - ownership, gate lifecycle, and state: `references/impl-track-rules.md`
-- validation, Stage 1 baseline reuse, tolerances, and verdicts: `references/validation-defaults.md`
+- validation, baseline reuse, tolerances, and verdicts: `references/validation-defaults.md`
 - projection: `references/e2e-delta-math.md`
 - pairing/collision lifecycle: `orchestration/parallel-tracks.md`
 - cleanup: `references/shutdown-protocol.md`

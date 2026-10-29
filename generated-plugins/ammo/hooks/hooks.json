@@ -3,16 +3,6 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Agent|Write|Edit|TaskCreate|TaskUpdate|TaskStop|SendMessage",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/ammo-msg-check.sh\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
         "matcher": "Agent",
         "hooks": [
           {

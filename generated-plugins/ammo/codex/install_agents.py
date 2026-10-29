@@ -27,7 +27,6 @@ EXPECTED_AGENTS = {
     "ammo-delegate.toml": "ammo:ammo-delegate",
     "ammo-impl-champion.toml": "ammo:ammo-impl-champion",
     "ammo-implementer.toml": "ammo:ammo-implementer",
-    "ammo-investigator.toml": "ammo:ammo-investigator",
     "ammo-report.toml": "ammo:ammo-report",
     "ammo-report-writer.toml": "ammo:ammo-report-writer",
     "ammo-researcher.toml": "ammo:ammo-researcher",

@@ -4,14 +4,12 @@ This guide owns how AMMO captures GPU traces and how it reads them. Read it befo
 
 ## The Default Workflow
 
-Stage 2 has one default profiling workflow:
+Stages 1 and 2 share one default profiling workflow:
 
 1. Run a clean E2E baseline sweep with no profiler flags.
 2. Run a short Nsight Systems capture of the server. The runner resolves the CUDA trace backend for your hardware.
 3. Mine the nsys report for kernel ranking, launch chains, per-rank/per-device skew, CUDA memcpy/NVLink activity, and timing shares.
 4. Run targeted Nsight Compute only for physical-ceiling claims such as occupancy, achieved bandwidth counters, or SM utilization.
-
-Do not use profiler-contaminated latency as the official E2E baseline.
 
 ## How Capture Works (read this first)
 
@@ -80,7 +78,7 @@ Keep the profiled window SHORT. `--profile-waves 1` with `--warmup-waves 1` is t
 
 The runner resolves the trace backend (§ Trace Backend). Do not pass `--nsys-trace` unless you must override it.
 
-Keep `--nsys-mode node` for the default Stage 2 path. Node mode (`--cuda-graph-trace=node`) is the ranking source for CUDA graph workloads, and almost all decode, eagle, and verify passes are graph-captured.
+Keep `--nsys-mode node` for the default Stage 1 capture. Node mode (`--cuda-graph-trace=node`) is the ranking source for CUDA graph workloads, and almost all decode, eagle, and verify passes are graph-captured.
 
 Outputs:
 
@@ -118,7 +116,7 @@ A timed-window trace also holds warmup and idle time. Use `profile_meta.waves[]`
 
 ## Trace Backend
 
-`_default_nsys_trace()` in the runner owns this rule: `--nsys-trace` defaults to `cuda-sw` when `target.hardware` names Blackwell (B200/B300/GB200/GB300, SM100/SM120), else `cuda`. The runner prints the resolved value and its source. The script is the only place this rule lives; there is no hand-maintained hardware matrix to read or keep current.
+`_default_nsys_trace()` in the runner owns this rule: `--nsys-trace` defaults to `cuda-sw` when `target.hardware` names Blackwell (B200/B300/GB200/GB300, SM100/SM120), else `cuda`. The runner prints the resolved value and its source.
 
 On Blackwell, the hardware event system for CUDA tracing interacts poorly with CUDA graph replay. The result is long warmup/profiling stalls, followed by RPC or NCCL watchdog timeouts. This affects all workloads (not only MoE or TP>1). `cuda-sw` still captures CUDA API/software activity and graph node attribution, and it avoids that hardware-tracing path. On a non-Blackwell target, override to `cuda-sw` only after the logs match that replay/collective timeout failure.
 

@@ -2,7 +2,9 @@
 # PreToolUse hook — AMMO campaign parity reminders and accelerator pool guard.
 #
 # N1/N4 warnings: Warns (but does NOT block) when a Bash command contains
-# patterns that violate AMMO non-negotiables.
+# patterns that violate AMMO non-negotiables. N1 covers the vLLM knobs
+# (--enforce-eager, TORCH_COMPILE_DISABLE=1, VLLM_TORCH_COMPILE_LEVEL<2) and the
+# Pumice knobs (--no-compile, PUMICE_COMPILE_TARGET=0).
 #
 # Accelerator pool guard: Blocks ONCE per session if a CUDA or Neuron command
 # lacks the matching reservation pattern.
@@ -88,6 +90,14 @@ if [ "$_IS_NEURON_RUNTIME" = "false" ]; then
     fi
     if echo "$COMMAND" | grep -qP 'VLLM_TORCH_COMPILE_LEVEL\s*=\s*[01](\s|$|")'; then
         echo "AMMO REMINDER: VLLM_TORCH_COMPILE_LEVEL < 2 detected. AMMO non-negotiable N1 requires torch.compile level ≥ 2. If this is a false positive (e.g., documentation or search), ignore this warning." >&2
+    fi
+    # Pumice runner knobs (references/torch-compile-contract.md). POSIX ERE, so
+    # the check also works with the BSD grep on macOS.
+    if echo "$COMMAND" | grep -qE '(^|[[:space:]])--no-compile([[:space:]=]|$)'; then
+        echo "AMMO REMINDER: --no-compile detected. AMMO non-negotiable N1 requires production parity: a binding measurement keeps torch.compile on. Use this flag for diagnosis only. If this is a false positive (for example documentation or search), ignore this warning." >&2
+    fi
+    if echo "$COMMAND" | grep -qE "PUMICE_COMPILE_TARGET[[:space:]]*=[[:space:]]*[\"']?0[\"']?([[:space:];&|]|\$)"; then
+        echo "AMMO REMINDER: PUMICE_COMPILE_TARGET=0 detected. AMMO non-negotiable N1 requires production parity: a binding measurement keeps torch.compile on. Use this setting for diagnosis only. If this is a false positive (for example documentation or search), ignore this warning." >&2
     fi
 fi
 

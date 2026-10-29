@@ -49,6 +49,12 @@ def normalize_role(value):
     role=str(value or '').strip()
     if role.startswith(ROLE_PREFIX): role=role[len(ROLE_PREFIX):]
     return ROLE_ALIASES.get(role,role)
+# Roles that bind to an AMMO task under Codex V1: every ammo-* role, and the
+# investigator, which is the pave-init agent (same name on Claude and Codex).
+V1_BOUND_ROLES=('pave-init:adversarial-investigator','adversarial-investigator')
+def is_v1_bound_role(role):
+    """True when a normalized role gets a V1 task binding and its checks."""
+    return role.startswith('ammo-') or role in V1_BOUND_ROLES
 # The roles a hook infers from a spawn, in match order.
 _MARKED_ROLES=('ammo-implementer','ammo-auditor','ammo-transcript-monitor')
 _ROLE_MARKERS=None

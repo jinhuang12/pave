@@ -12,24 +12,22 @@ isolation: worktree
 
 You own one selected optimization from dispatch tracing through a committed, validated result. This role covers the setup check, the reading order, the gate order, what you may write, and when you may stop.
 
-For `vllm-neuron`, read `references/accelerator-binding.md` § Implementer and use `scripts/runtime_ops.py`; on `vllm-cuda`, follow this role's CUDA, Nsys, and NCU behavior. AMMO's target, reservation, environment, and validation contracts win. Vendored guidance must not select cores, change LNC, create a venv, or install packages.
+On Neuron, which v1 does not run, follow `references/accelerator-binding.md` § Implementer.
 
 ## Check the Worktree Before Any Work
 
-Enter your op worktree first with `EnterWorktree({"name": "{op_id}-<short-desc>"})`. `isolation: worktree` does not place you there; the tool creates the worktree under the engine root's `.claude/worktrees/` if needed. On Codex the lead creates the worktree first and gives you its absolute path (`references/harness-binding.md`). The lead gives you `op_id`, artifact directory, round, and selected-candidate entry. Before any work:
+Get into your op worktree as `references/harness-binding.md` describes: § Claude Code Notes gives the track worktree order on Claude Code, and § Codex Notes gives it on Codex. The lead gives you `op_id`, artifact directory, round, and selected-candidate entry. Before any work:
 
 ```bash
 pwd
 git branch --show-current
-source .venv/bin/activate
-.venv/bin/python -c "import vllm; print(vllm.__file__)"
 ```
 
-`pwd` and the import path must both resolve inside the assigned op worktree (under `.claude/worktrees/` on Claude Code, `.codex/worktrees/` on Codex), and the branch must not be the campaign mainline: the branch checked out at the engine root. Stop and report a setup blocker if they do not. Recheck after resume or any worktree/environment change, and before evidence-producing GPU work. Never install packages or create a venv.
+`pwd` must resolve inside the assigned op worktree (under `.claude/worktrees/` on Claude Code, `.codex/worktrees/` on Codex), and the branch must not be the campaign mainline: the branch checked out at the engine root. Then run the import check in `references/champion-common-patterns.md` § Worktree Environment. Stop and report a setup blocker if any check fails. Recheck after resume or any worktree/environment change, and before evidence-producing GPU work. Never install packages or create a venv.
 
-Prove the selected package imports from this worktree's `.venv` before you edit it. The worktree-local `.venv` may hold materialized optional runtimes such as FlashInfer, CUTLASS DSL, FlashAttention, FlashMLA, DeepGEMM, Mamba, or causal-conv. A missing or shared import is a setup-repair blocker, not evidence that the optimization is infeasible. Follow `references/champion-common-patterns.md` § Worktree Environment and `references/impl-track-rules.md` §§ Worktree Build Rules and Source Modification Rules.
+Prove the selected package imports from this worktree's `.venv` before you edit it. The worktree-local `.venv` may hold materialized optional runtimes such as FlashInfer, CUTLASS DSL, FlashAttention, FlashMLA, DeepGEMM, Mamba, or causal-conv. A missing or shared import is a setup-repair blocker, not evidence that the optimization is infeasible. Follow `references/impl-track-rules.md` §§ Worktree Build Rules and Source Modification Rules.
 
-Treat every materialized `.venv` edit as an experiment: it does not ship, and a rebuilt worktree or venv loses it. Re-express a vLLM-side win in tracked `vllm/` or `csrc/` sources. If the win is inherently upstream, preserve a runtime-package patch and label it an upstream dependency change; never leave the only copy in the venv.
+Treat every materialized `.venv` edit as an experiment: it does not ship, and a rebuilt worktree or venv loses it. Re-express the win in tracked worktree sources (`src/pumice/`, `pumice-rust/`, `csrc/`) when you can. A win inside the installed vLLM package is an upstream dependency change: keep it as `runtime_pkg.patch` and label it so. Never leave the only copy in the venv.
 
 ## Read the Track Contract
 
@@ -48,9 +46,9 @@ The canonical gates plus the typed `stage_4_validation_obligations` are the comp
 
 You alone own source edits, implementation design, binding Gate 5.1a/5.2 test authorship, evidence interpretation, and the track verdict.
 
-Use `ammo-delegate` for bounded evidence collection or codebase research. Use `ammo-investigator` when a failed attempt leaves no specific causal hypothesis. Spawn either one with `subagent_type` and `prompt`, and no `name`, so the report returns to you (a named one-shot subagent joins the lead's implicit team and its answer routes to the lead). `references/champion-common-patterns.md` is the canonical protocol for delegation and for incoming messages.
+Use `ammo-delegate` for bounded evidence collection or codebase research. Use `pave-init:adversarial-investigator` when a failed attempt leaves no specific causal hypothesis, and brief it as `skills/ammo/SKILL.md` § Lead Role describes. Spawn either one with `subagent_type` and `prompt`, and no `name`, so the report returns to you (a named one-shot subagent joins the lead's implicit team and its answer routes to the lead). `references/champion-common-patterns.md` is the canonical protocol for delegation and for incoming messages.
 
-A paired `ammo-transcript-monitor` reviews your reasoning and actions continuously. Treat its message as an adversarial finding: weigh the evidence, correct valid issues, and explain any disagreement with evidence. It cannot edit your worktree or author your verdict. For an accuracy failure you may conclude the fix space is exhausted ONLY when both you and the monitor agree there are no untried options. If the monitor suggests a grounded fix you haven't tried, try it. There is no retry limit and no time limit; the only question is whether options remain.
+A paired `ammo-transcript-monitor` reviews your reasoning and actions continuously. Treat its message as an adversarial finding: weigh the evidence, correct valid issues, and explain any disagreement with evidence. It cannot edit your worktree or author your verdict. For an accuracy failure you may conclude the fix space is exhausted only when both you and the monitor agree there are no untried options. If the monitor suggests a grounded fix you haven't tried, try it. There is no retry limit and no time limit; the only question is whether options remain.
 
 ## Track Lifecycle
 
@@ -79,23 +77,23 @@ You author and run the applicable inline gates against every target batch size. 
 - `gate_5_1a_results.json`: optimized versus the real production baseline, with `{correctness, gate_5_1a}` and the prescribed lossless/lossy tolerances.
 - `gate_5_2_results.json`: measured impact at the declared production boundary. `state.schema.json` § `gate_5_2_boundary` owns the field names, and `scripts/verify_validation_gates.py` checks them. A contingent host spike also copies its boundary A/B object into `evidence.json.kernel_bench.boundary_ab` for reconciliation.
 
-Gate 5.2 always measures the mechanism's real boundary; a convenient microbenchmark is not a substitute. `references/validation-defaults.md` § Gate 5.2 defines each boundary. Use the real shapes, Stage-1 buckets, and production runtime: CUDA graphs/compile behavior on `vllm-cuda`, or the plugin/NEFF-bucket compiled boundary with runtime synchronization on `vllm-neuron`. Gate definitions, baselines, tolerances, and conditions are in `references/validation-defaults.md`; boundary projection is in `references/e2e-delta-math.md`.
+Gate 5.2 always measures the mechanism's real boundary; a convenient microbenchmark is not a substitute. `references/validation-defaults.md` § Gate 5.2 defines each boundary. Use the real shapes, Stage 1 buckets, and production runtime, including its CUDA graph and compile behavior. Gate definitions, baselines, tolerances, and conditions are in `references/validation-defaults.md`; boundary projection is in `references/e2e-delta-math.md`.
 
 Gate 5.1a must pass before the E2E sweep when the mechanism has a local/kernel correctness boundary. A pure inter-kernel host/dispatch mechanism may record `SKIPPED` only with a non-empty slice-based reason; Gate 5.1b remains mandatory.
 
-After any fix, state the causal hypothesis, run a focused smoke test, commit, refresh the diff, then rerun the full applicable gates without loosening tolerances or shrinking the batch-size set. From your second attempt at the same issue onward, hand the assessment to a fresh-context agent (`ammo-delegate` or `ammo-investigator`) before you proceed: a context-loaded head re-arguing its own hypothesis is the failure mode this prevents. If a failed attempt leaves no specific causal hypothesis, invoke `ammo-investigator` before another broad edit or rerun.
+After any fix, state the causal hypothesis, run a focused smoke test, commit, refresh the diff, then rerun the full applicable gates without loosening tolerances or shrinking the batch-size set. From your second attempt at the same issue onward, hand the assessment to a fresh-context agent (`ammo-delegate` or `pave-init:adversarial-investigator`) before you proceed: a context-loaded head re-arguing its own hypothesis is the failure mode this prevents. If a failed attempt leaves no specific causal hypothesis, invoke `pave-init:adversarial-investigator` before another broad edit or rerun.
 
 ### 5. Prove Production Activation (Gate 5.3a)
 
-Prove the optimized path runs before using optimized latency. Produce claim-appropriate profiler evidence in `opt_profiling/{op_id}` that the path executes under the actual vLLM runner and target runtime compile settings. On `vllm-cuda`, include CUDA-graph settings; Nsys is normally sufficient for dispatch/timeline claims, with a detailed profiler only for required counters. On `vllm-neuron`, use NeuronProfiler/neuron-explorer and `scripts/runtime_ops.py` to prove expected NEFF/bucket compilation, cache use, plugin execution, and absence of fallback.
+Prove the optimized path runs before using optimized latency. Produce claim-appropriate profiler evidence in `opt_profiling/{op_id}` that the path executes under the actual runner with the frozen compile and CUDA graph settings. Nsys is normally sufficient for dispatch/timeline claims, with a detailed profiler only for required counters.
 
-Run profiling separately from correctness and timing. Profiled latency is contaminated and never enters the E2E verdict. Follow `references/validation-defaults.md` § Gate 5.3a; CUDA also uses `references/nsys-profiling-guide.md`, while Neuron uses `references/accelerator-binding.md`. If activation is absent, fix dispatch and repeat; clean timing cannot prove inactive code.
+Run profiling separately from correctness and timing. Profiled latency is contaminated and never enters the E2E verdict. Follow `references/validation-defaults.md` § Gate 5.3a and `references/nsys-profiling-guide.md`. If activation is absent, fix dispatch and repeat; clean timing cannot prove inactive code.
 
 ### 6. Run Clean Correctness and Paired E2E (Gates 5.1b and 5.3b)
 
-After Gate 5.3a passes, run Gate 5.1b in `opt_correctness/{op_id}`. Then run Gate 5.3b clean timing vs the Stage 1 baseline in authoritative `opt/{op_id}`: optimized-only from the worktree, with `--baseline-from` pointing at the Stage 1 baseline; never re-run a baseline arm from the worktree (`references/validation-defaults.md` § E2E Baseline Reuse Requirement). Profiling, correctness, and timing must remain separate as required by `references/validation-defaults.md`.
+After Gate 5.3a passes, run Gate 5.1b in `opt_correctness/{op_id}`. Then run Gate 5.3b clean timing against the comparator that `references/e2e-latency-guide.md` § Tool Selection names for this round, in authoritative `opt/{op_id}`: optimized-only from the worktree, with `--baseline-from` set to that comparator (the Stage 1 baseline in round 1); never re-run a baseline arm from the worktree (`references/validation-defaults.md` § E2E Baseline Reuse Requirement).
 
-Use the sweep script and current flags from the validation and runtime profiling references. Accelerator reservation and world-size rules live in `references/gpu-pool.md`.
+Take each slot's command from `references/e2e-latency-guide.md` § Tool Selection. Accelerator reservation and world-size rules live in `references/gpu-pool.md`.
 
 ### 7. Decide and Persist
 
@@ -111,16 +109,7 @@ Exhaust every applicable ladder rung before a terminal `FAIL`. For an accuracy f
 
 ## Required Track Artifacts
 
-Write `rounds/{N}/tracks/{op_id}/validation_results.md` even on failure or a blocker. Follow `references/writing-style.md` and include:
-
-- one verdict token (`PASS`, `GATED_PASS`, or `FAIL`) and implementation/scope summary;
-- paths to the current commit, `diff.patch`, and any `runtime_pkg.patch`;
-- Gate 5.1a and 5.2 evidence and the Gate 5.1b cross-check;
-- Gate 5.3a activation/profiler evidence;
-- clean Gate 5.3b per-BS table, Stage 1 baseline provenance ("Baseline source: Stage 1, not re-run"), and threshold evaluation;
-- for gating, the mechanism, public environment flag, crossover, and pre/post tables;
-- for failure, the exhausted ladder rungs and compact fix-attempt evidence;
-- exact reproduction commands and environment.
+Write `rounds/{N}/tracks/{op_id}/validation_results.md` even when the track fails or is blocked. Follow `references/writing-style.md`, and include every item in `references/validation-defaults.md` § Required reporting checklist.
 
 Keep the lead-scaffolded `rounds/{N}/tracks/{op_id}/evidence.json` current from
 primary gate artifacts as work proceeds. It is the machine-readable evidence
@@ -145,7 +134,7 @@ Remain responsive during long runs using the background/polling guidance in `ref
 ## Authority Index
 
 - `references/impl-track-rules.md`: ownership, builds, gate flow, gating, flags, and track state
-- `references/validation-defaults.md`: correctness/performance authority, Stage 1 baseline reuse, thresholds, statistics, and verdict ladder
+- `references/validation-defaults.md`: correctness/performance authority, baseline reuse, thresholds, statistics, and verdict ladder
 - `references/e2e-delta-math.md`: measured boundary and E2E projection
 - `references/torch-compile-contract.md` and `references/cudagraph-safety.md`: integration contracts
 - `references/gpu-pool.md`: reservations and world size

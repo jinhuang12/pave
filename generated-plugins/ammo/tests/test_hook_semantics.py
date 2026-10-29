@@ -938,7 +938,7 @@ def test_post_hook_blocks_stage2_without_stage1_audit(tmp_path):
     assert result.returncode == 0
     body = json.loads(result.stdout)
     assert body["decision"] == "block"
-    assert "Audit gate (4-phase audit)" in body["reason"]
+    assert "Audit gate (two-phase audit)" in body["reason"]
     assert "stage_1 first" in body["reason"]
 
 
@@ -958,7 +958,7 @@ def test_post_hook_detects_bare_state_json_command(tmp_path):
     result = _run_hook("post_tool_use_guard.py", payload, env)
 
     assert result.returncode == 0
-    assert "Audit gate (4-phase audit)" in result.stdout
+    assert "Audit gate (two-phase audit)" in result.stdout
     assert "stage_1 first" in result.stdout
 
 
@@ -994,7 +994,7 @@ def test_post_hook_blocks_stage3_without_stage2_audit_for_v41(tmp_path):
     assert result.returncode == 0
     body = json.loads(result.stdout)
     assert body["decision"] == "block"
-    assert "Audit gate (4-phase audit)" in body["reason"]
+    assert "Audit gate (two-phase audit)" in body["reason"]
     assert "stage_2 first" in body["reason"]
 
 
@@ -1028,7 +1028,7 @@ def test_post_hook_blocks_stage6_without_stage45_audit(tmp_path):
     result = _run_hook("post_tool_use_guard.py", payload, env)
 
     assert result.returncode == 0
-    assert "Audit gate (4-phase audit)" in result.stdout
+    assert "Audit gate (two-phase audit)" in result.stdout
     assert "stage_45 first" in result.stdout
 
 
@@ -1146,7 +1146,7 @@ def test_post_hook_blocks_stage7_without_stage67_audit(tmp_path):
     result = _run_hook("post_tool_use_guard.py", payload, env)
 
     assert result.returncode == 0
-    assert "Audit gate (4-phase audit)" in result.stdout
+    assert "Audit gate (two-phase audit)" in result.stdout
     assert "stage_67 first" in result.stdout
 
 
@@ -1163,7 +1163,7 @@ def test_post_hook_blocks_stage7_with_null_audit(tmp_path):
     result = _run_hook("post_tool_use_guard.py", payload, env)
 
     assert result.returncode == 0
-    assert "Audit gate (4-phase audit)" in result.stdout
+    assert "Audit gate (two-phase audit)" in result.stdout
     assert "stage_67 first" in result.stdout
 
 
@@ -1418,27 +1418,6 @@ def test_subagent_stop_blocks_auditor_until_hook_injected_phase2_is_written(tmp_
     allowed = _run_hook("post_tool_use_guard.py", stop_payload, env)
     assert allowed.returncode == 0
     assert allowed.stdout.strip() == ""
-
-
-def test_post_hook_ignores_stage45_partial_evidence_on_auditor_stop(tmp_path):
-    repo = _hook_repo(tmp_path)
-    artifact = _active_stage1_artifact(repo)
-    partial = artifact / "rounds" / "1" / "audits" / "stage_45_partial_OP-001.md"
-    partial.parent.mkdir(parents=True, exist_ok=True)
-    partial.write_text("# Read-only partial evidence\n", encoding="utf-8")
-    env = _env(repo, artifact)
-    payload = {
-        "cwd": str(repo),
-        "session_id": "sess-test",
-        "hook_event_name": "SubagentStop",
-        "agent_type": "ammo-auditor",
-        "agent_id": "auditor-1",
-    }
-
-    result = _run_hook("post_tool_use_guard.py", payload, env)
-
-    assert result.returncode == 0
-    assert '"decision":"block"' not in result.stdout.replace(" ", "")
 
 
 def test_post_hook_stage45_terminal_tracks_reminds_missing_e2e_latency_opt(tmp_path):
@@ -2833,7 +2812,7 @@ def _common_module():
         ("ammo-report", "ammo-report"),
         ("ammo:ammo-auditor", "ammo-auditor"),
         (" ammo:ammo-transcript-monitor ", "ammo-transcript-monitor"),
-        ("ammo-investigator", "ammo-investigator"),
+        ("pave-init:adversarial-investigator", "pave-init:adversarial-investigator"),
         ("", ""),
         (None, ""),
     ],
@@ -2966,7 +2945,7 @@ def test_pretool_lets_a_prefixed_monitor_spawn_through_a_pending_pair(tmp_path):
                 "tool_input": {"agent_type": role, "task_name": name, "message": "OP_ID: OP-001"}}
 
     _run_hook("post_tool_use_guard.py", spawn("ammo:ammo-implementer", "track_op001"), env)
-    owed = _run_hook("pre_tool_use_guard.py", dict(spawn("ammo:ammo-investigator", "other"), hook_event_name="PreToolUse"), env)
+    owed = _run_hook("pre_tool_use_guard.py", dict(spawn("pave-init:adversarial-investigator", "other"), hook_event_name="PreToolUse"), env)
     assert "awaiting its mandatory paired transcript monitor" in owed.stdout, owed.stdout + owed.stderr
 
     monitor = _run_hook(
@@ -3195,3 +3174,108 @@ def test_resolved_outside_state_path_does_not_pull_in_the_campaign_state(tmp_pat
 
     assert result.returncode == 0, result.stderr
     assert '"decision":"block"' not in result.stdout.replace(" ", ""), result.stdout
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python -m pumice.serve --model /m --no-compile",
+        "PUMICE_COMPILE_TARGET=0 python -m pumice.serve --model /m",
+    ],
+)
+def test_pretool_warns_on_pumice_compile_knobs(tmp_path, command):
+    # Twin of the Claude N1 reminder in hooks/ammo-pretool-guard.sh: the Pumice
+    # runner's --no-compile and PUMICE_COMPILE_TARGET=0 break production parity.
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    env = _env(repo, artifact)
+    reserve = "CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1) && CUDA_VISIBLE_DEVICES=$CVD "
+    payload = {"cwd": str(repo), "session_id": "sess-test", "tool_input": {"command": reserve + command}}
+
+    result = _run_hook("pre_tool_use_guard.py", payload, env)
+
+    assert result.returncode == 0
+    context = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert "disable production parity" in context
+
+
+def test_pretool_no_compile_cache_is_not_a_parity_warning(tmp_path):
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    env = _env(repo, artifact)
+    reserve = "CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1) && CUDA_VISIBLE_DEVICES=$CVD "
+    payload = {
+        "cwd": str(repo),
+        "session_id": "sess-test",
+        "tool_input": {"command": reserve + "PUMICE_COMPILE_TARGET=2 python -m pumice.serve --no-compile-cache"},
+    }
+
+    result = _run_hook("pre_tool_use_guard.py", payload, env)
+
+    assert result.returncode == 0
+    assert "disable production parity" not in result.stdout
+
+
+# The investigator is the pave-init agent (R11). On Codex V1 it binds to its
+# task like an ammo-* role, so it gets the AMMO_TASK check and the registration wait.
+def _v1_native_spawn(tmp_path, monkeypatch, role):
+    import uuid
+    repo = _hook_repo(tmp_path)
+    artifact = _active_stage1_artifact(repo)
+    root, child = str(uuid.uuid4()), str(uuid.uuid4())
+    home = repo / "codex_home"
+    home.mkdir()
+    with sqlite3.connect(home / "state_5.sqlite") as conn:
+        conn.executescript(
+            "CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT, agent_path TEXT, created_at_ms INTEGER);"
+            "CREATE TABLE thread_spawn_edges (parent_thread_id TEXT, child_thread_id TEXT PRIMARY KEY, status TEXT);"
+        )
+        conn.execute("INSERT INTO threads VALUES (?, '', NULL, 1)", (root,))
+        conn.execute("INSERT INTO threads VALUES (?, '', NULL, 2)", (child,))
+        conn.execute("INSERT INTO thread_spawn_edges VALUES (?, ?, 'open')", (root, child))
+    state = json.loads((artifact / "state.json").read_text(encoding="utf-8"))
+    state["codex_thread_id"] = root
+    (artifact / "state.json").write_text(json.dumps(state), encoding="utf-8")
+    env = _env(repo, artifact, AMMO_CODEX_AGENT_MODE="v1", CODEX_HOME=str(home), CODEX_SESSION_ID=root)
+    monkeypatch.setenv("AMMO_SESSION_ID", "sess-test")
+    name = "investigator_r1_a1"
+    metadata = {"task_name": name, "artifact_dir": str(artifact),
+                "recovery_note_path": str(artifact / "recovery" / root / "root" / name / "context.md")}
+    spawn = {"cwd": str(repo), "session_id": root, "hook_event_name": "PostToolUse",
+             "tool_name": "spawn_agent", "tool_use_id": str(uuid.uuid4()),
+             "tool_input": {"agent_type": role, "fork_context": False,
+                            "message": "AMMO_TASK=" + json.dumps(metadata)},
+             "tool_response": json.dumps({"agent_id": child})}
+    child_payload = {"cwd": str(repo), "session_id": root, "agent_id": child, "agent_type": role}
+    return env, spawn, child_payload
+
+
+@pytest.mark.parametrize("role", ["pave-init:adversarial-investigator", "adversarial-investigator"])
+def test_v1_investigator_child_waits_for_and_gets_its_task_binding(tmp_path, monkeypatch, role):
+    env, spawn, child = _v1_native_spawn(tmp_path, monkeypatch, role)
+    start = _run_hook("post_tool_use_guard.py", dict(child, hook_event_name="SubagentStart"), env)
+    assert "AMMO TASK REGISTRATION PENDING" in start.stdout, start.stdout + start.stderr
+    mutate = dict(child, hook_event_name="PreToolUse", tool_name="Bash",
+                  tool_input={"command": "touch notes.txt"})
+    assert "registration is pending" in _run_hook("pre_tool_use_guard.py", mutate, env).stdout
+    post = _run_hook("post_tool_use_guard.py", spawn, env)
+    assert "AMMO TASK REGISTERED" in post.stdout, post.stdout + post.stderr
+    assert "registration is pending" not in _run_hook("pre_tool_use_guard.py", mutate, env).stdout
+
+
+@pytest.mark.parametrize("role", ["pave-init:adversarial-investigator", "adversarial-investigator"])
+def test_v1_investigator_spawn_needs_the_ammo_task_line(tmp_path, monkeypatch, role):
+    env, spawn, _ = _v1_native_spawn(tmp_path, monkeypatch, role)
+    spawn["tool_input"]["message"] = "Decide whether OP-001 regressed."
+    pre = _run_hook("pre_tool_use_guard.py", dict(spawn, hook_event_name="PreToolUse"), env)
+    assert "AMMO V1 agent binding must be resolved" in pre.stdout, pre.stdout + pre.stderr
+
+
+def test_v1_binding_covers_only_ammo_roles_and_the_investigator():
+    common = _common_module()
+    assert common.is_v1_bound_role("ammo-delegate")
+    assert common.is_v1_bound_role(common.normalize_role("ammo:ammo-auditor"))
+    assert common.is_v1_bound_role("pave-init:adversarial-investigator")
+    assert common.is_v1_bound_role("adversarial-investigator")
+    for other in ("", "general-purpose", "pave-init:node-planner", "worker"):
+        assert not common.is_v1_bound_role(other)

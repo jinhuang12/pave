@@ -6,15 +6,15 @@ and recovery rules unchanged.
 
 ## Dispatch and identity
 
-Read `references/context-recovery.md` before dispatch. Choose a unique lowercase
-logical task name containing only `a-z`, `0-9`, and `_`. Names that recur include
-the round and attempt. A logical task path, such as `/root/implementer_r1_op_001`,
+Read `references/context-recovery.md` before dispatch. It owns task names. A
+logical task path, such as `/root/implementer_r1_op_001`,
 names AMMO records; the native runtime handle is the UUID returned by spawn.
 
 Call the native tool directly. Spawn each role at its plugin address,
 `ammo:<role>`. Each AMMO custom-role spawn uses a fresh context. Start its
 message with the `plugin_root:` line, then exactly one `AMMO_TASK=` JSON line.
-Use absolute artifact and recovery paths; keep the raw `op_id` in the
+The `pave-init:adversarial-investigator` spawn carries the same two lines, or
+the V1 hook refuses it. Use absolute artifact and recovery paths; keep the raw `op_id` in the
 assignment and state.
 
 ```text

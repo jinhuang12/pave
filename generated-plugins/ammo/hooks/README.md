@@ -34,7 +34,6 @@ The intent of each hook comes from the ammo-server intent map (`docs/ammo-intent
 
 | Hook | Event | Matcher | Intent |
 |---|---|---|---|
-| `ammo-msg-check.sh` | PreToolUse | Bash, Agent, Write, Edit, TaskCreate, TaskUpdate, TaskStop, SendMessage | Inject undelivered team messages before a tool call |
 | `ammo-team-spawn-guard.sh` | PreToolUse | Agent | Deny a team-member spawn without a name |
 | `ammo-pretool-guard.sh` | PreToolUse | Bash | Block commands that break measurement integrity |
 | `ammo-skill-files-guard.sh` | PreToolUse | Edit, Write, MultiEdit, NotebookEdit | Deny subagent edits under the plugin root |
@@ -61,7 +60,6 @@ These files have no registration of their own:
 |---|---|
 | `_find_campaign.sh` | Campaign discovery for every hook |
 | `_ammo_is_lead.sh` | One answer to "lead or subagent?" |
-| `_ammo_msg_identity.sh` | Agent name and channel namespace for msg-check |
 | `pumice_env_allowlist.txt` | Engine env names both env guards accept |
 
 `ammo-team-spawn-guard.sh` stays because it enforces the team-member vs subagent contract of `skills/ammo/SKILL.md`. Its header gives the reason.
@@ -76,6 +74,7 @@ The plugin agent names are `ammo:<role>`. Every hook strips an optional `ammo:` 
 | `ammo-pip-guard.sh` | The user builds and owns the engine venv; preflight checks it |
 | `ammo-agent-cwd-guard.sh` | Keyed on the server session root; the drift reminder stays |
 | `ammo-msg-mirror.sh` | Copied every SendMessage into a side channel; campaign hooks only |
+| `ammo-msg-check.sh` | Its channel has no writer; Claude Code delivers messages at turn boundaries |
 | `ammo-statusline.sh` | Status line display for the server terminal; enforces nothing |
 
 More detail on each reason:
@@ -85,14 +84,7 @@ More detail on each reason:
 - `ammo-agent-cwd-guard.sh` denied an Agent spawn when the lead's cwd was not `CLAUDE_PROJECT_DIR`, the server session root. On a host the project dir need not be the engine root. `ammo-next-step-reminder.sh` still warns the lead when its cwd is inside a track worktree.
 - `ammo-msg-mirror.sh` ran on every SendMessage, in a campaign or not. The plugin ships campaign hooks only.
 - `ammo-statusline.sh` is a status line command, not an event hook. It showed session facts in the server terminal.
-
-### What the msg-mirror drop changes
-
-On Claude Code 2.1.202 and later, an agent's team inbox is emptied within about one second of each send, also while the agent is inside a tool call. `ammo-msg-mirror.sh` copied each sent message into a side channel, and `ammo-msg-check.sh` injected the message from there before the next tool call.
-
-Without the mirror, nothing writes that channel. On those Claude Code versions msg-check then has no message to inject during a long tool call. A message arrives when Claude Code delivers it at the next turn boundary. For example, a champion inside a long benchmark call sees a monitor's message only after the call ends.
-
-msg-check stays registered. It still reads the team inbox on older Claude Code, and it reads any channel entry that another writer adds in the same format. Its harness writes channel entries directly.
+- `ammo-msg-check.sh` injected undelivered team messages before a tool call. It read the side channel that `ammo-msg-mirror.sh` wrote, and the team inbox. After msg-mirror went, nothing writes the channel. On Claude Code 2.1.202 and later the team inbox is emptied within about one second of each send, so the hook had nothing to read. Claude Code delivers each message at the next turn boundary. Its helper `_ammo_msg_identity.sh` and its harness went with it.
 
 ## How `hooks.json` is made
 

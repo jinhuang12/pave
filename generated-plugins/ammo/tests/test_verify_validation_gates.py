@@ -821,10 +821,16 @@ def test_failed_track_complete_fail_evidence_is_not_mislabeled_incomplete():
 def _valid_gating() -> dict:
     return {
         "mechanism": "env_guarded_dispatch",
-        "env_var": "VLLM_OP123",
+        "env_var": "PUMICE_MOE_TWO_STREAM",
         "dispatch_condition": "batch_size >= crossover_threshold_bs",
         "crossover_threshold_bs": 8,
-        "crossover_probing": {"status": "PASS", "batch_sizes": [1, 8, 32]},
+        "crossover_probing": {
+            "probed_points": [1, 8, 32],
+            "predicted_bs": 8,
+            "confirmed_bs": 8,
+            "converged": True,
+            "time_minutes": 8.5,
+        },
         "pre_gating_results": {"bs1": "baseline path"},
         "post_gating_results": {
             "bs32": {"status": "PASS", "improvement_pct": 1.25},
@@ -1502,8 +1508,8 @@ def test_current_evidence_requires_stage1_reuse_provenance(tmp_path):
 
 
 def test_current_evidence_rejects_worktree_paired_ab(tmp_path):
-    """Reverted contract: a worktree-run paired A/B is NOT accepted — the
-    baseline arm can execute the optimized code path (editable install)."""
+    """Reverted contract: a worktree-run paired A/B is not accepted, because
+    the baseline arm can execute the optimized code path (editable install)."""
     (tmp_path / "state.json").write_text(
         json.dumps({"campaign": {"current_round": 2, "rounds": [{}, {}]}}),
         encoding="utf-8",
@@ -1566,7 +1572,7 @@ def test_current_template_passes_structured_and_stage1_provenance_checks(tmp_pat
 
 
 def test_current_evidence_requires_bound_opt_sweep_result(tmp_path):
-    """Stage 1 reuse citation alone is not enough — the evidence must bind the
+    """Stage 1 reuse citation alone is not enough: the evidence must bind the
     actual opt sweep result file that was compared against the baseline."""
     (tmp_path / "state.json").write_text(
         json.dumps({"campaign": {"current_round": 1, "rounds": [{}]}}),

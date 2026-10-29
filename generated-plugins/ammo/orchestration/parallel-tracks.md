@@ -15,23 +15,20 @@ The rest lives elsewhere. Implementation behavior belongs to
 
 The lead must do all three steps below for every selected raw `op_id`.
 
-1. Spawn the track's `ammo-impl-champion` at its plugin address
-   `ammo:ammo-impl-champion`. On Claude Code, its `isolation: worktree`
-   frontmatter plus the `WorktreeCreate` hook (`worktree-create-with-build.sh`)
-   create the distinct branch and worktree under the engine root's
-   `.claude/worktrees/`, with Python isolation and a per-worktree `.venv`. On
-   Codex, create the worktree first with the worktree script that
-   `codex/RUNTIME.md` names, then spawn the champion with that path. Capture the
-   worktree's absolute path and branch, then persist that identity.
+1. Spawn exactly one `ammo-impl-champion` per track at its plugin address
+   `ammo:ammo-impl-champion`. `references/harness-binding.md` owns the track
+   worktree order: § Claude Code Notes on Claude Code, § Codex Notes on Codex.
+   Once the worktree exists, capture its absolute path and branch, then persist
+   that identity.
 2. Record the raw `op_id` to branch/worktree mapping, the planned agent names,
    and the round-scoped observation/offsets/terminal-summary paths before
    monitor dispatch and before Stage-4 entry. Record the champion's exact agent
    name (`implementer_agent`) and agent id (`implementer_rollout_id`, from its
    `agent-*.meta.json` sidecar) as soon as it is spawned.
-3. Spawn exactly one `ammo-impl-champion` and one continuously paired
-   `ammo-transcript-monitor` per track, each as a named team member. On Claude
-   Code both join the lead's single implicit team, so there is no TeamCreate
-   and you must not pass `team_name`. `references/harness-binding.md` gives the
+3. Spawn one continuously paired `ammo-transcript-monitor` per track. The
+   champion and the monitor are both named team members. On Claude Code both
+   join the lead's single implicit team, so there is no TeamCreate and you must
+   not pass `team_name`. `references/harness-binding.md` gives the
    Codex form.
 
 Raw `op_id` values stay the keys in `state.json` and in artifact paths. Use
@@ -43,8 +40,8 @@ harness team handle.
 
 Spawn from the engine root, the checkout that holds `.ammo/active`, so children
 inherit the correct cwd. If you inspected a track worktree, `cd` back to the
-engine root before the next spawn. Pass the captured absolute worktree path to the champion, which
-uses its worktree-local venv. GPU ownership and world size are governed by
+engine root before the next spawn. The champion works in its track worktree
+and uses its worktree-local venv. GPU ownership and world size are governed by
 `references/gpu-pool.md`. Worktree build and source-ownership rules are governed
 by `references/impl-track-rules.md`.
 
@@ -52,13 +49,13 @@ by `references/impl-track-rules.md`.
 
 Supply these fields. Do not copy the champion role into the prompt.
 
-- `op_id`, round number, artifact directory, absolute worktree path, and
-  `worktree_branch`;
+- `op_id`, round number, and artifact directory. On Codex, also the
+  absolute worktree path and `worktree_branch`. On Claude Code the champion
+  creates its own worktree (`references/harness-binding.md` § Claude Code Notes);
 - the typed selected-candidate entry and its `proposal_file`;
-- the round's mining artifact, constraints, frozen target, and baseline
-  artifact locations (Stage 1 baseline: per-BS JSONs under
-  `rounds/{N}/sweeps/baseline/`, summary in `rounds/{N}/constraints.md`; DO
-  NOT re-run);
+- the round's mining artifact, constraints, frozen target, and comparator
+  location (`references/validation-defaults.md` § E2E Baseline Reuse
+  Requirement; never re-run it);
 - precision classification and the campaign's configured thresholds;
 - TP/DP, GPU count, and the reservation `--session-id` to use (the campaign
   id);
@@ -90,12 +87,6 @@ Supply the monitor with:
 - output_dir: `{artifact_dir}/rounds/{N}/tracks/{op_id}/monitor_audits`
 - precision classification
 - pointers to its topical authorities
-
-The monitor is read-only with respect to track and campaign evidence. It covers
-the champion's full active lifetime without a break. It writes its own durable
-observation log and transcript offsets under `monitor_audits/`. It records each
-intervention durably first, then delivers it to the champion (and escalations to
-the lead) through the harness's agent messaging.
 
 ## Collisions and Monitor Handoff
 
@@ -157,8 +148,8 @@ independent audit.
 ## Reconciliation and Cohort Barrier
 
 The lead reconciles each raw `op_id` entry atomically as primary artifacts land,
-not only after the stage ends. Merge observed fields and invent no placeholders
-(atomic `.tmp` + `os.replace`; keys not yet observed stay absent or null).
+not only after the stage ends. Merge observed fields and invent no placeholders.
+Write through `scripts/reconcile_track_state.py --write`.
 Preserve evidence provenance. Repair any disagreement between state and the
 primary files before you use that track in a decision. State shape,
 status/verdict enums, and legal transitions are owned by

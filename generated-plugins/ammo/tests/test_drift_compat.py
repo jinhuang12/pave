@@ -4,8 +4,8 @@ Guidance compatibility is owned by ``test_guidance_semantic_contract.py``.
 Nothing else asserts that suite exists, so an agent who deletes or guts it
 still gets a green ``run_all.sh``. These tests are the tripwire.
 
-They anchor on the suite's BEHAVIOR-BEARING content — the stage slugs, role
-names, gate ids, artifact slots, and audit-phase order it binds — read from its
+They anchor on the suite's BEHAVIOR-BEARING content (the stage slugs, role
+names, gate ids, artifact slots, and audit-phase order it binds), read from its
 string literals via ``ast``. Renaming a test function is therefore free;
 removing a contract is not.
 """
@@ -94,7 +94,6 @@ def test_semantic_contract_suite_still_binds_stage_graph_and_roles() -> None:
             # The plugin ships the Claude twin of the contract suite, which
             # binds the Claude role name for the implementer seat.
             "ammo-impl-champion",
-            "ammo-investigator",
             "ammo-researcher",
             "ammo-resolver",
             "ammo-transcript-monitor",

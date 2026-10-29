@@ -29,6 +29,8 @@ A candidate is **lossy** when it introduces a precision reduction at any point i
 
 Each champion submits two or three candidates, ranked by expected E2E return with the evidence behind each, that differ by component, mechanism, or technology.
 
+Read `exhausted_technologies` from prior rounds before you propose. A recorded failure is evidence about a component, technology, and shape. It does not ban them: a candidate may retry the tuple when the mechanism, target, or invalidating evidence changed, and it says how.
+
 ### Declaration block
 
 Every candidate carries one block. The lead checks that each field is filled and that the evidence pointers resolve. The lead does not substitute a technology preference of its own for the champion's reasoning.
@@ -64,13 +66,13 @@ The tier is the champion's own verification ladder. Each rung asks a sharper que
 | `bound` | conservative zero-cost removal of measured device work from the baseline trace | yes |
 | `proxy` | standalone, reconstructed, synthetic, or identity-unverified harness | no |
 | `production_boundary` | A/B at a declared boundary in the actual production path | yes |
-| `clean_e2e` | clean production sweep | ship signal only |
+| `clean_e2e` | clean full-model sweep, which only Stage 4 runs | yes |
 
 A proxy can show that a kernel works and how fast it can run. It cannot say how much production E2E it saves, because production dispatch, shapes, cache pressure, and the compiled graph can all differ from the harness. This is the rule that catches the most expensive mistakes, so an open objection that the measurement does not cover the projected boundary sets the candidate's EV to zero until the boundary is measured.
 
-**Baseline provenance.** A production-boundary kernel claim calls the production entry point with the shapes, dtypes, strides, layouts, and compile or graph mode that decide dispatch, and it ties to Stage 2 with profiler evidence that fits the claim. Nsys establishes identity, ordering, and occurrence. Reach for NCU only when the claim depends on registers, occupancy, bandwidth, or cache behavior. Check the Stage 1 trace for the kernels you plan to replace: vLLM's Inductor passes may already fuse the chain, and a harness that measures the unfused chain measures code that does not run in production.
+**Baseline provenance.** A production-boundary kernel claim calls the production entry point with the shapes, dtypes, strides, layouts, and compile or graph mode that decide dispatch, and it ties to Stage 2 with profiler evidence that fits the claim. Nsys establishes identity, ordering, and occurrence. Reach for NCU only when the claim depends on registers, occupancy, bandwidth, or cache behavior. Check the Stage 1 trace for the kernels you plan to replace: the runner's compile passes (`references/e2e-delta-math.md` § Which Passes to Check) may already fuse the chain, and a harness that measures the unfused chain measures code that does not run in production.
 
-**Experiments.** Run the smallest bounded experiment that settles the load-bearing uncertainty. Arithmetic, source or ISA inspection, a small kernel prototype, a production-boundary benchmark, and a claim-appropriate profiler capture are all in scope. Hold the conditions the claim depends on: production API and dispatch, shapes and dtypes, compile and graph mode, working set. A cache or multi-layer test is needed exactly when cache residency is load-bearing. Report the buckets that argue against you. Stage 3 does not modify vLLM source, download model weights, or run a clean full-model sweep; those belong to Stage 4. When no experiment is affordable, declare the gap and its scope consequence instead of doing implementation-grade work to fill a template.
+**Experiments.** Run the smallest bounded experiment that settles the load-bearing uncertainty. Arithmetic, source or ISA inspection, a small kernel prototype, a production-boundary benchmark, and a claim-appropriate profiler capture are all in scope. Hold the conditions the claim depends on: production API and dispatch, shapes and dtypes, compile and graph mode, working set. A cache or multi-layer test is needed exactly when cache residency is load-bearing. Report the buckets that argue against you. Stage 3 does not modify engine source (Pumice or its embedded vLLM), download model weights, or run a clean full-model sweep; those belong to Stage 4. When no experiment is affordable, declare the gap and its scope consequence instead of doing implementation-grade work to fill a template.
 
 Every experiment leaves its script or command, a log with device identity, inputs, method, and result, and profiler output when the claim needs it, under `rounds/{CR}/debate/micro_experiments/`. The proposal cites those artifacts and says which values are measured, which are bounds, and which are assumptions.
 
@@ -78,15 +80,15 @@ Every experiment leaves its script or command, a log with device identity, input
 
 ## The debate
 
+Publish each artifact through a temporary sibling and an atomic rename, so appearance of the final path means the artifact is complete. If an artifact misses its phase, ping the owner once with the expected path; after a short grace period, drop the stalled candidate and repair the affected critique assignment so no survivor lacks a critique.
+
 ### Proposals
 
-Each champion publishes exactly one file, atomically, at `rounds/{CR}/debate/proposals/{champion_id}_proposal.md`, with frontmatter (`champion`, `stance: proposal`, `revision`, `summary`) and one section per candidate. Write for one busy engineer who reads it once to make one decision: verdict first, each number once with its source, evidence in tables.
+Each champion publishes exactly one file at `rounds/{CR}/debate/proposals/{champion_id}_proposal.md`, with frontmatter (`champion`, `stance: proposal`, `revision`, `summary`) and one section per candidate. Write for one busy engineer who reads it once to make one decision: verdict first, each number once with its source, evidence in tables.
 
 When every proposal is in, the lead checks each candidate against the sections above. A candidate that fails gets one explicit revise request naming what is missing; the champion republishes with `revision` incremented and sends `{type: "proposal_revised", champion_id, revision}`. A candidate that still fails is out. If a critique later shows that the mechanism is really a flag flip or that a declaration was false, the candidate is out then, whatever its projected gain.
 
 Survivors get a stable `OP-NNN` id and a two-to-four-word name for the mechanism. The lead records id, name, proposal path and section, accepted revision, and verdict in `rounds/{CR}/debate/eligibility_verdicts.md`. The id is the key in state, paths, and prompts from here on.
-
-Also read `exhausted_technologies` from prior rounds. A recorded failure is evidence about a component, technology, and shape. It does not ban them: a candidate may retry the tuple when the mechanism, target, or invalidating evidence changed, and it says how.
 
 ### Critique and rebuttal
 
@@ -101,8 +103,6 @@ A champion may rebut an objection that its measurement does not cover the declar
 ### A second round, when it earns its cost
 
 One round of critique and rebuttal is the default. Run a second round only when a live, material disagreement about a measurement remains that a bounded experiment can settle: the champions rerun with disclosed methods, production-parity methodology (CUDA graphs plus `torch.compile`) takes precedence, and the round writes `round_2/{op_id}_argument.md`, a critique, and a rebuttal on the same rules. Do not run a round because an open-items list is non-empty; carry unresolved items into scoring and weigh them there. Stopping does not record an item as closed.
-
-Publish each artifact through a temporary sibling and an atomic rename, so appearance of the final path means the artifact is complete. If an artifact misses its phase, ping the owner once with the expected path; after a short grace period, drop the stalled candidate and repair the affected critique assignment so no survivor lacks a critique.
 
 ## Winner selection
 
@@ -125,17 +125,3 @@ Then write `rounds/{CR}/debate/summary.md` from `state.json`: for each winner, n
 ## Handoff
 
 Confirm that each selected record resolves to its accepted proposal revision and that every live objection is either weighed in P or carried as a Stage 4 obligation. Retire the debate roster per `references/shutdown-protocol.md`. Then open one isolated implementation track per winner under `orchestration/parallel-tracks.md`.
-
-Before Stage 4, reconcile the selected proposals and outstanding validation obligations. Release the owned debate-round agents under `references/shutdown-protocol.md`, then create the selected implementation tracks.
-
-## Artifacts
-
-| Artifact | Path | Author |
-|---|---|---|
-| Proposal | `rounds/{CR}/debate/proposals/{champion_id}_proposal.md` | champion |
-| Eligibility record | `rounds/{CR}/debate/eligibility_verdicts.md` | lead |
-| Critique | `rounds/{CR}/debate/round_{N}/{critic_op_id}_critique_{target_op_id}.md` | champion |
-| Rebuttal | `rounds/{CR}/debate/round_{N}/{op_id}_rebuttal.md` | champion |
-| Second-round argument | `rounds/{CR}/debate/round_2/{op_id}_argument.md` | champion |
-| Experiments | `rounds/{CR}/debate/micro_experiments/` | champion |
-| Summary | `rounds/{CR}/debate/summary.md` | lead |

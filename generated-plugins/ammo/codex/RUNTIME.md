@@ -4,9 +4,11 @@ This file tells you how to install and configure AMMO for Codex. The root
 `README.md` gives the short install steps. This file gives the configuration,
 the parts that the plugin ships for Codex, and the dependencies.
 
-Codex needs two installs. `codex plugin add` installs the plugin with its
+Codex needs three installs. `codex plugin add` installs the plugin with its
 skills, `$ammo:ammo` and `$ammo:ammo-report`. `codex/install_agents.py` installs
-the eleven custom agents into the Pumice checkout. The campaign does not run
+the ten AMMO custom agents into the Pumice checkout. The investigator is
+`pave-init:adversarial-investigator`, so also install pave-init's Codex agents
+with pave-init's own `codex/install_agents.py`. The campaign does not run
 without the agents.
 
 ## Install
@@ -117,12 +119,12 @@ commands.
 
 ## What the Plugin Ships for Codex
 
-- Eleven custom-agent TOMLs in `codex/agents/`: `ammo-auditor`,
+- Ten custom-agent TOMLs in `codex/agents/`: `ammo-auditor`,
   `ammo-champion`, `ammo-delegate`, `ammo-impl-champion`, `ammo-implementer`,
-  `ammo-investigator`, `ammo-report-writer`, `ammo-report`, `ammo-researcher`,
-  `ammo-resolver`, and `ammo-transcript-monitor`. Each installs as
-  `ammo:<file name>`, for example `ammo:ammo-auditor`.
-- The nine role files in `agents/`. Each TOML is a bootstrap that reads one
+  `ammo-report-writer`, `ammo-report`, `ammo-researcher`, `ammo-resolver`, and
+  `ammo-transcript-monitor`. Each installs as `ammo:<file name>`, for example
+  `ammo:ammo-auditor`.
+- The eight role files in `agents/`. Each TOML is a bootstrap that reads one
   role file. `ammo-implementer` reads `agents/ammo-impl-champion.md`, and
   `ammo-report` reads `agents/ammo-report-writer.md`.
 - Six Python hook modules in `codex/hooks/`: `common.py`, `session_start.py`,

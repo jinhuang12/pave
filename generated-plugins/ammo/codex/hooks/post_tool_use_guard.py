@@ -44,6 +44,7 @@ from common import (
     task_names_equivalent,
     tool_name_from_payload,
     is_child_agent_payload,
+    is_v1_bound_role,
     is_v1_session,
     v1_agent_binding,
     v1_registry,
@@ -1306,7 +1307,7 @@ repo = find_repo_root(payload.get("cwd"))
 is_static_command = is_static_inspection_command(cmd)
 tool_name = tool_name_from_payload(payload)
 event_name = str(payload.get("hook_event_name") or payload.get("hookEventName") or "")
-if is_v1_session() and tool_name == "spawn_agent" and normalize_role(_tool_input().get("agent_type")).startswith("ammo-"):
+if is_v1_session() and tool_name == "spawn_agent" and is_v1_bound_role(normalize_role(_tool_input().get("agent_type"))):
     try:
         registry = v1_registry()
         registered = registry.register_spawn(registry.codex_home(), payload)
@@ -1329,7 +1330,6 @@ if event_name == "SubagentStop" and _is_auditor_payload():
             missing_phase2 = [
                 path for path in audit_dir.glob("stage_*.md")
                 if path.is_file()
-                and "_partial_" not in path.name
                 and not _has_phase2_section(path)
             ]
         except Exception:
@@ -1369,7 +1369,7 @@ if event_name == "SubagentStart":
             )
 if event_name == "SubagentStart" and is_v1_session():
     try:
-        if normalize_role(payload.get("agent_type")).startswith("ammo-") and v1_agent_binding(payload) is None:
+        if is_v1_bound_role(normalize_role(payload.get("agent_type"))) and v1_agent_binding(payload) is None:
             additional_context("SubagentStart", "\n\n".join(messages + [
                 "AMMO TASK REGISTRATION PENDING: Your parent is binding your native ID to the assigned task. "
                 "Read your role and " + str(plugin_path("references", "codex-runtime.md")) + ". "

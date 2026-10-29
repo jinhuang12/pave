@@ -28,11 +28,9 @@ Decline when work is outstanding. Name what remains and give an ETA in `reason`,
 
 | Role | Approve (`approve: true`) when | Decline (`approve: false`) when |
 |---|---|---|
-| **Debate champion** (`ammo-champion`) | Proposal written, debate rounds done, no open items you raised | Unwritten rebuttal, an open item you declared in Phase C, a mid-flight micro-experiment |
+| **Debate champion** (`ammo-champion`) | Proposal written, debate rounds done, no open items you raised | Unwritten rebuttal, an open item you declared in the rebuttal step, a mid-flight micro-experiment |
 | **Impl champion** (`ammo-impl-champion`) | Track terminal: you have sent `TRACK_COMPLETE` with a PASS / GATED_PASS / FAIL verdict and `validation_results.md` is written | Gates still running, a fix in progress, fix-attempt budget not yet exhausted, `validation_results.md` unwritten |
 | **Transcript monitor** (`ammo-transcript-monitor`) | Monitoring complete: your champion reached a completion signal and you have sent the DA-MONITOR SUMMARY | Champion still active: no completion signal yet, an interjection in flight |
-
-When you decline, finish the outstanding work to a terminal state (terminal verdict / DA-MONITOR SUMMARY / written proposal), then approve the next request.
 
 ## Orchestrator Rules
 

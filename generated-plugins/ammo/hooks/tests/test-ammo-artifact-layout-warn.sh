@@ -105,7 +105,6 @@ write_case "monitor audits under the track" silent "rounds/1/tracks/op-001/monit
 write_case "track scratch" silent "rounds/1/tracks/op-001/_scratch/draft.md"
 write_case "audit verdict" silent "rounds/1/audits/stage_45.md"
 write_case "audit re-audit cycle" silent "rounds/12/audits/stage_45_cycle_2.md"
-write_case "early per-track S45 evidence" silent "rounds/1/audits/stage_45_partial_op007.md"
 write_case "archive keeps its timestamp" silent "rounds/1/_archive/baseline_2026-05-05T181212Z/x.json"
 write_case "two-digit round number" silent "rounds/12/sweeps/baseline/e2e_latency_results.json"
 
@@ -120,11 +119,11 @@ write_case "timestamped ACTIVE slot" warn "rounds/1/sweeps/baseline_2026-05-05T1
 write_case "bottleneck_analysis at root" warn "bottleneck_analysis.md"
 write_case "timestamped profiling tool dir" warn "rounds/1/profiling/neuron_2026-09-24/x.json"
 # KNOWN GAP, pre-dates the manifest: a sweep slot is a directory PREFIX, so
-# anything under it conforms and prohibited pattern #9 (nsys traces inside a
-# sweep output dir) is not detected here. The hand-written allowlist had the
-# same prefix semantics. The sweep script is the real owner — it writes traces
-# to the profiling/ sibling itself (_v2_profiling_dir), so an agent cannot
-# reach this path through the sanctioned tool.
+# anything under it conforms. The hook does not flag a trace inside a sweep
+# dir. That is by design: scripts/run_pumice_grpc_bench.py writes its raw
+# --nsys-profile report to {sweep}/nsys/. Prohibited pattern #8 in
+# references/artifact-layout.md bans mining from that copy; the researcher
+# copies it to rounds/{N}/profiling/nsys/, the only trace dir Stage 2 reads.
 write_case "nsys inside a sweep dir is NOT detected (documented gap)" silent \
     "rounds/1/sweeps/baseline/nsys/t.nsys-rep"
 write_case "debate nesting by campaign round" warn "rounds/1/debate/campaign_round_2/x.md"

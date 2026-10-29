@@ -26,8 +26,6 @@ E2E_improvement_pct = 100 × E2E_improvement_fraction
 
 Using `f_decode` directly over-projects E2E gains by `1 / (decode_busy × decode_share_of_e2e)`. That is a **2.1×** over-projection in the worked example below, and it reaches **5–50×** on prefill-heavy or low-busy workloads.
 
-`f_decode` stays in the ranking table as a diagnostic column; `f_e2e` is the column champions plug into Amdahl.
-
 ## Conversion Formula
 
 ```
@@ -58,7 +56,7 @@ The researcher computes `decode_busy` and `decode_share_of_e2e` once per BS in S
 
 ## Worked Example: Qwen3.6-27B-FP8, H100, BS=8
 
-From the motivating campaign (see Appendix A of the design spec). This is a historical vLLM-era campaign. It stays here because the arithmetic does not depend on the engine. Qwen3.6 is NOT a Pumice-servable target; for the current support matrix see § Model and Hardware Support in `references/workload-invocation.md`.
+This is a historical vLLM-era campaign. It stays here because the arithmetic does not depend on the engine. Qwen3.6 is NOT a Pumice-servable target; for the current support matrix see § Model and Hardware Support in `references/workload-invocation.md`.
 
 | Quantity | Value | Source |
 |----------|-------|--------|
@@ -128,6 +126,8 @@ There is one projection equation. Project the delta at the declared production b
 E2E_improvement = (Δ_at_declared_boundary × occurrence_count) / baseline_E2E
 ```
 
+For a kernel slice, `Δ × occurrence_count` equals `T_component × (1 - 1/s)`, so this equation reduces to the Amdahl form `f_e2e × (1 - 1/s)` above.
+
 **Non-overlap rule.** Never sum separately-measured async intervals: CPU API duration, GPU gaps, memcpy, and kernel time do NOT add. If the work you are crediting overlaps, enlarge the boundary to enclose it and do ONE A/B across the enlarged boundary. Never add two independent measurements.
 
 **Evidence ladder.** Only `bound`/`production_boundary`/`clean_e2e`-scope magnitude enters a projection; `proxy` magnitude never does (authority: `orchestration/debate-protocol.md` § Evidence).
@@ -145,14 +145,9 @@ The micro-experiment must exercise the actual production code path; scheduler / 
 
 ## Inductor Baseline Parity (Gate 5.2 → E2E Translation)
 
-Gate 5.2 measures the declared production boundary, including the production
-compile/fusion behavior. An isolated CUDA-graph harness is binding only when
-trace and dispatch evidence prove that its baseline and optimized boundaries
-are identical to the compiled production boundary. Otherwise the isolated
-result is `proxy` evidence: measure the compiled fused chain or enlarge the
-boundary to an actual-runner interval before using its magnitude.
+The binding rule is `references/validation-defaults.md` § Inductor Baseline Parity.
 
-Reason: the Inductor pass pipeline of the runner (§ Which Passes to Check) can fuse the target chain into one op at compile time. Inductor also fuses pointwise chains into `triton_poi_fused_*` kernels without any named pass. So so an unfused Gate 5.2 baseline may measure against code that never runs in production.
+Reason: the Inductor pass pipeline of the runner (§ Which Passes to Check) can fuse the target chain into one op at compile time. Inductor also fuses pointwise chains into `triton_poi_fused_*` kernels without any named pass. So an unfused Gate 5.2 baseline may measure against code that never runs in production.
 
 ### How to Check for Inductor Fusion
 
@@ -196,10 +191,10 @@ activation+quant, rope+KV-cache write, and collective+norm. If your target
 chain matches a live pattern, your Gate 5.2 baseline is likely already fused in
 production.
 
-## Practical Usage in Phase 0 / Phase 4
+## Practical Usage in a Proposal
 
 1. Read `f_decode`, `decode_busy`, `decode_share_of_e2e`, `inter_kernel_share`, `prefill_share_of_e2e` from the `## Workload Dilution` table in `bottleneck_analysis.md`.
-2. If the researcher already published `f_e2e` for your component (which they do for decode-only candidates in the Top Components table), use it directly. No conversion is needed.
+2. If the researcher already published `f_e2e` for your component (which they do for decode-only candidates in the Top Components table), use it directly. That value is already converted.
 3. Otherwise compute `f_e2e` per the formula above.
 4. Project with the one boundary equation (§ Projection Authority).
 5. Solve for the kernel speedup `s` (or analogous variable) needed to clear the `min_e2e_improvement_pct` threshold.
@@ -207,38 +202,6 @@ production.
    - a different target where `f_e2e` is larger, OR
    - document the limitation and stop the proposal.
 
-## Crossover Prediction from Kernel Data
+## Crossover Prediction
 
-When an optimization improves some batch sizes but regresses others, predict the crossover batch size from kernel-level measurements. That way you do not run expensive E2E benchmarks at every intermediate BS.
-
-### Per-BS Delta Math
-
-The standard formula generalizes to per-BS:
-
-```
-predicted_e2e_improvement(BS) = f_e2e(BS) × (1 - T_kernel_opt(BS) / T_kernel_base(BS))
-```
-
-Where `f_e2e(BS)` is the per-BS row in the `## Workload Dilution` table. **Use `f_e2e(BS)`, not `f_decode(BS)`**. See Conversion Is Always Required above.
-
-### Why f Varies with Batch Size
-
-The component share is NOT constant across batch sizes:
-- At BS=1, `decode_busy` is often higher (smaller launch gaps relative to kernel work) and a kernel may be 8% of E2E (`f_e2e = 0.08`).
-- At BS=32, the same kernel may be 3% (`f_e2e = 0.03`) because (a) the kernel scales superlinearly, (b) `decode_busy` may drop as more launches fit into a step, (c) decode_share may shift if prefill scales differently.
-
-Extract per-BS `f_e2e` from the per-bucket `## Workload Dilution` rows. For an intermediate BS that was not profiled, interpolate linearly between the two rows that BRACKET it: the nearest profiled BS below and the nearest profiled BS above. This is approximate but sufficient for crossover prediction.
-
-### Finding the Crossover
-
-```
-crossover_bs = max(BS) where predicted_e2e_improvement(BS) >= noise_tolerance_pct / 100
-```
-
-### When Kernel Prediction Is Unreliable
-
-If the warm-cache vs cold-cache kernel speedup ratio exceeds 1.5× at any probed BS, the kernel prediction may not reflect production behavior (where L2 cache pressure from the full model pipeline dominates). In this case:
-- For narrow BS ranges (< 15 values): fall back to E2E binary search.
-- For wide BS ranges (>= 15 values): gate to exact PASS batch sizes only (skip probing).
-
-See `references/crossover-probing.md` for the full probing protocol.
+The per-BS form of this math, which predicts where a mixed-verdict track should gate, is in `references/crossover-probing.md` § Phase 2: Delta Math Prediction.

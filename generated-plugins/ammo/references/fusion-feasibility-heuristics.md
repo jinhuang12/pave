@@ -1,6 +1,6 @@
 # Fusion Feasibility Heuristics
 
-These five heuristics (H1-H5) are **filters**, not proofs. Read them before you propose a kernel fusion. They reject fusion ideas that cannot plausibly beat baseline under **production parity** (CUDA graphs / torch.compile), either because the *maximum* memory-hop savings are too small, or because the design is likely to underfill SMs / reduce occupancy. These filters guide what to propose; they are not proofs, and passing one is never evidence that a fusion will win.
+These five heuristics (H1-H5) are advisory filters, never a ship or retract gate. Read them before you propose a kernel fusion. They reject fusion ideas that cannot plausibly beat baseline under **production parity** (CUDA graphs / torch.compile), either because the *maximum* memory-hop savings are too small, or because the design is likely to underfill SMs / reduce occupancy. Passing one is never evidence that a fusion will win.
 
 ## Contents
 - Inputs (per bucket, per rank)
@@ -9,9 +9,6 @@ These five heuristics (H1-H5) are **filters**, not proofs. Read them before you 
 - H3: W2-fusion ROI (when K is large)
 - H4: Occupancy + underfill stop-ship signals
 - H5: Kernel-count wins require API time to be material
-
-## Search anchors
-bytes_saved, time_saved_max_us, BW_eff, DRAM vs L2, occupancy, spills, grid.sync, CUDA graphs, required_savings_us.
 
 ## Inputs (per bucket, per rank)
 
@@ -24,8 +21,9 @@ Collect these numbers for one bucket on one rank:
 - `b_act`: bytes/elt of activation output (often BF16/FP16 = 2)
 - `b_w2in`: bytes/elt of quantized W2 input (often FP8 = 1)
 - `b_scale`: bytes/elt of per-token scale (often FP32 = 4; sometimes FP16/BF16)
+- `required_savings_us`: the saving per occurrence that clears the floor, `min_e2e_improvement_pct / 100 × baseline E2E time / occurrence count`
 
-Fill in the baseline “already fused?” checklist first. If the baseline already fuses a hop, you do **not** count it as savings, so leave it out of the formulas below.
+First check which hops the baseline already fuses (`e2e-delta-math.md` § How to Check for Inductor Fusion). If the baseline already fuses a hop, you do **not** count it as savings, so leave it out of the formulas below.
 
 ---
 
@@ -62,12 +60,12 @@ Count each removed hop twice: once for the store, once for the load.
 Divide the bytes by a conservative effective bandwidth:
 - `time_saved_max_us ≈ (bytes_saved / BW_eff) * 1e6`
 
-Compute `BW_eff` from NCU for the relevant baseline kernels. If you don’t have NCU yet, use `BW_eff = 1 TB/s` *(advisory BW fallback: hardware-class hint, NOT a gate)* as a conservative Hopper-class back-of-envelope.
+Compute `BW_eff` from NCU for the relevant baseline kernels. If you don’t have NCU yet, use half the target GPU's peak DRAM bandwidth as `BW_eff`, so the time bound stays an upper bound on any GPU.
 
-### H1 filter (advisory, not a gate)
+### H1 filter
 Apply the filter to the bucket(s) you’re optimizing:
-- If `time_saved_max_us < 0.5 * required_savings_us` → fusion is **low probability** *(advisory heuristic, NOT a ship/retract gate)* unless it is a "true epilogue" with no occupancy/grid regression.
-- If `time_saved_max_us < 1–2 us` → treat as **not worth attempting** for decode *(advisory heuristic, NOT a ship/retract gate)* unless you already have evidence the fused kernel matches baseline GEMM throughput.
+- If `time_saved_max_us < 0.5 * required_savings_us` → fusion is **low probability** unless it is a "true epilogue" with no occupancy/grid regression.
+- If `time_saved_max_us < 1–2 us` → treat as **not worth attempting** for decode unless you already have evidence the fused kernel matches baseline GEMM throughput.
 
 ---
 

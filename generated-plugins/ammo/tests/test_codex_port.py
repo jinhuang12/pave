@@ -1,6 +1,6 @@
 """Package and Codex port checks for the ammo plugin.
 
-Covers the two manifests and the marketplace entry, the eleven Codex custom
+Covers the two manifests and the marketplace entry, the ten Codex custom
 agents and their installer, the harness-neutral lead skill, the harness
 binding table, and the revision folder that README step 7 seeds.
 """
@@ -31,6 +31,8 @@ CODEX_ALIASES = {
     "ammo-implementer": "ammo-impl-champion",
     "ammo-report": "ammo-report-writer",
 }
+# Roles whose Claude role file has no lead-skill read step.
+SKILL_EXEMPT_ROLES = {"ammo-delegate", "ammo-report-writer"}
 # Tool names of either harness. The lead skill names none of them;
 # references/harness-binding.md owns the mapping.
 HARNESS_TOOL_NAMES = (
@@ -106,6 +108,9 @@ class PackageStructureTests(unittest.TestCase):
             self.assertIn(event, compatibility)
         for stem in _role_stems():
             self.assertIn(f"ammo:{stem}", compatibility)
+        # The investigator role comes from the pave-init plugin.
+        self.assertIn("pave-init:adversarial-investigator", compatibility)
+        self.assertNotIn("ammo:ammo-investigator", compatibility)
         self.assertIn("Python 3.11", compatibility)
 
     def test_marketplace_lists_the_plugin(self) -> None:
@@ -136,7 +141,7 @@ class PackageStructureTests(unittest.TestCase):
 class CustomAgentTests(unittest.TestCase):
     def test_custom_agents_parse_and_bootstrap_from_the_plugin_root(self) -> None:
         paths = sorted(CODEX_AGENTS_DIR.glob("ammo-*.toml"))
-        self.assertEqual(len(paths), 11)
+        self.assertEqual(len(paths), 10)
         for path in paths:
             data = _load_toml(path)
             for field in ("name", "description", "developer_instructions"):
@@ -147,22 +152,30 @@ class CustomAgentTests(unittest.TestCase):
             self.assertNotIn("model_provider", data)
             self.assertIn(data["model_reasoning_effort"], {"medium", "high", "xhigh"})
             contract = data["developer_instructions"]
+            role = CODEX_ALIASES.get(path.stem, path.stem)
             for phrase in (
                 "runtime bootstrap only",
                 "Do not add requirements from this TOML",
                 "`plugin_root:`",
-                "skills/ammo/SKILL.md",
-                f"agents/{CODEX_ALIASES.get(path.stem, path.stem)}.md",
+                f"agents/{role}.md",
                 "references/harness-binding.md",
                 "references/context-recovery.md under the plugin root",
             ):
                 self.assertIn(phrase, contract, (path.name, phrase))
+            # A TOML sends its role to the lead skill only when the Claude
+            # role file does. The delegate and the report writer do not.
+            if role in SKILL_EXEMPT_ROLES:
+                self.assertNotIn("skills/ammo/SKILL.md", contract, path.name)
+            else:
+                self.assertIn("skills/ammo/SKILL.md", contract, path.name)
+            if role == "ammo-report-writer":
+                self.assertIn("skills/ammo-report/SKILL.md", contract, path.name)
             for legacy in ("skill root", ".codex/skills", "server", "session"):
                 self.assertNotIn(legacy, contract, (path.name, legacy))
 
     def test_every_role_file_has_a_toml_twin(self) -> None:
         stems = _role_stems()
-        self.assertEqual(len(stems), 9)
+        self.assertEqual(len(stems), 8)
         for stem in stems:
             twin = CODEX_AGENTS_DIR / f"{stem}.toml"
             self.assertTrue(twin.is_file(), f"agents/{stem}.md has no codex/agents/{stem}.toml")
@@ -218,11 +231,11 @@ class InstallerTests(unittest.TestCase):
             installed = self._run("--project", str(project))
             self.assertEqual(installed.returncode, 0, installed.stderr)
             target = project / ".codex" / "agents"
-            self.assertEqual(len(list(target.glob("ammo-*.toml"))), 11)
+            self.assertEqual(len(list(target.glob("ammo-*.toml"))), 10)
             self.assertTrue((target / ".ammo-codex-agents.json").is_file())
             checked = self._run("--project", str(project), "--check")
             self.assertEqual(checked.returncode, 0, checked.stderr)
-            self.assertIn("11 AMMO custom agents are current", checked.stdout)
+            self.assertIn("10 AMMO custom agents are current", checked.stdout)
             removed = self._run("--project", str(project), "--uninstall")
             self.assertEqual(removed.returncode, 0, removed.stderr)
             self.assertFalse(target.exists())
@@ -243,7 +256,7 @@ class InstallerTests(unittest.TestCase):
             project = Path(temp) / "project"
             target = project / ".codex" / "agents"
             target.mkdir(parents=True)
-            conflict = target / "ammo-investigator.toml"
+            conflict = target / "ammo-resolver.toml"
             conflict.write_text("user-owned\n", encoding="utf-8")
             result = self._run("--project", str(project))
             self.assertEqual(result.returncode, 2)
@@ -257,7 +270,7 @@ class InstallerTests(unittest.TestCase):
             env["CODEX_HOME"] = str(codex_home)
             result = self._run("--user", env=env)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(len(list((codex_home / "agents").glob("ammo-*.toml"))), 11)
+            self.assertEqual(len(list((codex_home / "agents").glob("ammo-*.toml"))), 10)
 
 
 class RevisionFolderTests(unittest.TestCase):

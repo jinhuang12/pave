@@ -9,9 +9,9 @@ reader consults. Two copies of the same facts is the drift condition that put
 `post_ship_profiling/` in three mutually contradicting states, so this module
 closes both directions:
 
-  forward  — every `slots[].path_template` appears verbatim in the doc.
-  reverse  — every `--slot` value in the doc's sweep-slot table has a manifest
-             slot, and the same slot list drives the hooks.
+  forward: every `slots[].path_template` appears verbatim in the doc.
+  reverse: every `--slot` value in the doc's sweep-slot table has a manifest
+           slot, and the same slot list drives the hooks.
 
 Content-keyed, not line-keyed: it matches on the template and slot strings, so
 reordering or rewording the doc cannot make it red.

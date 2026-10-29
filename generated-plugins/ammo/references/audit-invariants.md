@@ -9,16 +9,9 @@ provenance, and unexplained discrepancies.
 Apply **Pre-Check**, the assigned stage section, and **Cross-Artifact Checks**.
 Record a non-applicable property with its reason. `BLOCKING` means the
 stage claim is unsafe; `HIGH` means investigate and explain before acceptance.
-Severity must scale with campaign impact: a finding that cannot change the
-stage verdict or a shipped number is not `BLOCKING`, and a finding with no
-material impact is reported as a note, not a repair-cycle trigger. The lead
-rejects a `BLOCKING` rating that names no campaign-impact mechanism.
 Phase 2 cannot erase a Phase 1 blocker.
 
-Runtime binding is conditional. On `vllm-cuda`, the CUDA-graph, Nsys, and NCU
-evidence rules apply. On `vllm-neuron`, use raw Neuron
-Profile and neuron-explorer artifacts normalized by `scripts/runtime_ops.py`.
-The audit questions and profiler-free timing authority are identical.
+On Neuron, which v1 does not run, follow `references/accelerator-binding.md` § Auditor.
 
 ## Pre-Check
 
@@ -42,11 +35,13 @@ The audit questions and profiler-free timing authority are identical.
 
 - **Clean timing is authoritative (BLOCKING).** Baseline timing comes from the
   profiler-free `baseline` slot with successful legs and the frozen workload.
-  Profiling or golden-capture latency is never substituted.
+  Profiling or golden-capture latency is never substituted. The baseline launch
+  runs the golden phase before its timing waves by design
+  (`scripts/run_pumice_grpc_bench.py`), so rate that order only with a measured
+  shift beyond launch-to-launch noise.
 - **Profiling is separate and representative (BLOCKING).** The runtime profiler
   uses the same production path and topology, covers the claimed phases/steps,
-  and is clearly marked non-timing evidence. CUDA uses Nsys; Neuron uses raw
-  Neuron Profile/neuron-explorer artifacts and normalized intervals. Rank/device
+  and is clearly marked non-timing evidence. CUDA uses Nsys. Rank/device
   coverage is sufficient for the topology.
 - **Baseline values are physically and statistically plausible (HIGH).** Check
   units, iteration aggregation, variance/outliers, and scaling across workload
@@ -102,9 +97,7 @@ The audit questions and profiler-free timing authority are identical.
   may never be skipped.
 - **The optimized mechanism actually runs (BLOCKING).** Claim-appropriate
   profiler artifacts prove the expected production path, buckets, and fallback.
-  CUDA uses Nsys and counters only for counter-dependent claims. Neuron uses
-  `scripts/runtime_ops.py` to prove expected NEFF/bucket compilation, plugin and
-  compile-cache use, and absence of fallback.
+  CUDA uses Nsys and counters only for counter-dependent claims.
 - **Clean E2E is paired and complete (BLOCKING).** Baseline and optimized arms
   use the same source identity where required, environment, venv, launch,
   topology, workload, cache policy, and profiler-free timing method. Apply the
@@ -122,21 +115,28 @@ The audit questions and profiler-free timing authority are identical.
   JSON. The generated `diluted_pass` block, `diluted:true`, PASS status, phase
   significance, and campaign accounting must agree. Do not double-count its
   phase win as another E2E contribution.
+- **Flag names and phase regressions are settled (BLOCKING).** Every campaign
+  flag name describes its mechanism (`impl-track-rules.md` § Env Flag Naming
+  (PR-Ready)); a name that is only the `op_id` with a prefix fails. Every track
+  flagged `PHASE-REGRESSION` (`validation-defaults.md` § Phase Decomposition)
+  has a written Decision entry that accepts the regression for the target
+  workload or gates it.
 - **Monitor findings are resolved (HIGH/BLOCKING by consequence).** Continuous
   coverage spans the implementer's lifetime, and unresolved accuracy, scope,
   provenance, or activation findings remain visible to the final audit.
 
-## After Stage 6-7 (`T_AUDIT_S67`)
+## After Stage 6, before Stage 7 (`T_AUDIT_S67`)
 
 For EXHAUSTED, skip SHIP-only properties but verify the terminal integration
-record and structured exhaustion memory.
+record.
 
 - **The measured composition is the shipped composition (BLOCKING).** Selected
   commits/patches, any independently reviewed conflict resolution, final source
   tree, accepted environment, and integration evidence describe one exact set.
   Failed, exploratory, or unselected flags are not promoted.
 - **Combined validation is production-valid (BLOCKING).** Full-model
-  correctness, clean paired E2E, all required buckets, and separate activation
+  correctness, clean E2E against the current production baseline, all required
+  buckets, and separate activation
   profiling pass for the exact composition. A single-track short-circuit is
   valid only when its accepted patch and environment are unchanged.
 - **No interaction is hidden (BLOCKING).** Merge residue, dispatch ordering,
@@ -150,12 +150,6 @@ record and structured exhaustion memory.
 - **Baseline continuity is sound (BLOCKING).** Round 1 remains immutable. After
   SHIP, fresh golden references are captured from the promoted mainline and
   accepted environment for the next round.
-- **Continuation belongs to Stage 7 (BLOCKING).** Stage 6 finalized the current
-  round only. Threshold comparison, terminal token, mining invalidation, and any
-  next-round creation follow the Stage 7 state/transition authorities.
-- **Exhaustion is specific (HIGH).** Failed component/technology/shape/failure
-  tuples retain evidence and expiry. They inform the next debate without acting
-  as a blanket technology ban.
 
 ## Cross-Artifact Checks
 

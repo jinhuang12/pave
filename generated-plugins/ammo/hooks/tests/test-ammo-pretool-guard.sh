@@ -291,6 +291,36 @@ check "worktree venv: bare import pumice check is exempt from the venv guard" \
 
 # ══════════════════════════════════════════════════
 echo ""
+echo "== N1: Pumice compile knobs warn on CUDA =="
+# ══════════════════════════════════════════════════
+
+# --no-compile and PUMICE_COMPILE_TARGET=0 turn off torch.compile on the
+# Pumice runner (references/torch-compile-contract.md). The reservation
+# pattern keeps the pool guard quiet, so only the N1 reminder is checked.
+_RES='CVD=$(python scripts/gpu_reservation.py reserve --num-gpus 1) && CUDA_VISIBLE_DEVICES=$CVD '
+run_raw "$TMPDIR" "$(jq -n --arg c "${_RES}python -m pumice.serve --model /m --no-compile" '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$c}}')" \
+    CLAUDE_SESSION_ID=test-session
+check "N1: --no-compile → reminder, exit 0" \
+    "$([ "$actual_exit" -eq 0 ] && grep -qF 'AMMO REMINDER: --no-compile detected' "$TMPDIR/hook-stderr" && echo yes || echo no)"
+run_raw "$TMPDIR" "$(jq -n --arg c "PUMICE_COMPILE_TARGET=0 ${_RES}python -m pumice.serve --model /m" '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$c}}')" \
+    CLAUDE_SESSION_ID=test-session
+check "N1: PUMICE_COMPILE_TARGET=0 → reminder, exit 0" \
+    "$([ "$actual_exit" -eq 0 ] && grep -qF 'AMMO REMINDER: PUMICE_COMPILE_TARGET=0 detected' "$TMPDIR/hook-stderr" && echo yes || echo no)"
+run_raw "$TMPDIR" "$(jq -n --arg c "export PUMICE_COMPILE_TARGET=\"0\"; ${_RES}python -m pumice.serve --model /m" '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$c}}')" \
+    CLAUDE_SESSION_ID=test-session
+check "N1: export PUMICE_COMPILE_TARGET=\"0\" → reminder" \
+    "$(grep -qF 'AMMO REMINDER: PUMICE_COMPILE_TARGET=0 detected' "$TMPDIR/hook-stderr" && echo yes || echo no)"
+run_raw "$TMPDIR" "$(jq -n --arg c "PUMICE_COMPILE_TARGET=2 ${_RES}python -m pumice.serve --model /m --no-compile-cache" '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$c}}')" \
+    CLAUDE_SESSION_ID=test-session
+check "N1: PUMICE_COMPILE_TARGET=2 and --no-compile-cache → no compile reminder" \
+    "$(grep -qE 'AMMO REMINDER: (--no-compile|PUMICE_COMPILE_TARGET=0) detected' "$TMPDIR/hook-stderr" && echo no || echo yes)"
+run_raw "$TMPDIR" "$(jq -n --arg c "${_RES}python -m pumice.serve --model /m --no-compile" '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$c}}')" \
+    CLAUDE_SESSION_ID=test-session AMMO_ACCELERATOR_KIND=neuron
+check "N1: Neuron runtime → no CUDA compile reminder" \
+    "$(grep -qF 'AMMO REMINDER: --no-compile detected' "$TMPDIR/hook-stderr" && echo no || echo yes)"
+
+# ══════════════════════════════════════════════════
+echo ""
 echo "================================"
 echo "Results: $PASS passed, $FAIL failed out of $TOTAL tests"
 echo "================================"

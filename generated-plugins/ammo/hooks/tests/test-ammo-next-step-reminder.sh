@@ -264,12 +264,22 @@ run_test_env "[12] 7_campaign_eval → mechanical check" 0 "$P" \
     "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\"}" \
     "Mechanical check"
 
-# 13) status=campaign_complete, REPORT.md present → session may stop
+# 13) status=campaign_complete, REPORT.md + accepted fact-check → session may stop
 SID=$(next_sid); P=$(make_proj "$(make_state_round1 7_campaign_eval campaign_complete true true round1-team 2 true true 1 2 true true)")
-touch "$P/.ammo/run1/REPORT.md"
-run_test_env "[13] campaign_complete + REPORT.md → session may stop" 0 "$P" \
+echo "# Report" > "$P/.ammo/run1/REPORT.md"
+mkdir -p "$P/.ammo/run1/report_assets"
+REPORT_SHA=$(python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$P/.ammo/run1/REPORT.md")
+printf '{"ok": true, "findings": [], "report_sha256": "%s"}\n' "$REPORT_SHA" > "$P/.ammo/run1/report_assets/report_fact_check.json"
+run_test_env "[13] campaign_complete + REPORT.md + accepted fact-check → session may stop" 0 "$P" \
     "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\"}" \
     "Session may stop"
+
+# 13b) status=campaign_complete, REPORT.md without a fact-check → run the gate
+SID=$(next_sid); P=$(make_proj "$(make_state_round1 7_campaign_eval campaign_complete true true round1-team 2 true true 1 2 true true)")
+echo "# Report" > "$P/.ammo/run1/REPORT.md"
+run_test_env "[13b] campaign_complete + unchecked REPORT.md → fact-check gate" 0 "$P" \
+    "{\"session_id\":\"$SID\",\"transcript_path\":\"$ORCH_T\"}" \
+    "report_fact_check.json"
 
 # 14) status=campaign_exhausted, no REPORT.md → spawn ammo-report-writer
 SID=$(next_sid); P=$(make_proj "$(make_state_round1 7_campaign_eval campaign_exhausted true true round1-team 2 true true 1 2 true true)")

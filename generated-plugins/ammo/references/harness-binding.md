@@ -10,8 +10,9 @@ read each Claude Code tool name in them through the table below.
 
 ## Role Addresses
 
-Every role spawns at its plugin address `ammo:<role>`, for example
-`ammo:ammo-auditor`. The address is `subagent_type` on Claude Code and
+Every AMMO role spawns at its plugin address `ammo:<role>`, for example
+`ammo:ammo-auditor`. The investigator comes from the pave-init plugin and keeps
+its own address. The address is `subagent_type` on Claude Code and
 `agent_type` on Codex.
 
 | Role file | Claude Code address | Codex addresses |
@@ -22,12 +23,13 @@ Every role spawns at its plugin address `ammo:<role>`, for example
 | `agents/ammo-transcript-monitor.md` | `ammo:ammo-transcript-monitor` | `ammo:ammo-transcript-monitor` |
 | `agents/ammo-auditor.md` | `ammo:ammo-auditor` | `ammo:ammo-auditor` |
 | `agents/ammo-delegate.md` | `ammo:ammo-delegate` | `ammo:ammo-delegate` |
-| `agents/ammo-investigator.md` | `ammo:ammo-investigator` | `ammo:ammo-investigator` |
+| pave-init plugin | `pave-init:adversarial-investigator` | `pave-init:adversarial-investigator` |
 | `agents/ammo-resolver.md` | `ammo:ammo-resolver` | `ammo:ammo-resolver` |
 | `agents/ammo-report-writer.md` | `ammo:ammo-report-writer` | `ammo:ammo-report-writer`, `ammo:ammo-report` |
 
-Codex installs eleven agents. The two aliases read the same role file as the
-name beside them. Use either name. Do not create a second agent for one task.
+This plugin installs ten Codex agents, and pave-init's installer adds the
+investigator. The two aliases read the same role file as the name beside them.
+Use either name. Do not create a second agent for one task.
 
 ## Operations
 
@@ -41,7 +43,7 @@ selects V1. Do not change the mode in an active campaign.
 | Spawn a one-shot role | `Agent(subagent_type=..., prompt=...)`, no `name` | `agents.spawn_agent(task_name=..., agent_type=..., fork_turns="none", message=...)` | `multi_agent_v1.spawn_agent(agent_type=..., fork_context=false, message=...)` |
 | Spawn a named team member | `Agent` with `name` and `run_in_background=True` | spawn with a reusable `task_name` | spawn, then keep the returned UUID |
 | Team | lead's implicit team, no TeamCreate | none | none |
-| Track worktree | `isolation: worktree` frontmatter | lead creates it first | lead creates it first |
+| Track worktree | champion calls `EnterWorktree` (Claude Code Notes) | lead creates it first | lead creates it first |
 | Start work on a reused agent | `SendMessage` | `agents.followup_task` | `multi_agent_v1.send_input(target=UUID, message=..., interrupt=false)` |
 | Send information only | `SendMessage` | `agents.send_message` | intervention queue |
 | Wait for an agent | completion notice | bounded `agents.wait_agent` | `multi_agent_v1.wait_agent(targets=[UUID], timeout_ms=10000)` |
@@ -70,9 +72,19 @@ selects V1. Do not change the mode in an active campaign.
   (`references/champion-common-patterns.md`). A one-shot role never passes
   that flag. It issues all its delegate spawns in one message and waits for
   their reports.
-- The impl-champion's `isolation: worktree` frontmatter plus the
-  `WorktreeCreate` hook (`worktree-create-with-build.sh`) create the track
-  branch and worktree under the engine root's `.claude/worktrees/`.
+- Track worktree order. The lead spawns the impl-champion as a named team
+  member and does not pass `isolation` on the spawn call, because a call-level
+  `isolation` makes the agent a plain subagent instead of a teammate. A named
+  teammate ignores the `isolation: worktree` frontmatter and starts in the
+  lead's working directory (code.claude.com/docs/en/sub-agents, § Subagent
+  names). So the champion's first action is
+  `EnterWorktree({"name": "{op_id}-<short-desc>"})`. That call fires
+  `WorktreeCreate`, and `worktree-create-with-build.sh` creates the track
+  branch and the built worktree under the engine root's `.claude/worktrees/`.
+  When the champion already starts under `.claude/worktrees/` (a run where the
+  frontmatter applied), it skips `EnterWorktree`: inside an isolated subagent
+  only the `path` form of that tool exists (code.claude.com/docs/en/tools-reference,
+  EnterWorktree).
 - A member stops only when it returns a structured `shutdown_response`.
   `references/shutdown-protocol.md` owns that exchange.
 - The champion's transcript is under
@@ -84,9 +96,10 @@ selects V1. Do not change the mode in an active campaign.
 
 - `references/codex-runtime.md` selects the guide for the agent mode:
   `references/codex-runtime-v2.md` or `references/codex-runtime-v1.md`. The
-  guide owns task names, the V1 `AMMO_TASK` line and binding wait, the V1
-  registry, release, audit dispatch, transcript lookup, and capacity.
-  `references/context-recovery.md` owns recovery notes and tracked commands.
+  guide owns the V1 `AMMO_TASK` line and binding wait, the V1 registry,
+  release, audit dispatch, transcript lookup, and capacity.
+  `references/context-recovery.md` owns task names, recovery notes, and
+  tracked commands.
 - Every spawn message starts with the `plugin_root:` line. A V1 message puts
   its `AMMO_TASK=` line next.
 - The lead creates each track worktree before it spawns the impl-champion, with

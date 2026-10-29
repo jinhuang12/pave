@@ -177,11 +177,102 @@ class TestEnvDefaultGuardHook:
         assert result.stdout == "" and result.stderr == ""
 
 
+# R4 (prompt-audit adoption): a campaign flag on the Pumice runner is
+# PUMICE_<SCOPE>_<MECHANISM>[_<ARCH>], read with os.environ.get (or env::var),
+# default off. A new PUMICE_* name passes when its read defaults off and is
+# blocked otherwise. A default change to an allowlisted name stays blocked.
+# Rows: (id, path under the engine, new content, blocked, stderr needle).
+R4_CASES = [
+    ("py-default-0", "src/pumice/config.py",
+     'x = os.environ.get("PUMICE_MOE_TWO_STREAM_SM90", "0") == "1"', False, ""),
+    ("py-no-default", "src/pumice/config.py",
+     'x = os.getenv("PUMICE_MOE_TWO_STREAM_SM90") == "1"', False, ""),
+    ("py-default-false-kw", "src/pumice/config.py",
+     'x = bool(int(os.getenv("PUMICE_MOE_TWO_STREAM_SM90", default="0")))', False, ""),
+    ("py-presence", "src/pumice/config.py",
+     'x = "PUMICE_MOE_TWO_STREAM_SM90" in os.environ', False, ""),
+    ("rs-unwrap-or-false", "pumice-rust/src/moe.rs",
+     'let on = std::env::var("PUMICE_MOE_TWO_STREAM_SM90").map(|v| v == "1").unwrap_or(false);', False, ""),
+    ("rs-chain-unwrap-or-false", "pumice-rust/src/moe.rs",
+     'let on = std::env::var("PUMICE_MOE_TWO_STREAM_SM90")\n    .map(|v| v == "1")\n    .unwrap_or(false);', False, ""),
+    ("rs-plain-read", "pumice-rust/src/moe.rs",
+     'let v = std::env::var("PUMICE_MOE_TWO_STREAM_SM90");', False, ""),
+    ("rs-is-ok", "pumice-rust/src/moe.rs",
+     'let on = std::env::var("PUMICE_MOE_TWO_STREAM_SM90").is_ok();', False, ""),
+    ("py-default-1", "src/pumice/config.py",
+     'x = os.getenv("PUMICE_MOE_TWO_STREAM_SM90", "1") == "1"', True, "PUMICE_MOE_TWO_STREAM_SM90"),
+    ("py-default-true", "src/pumice/config.py",
+     'x = os.environ.get("PUMICE_MOE_TWO_STREAM_SM90", "true").lower() == "true"', True, "PUMICE_MOE_TWO_STREAM_SM90"),
+    ("py-default-64", "src/pumice/config.py",
+     'n = int(os.environ.get("PUMICE_MOE_CHUNK_SM90", "64"))', True, "PUMICE_MOE_CHUNK_SM90"),
+    ("py-negated", "src/pumice/config.py",
+     'x = os.environ.get("PUMICE_MOE_TWO_STREAM_SM90") != "0"', True, "PUMICE_MOE_TWO_STREAM_SM90"),
+    ("py-or-fallback", "src/pumice/config.py",
+     'x = os.getenv("PUMICE_MOE_TWO_STREAM_SM90") or "1"', True, "PUMICE_MOE_TWO_STREAM_SM90"),
+    ("py-env-write", "src/pumice/config.py",
+     'os.environ["PUMICE_MOE_TWO_STREAM_SM90"] = "1"', True, "PUMICE_MOE_TWO_STREAM_SM90"),
+    ("py-setdefault", "src/pumice/config.py",
+     'os.environ.setdefault("PUMICE_MOE_TWO_STREAM_SM90", "1")', True, "PUMICE_MOE_TWO_STREAM_SM90"),
+    ("rs-chain-unwrap-or-true", "pumice-rust/src/moe.rs",
+     'let on = std::env::var("PUMICE_MOE_TWO_STREAM_SM90")\n    .map(|v| v == "1")\n    .unwrap_or(true);', True, "PUMICE_MOE_TWO_STREAM_SM90"),
+    ("rs-negated", "pumice-rust/src/moe.rs",
+     'let on = !std::env::var("PUMICE_MOE_TWO_STREAM_SM90").is_ok();', True, "PUMICE_MOE_TWO_STREAM_SM90"),
+    ("rs-match-err-true", "pumice-rust/src/moe.rs",
+     'let on = match std::env::var("PUMICE_MOE_TWO_STREAM_SM90") { Ok(v) => v == "1", Err(_) => true };', True, "PUMICE_MOE_TWO_STREAM_SM90"),
+    ("rs-allowlisted-chain-default", "pumice-rust/src/log.rs",
+     'let v = env::var("PUMICE_LOG_LEVEL")\n    .unwrap_or_else(|_| "info".into());', True, "PUMICE_LOG_LEVEL"),
+]
+
+
+def _run_codex_guard(tool_input: dict, cwd: str = E) -> subprocess.CompletedProcess:
+    """Run the Codex twin (codex/hooks/pre_tool_use_guard.py) on the same payload."""
+    payload = {
+        "session_id": "test-session",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Edit",
+        "cwd": cwd,
+        "tool_input": tool_input,
+    }
+    return subprocess.run(
+        [sys.executable, str(CODEX_GUARD)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        timeout=10,
+        cwd=cwd,
+        env=_clean_env(os.environ),
+    )
+
+
+class TestPumiceEnvGuardCodexTwin:
+    """The Codex twin applies the same R4 rule as the Claude hook."""
+
+    @pytest.mark.parametrize("case", R4_CASES, ids=lambda c: c[0])
+    def test_r4_rule_matches_the_claude_hook(self, case):
+        _, path, content, blocked, needle = case
+        result = _run_codex_guard({"file_path": f"{E}/{path}", "old_string": "# old", "new_string": content})
+        assert result.returncode == 0, result.stderr
+        if blocked:
+            assert '"decision": "block"' in result.stdout, result.stdout
+            assert needle in result.stdout
+        else:
+            assert result.stdout.strip() == "", result.stdout
+
+    def test_blocks_allowlisted_default_change(self):
+        result = _run_codex_guard({
+            "file_path": f"{E}/src/pumice/config.py",
+            "old_string": "# old",
+            "new_string": 'x = os.getenv("PUMICE_CACHE_ROOT", "/tmp/new")',
+        })
+        assert '"decision": "block"' in result.stdout
+        assert "PUMICE_CACHE_ROOT" in result.stdout
+
+
 class TestPumiceEnvGuard:
-    """PUMICE_* engine-env rule on .py and .rs edits (WS5.1)."""
+    """PUMICE_* engine-env rule on .py and .rs edits (WS5.1, R4)."""
 
     def test_blocks_new_pumice_env_in_py(self):
-        """A PUMICE_* name not in the allowlist is a new engine env → block."""
+        """A new PUMICE_* name read with a truthy default → block."""
         result = _run_hook({
             "file_path": f"{E}/src/pumice/config.py",
             "old_string": "# old",
@@ -201,14 +292,28 @@ class TestPumiceEnvGuard:
         assert "PUMICE_CACHE_ROOT" in result.stderr
 
     def test_blocks_new_pumice_env_in_rust(self):
-        """A new PUMICE_* env read via std::env::var in a .rs file → block."""
+        """A new PUMICE_* env read via std::env::var with a truthy fallback → block."""
         result = _run_hook({
             "file_path": f"{E}/pumice-rust/src/foo.rs",
             "old_string": "// old",
-            "new_string": 'let v = std::env::var("PUMICE_MADE_UP_THING");',
+            "new_string": 'let v = std::env::var("PUMICE_MADE_UP_THING").map(|v| v == "1").unwrap_or(true);',
         })
         assert result.returncode == 2, f"Should block a new PUMICE_* rust env. stderr: {result.stderr}"
         assert "PUMICE_MADE_UP_THING" in result.stderr
+
+    @pytest.mark.parametrize("case", [c for c in R4_CASES if c[3]], ids=lambda c: c[0])
+    def test_r4_blocks_new_pumice_read_whose_default_is_not_off(self, case):
+        _, path, content, _, needle = case
+        result = _run_hook({"file_path": f"{E}/{path}", "old_string": "# old", "new_string": content})
+        assert result.returncode == 2, f"Should block. stderr: {result.stderr}"
+        assert needle in result.stderr
+
+    @pytest.mark.parametrize("case", [c for c in R4_CASES if not c[3]], ids=lambda c: c[0])
+    def test_r4_allows_new_pumice_read_whose_default_is_off(self, case):
+        _, path, content, _, _ = case
+        result = _run_hook({"file_path": f"{E}/{path}", "old_string": "# old", "new_string": content})
+        assert result.returncode == 0, f"Should allow. stderr: {result.stderr}"
+        assert result.stderr == ""
 
     def test_allows_pumice_models_registry_dict(self):
         """PUMICE_MODELS is the _PUMICE_MODELS registry dict, not an env — never flagged."""

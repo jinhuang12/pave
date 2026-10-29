@@ -1,0 +1,269 @@
+kind: graph
+semantic_diff: >-
+  Base: revision 1, digest
+  sha256:0cb5e922e1a8b74c8baef6dfe6c5b2eba3a8e80ed6ce65f11711d5e7d0d1f6ba.
+  Prompt audit adoption, wave 2 (planning-records/ammo/prompt-audit/adoption.md).
+  Counts: 13 nodes, 47 edges, 13 roles, 31 checks, 16 evidence definitions,
+  and 5 control nodes unchanged. 18 hunks, 47 added lines against 34 removed;
+  1356 lines become 1369. (1) Investigator role rename (R11, user ruling):
+  role ammo_investigator becomes adversarial_investigator, the pave-init
+  agent spawned at pave-init:adversarial-investigator with no name. It gets
+  plugin_root, the primary artifacts, and one decision question, and returns
+  a verdict with file:line evidence. The roles lists of 9 nodes, the
+  escalation principle, and the fallback ladder question follow. (2)
+  fallback_ladder_exhausted points to its owner, references/validation-defaults.md
+  section Per-BS Verdicts and Track-Level Fallback Ladder, in place of
+  references/impl-track-rules.md, and defines the RETRY_WITH_CONTINGENCY
+  rung (R12): one named fallback, implemented once, reruns Gates 5.1a to 5.2.
+  (3) pre_ship_checks_passed lists the four checks of
+  orchestration/integration-logic.md: no conflict markers in the added
+  integration diff lines, no REGRESSED or CATASTROPHIC in
+  integration.per_bs_verdict, opt.returncode == 0 on every integration sweep
+  row, and ammo_state.py validate passes. Same strength as before, named
+  exactly. (4) stage_1_baseline: the lead runs scripts/ammo_state.py
+  ingest-baseline on the baseline sweep before T_AUDIT_S1, so the auditor
+  reads the ingested numbers. (5) audit_s45: the early per-track partial
+  step goes (R9, user ruling that amends decision 4; nothing read the
+  partials). (6) stage_7b_report re-entry: a terminal campaign re-enters
+  Stage 7b when REPORT.md is absent or has no accepted
+  report_fact_check.json (ok true, report_sha256 of the current REPORT.md).
+  The old text re-entered only when REPORT.md was absent. The Claude and
+  Codex stop guards and the next-step reminder check the same condition.
+  (7) Fact-check wording: role report_fact_checker, evidence
+  report_fact_check, and check report_fact_check_ok call the fact-checker's
+  list findings, not violations, matching the returned findings field in
+  agents/ammo-report-writer.md. (8) audit_s67_passed: the passing verdict
+  is the file that audit.stage_67.verdict_file names (stage_67.md for the
+  first cycle, stage_67_cycle_{C}.md for a re-audit), in place of a copy to
+  the canonical stage_67.md; the copy step went (w6-8,
+  orchestration/audit-protocol.md).
+user_only_changes: approved
+plan_evidence: verified
+usage_evidence: none
+changelog_entry: >-
+  Revision 2: the investigator is the pave-init adversarial-investigator;
+  the fallback ladder, pre-SHIP checks, Stage 1 ingest, and Stage 7b
+  re-entry text match their owners; the fact-checker returns findings; the
+  S67 check reads verdict_file; the early S45 partial step is gone.
+approval: >-
+  User approval, verbatim, 2026-10-29. To "Amend decision 4 so a step may go
+  when the record cites such evidence?": "Amend, drop both (Recommended)".
+  To "Drop it?" (msg-check hook): "Drop it (Recommended)". To "Replace the
+  ammo-investigator role with the pave-init adversarial-investigator?":
+  first "Keep ammo-investigator (Recommended)"; then, to "If you would
+  rather have it in this wave, say so and I route it to worker-6 and
+  worker-2 now.": "yes".
+review: Submitted to da-1 after apply as wave-2 round 1; the verdict is in
+  the DONE report to team-lead.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index 9cf032b..09d0596 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -67,8 +67,9 @@ pave:
+       units, evidence paths, and stop check; the batch sweep, serial Amdahl
+       projection, diluted pass, and single-track copy shortcut do not apply.
+     - Escalate to the user only for missing authority or an unrecoverable
+-      conflict, never for an ordinary engineering fork; spawn ammo-investigator
+-      for an unexplained failure or an unsettled consequential decision.
++      conflict, never for an ordinary engineering fork; spawn
++      pave-init:adversarial-investigator for an unexplained failure or an
++      unsettled consequential decision.
+ 
+   roles:
+     lead:
+@@ -158,12 +159,14 @@ pave:
+         fact-check is the separate seat report_fact_checker.
+       forbidden_effects:
+         - write campaign evidence
+-    ammo_investigator:
++    adversarial_investigator:
+       purpose: >-
+-        One-shot subagent, spawned at ammo:ammo-investigator, for an ambiguous result, an
+-        unexplained correctness, activation, measurement, or integration
+-        failure, or a consequential decision with no established answer. Gets
+-        the primary artifacts and one concrete decision question.
++        One-shot subagent, the pave-init agent spawned at
++        pave-init:adversarial-investigator with no name, for an ambiguous
++        result, an unexplained correctness, activation, measurement, or
++        integration failure, or a consequential decision with no established
++        answer. Gets plugin_root, the primary artifacts, and one concrete
++        decision question; returns a verdict with file:line evidence.
+     ammo_report_writer:
+       purpose: >-
+         One-shot subagent, spawned fresh at ammo:ammo-report-writer at Stage
+@@ -182,7 +185,7 @@ pave:
+         in agents/ammo-report-writer.md, unchanged, with no expected answers
+         and no request to confirm the report. Traces every number, attribution,
+         and method in REPORT.md to a campaign artifact and returns ok:true or
+-        the list of violations; the lead writes the record.
++        ok:false with its findings; the lead writes the record.
+       forbidden_effects:
+         - write campaign evidence
+       independence:
+@@ -313,7 +316,7 @@ pave:
+       produced_by: stage_7b_report
+       subject: >-
+         The lead's record of the fresh fact-checker's verdict: ok, findings
+-        (its violations, empty when ok is true), and report_sha256, the
++        (empty when ok is true), and report_sha256, the
+         SHA-256 of the exact REPORT.md bytes it reviewed. With the
+         fact-checker exchange it is the audit record; no state field or other
+         sidecar is added.
+@@ -381,9 +384,10 @@ pave:
+       style: mechanical
+       question: >-
+         Is audit.stage_67.passed_at recorded with a complete final-PASS verdict
+-        file, copied to the canonical stage_67.md? scripts/ammo_state.py
+-        refuses current_stage 7_campaign_eval and any terminal status without
+-        it.
++        file, the file that audit.stage_67.verdict_file names (stage_67.md is
++        the first-cycle name; a re-audit passes in stage_67_cycle_{C}.md)?
++        scripts/ammo_state.py refuses current_stage 7_campaign_eval and any
++        terminal status without it.
+       evaluated_by: lead
+       on_failure_route: audit_s67
+     audit_cycle_bound:
+@@ -492,10 +496,15 @@ pave:
+     fallback_ladder_exhausted:
+       style: reviewed
+       question: >-
+-        Before FAIL, did the champion exhaust every applicable rung of PASS,
+-        GATED_PASS, GATING_REQUIRED, RETRY_WITH_CONTINGENCY, the canonical
+-        fallback path in references/impl-track-rules.md, and route an
+-        unexplained failure to ammo-investigator?
++        Before FAIL, did the champion exhaust every applicable rung of the
++        ladder in references/validation-defaults.md § Per-BS Verdicts and
++        Track-Level Fallback Ladder (PASS, GATED_PASS, GATING_REQUIRED,
++        RETRY_WITH_CONTINGENCY), and route an unexplained failure to
++        pave-init:adversarial-investigator? RETRY_WITH_CONTINGENCY applies
++        when Gate 5.2 missed the floor and the proposal's Production
++        integration line names a fallback mechanism: the champion implements
++        that fallback once and reruns Gates 5.1a to 5.2. No named fallback,
++        or a rerun that misses the floor, exhausts the rung.
+       evaluated_by: lead
+       on_failure_route: stage_4_5_parallel_tracks
+     track_state_reconciled:
+@@ -510,9 +519,11 @@ pave:
+     pre_ship_checks_passed:
+       style: mechanical
+       question: >-
+-        Do the pre-SHIP checks pass: no conflict residue, every sweep leg
+-        succeeded, state.json is schema-valid, and no per-workload
+-        regression?
++        Do the four pre-SHIP checks pass: (1) the added lines of the
++        integration diff hold no conflict markers; (2)
++        integration.per_bs_verdict holds no REGRESSED or CATASTROPHIC; (3)
++        every integration sweep row has opt.returncode == 0; (4)
++        ammo_state.py validate passes?
+       evaluated_by: lead
+       on_failure_route: stage_6_integration
+     exact_composition_validated:
+@@ -593,7 +604,7 @@ pave:
+         no jargon leak, wrong attribution, or invented methodology?
+       evaluated_by: report_fact_checker
+       on_failure: >-
+-        The lead writes ok:false and the violations as findings to
++        The lead writes ok:false and the findings to
+         report_fact_check.json, spawns a fresh ammo-report-writer with the
+         findings, then a fresh fact-checker on the new report.
+       on_failure_route: stage_7b_report
+@@ -663,9 +674,10 @@ pave:
+         the artifact dir, the round, and the attempt. It runs exactly two
+         logically separate measurements through the target.json bench runner:
+         a profiler-free production E2E baseline with golden references, and a
+-        bounded attribution capture with Nsys. The lead then runs the
+-        mechanical gate and T_AUDIT_S1.
+-      roles: [lead, ammo_researcher, ammo_investigator]
++        bounded attribution capture with Nsys. The lead then runs
++        scripts/ammo_state.py ingest-baseline on the baseline sweep, then
++        T_AUDIT_S1.
++      roles: [lead, ammo_researcher, adversarial_investigator]
+       consumes: [target_contract, preflight_record]
+       produces: [baseline_capture, attribution_profile]
+       outcomes:
+@@ -688,7 +700,7 @@ pave:
+         primary evidence, then checks the hook-delivered Phase 2 list. The
+         lead verifies the verdict file and records the PASS fields. Every
+         blocker at this gate is campaign-scoped.
+-      roles: [lead, ammo_auditor, ammo_delegate, ammo_investigator]
++      roles: [lead, ammo_auditor, ammo_delegate, adversarial_investigator]
+       consumes: [baseline_capture, attribution_profile, target_contract]
+       produces: [audit_verdict]
+       outcomes:
+@@ -718,7 +730,7 @@ pave:
+         same measured baseline. It grounds every binding claim in primary
+         artifacts and writes bottleneck_analysis.md; the lead writes the
+         mining enrichment to state.json before advancing.
+-      roles: [lead, ammo_researcher, ammo_investigator]
++      roles: [lead, ammo_researcher, adversarial_investigator]
+       consumes: [baseline_capture, attribution_profile, integration_result]
+       produces: [bottleneck_analysis]
+       outcomes:
+@@ -739,7 +751,7 @@ pave:
+         measured bottleneck, the opportunity math, the code mapping, and the
+         candidate frontier are real before debate, or before the post-SHIP
+         stop check. Every blocker at this gate is campaign-scoped.
+-      roles: [lead, ammo_auditor, ammo_delegate, ammo_investigator]
++      roles: [lead, ammo_auditor, ammo_delegate, adversarial_investigator]
+       consumes: [bottleneck_analysis]
+       produces: [audit_verdict]
+       outcomes:
+@@ -772,7 +784,7 @@ pave:
+         with the portfolio rules, writes selected_candidates to state, writes
+         the summary, and retires the debate roster. After EXHAUSTED the round
+         reads exhausted_technologies and needs a genuine mechanism pivot.
+-      roles: [lead, ammo_champion, ammo_delegate, ammo_investigator]
++      roles: [lead, ammo_champion, ammo_delegate, adversarial_investigator]
+       consumes: [bottleneck_analysis]
+       produces: [debate_record, selected_candidates_contract]
+       outcomes:
+@@ -804,7 +816,7 @@ pave:
+         - ammo_transcript_monitor
+         - lead
+         - ammo_delegate
+-        - ammo_investigator
++        - adversarial_investigator
+       instance_per: selected_candidates
+       consumes: [selected_candidates_contract, baseline_capture, bottleneck_analysis]
+       produces: [track_evidence, monitor_record]
+@@ -841,9 +853,8 @@ pave:
+         track's primary evidence, resolves consequential monitor findings,
+         runs scripts/verify_validation_gates.py for the cohort and
+         scripts/check_projection_accuracy.py, then dispatches a fresh
+-        ammo-auditor. Early per-track partials may only feed evidence; they
+-        never render a verdict and are regathered before any re-audit.
+-      roles: [lead, ammo_auditor, ammo_delegate, ammo_investigator]
++        ammo-auditor.
++      roles: [lead, ammo_auditor, ammo_delegate, adversarial_investigator]
+       consumes: [track_evidence, monitor_record, selected_candidates_contract]
+       produces: [cohort_gate_report, audit_verdict]
+       outcomes:
+@@ -889,7 +900,7 @@ pave:
+         - ammo_resolver
+         - merge_reviewer
+         - ammo_impl_champion
+-        - ammo_investigator
++        - adversarial_investigator
+       consumes: [track_evidence, audit_verdict, baseline_capture]
+       produces: [integration_result]
+       outcomes:
+@@ -914,7 +925,7 @@ pave:
+         exact integration, the promoted environment, the golden capture, the
+         shipped bookkeeping, and the campaign-evaluation inputs. Until it
+         passes, shipped identities are provisional.
+-      roles: [lead, ammo_auditor, ammo_delegate, ammo_investigator]
++      roles: [lead, ammo_auditor, ammo_delegate, adversarial_investigator]
+       consumes: [integration_result, track_evidence]
+       produces: [audit_verdict]
+       outcomes:
+@@ -982,7 +993,9 @@ pave:
+       intent: execute
+       purpose: >-
+         Stage 7b, at campaign_complete or campaign_exhausted (and on resume
+-        of a terminal campaign without REPORT.md): a fresh
++        of a terminal campaign whose REPORT.md is absent or lacks an accepted
++        report_fact_check.json, ok:true with the report_sha256 of the current
++        REPORT.md): a fresh
+         ammo-report-writer builds every factual claim from campaign artifacts
+         and discloses missing or failed evidence; it does not check its own
+         report. The lead runs the fact-check gate: when the writer returns, it

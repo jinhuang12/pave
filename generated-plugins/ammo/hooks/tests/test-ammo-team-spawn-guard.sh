@@ -225,8 +225,8 @@ run_test "T7 ammo-auditor spawns named ammo-delegate → DENY (report leak)" 0 d
     '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-delegate","name":"delegate-goldenrefs"},"agent_type":"ammo-auditor"}' \
     "ammo-delegate must spawn without tool_input.name"
 
-run_test "T7 ammo-investigator spawns named ammo-delegate → DENY (report leak)" 0 deny \
-    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-delegate","name":"delegate-kernel-analysis"},"agent_type":"ammo-investigator"}' \
+run_test "T7 pave-init:adversarial-investigator spawns named ammo-delegate → DENY (report leak)" 0 deny \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-delegate","name":"delegate-kernel-analysis"},"agent_type":"pave-init:adversarial-investigator"}' \
     "ammo-delegate must spawn without tool_input.name"
 
 # In-process subagents may carry agent_id even when agent_type is absent.
@@ -240,7 +240,7 @@ run_test "T7 ammo-auditor spawns unnamed ammo-delegate → ALLOW (report returns
 
 # Extend the rule to the wider one-shot set when the caller is a subagent.
 run_test "T7 subagent spawns named ammo-researcher → DENY (same routing bug class)" 0 deny \
-    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-researcher","name":"deep-research"},"agent_type":"ammo-investigator"}' \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-researcher","name":"deep-research"},"agent_type":"pave-init:adversarial-investigator"}' \
     "spawned from inside a subagent must not carry tool_input.name"
 
 run_test "T7 subagent spawns named ammo-auditor → DENY" 0 deny \
@@ -248,7 +248,20 @@ run_test "T7 subagent spawns named ammo-auditor → DENY" 0 deny \
     "spawned from inside a subagent must not carry tool_input.name"
 
 run_test "T7 subagent spawns unnamed ammo-researcher → ALLOW" 0 allow \
-    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-researcher"},"agent_type":"ammo-investigator"}'
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"ammo-researcher"},"agent_type":"pave-init:adversarial-investigator"}'
+
+# The investigator is the pave-init agent (one-shot, no name). It keeps its
+# pave-init: address; the bare name is covered too.
+run_test "T7 subagent spawns named pave-init:adversarial-investigator → DENY" 0 deny \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"pave-init:adversarial-investigator","name":"inv-1"},"agent_type":"ammo-champion"}' \
+    "subagent_type='pave-init:adversarial-investigator'"
+
+run_test "T7 subagent spawns named adversarial-investigator → DENY" 0 deny \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"adversarial-investigator","name":"inv-1"},"agent_type":"ammo-auditor"}' \
+    "spawned from inside a subagent must not carry tool_input.name"
+
+run_test "T7 subagent spawns unnamed pave-init:adversarial-investigator → ALLOW" 0 allow \
+    '{"tool_name":"Agent","tool_input":{"subagent_type":"pave-init:adversarial-investigator"},"agent_type":"ammo-champion"}'
 
 # ══════════════════════════════════════════════
 echo ""; echo "== T9: Missing tool_input.subagent_type → ALLOW (fail-open) =="

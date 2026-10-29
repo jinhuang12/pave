@@ -4,7 +4,7 @@ These tests intentionally assert topology, authority, and machine-facing
 contracts rather than duplicated prose sentences.
 
 Plugin layout (Claude dialect): role documents live in `agents/*.md`
-(frontmatter IS the runtime registration — there are no bootstrap TOMLs), the
+(frontmatter IS the runtime registration: there are no bootstrap TOMLs), the
 schema in `schemas/`, the lifecycle guards are shell hooks in `hooks/`, and
 their harnesses are in `hooks/tests/`.
 """
@@ -34,7 +34,6 @@ ROLE_TO_AGENT_FILE = {
     "ammo-champion": "ammo-champion.md",
     "ammo-delegate": "ammo-delegate.md",
     "ammo-impl-champion": "ammo-impl-champion.md",
-    "ammo-investigator": "ammo-investigator.md",
     "ammo-researcher": "ammo-researcher.md",
     "ammo-resolver": "ammo-resolver.md",
     "ammo-transcript-monitor": "ammo-transcript-monitor.md",
@@ -148,7 +147,7 @@ def test_stage3_multi_champion_debate_and_scope_challenge_remain() -> None:
     ):
         assert marker in champion
     assert "cannot self-close a boundary-scope objection" in champion
-    assert "only by the lead or critic" in SKILL
+    assert "only the lead or the critic who raised it may close that objection" in debate
     assert "## Candidate Declaration" in debate
     assert "### A second round, when it earns its cost" in debate
     assert "## Winner selection" in debate
@@ -189,13 +188,13 @@ def test_implementation_gates_slots_and_fallback_remain() -> None:
     assert "complete blocking validation contract" in implementer
     assert "complete blocking validation contract" in protocol
     assert "Proposal prose may recommend" in implementer
-    assert "clean timing vs the Stage 1 baseline" in implementer
+    assert "clean timing against the comparator that" in implementer
     assert "never re-run a baseline arm from the worktree" in implementer
     assert "pure inter-kernel host/dispatch" in implementer
     assert "Gate 5.1b remains mandatory" in implementer
     assert "PASS -> GATED_PASS -> GATING_REQUIRED -> RETRY_WITH_CONTINGENCY -> FAIL" in implementer
     assert "DILUTED_PASS" in implementer
-    assert "ammo-investigator" in implementer
+    assert "pave-init:adversarial-investigator" in implementer
 
 
 def test_monitor_is_continuous_read_only_and_machine_compatible() -> None:
@@ -233,15 +232,13 @@ def test_four_independent_audits_and_two_phase_order_remain() -> None:
 
 
 def test_investigator_resolver_and_report_review_remain() -> None:
-    investigator = _agent_text("ammo-investigator")
+    # The investigator is the pave-init agent, and the lead skill names it.
+    assert "pave-init:adversarial-investigator" in SKILL
     resolver = _agent_text("ammo-resolver")
     report = _agent_text("ammo-report-writer")
-    assert "read-only" in investigator
-    assert "decision_support" in investigator
-    assert "ROOT CAUSE IDENTIFIED" in investigator
     assert "fresh, independent DA reviewer" in resolver
     assert "Post-Merge Testing" in resolver
-    # Claude runs the adversarial fact-checker as the report-writer's Stop hook.
+    # The lead runs the adversarial fact-checker at Stage 7b; its assignment lives in the writer file.
     assert "adversarial fact-checker" in report
     assert '"ok": true' in report or "ok: true" in report
     report_authority = _text("skills/ammo-report/SKILL.md")
@@ -327,7 +324,7 @@ def test_retired_hook_names_and_bare_python3_are_absent() -> None:
                       ROOT / "scripts" / hook]
         assert any(c.is_file() for c in candidates), f"referenced hook missing: {hook}"
     # Bare python3 at line start invites system-python vllm imports; guidance
-    # must show the venv-activated form (hook YAML command lines excepted —
+    # must show the venv-activated form (hook YAML command lines excepted:
     # they run outside the venv contract).
     for path in [ROOT / "skills" / "ammo" / "SKILL.md"] + sorted((ROOT / "orchestration").glob("*.md")) + sorted(
         (ROOT / "references").glob("*.md")
@@ -657,7 +654,6 @@ def test_progressive_disclosure_pointers_resolve_to_current_headings() -> None:
         ("orchestration/debate-protocol.md", "### Critique and rebuttal"),
         ("orchestration/debate-protocol.md", "## Winner selection"),
         ("orchestration/parallel-tracks.md", "## Reconciliation and Cohort Barrier"),
-        ("orchestration/audit-protocol.md", "## Optional Early S45 Evidence"),
         ("references/champion-common-patterns.md", "## Worktree Environment"),
     )
     for relative, heading in pointers:

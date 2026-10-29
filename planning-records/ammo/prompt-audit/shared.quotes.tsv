@@ -1,0 +1,27 @@
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/audit-protocol.md	prompt the moment the `ammo-auditor` spawn succeeds and writes both fields.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/artifact-layout.md	They do NOT go inside the runner output dir.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/audit-invariants.md	Severity must scale with campaign impact: a finding that cannot change the
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Auditors and delegates never write campaign evidence.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/audit-protocol.md	escalation is the sole orchestrator-initiated pause allowed without a user pause
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/hooks/README.md	msg-check stays registered. It still reads the team inbox on older Claude Code
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/audit-protocol.md	You may overlap evidence collection with a slow sibling track.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/audit-protocol.md	cycle, the lead copies that complete verdict to canonical `stage_67.md` and
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/codex/agents/ammo-delegate.toml	Read skills/ammo/SKILL.md and agents/ammo-delegate.md first
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/codex/agents/ammo-auditor.toml	Serving deployment targets use `references/serving-campaign.md` and `references/serving-measurement.md`
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/harness-binding.md	guide owns task names, the V1 `AMMO_TASK` line and binding wait, the V1
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-auditor.md	Omit the `name` parameter. A named delegate joins the lead's implicit team
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-auditor.md	BLOCKING findings halt the campaign until resolved.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-auditor.md	For `vllm-neuron`, read `references/accelerator-binding.md` § Auditor
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	The legacy names `vllm-cuda` and `vllm-neuron` map to `pumice-cuda` and `pumice-neuron`
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Use `run_vllm_bench_latency_sweep.py` for `vllm_bench_latency`.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Every new round entry must carry `"audit": {}` from creation
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/audit-protocol.md	Stage 2 bottleneck mining (schema v4.1+)
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-auditor.md	If a legacy dispatch omits it, proceed only when exactly one campaign directory exists
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Codex also installs the aliases `ammo-implementer` and `ammo-report`, which read the same role files.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	For each of `T_AUDIT_S1`, `T_AUDIT_S2`, `T_AUDIT_S45`, and `T_AUDIT_S67`:
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/audit-protocol.md	- the auditor writes its assigned verdict, but cannot modify source, campaign
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/artifact-layout.md	A script that must serve both v1 (legacy flat) and v2 (round-scoped) layouts uses one filesystem check:
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/artifact-layout.md	10. **`debate/campaign_round_{N}/` nesting**: replaced by top-level
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/champion-common-patterns.md	Run every Python command inside `.claude/worktrees/<op_id>/` under the
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-investigator.md	Read this file when a caller sends you a consistency question
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/shutdown-protocol.md	When you decline, finish the outstanding work to a terminal state

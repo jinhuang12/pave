@@ -1,14 +1,15 @@
 # Champion Common Patterns
 
 Debate champions and implementation agents both follow the rules below. Your
-role file owns the technical behavior. This file covers only four things: the
-Python environment you must run in, what to delegate, how to stay reachable
-during long runs, and what to do with a review finding that arrives mid-track.
+role file owns the technical behavior. This file covers the Python environment
+you must run in, what to delegate, how to stay reachable during long runs, and
+what to do with a review finding that arrives mid-track. Write every proposal,
+critique, rebuttal, and validation result under `references/writing-style.md`.
 
 ## Worktree Environment
 
-Run every Python command inside `.claude/worktrees/<op_id>/` under the
-worktree-local `.venv`: activate it, or call `.venv/bin/python` directly. This
+Run every Python command inside your track worktree under the worktree-local
+`.venv`: activate it, or call `.venv/bin/python` directly. This
 includes pytest. The engine venv imports the engine checkout instead of your
 edits, and it does so silently. Your correctness and performance evidence then
 becomes worthless with no error to warn you.
@@ -18,7 +19,7 @@ Prove the environment before any GPU or validation work:
 ```bash
 source .venv/bin/activate
 python -c "import pumice, pumice_rust; print(pumice.__file__, pumice_rust.__file__)"
-# Both paths must contain '/.claude/worktrees/<op_id>/'
+# Both paths must start with your track worktree's absolute path
 ```
 
 The printed paths must sit inside your assigned worktree. Check it again after
@@ -38,10 +39,8 @@ independent delegates in parallel when that helps. Pass `model="opus"` when the
 work needs deeper reasoning, such as cross-system analysis or an ambiguous
 root-cause investigation.
 
-Spawn with `subagent_type="ammo:ammo-delegate"` and `prompt`, and no `name`. A named delegate
-joins the lead's implicit team and its final report routes to the lead
-instead of back to you; the spawn guard denies a named `ammo-delegate` for
-that reason. Keep any identifier you need for citation in the prompt text.
+Spawn with `subagent_type="ammo:ammo-delegate"` and `prompt`, and no `name`.
+Keep any identifier you need for citation in the prompt text.
 
 Artifacts and `state.json` always carry the raw identifier. Start a fresh
 delegate whenever you need independence or a clean context.

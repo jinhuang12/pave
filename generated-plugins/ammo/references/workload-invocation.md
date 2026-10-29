@@ -5,8 +5,7 @@ For `target.json.serving`, use `serving-campaign.md` for measurement and objecti
 This file is the supplementary detail for §Invocation in SKILL.md. Read it when
 you scaffold a campaign with `new_target.py` and you need the flag a user
 parameter maps to, the default when the user gives none, or the reason a flag
-behaves in a surprising way. The verbose examples and the edge-case explanations
-live here, not in SKILL.md, so the orchestrator does not read them cold.
+behaves in a surprising way.
 
 ## Parameter Table
 
@@ -16,7 +15,7 @@ live here, not in SKILL.md, so the orchestrator does not read them cold.
 | Max model length | `--max-model-len=auto` or `--max-model-len=65536` | same value; `auto` resolves from the cached model config (fails closed if uncached) | `4096` (omit flag for default) |
 | Input/output lengths | `--input-len=<N> --output-len=<N>` | `--input-len <N> --output-len <N>` | `64` / `512` (only if user doesn't specify) |
 | Max num sequences | `--max-num-seqs=32` | `--max-num-seqs 32` | omit (Pumice server default) |
-| Prefill chunk budget | `--max-num-batched-tokens=4096` | `--max-num-batched-tokens 4096` | omit on CUDA; on `pumice-neuron` the scaffold freezes `4096` when `max_model_len > 4096` (see Prefill Chunk Budget) |
+| Prefill chunk budget | `--max-num-batched-tokens=4096` | `--max-num-batched-tokens 4096` | omit (Pumice server default) |
 | Prompt source | `--prompt-source=raw` | `--prompt-source raw` | omit (`gsm8k`, chat-template-wrapped); freeze `raw` when `input_len` cannot hold the chat template (see Prompt Source) |
 | Multi ISL/OSL pairs | `--isl-osl=64:512,2048:256` | same value | N/A |
 | Data parallel size | `--data-parallel-size 2` | `--data-parallel-size 2` | `1` (single replica) |
@@ -45,9 +44,8 @@ A bad `--model-id` or `--hardware` gives a target that you cannot measure.
   validation only".
 - **Model path**: pass a plain model directory that holds `config.json`, for
   example `<models dir>/gpt-oss-20b`. The Rust loader rejects the HF cache layout.
-- **Neuron** (`pumice-neuron`): the Pumice Neuron registry is llama3, gpt_oss,
-  qwen3_moe, and qwen3_vl. TP must be a multiple of the LNC. Spec-decode and
-  grammar tracks are off on Neuron.
+
+On Neuron, which v1 does not run, follow `references/accelerator-binding.md` § Neuron Execution and Evidence for the model registry and the prefill chunk budget.
 
 If the user names a model or GPU outside these sets, stop and tell the user.
 Do not scaffold a target that cannot produce a Stage 1 baseline.
@@ -127,23 +125,7 @@ a value.
 
 ## Prefill Chunk Budget (`--max-num-batched-tokens`)
 
-On CUDA, omit the flag unless the user sets it; the Pumice server default applies.
-
-On `pumice-neuron`, `new_target.py` freezes `--max-num-batched-tokens 4096` in
-`bench.extra_args` on its own when `max_model_len` is greater than 4096 and the
-flag is absent, and prints a WARNING that says so. Pass the flag to choose
-another supported value. The Neuron runner
-(`src/pumice/engine/neuron_model_runner.py`) sets `kv_segment_size` to
-`max_num_batched_tokens` when that value equals `max_model_len`, and the
-segmented attention kernel (`neuron_inference_core/functional/attention/
-attention_segmented_cte.py`) compiles only `kv_segment_size` in
-`{512, 1024, 2048, 4096}`. With `--max-model-len 8192` and no
-`--max-num-batched-tokens`, every TP rank dies at warmup with
-`ValueError: kv_segment_size=8192 is not supported`, before `HealthCheck`.
-The Pumice gpt-oss-20b Neuron smoke test uses `--max-num-batched-tokens 4096`.
-Record the resolved value from the `NeuronModelRunner config:` log line in
-`constraints.md`. A prefill of `batch x input_len` tokens at or under the
-budget is unaffected by the cap.
+Omit the flag unless the user sets it; the Pumice server default applies.
 
 ## Prompt Source (`--prompt-source`)
 
@@ -152,8 +134,7 @@ default `gsm8k` source it wraps the window in the model's chat template, so the
 template header and footer take part of `input_len`. gpt-oss needs 67 tokens
 for that, more than the default `input_len` of 64, and the runner fails fast
 before the server launch: `workload input_len [64] is too small for this
-model's chat template (template overhead is 67 tokens)`. Both 2026-09-24
-gpt-oss-20b campaigns (L40S and trn2) lost one launch to this.
+model's chat template (template overhead is 67 tokens)`.
 
 Fix it once at scaffold time: `new_target.py --prompt-source raw` writes
 `bench.prompt_source: "raw"` to `target.json`, and the runner uses that value
@@ -162,8 +143,8 @@ Stage 6 arms all measure the same prompt shape. Raising `input_len` above the
 overhead is the other valid fix when the user did not pin it. `raw` changes
 only the timing prompts (corpus windows sized exactly to `input_len`, no
 template). The correctness phase (`--capture-golden-refs`,
-`--verify-correctness`) always builds real GSM8K questions through the chat
-template, whatever the prompt source. Note the choice in `constraints.md`;
+`--verify-correctness`) sends raw 5-shot GSM8K text with no chat template,
+whatever the prompt source. Note the choice in `constraints.md`;
 `random` cannot be frozen (debug only, not evidence).
 
 ## Backends Are Not Flags

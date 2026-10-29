@@ -58,14 +58,11 @@ The CUDA path is the only profile that preflight accepts. Preflight refuses any 
 | `AMMO_LAYOUT_BASE` | `ammo-artifact-layout-warn.sh` | Dir that relative path tokens resolve against: the tool call's cwd. The hook sets it for its inline Python. |
 | `AMMO_LAYOUT_ROOT_RE` | `ammo-artifact-layout-warn.sh` | Pattern of the campaign root, from the layout manifest. The hook sets it for its inline Python. |
 | `AMMO_REMINDER_STATE_DIR` | `ammo-next-step-reminder.sh`, `ammo-state-validate.sh`, Codex post-tool guard | Root of the previous-state snapshots. Default `/tmp`. |
-| `AMMO_MSG_MIRROR_DIR` | `ammo-msg-check.sh`, `_ammo_msg_identity.sh` | Root of the message mirror channel. Default `/tmp/ammo-msg-mirror-<uid>`. |
-| `AMMO_MSG_MIRROR_MAX_AGE_S` | `ammo-msg-check.sh` | Maximum age of a mirrored message in seconds. Default 7200. |
-| `AMMO_MSG_CHECK_DEBUG` | `ammo-msg-check.sh` | Debug log switch. |
 | `AMMO_VALIDATE_FAIL_OPEN` | `ammo_state.py`, `ammo-state-validate.sh`, Codex post-tool guard | Set to 1 to skip schema validation when `jsonschema` is missing. |
 | `AMMO_ALLOW_STOP` | Codex stop gate | Set to 1 to allow a stop while a gate is open. |
 | `AMMO_ALLOW_UNRESERVED_GPU` | Codex pre-tool guard | Set to 1 to run a GPU command without a reservation. |
 | `AMMO_ALLOW_ANCHOR_MUTATION` | Codex pre-tool guard | Set to 1 to change a frozen anchor during a validated recovery. |
-| `AMMO_ALLOW_NONPARITY` | Codex pre-tool guard | Set to 1 to allow eager mode or disabled graphs on the CUDA path. |
+| `AMMO_ALLOW_NONPARITY` | Codex pre-tool guard | Set to 1 to allow eager mode, disabled graphs, or disabled compile (`--no-compile`, `PUMICE_COMPILE_TARGET=0`) on the CUDA path. |
 | `AMMO_MONITOR_ALLOW_UNACKED` | Codex pre-tool guard | Set to 1 to continue with an unacknowledged monitor message. |
 | `AMMO_MONITOR_QUEUE` | Codex hooks, `monitor_queue_ack.py` | Path of the monitor queue. |
 | `AMMO_DEBUG_HOOKS` | Codex post-tool guard | Set to 1 for hook debug output. |
@@ -81,16 +78,6 @@ The inventory grep also finds these tokens. They are not read from the environme
 
 | Name | Where | What it is |
 |---|---|---|
-| `AMMO_MSG_NS` | `_ammo_msg_identity.sh` | Shell variable: message namespace, the lead session id. |
-| `AMMO_MSG_OWN_SID` | `_ammo_msg_identity.sh` | Shell variable: the session id of this hook process. |
-| `AMMO_MSG_IS_LEAD` | `_ammo_msg_identity.sh` | Shell variable: 1 for the lead. |
-| `AMMO_MSG_INPROC` | `_ammo_msg_identity.sh` | Shell variable: 1 inside an in-process subagent. |
-| `AMMO_MSG_ID_SOURCE` | `_ammo_msg_identity.sh` | Shell variable: which identity rule decided. |
-| `AMMO_MSG_HOOK_AGENT_ID` | `_ammo_msg_identity.sh` | Shell variable: `agent_id` from the hook input. |
-| `AMMO_MSG_ARGV_AGENT_ID` | `_ammo_msg_identity.sh` | Shell variable: `--agent-id` from the process arguments. |
-| `AMMO_MSG_ARGV_AGENT_TYPE` | `_ammo_msg_identity.sh` | Shell variable: `--agent-type` from the process arguments. |
-| `AMMO_MSG_BSD` | `_ammo_msg_identity.sh` | Part of the private shell variable `_AMMO_MSG_BSD`. |
-| `AMMO_MSG_HELPER_DIR` | `_ammo_msg_identity.sh` | Part of the private shell variable `_AMMO_MSG_HELPER_DIR`. |
 | `AMMO_TRACK_LOCAL_RUNTIME_PACKAGES` | `worktree-create-with-build.sh` | Bash array of packages to stage in a track worktree. |
 | `AMMO_TRACK_LOCAL_RUNTIME_EXTRA_GLOBS` | `worktree-create-with-build.sh` | Bash array of extra file patterns to stage. |
 | `AMMO_CAPTURE_V2` | `run_pumice_grpc_bench.py` | Schema id inside capture JSON. |

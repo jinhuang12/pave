@@ -729,7 +729,7 @@ class TestNextStepLadder:
         msg, _ = _ns(st)
         assert "Pre-SHIP" in msg
         assert "do not rerun" in msg
-        assert "Single passer — run short-circuit" not in msg
+        assert "Single passer: run short-circuit" not in msg
 
     def test_integration_shipped_advances(self):
         # no audit key => legacy bypass => T_AUDIT_S67 passed => advance to 7_campaign_eval
@@ -754,8 +754,20 @@ class TestNextStepLadder:
         st["campaign"]["current_stage"] = "7_campaign_eval"
         st["campaign"]["status"] = "campaign_complete"
         st["_report_present"] = True
+        st["_report_accepted"] = True
         msg, _ = _ns(st)
         assert "Campaign complete. Session may stop." in msg
+
+    def test_terminal_report_without_accepted_fact_check_runs_gate(self):
+        st = _base_state()
+        st["campaign"]["current_stage"] = "7_campaign_eval"
+        st["campaign"]["status"] = "campaign_complete"
+        st["_report_present"] = True
+        st["_report_accepted"] = False
+        msg, _ = _ns(st)
+        assert "Session may stop" not in msg
+        assert "report_assets/report_fact_check.json" in msg
+        assert "ammo-delegate" in msg
 
     def test_terminal_no_report_spawns_writer(self):
         st = _base_state()
@@ -764,6 +776,55 @@ class TestNextStepLadder:
         st["_report_present"] = False
         msg, _ = _ns(st)
         assert "ammo-report-writer" in msg
+        assert "background" not in msg
+
+
+class TestReportFactCheckAccepted:
+    """Same rule as codex/hooks/stop_gate_guard.py: ok true and a matching SHA-256."""
+
+    @staticmethod
+    def _write(artifact, ok, sha):
+        (artifact / "report_assets").mkdir(parents=True, exist_ok=True)
+        (artifact / "report_assets" / "report_fact_check.json").write_text(
+            json.dumps({"ok": ok, "findings": [], "report_sha256": sha}), encoding="utf-8"
+        )
+
+    @staticmethod
+    def _sha(path):
+        import hashlib
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def test_missing_report(self, tmp_path):
+        assert ammo_state._report_fact_check_accepted(tmp_path) is False
+
+    def test_report_without_fact_check(self, tmp_path):
+        (tmp_path / "REPORT.md").write_text("# Report\n", encoding="utf-8")
+        assert ammo_state._report_fact_check_accepted(tmp_path) is False
+
+    def test_accepted(self, tmp_path):
+        report = tmp_path / "REPORT.md"
+        report.write_text("# Report\n", encoding="utf-8")
+        self._write(tmp_path, True, self._sha(report))
+        assert ammo_state._report_fact_check_accepted(tmp_path) is True
+
+    def test_stale_sha(self, tmp_path):
+        report = tmp_path / "REPORT.md"
+        report.write_text("# Report\n", encoding="utf-8")
+        self._write(tmp_path, True, self._sha(report))
+        report.write_text("# Edited report\n", encoding="utf-8")
+        assert ammo_state._report_fact_check_accepted(tmp_path) is False
+
+    def test_rejected(self, tmp_path):
+        report = tmp_path / "REPORT.md"
+        report.write_text("# Report\n", encoding="utf-8")
+        self._write(tmp_path, False, self._sha(report))
+        assert ammo_state._report_fact_check_accepted(tmp_path) is False
+
+    def test_ok_must_be_boolean_true(self, tmp_path):
+        report = tmp_path / "REPORT.md"
+        report.write_text("# Report\n", encoding="utf-8")
+        self._write(tmp_path, "true", self._sha(report))
+        assert ammo_state._report_fact_check_accepted(tmp_path) is False
 
     def test_audit_required_s1(self):
         st = _stage(_base_state(), "1_baseline",
@@ -1432,9 +1493,10 @@ class TestIngestBaseline:
             assert entry[p] == metrics[p + "_s"]
 
     def test_stage_1_nudge_names_the_subcommand(self):
+        # The lead ingests before T_AUDIT_S1, so the audit reminder names it.
         st = _stage(_base_state(), "1_baseline", **{
             "baseline.completed_at": "2026-01-01T00:00:00Z",
-            "audit.stage_1.passed_at": "2026-01-01T00:01:00Z",
+            "audit": {},
         })
         msg, _ = _ns(st)
         assert "ingest-baseline" in msg
@@ -1854,3 +1916,89 @@ class TestScopeGates:
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))
+
+
+# ─────────────────────────────────────────────
+# Reminder text adopted in the prompt audit (lead-owned items)
+# ─────────────────────────────────────────────
+
+PRE_SHIP_CHECKS = (
+    "the added lines of the integration diff hold no conflict markers",
+    "`integration.per_bs_verdict` holds no REGRESSED or CATASTROPHIC",
+    "every integration sweep row has `opt.returncode == 0`",
+    "`ammo_state.py validate` passes",
+)
+
+
+class TestAdoptedReminderText:
+    def test_ship_check_names_the_four_pre_ship_checks(self):
+        prev = _stage(_base_state(), "6_integration", **{"integration.status": "pending"})
+        cur = _stage(_base_state(), "6_integration", **{"integration.status": "combined"})
+        msg, _ = _ns(cur, prev=prev)
+        assert "AMMO CHECK (SHIP)" in msg
+        for check in PRE_SHIP_CHECKS:
+            assert check in msg
+
+    def test_single_passer_sets_status_from_the_track_verdict(self):
+        st = _stage(_base_state(), "6_integration",
+                    **{"parallel_tracks.started_at": "x", "integration.started_at": "x",
+                       "parallel_tracks.tracks": {"op001": {"status": "GATED_PASS"}}})
+        msg, _ = _ns(st)
+        assert "gated_pass" in msg and "single_pass" in msg
+        for check in PRE_SHIP_CHECKS:
+            assert check in msg
+
+    def test_multiple_passers_list_the_four_pre_ship_checks(self):
+        st = _stage(_base_state(), "6_integration",
+                    **{"parallel_tracks.started_at": "x", "integration.started_at": "x",
+                       "parallel_tracks.tracks": {"op001": {"status": "PASS"},
+                                                  "op002": {"status": "PASS"}}})
+        msg, _ = _ns(st)
+        for check in PRE_SHIP_CHECKS:
+            assert check in msg
+        assert "dual-verdict" not in msg
+
+    def test_stage1_audit_reminder_ingests_first_and_names_two_phases(self):
+        st = _stage(_base_state(), "1_baseline",
+                    **{"baseline.completed_at": "2026-01-01T00:00:00Z", "audit": {}})
+        msg, _ = _ns(st)
+        assert "AUDIT REQUIRED (T_AUDIT_S1)" in msg
+        assert msg.index("ingest-baseline") < msg.index("ammo-auditor")
+        assert "two phases" in msg and "4-phase" not in msg
+
+    def test_ship_check_spawns_the_pave_init_investigator(self):
+        prev = _stage(_base_state(), "6_integration", **{"integration.status": "pending"})
+        cur = _stage(_base_state(), "6_integration", **{"integration.status": "combined"})
+        msg, _ = _ns(cur, prev=prev)
+        assert "spawn pave-init:adversarial-investigator" in msg
+        # The ammo-investigator role is gone (R11); no reminder may name it.
+        assert "ammo-investigator" not in _ENGINE.read_text(encoding="utf-8")
+
+    def test_stage1_after_audit_goes_to_mining(self):
+        st = _stage(_base_state(), "1_baseline", **{
+            "baseline.completed_at": "2026-01-01T00:00:00Z",
+            "audit.stage_1.passed_at": "2026-01-01T00:01:00Z",
+        })
+        msg, _ = _ns(st)
+        assert "T_AUDIT_S1 passed" in msg and "task_type: mining" in msg
+
+    def test_no_audit_reminder_says_4_phase(self):
+        cases = [
+            _stage(_base_state(), "2_bottleneck_mining",
+                   **{"baseline.completed_at": "x", "bottleneck_mining.completed_at": "x", "audit": {}}),
+            _stage(_base_state(), "7_campaign_eval", **{"audit": {}}),
+        ]
+        for st in cases:
+            msg, _ = _ns(st)
+            assert "AUDIT REQUIRED" in msg
+            assert "4-phase" not in msg and "two phases" in msg
+
+    def test_campaign_eval_names_advance(self):
+        st = _stage(_base_state(), "7_campaign_eval", **{
+            "audit.stage_67.passed_at": "2026-01-01T00:01:00Z"
+        })
+        msg, _ = _ns(st)
+        assert "ammo_state.py advance" in msg
+        assert "--outcome SHIP" in msg and "EXHAUSTED" in msg
+        assert "Mechanical check" in msg
+        assert "all-diluted SHIP → 3_debate" in msg

@@ -162,6 +162,8 @@ The ammo plugin would require the pave-init plugin from the same marketplace:
 the orchestrate skill, `orchestrate-worker`, and `adversarial-investigator`.
 Record it in the skill's compatibility metadata and the README host prep.
 
+The ammo plugin already requires pave-init since the 2026-10-29 prompt-audit wave, which replaced `ammo-investigator` with the pave-init `adversarial-investigator` (prompt-audit/adoption.md R11). This landing adds no new dependency.
+
 ## Changes to land
 
 1. `workflow.pave.yaml` per `drafts/stage2/stage2.semantic.patch`;

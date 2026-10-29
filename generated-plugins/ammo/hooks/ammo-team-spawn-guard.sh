@@ -21,13 +21,14 @@
 # skills/ammo/SKILL.md ("Team-member vs subagent contract") declares
 # `ammo-champion`, `ammo-impl-champion` and `ammo-transcript-monitor` the only
 # team members (named, addressable), and `ammo-delegate`, `ammo-researcher`,
-# `ammo-auditor`, `ammo-investigator`, `ammo-report-writer` and
-# `ammo-resolver` one-shot subagents that must be spawned with their role and
-# prompt only, no `name`. This guard is the mechanical backstop for that
+# `ammo-auditor`, `ammo-report-writer`, `ammo-resolver` and the pave-init
+# investigator `pave-init:adversarial-investigator` one-shot subagents that
+# must be spawned with their role and prompt only, no `name`. This guard is the mechanical backstop for that
 # contract, and that is why the plugin keeps it.
 #
 # Plugin roles spawn at their plugin address `ammo:<role>`; the rules below
-# match the role with that prefix removed, so both spellings are covered.
+# match the role with that prefix removed, so both spellings are covered. The
+# investigator keeps its `pave-init:` address, and its bare name also matches.
 #
 # Campaign scope (_find_campaign.sh): outside a campaign the hook exits 0 and
 # prints nothing.
@@ -39,8 +40,9 @@
 #   - `ammo-delegate` with a non-empty `name` → DENY, regardless of caller.
 #     The contract has no delegate-with-a-name case and the trn2 evidence
 #     shows every named delegate spawn leaked its report to the lead.
-#   - `ammo-researcher`, `ammo-auditor`, `ammo-investigator`,
-#     `ammo-report-writer`, `ammo-resolver` with a non-empty `name`, when the
+#   - `ammo-researcher`, `ammo-auditor`, `ammo-report-writer`,
+#     `ammo-resolver`, `pave-init:adversarial-investigator` (or
+#     `adversarial-investigator`) with a non-empty `name`, when the
 #     caller is a subagent (`.agent_type` set) → DENY. Same routing bug
 #     class; the trn2 evidence only recorded the delegate variant because
 #     that is the one subagents actually invoked, but any named one-shot
@@ -119,7 +121,7 @@ case "$SUBAGENT_TYPE" in
         fi
         exit 0
         ;;
-    ammo-researcher|ammo-auditor|ammo-investigator|ammo-report-writer|ammo-resolver)
+    ammo-researcher|ammo-auditor|ammo-report-writer|ammo-resolver|pave-init:adversarial-investigator|adversarial-investigator)
         # SKILL.md contract classes these as one-shot subagents. The lead
         # may still legitimately name them (rare, but not blocked), but a
         # subagent that names one hits the same routing leak as the delegate

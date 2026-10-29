@@ -4,20 +4,20 @@ Use this for proposals, critiques, rebuttals, validation reports, monitor logs, 
 Write in ASD-STE100 Simplified Technical English. Put the verdict or next action first, followed by the evidence needed to assess it.
 
 ## Writing rules
-The pipeline already proves your diligence structurally: a populated Candidate Declaration block, a passing gate, a cited log file. Coverage, length, and visible effort are not scored (see `orchestration/debate-protocol.md` § Winner selection). Write what a staff engineer would keep: the numbers, the verdict, the non-obvious reasoning, and the evidence pointers.
+Write what a staff engineer would keep: the numbers, the verdict, the non-obvious reasoning, and the evidence pointers.
 
 1. Use familiar words, active voice, and one main claim per sentence. Name the actor and action.
 2. State each conclusion once in prose. Keep repeated values or verdict tokens wherever a required parsed block needs them.
 3. Cite measured values and factual claims at their first use. Reuse the evidence pointer when needed to make a later claim clear.
 4. Explain uncertainty, limitations, and failed attempts directly. Describe their effect on the decision.
-5. Use tables for comparisons, risks, attempts, and responses to critiques. Include every material item; there is no row-count limit.
+5. Use tables for comparisons, risks, attempts, and responses to critiques. Include every material item.
 6. Use emphasis for the verdict and facts that affect the decision. Remove protocol narration, self-praise, and repeated conclusions.
 
-Required fields and evidence take priority over brevity. Formatting guidance does not create a new acceptance gate.
+Formatting guidance does not create a new acceptance gate.
 
 ## Length
 
-Write the length the decision needs: as long as the evidence and the non-obvious reasoning require, and no longer. Required machine-parsed blocks and data tables stay complete. Three formats are fixed because other agents parse them:
+Write the length the decision needs: as long as the evidence and the non-obvious reasoning require, and no longer. Three formats are fixed because other agents parse them:
 
 | Artifact | Format |
 |---|---|

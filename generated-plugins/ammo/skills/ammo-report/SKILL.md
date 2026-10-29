@@ -13,7 +13,7 @@ This file owns report content and source selection. The `ammo-report-writer` rol
 
 Start with `state.json` and `target.json`. Iterate `state.json.campaign.rounds[]`; never infer the current or authoritative round from directory timestamps.
 
-For round `N`, use only the canonical V2 paths:
+For round `N`, use only these paths:
 
 | Evidence | Path |
 |---|---|
@@ -32,8 +32,6 @@ For round `N`, use only the canonical V2 paths:
 | Final code identity | track `worktree_branch`, `commit_sha`, `diff.patch`, and integrated `commit_sha` in state |
 
 `state.json` is authoritative for identities, statuses, selection fields, shipped sets, and integration outcomes. Raw JSON, SQLite, logs, and profiler files are authoritative for measurements. Markdown explains evidence but cannot override it. If sources conflict, disclose the conflict and use the higher-authority source.
-
-Legacy root paths such as `constraints.md`, `bottleneck_analysis.md`, `tracks/`, `e2e_latency/`, or timestamp-versioned sweep directories are fallback inputs only when `state.json.campaign.schema_version < 4.1` and no `rounds/` layout exists. Never mix a legacy fallback with V2 evidence silently.
 
 ## Facts to Reconstruct
 
@@ -63,7 +61,19 @@ Use the title and scope in the final track verdict for a candidate's final name.
 9. **Key Lessons**: three to five actionable lessons tied to specific evidence.
 10. **Appendix**: reproduction commands, source/commit identity, and complete relevant code listings when the artifacts and worktree still make them available.
 
-Include a linked table of contents. Define technical terms on first use. Translate internal terms: say “candidate evaluation,” “independent audit,” and “validation step,” not “champion,” “debate,” or “Gate 5.x,” except in artifact citations where the literal name helps locate evidence.
+Include a linked table of contents. Define technical terms on first use. Translate the internal terms below. An artifact citation keeps the literal name, because it helps the reader locate evidence: for example the state key `$.campaign.shipped_optimizations`.
+
+| Internal term | Write instead |
+|---|---|
+| champion | optimization candidate, approach, or proponent |
+| debate, adversarial debate | candidate evaluation or structured peer review |
+| `T_AUDIT_*`, `ammo-auditor` | independent audit |
+| Stage 1 to Stage 7 | a plain description of the step |
+| Gate 5.x | a plain description, such as correctness validation or validation step |
+| campaign, used as jargon | optimization effort or study |
+| ship, shipped | merged, accepted, or deployed |
+| worktree | development working copy or branch |
+| f_decode | the term, defined on first use |
 
 ## Visuals
 
@@ -125,4 +135,4 @@ Before fact-check handoff, verify:
 
 ## Serving campaigns
 
-For a serving target, reconstruct claims from sealed serving results and `round.serving.accounting`, following `references/serving-campaign.md`. Do not fill E2E/TPOT batch columns with another objective. State the fixed offered load and local topology. Preserve the independent fact-checker and existing report acceptance artifact.
+For a serving target, reconstruct claims from sealed serving results and `round.serving.accounting`, following `references/serving-campaign.md`. Do not fill E2E/TPOT batch columns with another objective. State the fixed offered load and local topology.

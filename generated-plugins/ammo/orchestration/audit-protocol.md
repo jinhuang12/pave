@@ -19,7 +19,7 @@ Spawn an auditor at every trigger below. No outcome ever earns an auto-pass.
 | Trigger | Fire after | PASS state key |
 |---|---|---|
 | `T_AUDIT_S1` | Stage 1 baseline capture | `audit.stage_1.passed_at` |
-| `T_AUDIT_S2` | Stage 2 bottleneck mining (schema v4.1+) | `audit.stage_2.passed_at` |
+| `T_AUDIT_S2` | Stage 2 bottleneck mining | `audit.stage_2.passed_at` |
 | `T_AUDIT_S45` | every Stage 4-5 track is terminal (`PASS`, `GATED_PASS`, or `FAIL`) | `audit.stage_45.passed_at` |
 | `T_AUDIT_S67` | SHIP: merge, environment promotion, and golden capture are complete; EXHAUSTED: integration outcome is recorded | `audit.stage_67.passed_at` |
 
@@ -28,8 +28,8 @@ open-item protocol is already adversarial. This single exception weakens none of
 the four triggers above.
 
 Leave transition machinery to `scripts/ammo_state.py`. It is the sole authority
-for transition enforcement, new-round requirements, resumed-schema handling, and
-legacy `stage_6` / `stage_7` backfill. Do not restate those branches here.
+for transition enforcement and new-round requirements. Do not restate those
+branches here.
 
 ## Dispatch
 
@@ -56,18 +56,7 @@ name `audit_{stage}_r{round}_c{cycle}`, send the same lines, and add the
 
 Keep the prompt that thin. The auditor uses the exact supplied artifact directory
 and resolves canonical paths from it. Its authority and workflow come from
-`agents/ammo-auditor.md`; do not copy them into the dispatch prompt. What
-holds in every audit:
-
-- the auditor writes its assigned verdict, but cannot modify source, campaign
-  artifacts, or `state.json`;
-- Phase 1 is an independent reconstruction, so the auditor must not read
-  `references/audit-invariants.md` before it writes Phase 1;
-- the hook then injects the Phase 2 checklist, and Phase 2 cannot erase or
-  downgrade a Phase 1 blocker;
-- every evidence question beyond a direct state lookup or arithmetic is fanned
-  out to a fresh `ammo-delegate` instance, whose answers are evidence for the
-  auditor to challenge, not verdicts.
+`agents/ammo-auditor.md`; do not copy them into the dispatch prompt.
 
 The lead may continue unrelated work while an audit reads evidence, but must not
 perform the gated transition.
@@ -76,30 +65,14 @@ perform the gated transition.
 
 `audit.{stage}.started_at` and `.cycle` are stamped mechanically, not by the
 lead. The `PostToolUse` hook `ammo-audit-start-stamp.sh` reads this dispatch
-prompt the moment the `ammo-auditor` spawn succeeds and writes both fields.
-This is why the prompt format above must not change. On Codex,
+prompt when the `ammo-auditor` Agent call returns and writes both fields, so for
+a foreground auditor `started_at` holds the return time. This is why the prompt
+format above must not change. On Codex,
 `codex/hooks/post_tool_use_guard.py` stamps the same fields from the dispatch
 fields or the audit task name. `passed_at` stays
-lead-written, after the lead verifies the final PASS verdict. For
-`schema_version >= 4.2`, state validation rejects a gate with `passed_at` set
-and `started_at` missing; backfill it with
+lead-written, after the lead verifies the final PASS verdict. State validation
+rejects a gate with `passed_at` set and `started_at` missing; backfill it with
 `ammo_state.py audit-started --artifact-dir DIR --stage {stage} --round {round} --cycle {cycle}`.
-
-## Optional Early S45 Evidence
-
-You may overlap evidence collection with a slow sibling track. When one track
-becomes terminal while a sibling is still running, the lead may dispatch one
-read-only `ammo-delegate` to gather that track's per-track checklist evidence
-into:
-
-`rounds/{N}/audits/stage_45_partial_{op_id}.md`
-
-Overlapped collection is all this buys. The partial is not a verdict, never
-advances the gate, and contains no round-level checks. `T_AUDIT_S45` still fires
-once, with a fresh auditor, only after all tracks are terminal. That auditor must
-critically recheck every partial, redispatch weak evidence, and gather all
-round-level evidence fresh. Before any S45 re-audit, delete every partial for the
-round and regather it, because a repair may have changed shared inputs.
 
 ## Verdict Handling
 
@@ -110,8 +83,12 @@ The verdict file, not an auditor message, is authoritative for the audit result:
 - `BLOCKED`: at least one `BLOCKING` finding remains. Apply a bounded repair and
   re-audit.
 - `NEEDS_INVESTIGATION`: consequential uncertainty remains. Dispatch a bounded
-  investigator, resolve its severity, and re-audit; do not advance or stamp
+  `pave-init:adversarial-investigator`, resolve its severity, and re-audit; do not advance or stamp
   PASS.
+
+Reject a `BLOCKING` rating that names no campaign-impact mechanism
+(`agents/ammo-auditor.md` § Severity Classification). Re-audit it instead of
+sending it to a fix owner, because the doubt is in the rating.
 
 A PASS is genuine only when the verdict contains the independent Phase 1, the
 hook-delivered Phase 2, reconciliation against primary evidence, and an explicit
@@ -166,9 +143,7 @@ narrowest safe scope, and keep no rejected code:
 - If scope is uncertain, treat it as campaign-scoped.
 
 The post-quarantine audit may stamp PASS only if the remaining scope genuinely
-passes. If it exposes a campaign-scoped blocker, pause instead. Auditor
-escalation is the sole orchestrator-initiated pause allowed without a user pause
-request.
+passes. If it exposes a campaign-scoped blocker, pause instead.
 
 ## Artifact Paths
 
@@ -180,15 +155,11 @@ rounds/{N}/audits/stage_2.md
 rounds/{N}/audits/stage_45.md
 rounds/{N}/audits/stage_67.md
 rounds/{N}/audits/{stage}_cycle_{C}.md
-rounds/{N}/audits/stage_45_partial_{op_id}.md   # optional evidence, never verdict
 ```
 
 The first audit uses the unadorned filename; re-audits add `_cycle_{C}`. The
-auditor writes only its assigned cycle file. After verifying a final passing
-cycle, the lead copies that complete verdict to canonical `stage_67.md` and
-records both paths/provenance in state or the round summary. See
-`references/artifact-layout.md` for the full tree. Historical path and state-key
-normalization belongs to `scripts/ammo_state.py`, not this protocol.
+auditor writes only its assigned cycle file, and `verdict_file` names the
+passing one. See `references/artifact-layout.md` for the full tree.
 
 ## References
 
@@ -199,4 +170,4 @@ normalization belongs to `scripts/ammo_state.py`, not this protocol.
 - `references/artifact-layout.md`: canonical artifact locations
 - `scripts/ammo_state.py`: state validation, compatibility, and transitions
 - `hooks/inject-audit-phase2.sh` and `hooks/ammo-next-step-reminder.sh`: Phase 2 delivery and audit reminders
-- `hooks/ammo-audit-start-stamp.sh`: stamps `started_at`/`cycle` on auditor dispatch
+- `hooks/ammo-audit-start-stamp.sh`: stamps `started_at`/`cycle` from the auditor dispatch prompt

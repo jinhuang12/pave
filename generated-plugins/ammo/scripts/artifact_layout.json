@@ -25,7 +25,7 @@
     "rounds/{N}/mining/",
     "rounds/{N}/audits/"
   ],
-  "_open_dirs_comment": "Directories whose whole subtree conforms because the child filenames are agent-chosen, not a fixed set: the researcher adds mining evidence files, and the auditor writes per-cycle and per-track verdict filenames. The slots inside them stay enumerated below for their writer/gate/kind facts. Every other directory keeps its exact child set, so a track-root `validation_results_DRAFT.md` still warns.",
+  "_open_dirs_comment": "Directories whose whole subtree conforms because the child filenames are agent-chosen, not a fixed set: the researcher adds mining evidence files, and the auditor writes per-cycle verdict filenames. The slots inside them stay enumerated below for their writer/gate/kind facts. Every other directory keeps its exact child set, so a track-root `validation_results_DRAFT.md` still warns.",
   "slots": {
     "context_recovery_note": {
       "path_template": "recovery/{root_thread_id}/{task_path_without_leading_slash}/context.md",
@@ -99,7 +99,7 @@
     },
     "profiling_nsys": {
       "path_template": "rounds/{N}/profiling/nsys/",
-      "writer": "run_vllm_bench_latency_sweep.py --nsys-profile",
+      "writer": "run_pumice_grpc_bench.py --nsys-profile, copied here by ammo-researcher",
       "gate": null,
       "is_gate_slot": false,
       "kind": "authoritative",
@@ -139,7 +139,7 @@
     },
     "sweep_baseline": {
       "path_template": "rounds/{N}/sweeps/baseline/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot baseline",
+      "writer": "run_pumice_grpc_bench.py --slot baseline",
       "gate": "stage_1",
       "is_gate_slot": false,
       "kind": "authoritative",
@@ -147,7 +147,7 @@
     },
     "sweep_profiling": {
       "path_template": "rounds/{N}/sweeps/profiling/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot profiling",
+      "writer": "run_pumice_grpc_bench.py --slot profiling",
       "gate": null,
       "is_gate_slot": false,
       "kind": "diagnostic",
@@ -155,7 +155,7 @@
     },
     "sweep_profiling_prefill": {
       "path_template": "rounds/{N}/sweeps/profiling_prefill/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot profiling_prefill",
+      "writer": "run_pumice_grpc_bench.py --slot profiling_prefill",
       "gate": null,
       "is_gate_slot": false,
       "kind": "diagnostic",
@@ -163,7 +163,7 @@
     },
     "sweep_opt": {
       "path_template": "rounds/{N}/sweeps/opt/{op_id}/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot opt/{op_id}",
+      "writer": "run_pumice_grpc_bench.py --slot opt/{op_id}",
       "gate": "5.3b",
       "is_gate_slot": true,
       "kind": "authoritative",
@@ -171,7 +171,7 @@
     },
     "sweep_opt_correctness": {
       "path_template": "rounds/{N}/sweeps/opt_correctness/{op_id}/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot opt_correctness/{op_id}",
+      "writer": "run_pumice_grpc_bench.py --slot opt_correctness/{op_id}",
       "gate": "5.1b",
       "is_gate_slot": true,
       "kind": "authoritative",
@@ -179,7 +179,7 @@
     },
     "sweep_opt_profiling": {
       "path_template": "rounds/{N}/sweeps/opt_profiling/{op_id}/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot opt_profiling/{op_id}",
+      "writer": "run_pumice_grpc_bench.py --slot opt_profiling/{op_id}",
       "gate": "5.3a",
       "is_gate_slot": true,
       "kind": "authoritative",
@@ -187,7 +187,7 @@
     },
     "sweep_integration": {
       "path_template": "rounds/{N}/sweeps/integration/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot integration",
+      "writer": "run_pumice_grpc_bench.py --slot integration",
       "gate": "stage_6",
       "is_gate_slot": true,
       "kind": "authoritative",
@@ -195,7 +195,7 @@
     },
     "sweep_integration_profiling": {
       "path_template": "rounds/{N}/sweeps/integration_profiling/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot integration_profiling",
+      "writer": "run_pumice_grpc_bench.py --slot integration_profiling",
       "gate": "stage_6",
       "is_gate_slot": true,
       "kind": "authoritative",
@@ -203,7 +203,7 @@
     },
     "sweep_golden_capture": {
       "path_template": "rounds/{N}/sweeps/golden_capture/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot golden_capture",
+      "writer": "run_pumice_grpc_bench.py --slot golden_capture",
       "gate": "post_ship",
       "is_gate_slot": false,
       "kind": "authoritative",
@@ -211,7 +211,7 @@
     },
     "sweep_post_ship_profiling": {
       "path_template": "rounds/{N}/sweeps/post_ship_profiling/",
-      "writer": "run_vllm_bench_latency_sweep.py --slot post_ship_profiling",
+      "writer": "run_pumice_grpc_bench.py --slot post_ship_profiling",
       "gate": null,
       "is_gate_slot": false,
       "kind": "diagnostic",
@@ -255,7 +255,7 @@
       "gate": null,
       "is_gate_slot": false,
       "kind": "authoritative",
-      "notes": "CUT-4 four-gate verdict plus gated_revision. Write-once-then-append."
+      "notes": "Lead record for each surviving candidate: id, name, proposal path and section, accepted revision, and verdict (orchestration/debate-protocol.md § Proposals)."
     },
     "debate_proposals": {
       "path_template": "rounds/{N}/debate/proposals/{champion_id}_proposal.md",
@@ -263,7 +263,7 @@
       "gate": null,
       "is_gate_slot": false,
       "kind": "authoritative",
-      "notes": "Phase 0. In debate sub-round 1 the proposal IS the argument-of-record."
+      "notes": "Written in the Proposals step. In debate round 1 the proposal is the argument of record."
     },
     "debate_rounds": {
       "path_template": "rounds/{N}/debate/round_{D}/",
@@ -385,14 +385,6 @@
       "kind": "authoritative",
       "notes": "Verdict for T_AUDIT_S67. The stage transition reads the matching audit.stage_67.passed_at stamp."
     },
-    "audit_stage45_partial": {
-      "path_template": "rounds/{N}/audits/stage_45_partial_{op_id}.md",
-      "writer": "ammo-delegate dispatched by the orchestrator",
-      "gate": null,
-      "is_gate_slot": false,
-      "kind": "diagnostic",
-      "notes": "Optional early per-track evidence, NOT a verdict. Consumed by the real auditor at T_AUDIT_S45."
-    },
     "audit_cycle": {
       "path_template": "rounds/{N}/audits/stage_{stage}_cycle_{C}.md",
       "writer": "ammo-auditor",
@@ -403,7 +395,7 @@
     },
     "archive": {
       "path_template": "rounds/{N}/_archive/{slot}_{timestamp}/",
-      "writer": "run_vllm_bench_latency_sweep.py",
+      "writer": "run_pumice_grpc_bench.py",
       "gate": null,
       "is_gate_slot": false,
       "kind": "diagnostic",

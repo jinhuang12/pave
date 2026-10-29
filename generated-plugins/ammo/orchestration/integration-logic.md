@@ -7,9 +7,7 @@ never creates the next round. Read this before you decide anything in Stage 6.
 
 Read the current round from `state.json`. Reconcile every track against its
 primary Gate 5 artifacts before you decide. Every track must be terminal under
-the state schema, and `T_AUDIT_S45` must have passed. The schema owns field
-shapes and status enums. `scripts/transitions.json` owns legal transitions.
-`references/artifact-layout.md` defines artifact locations.
+the state schema, and `T_AUDIT_S45` must have passed.
 
 ## Four Branches
 
@@ -17,27 +15,31 @@ Accepted means `PASS` or `GATED_PASS`. Rejected means `FAIL`. `diluted:true` is
 evidence about measured impact, not a separate integration status. Use
 `references/validation-defaults.md` for verdict semantics.
 
-1. **No accepted track:** finalize the round as EXHAUSTED. Record why each track
-   was rejected, run the Stage 6-7 audit, and enter Stage 7.
-2. **Exactly one unchanged accepted track:** use the single-pass short-circuit.
-   Its Stage 5 production correctness, activation, and clean E2E result stay
-   authoritative only if the patch and the declared environment are
-   byte-for-byte unchanged.
+1. **No accepted track:** finalize the round as EXHAUSTED (§ Promotion and
+   Finalization, EXHAUSTED paragraph).
+2. **Exactly one unchanged accepted track:** use the single-track
+   short-circuit (§ Single-Track Short-Circuit).
 3. **Multiple compatible accepted tracks:** put their exact validated commits
    and environment settings on an integration branch, then run the full
    integration validation below. Per-track evidence cannot establish the
-   behavior or the performance of a composition.
+   behavior or the performance of a composition. The integration branch lives
+   in your own worktree under the engine root. Create that worktree through the
+   same worktree hook the tracks use (`hooks/worktree-create-with-build.sh`),
+   and record the branch in `integration.combined_patch_branch`. If a selected
+   track changes Rust or confdb code, run the rebuild in
+   `references/impl-track-rules.md` § Worktree Build Rules before any Stage 6
+   sweep.
 4. **Overlap, gating interaction, merge conflict, or ambiguous compatibility:**
    judge compatibility and dominance from evidence. File overlap is a warning,
    not proof of incompatibility; disjoint files are not proof of independence.
-   If a conflict or a semantic interaction needs code resolution, spawn
-   `ammo-resolver` under `agents/ammo-resolver.md`, then obtain the
-   required independent merge review. Validate the resulting exact subset as a
-   composition. If the defensible result is one unchanged track, fall back to
-   the single-pass short-circuit; if none remains, exhaust the round.
+   If a conflict or a semantic interaction needs code resolution, run the
+   review loop in step 1 of § Combined Validation Workflow. Validate the
+   resulting exact subset as a composition. If the defensible result is one
+   unchanged track, fall back to the single-track short-circuit; if none
+   remains, exhaust the round.
 
-Do not select by a copied PASS/GATED/dilution matrix, and do not select by a
-single best number. Judge each candidate subset on correctness, production
+Select a subset on its evidence. Verdict labels alone or a single best number
+do not decide it. Judge each candidate subset on correctness, production
 activation, gating behavior, interaction risk, regressions across the frozen
 workload, and clean E2E evidence. One subset dominates another only when its
 evidence supports the same required behavior, shows no worse accepted-workload
@@ -48,10 +50,11 @@ establish dominance, validate the plausible composition rather than guessing.
 
 When exactly one accepted track remains, and its patch and environment have not
 changed since Stage 5, it ships on its Stage 5 evidence: integration would add
-no new technical information. Preserve its PASS versus GATED_PASS semantics and promote
-the result it already validated. Materialize that evidence in the canonical
-integration slot when the mechanical pre-ship checks require it there; do not
-rerun merely to rename it. Any source, build, dispatch, or environment change
+no new technical information. Set `integration.status` to `gated_pass` for a
+GATED_PASS track and to `single_pass` for a PASS track, and promote the result
+it already validated. Copy the Stage 5 opt sweep results into the
+`integration` slot and write `e2e_latency_combined` and `per_bs_verdict` from
+them. Do not rerun. Any source, build, dispatch, or environment change
 disables the short-circuit and requires the combined workflow.
 
 ## Combined Validation Workflow
@@ -65,20 +68,25 @@ the result and requires validation again.
 For every multi-track composition:
 
 1. Resolve merge and semantic interactions without weakening any selected
-   track's accepted boundary, fallback, or rollback control. Ambiguous or
-   conflicting resolutions use `ammo-resolver` and a fresh independent reviewer;
-   after the bounded review loop, return unresolved evidence to the lead.
+   track's accepted boundary, fallback, or rollback control. When a conflict
+   or an interaction needs code resolution, run this review loop:
+   - Spawn `ammo-resolver` (`agents/ammo-resolver.md`). It returns a staged,
+     uncommitted diff on the integration branch.
+   - Spawn a fresh `pave-init:adversarial-investigator` as the independent
+     merge reviewer: one-shot, with no `name`. Give it the staged diff and
+     each selected track's validation results.
+   - On REVISE, spawn a fresh `ammo-resolver` with the findings, then a fresh
+     reviewer for the new diff.
+   - After two rejected cycles, decide under branch 4 without that
+     resolution.
+   - Commit only a resolution the reviewer accepts.
 2. Run full-model correctness against the current round's frozen golden
    comparator, not only component tests.
 3. Run a clean, profiler-free production E2E measurement across the frozen
-   batch-size/workload matrix, compared against the Stage 1 baseline
-   (`--labels opt --baseline-from`), which imports by literal filename
-   `{baseline_label}_{tag}.json`. A round >= 2 integration sweep MUST import the
-   promoted arm (`--baseline-from-arm opt`), or assert the comparator's `avg_s`
-   and env against the promoted mainline before any timing leg runs; an
-   unasserted pre-SHIP comparator makes the delta cumulative, not incremental.
-   Apply the thresholds and per-bucket rules in
-   `references/validation-defaults.md`.
+   batch-size/workload matrix against the current production baseline.
+   `references/e2e-latency-guide.md` § Tool Selection owns the command, the
+   comparator import, and its flags. Apply the thresholds and per-bucket rules
+   in `references/validation-defaults.md`.
 4. Capture separate claim-appropriate profiler evidence in the
    `integration_profiling` slot. It must prove that every selected optimized
    path and gated boundary actually activates after composition. Profiled
@@ -110,21 +118,17 @@ the following hold:
   instead of or folded invisibly into, the best individual track.
 
 Record the diluted track as shipped with `diluted:true` and record why the
-combined objective selected the best individual result. This exception keeps a
-non-regressing diluted mechanism without pretending that its effect was
-additive. For this carve-out, cumulative speedup remains derived from the
-combined artifact's measured production E2E for the shipped pair. Never replace
-that authority with the best individual's result plus an assumed diluted-track
-contribution, and never add, multiply, or otherwise credit unmeasured
-additivity.
+combined objective selected the best individual result. Cumulative speedup
+comes from the measured E2E of the shipped pair, with no added diluted-track
+contribution (`references/validation-defaults.md` § DILUTED_PASS Ship Path).
 
 ## Pre-SHIP Mechanical Checks
 
 Before merging to the campaign mainline, the branch checked out at the engine
-root, run the existing fail-closed mechanical
-checks for conflict residue, successful sweep legs, schema-valid state, and
-per-workload regressions. These checks enforce recorded invariants; the lead's
-technical review still owns compatibility and the final evidence judgment.
+root, run these four fail-closed checks: (1) the added lines of the integration
+diff hold no conflict markers; (2) `integration.per_bs_verdict` holds no
+REGRESSED or CATASTROPHIC; (3) every integration sweep row has
+`opt.returncode == 0`; (4) `ammo_state.py validate` passes.
 
 ## Promotion and Finalization
 
@@ -132,13 +136,11 @@ After a passing integration decision:
 
 1. Merge or cherry-pick the exact validated patch set onto the campaign
    mainline and record its final commit identity.
-2. Promote the environment contract. The new baseline environment is **the
-   prior baseline environment plus only the selected accepted flags and values
-   used by the passing validation**. Clear the experimental environment. Do not
-   promote flags from rejected, unselected, superseded, or exploratory tracks,
-   and do not retain unrelated shell-inherited experimental keys. Environment
-   naming and isolation are owned by `references/impl-track-rules.md` and the
-   sweep runner.
+2. Promote the environment contract. Set `target.json` `bench.baseline_env` to
+   its prior keys plus only the `bench.opt_env` keys and values that the
+   passing validation used, then empty `bench.opt_env`. Environment naming and
+   isolation are owned by `references/impl-track-rules.md` and the sweep
+   runner.
 3. Capture fresh golden references from the promoted mainline in the current
    round's `golden_capture` slot. These become the next round's correctness
    comparator; they do not replace the current round's original evidence.
@@ -148,29 +150,23 @@ After a passing integration decision:
    in place.
 5. Run `T_AUDIT_S67` according to `orchestration/audit-protocol.md`. It covers
    the exact integration, environment promotion, golden capture, shipped
-   bookkeeping, and campaign-evaluation inputs. A rejected change must be
-   removed and the promoted scope rebuilt and remeasured before re-audit;
-   resolve consequential findings before advancing.
+   bookkeeping, and campaign-evaluation inputs.
 6. Enter Stage 7. **Only Stage 7** may evaluate the stop condition, increment
    `campaign.current_round`, or create the next-round state and artifacts.
 
-For EXHAUSTED, record the terminal integration/round outcome in place and run
-`T_AUDIT_S67` before Stage 7; there is no environment promotion or golden
-capture.
+For EXHAUSTED, record why each track was rejected and the terminal
+integration/round outcome in place, then run `T_AUDIT_S67` before Stage 7.
+There is no environment promotion or golden capture.
 
-Compute cumulative improvement directly from the original Round-1 production
-baseline and the latest accepted integrated production latency. Never multiply
-round-local speedups. Stage 7 continuation, terminal-token choice, all-diluted
-round handling, and mining invalidation are owned by `SKILL.md` under
-`Stage 7: Campaign Evaluation`.
+Cumulative improvement, Stage 7 continuation, terminal-token choice,
+all-diluted round handling, and mining invalidation are owned by `SKILL.md`
+under `Stage 7: Campaign Evaluation`.
 
 Until `T_AUDIT_S67` passes, current-round `shipped` identities are a provisional
-promotion record, not a reportable final ship. A Stage-67 rejection immediately
-removes the implicated code, environment keys, current integration/shipped and
-global shipped identities before remeasurement; record the rejection in
-`dropped`, `integration.final_decision`, and the round summary. Preserve the
-isolated Stage-5 verdict as history. Stage 67 rejects promotion/composition, not
-the fact that the earlier isolated gate passed.
+promotion record, not a reportable final ship. A rejection removes the
+implicated identities from the current round's `shipped` list and from
+`campaign.shipped_optimizations`. `orchestration/audit-protocol.md` § Repair
+and Re-audit owns the rest of a Stage-67 rejection.
 
 ## Authority Pointers
 
@@ -182,6 +178,6 @@ the fact that the earlier isolated gate passed.
 - Canonical integration, profiling, and golden paths:
   `references/artifact-layout.md`
 - Conflict-resolution role: `agents/ammo-resolver.md`
-- Stage 6-7 audit: `orchestration/audit-protocol.md` and
+- Stage 6 audit (`T_AUDIT_S67`): `orchestration/audit-protocol.md` and
   `references/audit-invariants.md`
 - Stage 7 continuation: `SKILL.md`
