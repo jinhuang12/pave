@@ -158,7 +158,7 @@ Reason: the Inductor pass pipeline of the runner (§ Which Passes to Check) can 
 
 Before projecting E2E from Gate 5.2 kernel speedup, verify the ACTUAL per-kernel time of the baseline chain inside the compiled CUDA graph:
 
-1. Open the Stage 1 nsys trace (`rounds/{N}/profiling/nsys/baseline_bs{BS}.nsys-rep`)
+1. Open the Stage 1 nsys trace (`rounds/{N}/profiling/nsys/baseline.nsys-rep`, or the `baseline_bs{BS}.sqlite` slice for your bucket)
 2. Grep for your target kernel names in the decode window
 3. If the unfused chain (e.g., separate `rms_norm` + `dynamic_scaled_fp8_quant`) does NOT appear, but a single fused kernel does (e.g., `rms_norm_dynamic_per_token_quant`), then Inductor has already fused your target
 

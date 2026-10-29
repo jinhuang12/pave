@@ -65,7 +65,8 @@ rounds/{N}/
 │
 ├── profiling/
 │   ├── nsys/                            # Stage 1 nsys node traces
-│   │   ├── baseline_bs{BS}.nsys-rep
+│   │   ├── baseline.nsys-rep            # One capture per label, every bucket inside
+│   │   ├── baseline_bs{BS}.sqlite       # Per-bucket slices at profile_meta wave bounds; mine_trace input
 │   │   ├── opt/{op_id}/                 # Stage 5 activation traces
 │   │   └── integration/                 # Stage 6 combined activation traces
 │   ├── neuron/                          # Neuron attribution: NTFF, view exports, normalized events
@@ -338,7 +339,7 @@ Use these answers when more than one candidate file exists.
 
 1. **"Which is the baseline E2E?"** → In Round 1, `rounds/1/sweeps/baseline/e2e_latency_results.json`. After a material SHIP in round N, `rounds/{N}/sweeps/integration/e2e_latency_results.json` is the promoted baseline for round N+1 mining, including when it was populated by the single-pass short-circuit. Do not require a new round-N+1 baseline file. NEVER use profiler timing or an `_archive/` dir.
 
-2. **"Which profiling evidence feeds Stage 2?"** → In Round 1, `rounds/1/profiling/nsys/baseline_bs{BS}.nsys-rep` or the matching `baseline_profile*.nsys-rep` companion path. After a material SHIP, use those still-applicable attribution traces together with the shipped track's activation evidence and any Stage-6 integration activation capture. No fresh post-SHIP trace or provenance sidecar is required. Legacy probe directories are compatibility-only and are not Stage 2 ranking inputs.
+2. **"Which profiling evidence feeds Stage 2?"** → In Round 1, `rounds/1/profiling/nsys/baseline.nsys-rep` (one capture per label, every bucket inside) with its per-bucket `baseline_bs{BS}.sqlite` slices, or the matching `baseline_profile*.nsys-rep` companion path. After a material SHIP, use those still-applicable attribution traces together with the shipped track's activation evidence and any Stage-6 integration activation capture. No fresh post-SHIP trace or provenance sidecar is required. Legacy probe directories are compatibility-only and are not Stage 2 ranking inputs.
 
 3. **"Which is the authoritative track verdict?"** → `rounds/{N}/tracks/{op_id}/validation_results.md`. NEVER anything in `_scratch/`.
 

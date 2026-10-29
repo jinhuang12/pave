@@ -33,7 +33,7 @@ Two consequences:
 "profile_meta": {
   "schema": "AMMO_CAPTURE_V2",
   "capture_mechanism": "grpc_start_stop_profile+nsys_cudaProfilerApi",
-  "nsys_report": "baseline_bs8.nsys-rep",
+  "nsys_report": "baseline.nsys-rep",
   "server_start_unix": ..., "profile_start_unix": ..., "profile_stop_unix": ...,
   "profile_window_s": ..., "profiled_wave_count": ...,
   "waves": [{"...": "per-wave start/end wall clock + request count + profiled flag"}]
@@ -86,11 +86,23 @@ Outputs:
 
 ```text
 {artifact_dir}/rounds/{N}/sweeps/baseline/e2e_latency_results.json
-{artifact_dir}/rounds/{N}/profiling/nsys/*.nsys-rep
-{artifact_dir}/rounds/{N}/sweeps/profiling/json/*.json      # carries profile_meta
+{artifact_dir}/rounds/{N}/sweeps/profiling/nsys/{label}.nsys-rep   # raw runner output
+{artifact_dir}/rounds/{N}/sweeps/profiling/json/*.json             # carries profile_meta
+{artifact_dir}/rounds/{N}/profiling/nsys/{label}.nsys-rep          # authoritative copy
+{artifact_dir}/rounds/{N}/profiling/nsys/{label}_bs{BS}.sqlite     # per-bucket slices
 ```
 
-The runner writes one `.nsys-rep` for each label and bucket. The bucket JSON `profile_meta` records the capture identity: report path, start/stop wall clock, and per-wave boundaries.
+The runner takes one capture per label: `StartProfile` before the first bucket and `StopProfile` after the last, so one `.nsys-rep` holds every bucket. Each bucket JSON `profile_meta` records the capture identity: report path, start and stop wall clock, and the per-wave boundaries. The runner leaves the report under its sweep output dir. Copy it to `rounds/{N}/profiling/nsys/`, the only place Stage 2 reads traces from, and cut the per-bucket slices there (§ Per-Bucket Slices).
+
+## Per-Bucket Slices
+
+`mine_trace.py` takes one `sqlite` (or `events_json`) entry per batch size in `config.traces`. nsys cannot split a `.nsys-rep`, so the slices come from the one report:
+
+1. Export the full report once to `baseline.sqlite` (§ Useful commands below).
+2. For each bucket, take the window of its profiled waves from that bucket's `profile_meta.waves[]` and keep the kernel rows (`CUPTI_ACTIVITY_KIND_KERNEL` or `CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL`, with `StringIds`) whose start and end fall inside it. Write them to `rounds/{N}/profiling/nsys/baseline_bs{BS}.sqlite` with the same tables the full export has.
+3. Check that the slices together account for the kernel time of the full export inside the capture window. Record each window and row count next to its slice.
+
+Trace timestamps count nanoseconds from the nsys session start; `profile_meta` holds wall-clock seconds. Convert through the session start time the export records before comparing the two.
 
 ## TP>1 Per-Rank Caveat
 

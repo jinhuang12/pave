@@ -103,7 +103,7 @@
       "gate": null,
       "is_gate_slot": false,
       "kind": "authoritative",
-      "notes": "Attribution traces. Holds baseline_bs{BS}.nsys-rep plus opt/{op_id}/, integration/ and post_ship/ subdirs. Traces NEVER land inside a sweep output dir."
+      "notes": "Attribution traces. Holds {label}.nsys-rep (one capture per label, every bucket inside; the Pumice runner writes the raw file under sweeps/profiling/nsys/ and the researcher copies it here) and the per-bucket {label}_bs{BS}.sqlite slices that mine_trace.py reads, plus opt/{op_id}/, integration/ and post_ship/ subdirs. Stage 2 reads traces only from here, never from a sweep output dir."
     },
     "profiling_ncu": {
       "path_template": "rounds/{N}/profiling/ncu/",
