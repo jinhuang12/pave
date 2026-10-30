@@ -16,8 +16,8 @@ description: >-
   gpt-6-astra `adversarial-investigator` that reviews their work until it PASSes.
   Use this skill whenever a task has 3 or more independent parts, spans many
   files or components, would take one agent more than roughly an hour, or when
-  the user says "parallelize", "fan out", "orchestrate", "delegate", "use
-  workers", "split this up", "swarm", or "/orchestrate". Also use it when a
+  the user asks, in any wording, to split the work across parallel agents
+  (including "/orchestrate"). Also use it when a
   task mixes unrelated domains (e.g. backend + frontend + docs) even if the
   user never mentions parallelism. Do not use it for single-file edits,
   trivial fixes, or tasks whose steps are strictly sequential with no parallel
@@ -32,7 +32,7 @@ ISOLATION = "give each an explicit separate Git worktree"
 TEAM_MODELS = '''Workers use `pave-init:orchestrate-worker` on `gpt-6.1-sol` with `xhigh`; DAs use `pave-init:adversarial-investigator` on `gpt-6-astra` with `xhigh`. Use `fork_turns: "none"` so each installed custom agent keeps its own model and effort. See `references/model-seats.md` for the runtime-specific dispatch rules. Count available agent slots before dispatch; retained agents and research helpers count too. Reduce the wave or investigate without helpers when capacity is insufficient.'''
 PREFLIGHT = '''**Pre-flight first.** Run `python3 <PAVE_PLUGIN_ROOT>/codex/orchestrate_preflight.py --project <working directory>` to check installed roles and shared resources. Then check the live session: `spawn_agent`, `followup_task`, `send_message`, `list_agents`, `wait_agent`, and `interrupt_agent` must be available, and the custom-agent list must include `pave-init:orchestrate-worker` and `pave-init:adversarial-investigator`. File checks do not prove live availability. If either check fails, report the setup commands in `codex/README.md`; do not install roles or alter trust automatically.'''
 SPAWN_RUNTIME = '''Spawn every agent through `spawn_agent` with its installed `agent_type`, a unique `task_name` such as `worker_1` or `da_1`, and `fork_turns: "none"`. Retain the canonical task paths returned by the tool; labels such as worker-1 and da-1 remain the run-log IDs. Record the lead, worker, and reviewer paths in each PLAN entry so Resume can match log IDs to the live roster. Include the actual lead and reviewer paths in every subtask, and update reviewers with worker paths as workers start. Do not assume the lead is `/root` when this orchestrator is nested. After spawning, call `list_agents` once and confirm the roster. If direct peer delivery fails, broker through the lead (Step 4).'''
-SPAWN_ORDER = "Spawn DAs first, then workers, using independent calls concurrently where the runtime permits."
+SPAWN_ORDER = "using independent calls concurrently where the runtime permits"
 SPAWN_ADDRESSES = '''Read `references/protocol.md` for the exact DA spawn prompt and `references/subtask.md` for the worker subtask. Set `Orchestrator` and `Reviewer` to their actual canonical task paths, and supply `ORCHESTRATE_ROOT`. Read applicable skills from their listed SKILL.md files.'''
 SPAWN_EXAMPLE = '''spawn_agent(task_name: "da_1", agent_type: "pave-init:adversarial-investigator", fork_turns: "none", message: <DA prompt from protocol.md>)
 spawn_agent(task_name: "worker_1", agent_type: "pave-init:orchestrate-worker", fork_turns: "none", message: <subtask>)'''
@@ -43,6 +43,9 @@ Keep the lead active and use bounded `wait_agent` waits for arrivals; do not end
 - **Turn completions.** A worker ending with `WAITING worker-N: round R sent to da-M` is waiting for its DA, not DONE.
 - **Messages.** These are the events. Act only on a message whose first line is one of these:'''
 PROVIDER_FAILURE = '''**Provider failures.** An explicit runtime failure or confirmed dead agent means the worker died mid-task, and its files may be half-written. Spawn a replacement under the **next unused index** (`worker-7`, never a reused name), with the same subtask plus a line saying which files the dead worker may have touched, and tell its DA the new canonical path. Log it as `append RESPAWN <old> "-> <new> | <reason>"`. A new Codex agent does not imply a different provider identity or quota.'''
+ASK_USER = "a bounded plain-text question, or `request_user_input` when it is available"
+HELPERS = '''Spawn helpers with `spawn_agent` (`agent_type: "pave-init:research-delegate"`, `fork_turns: "none"`) within the capacity you counted for them. Start each brief with `PAVE_PLUGIN_ROOT: <absolute plugin root>` and collect the reports with `wait_agent`. That role reports evidence only, so you write every Step 1b draft yourself.'''
+SIMPLIFY = '''Give four helpers the plan file, one question each: does a draft reuse what already exists, can it have fewer parts or steps, does it waste work, does it change the right layer. Rule on each answer yourself and edit the plan file.'''
 SHUTDOWN = '''Then release the team: use `interrupt_agent` for agents that remain busy. Idle completed agents need no close; do not wake them merely to announce shutdown.'''
 DONE_RELEASE = ""
 NOTES_ROUTE = "go to the owning workers to apply before CLOSE, with no `PLAN` line and no re-review."
@@ -92,7 +95,7 @@ SEAT_TABLE = '''| Role | Custom agent | Model and effort |
 |---|---|---|
 | Worker | `pave-init:orchestrate-worker` | `gpt-6.1-sol`, `xhigh` |
 | DA | `pave-init:adversarial-investigator` | `gpt-6-astra`, `xhigh` |
-| Evidence | `pave-init:research-delegate` | The installed role's configured model and effort |'''
+| Evidence, Step 1 helpers | `pave-init:research-delegate` | The installed role's configured model and effort |'''
 DISPATCH_GUIDANCE = '''## Keep each role's model and effort
 
 Use `spawn_agent` with the named `agent_type` and `fork_turns: "none"` to retain its model and effort. Count retained agents and research helpers against available capacity; reserve helper slots or investigate directly. A fresh agent does not imply a different provider identity or quota.'''

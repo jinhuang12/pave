@@ -59,6 +59,9 @@
                 "DONE_RELEASE",
                 "FIX_ROUTE",
                 "NOTES_ROUTE",
+                "ASK_USER",
+                "HELPERS",
+                "SIMPLIFY",
                 "LIST_AGENTS",
                 "NEW_SESSION",
                 "HOOK_CONTRACT",
@@ -118,6 +121,15 @@
                   "type": "string"
                 },
                 "NOTES_ROUTE": {
+                  "type": "string"
+                },
+                "ASK_USER": {
+                  "type": "string"
+                },
+                "HELPERS": {
+                  "type": "string"
+                },
+                "SIMPLIFY": {
                   "type": "string"
                 },
                 "LIST_AGENTS": {

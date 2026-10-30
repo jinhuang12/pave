@@ -16,8 +16,8 @@ description: >-
   fable `adversarial-investigator` that reviews their work until it PASSes.
   Use this skill whenever a task has 3 or more independent parts, spans many
   files or components, would take one agent more than roughly an hour, or when
-  the user says "parallelize", "fan out", "orchestrate", "delegate", "use
-  workers", "split this up", "swarm", or "/orchestrate". Also use it when a
+  the user asks, in any wording, to split the work across parallel agents
+  (including "/orchestrate"). Also use it when a
   task mixes unrelated domains (e.g. backend + frontend + docs) even if the
   user never mentions parallelism. Do not use it for single-file edits,
   trivial fixes, or tasks whose steps are strictly sequential with no parallel
@@ -32,7 +32,7 @@ ISOLATION = "give each `isolation: \"worktree\"`"
 TEAM_MODELS = '''Workers run on `opus`, DAs on `fable`, always passed explicitly on the Agent call; teammate spawns ignore the agent file's `model:` and inherit yours when the call omits it. See `references/model-seats.md` for why, and why no per-seat id spread is possible from here.'''
 PREFLIGHT = '''**Pre-flight first.** Run `python3 $SKILL/scripts/preflight.py --fix` from the working directory. Teammates open in your cwd, and if that directory was never trusted in your Claude config (`.claude.json` in your home directory) every teammate stalls at the trust dialog with an unread inbox, looking alive but silent for as long as you wait. The script marks the cwd trusted and confirms agent teams are on.'''
 SPAWN_RUNTIME = '''Spawn every agent as a **teammate**, not an in-process subagent. Teammates are separate processes with their own inbox, so a worker can message its DA directly and the pair can loop without you in the middle. With agent teams enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), an Agent call that carries a `name` becomes a teammate; the `name` is what makes it addressable. After spawning, run `ListAgents` once and confirm every worker and DA appears under **Teammates**. If they appear as plain subagents instead, teams are off in this session; the protocol still works, but expect to broker (Step 4).'''
-SPAWN_ORDER = "Spawn DAs first, then workers, all in one message so they run concurrently."
+SPAWN_ORDER = "all in one message so they run concurrently"
 SPAWN_ADDRESSES = '''Read `references/protocol.md` for the exact DA spawn prompt and `references/subtask.md` for the worker subtask. Teammates address you as **`team-lead`**, never `main` (a teammate that sends to `main` is told it *is* main and the send fails); put `Orchestrator: team-lead` in every subtask. Every spawn uses `run_in_background: true`, a `name`, and an explicit `model`.'''
 SPAWN_EXAMPLE = '''Agent(name: "da-1", subagent_type: "pave-init:adversarial-investigator", model: "fable", run_in_background: true, prompt: <DA prompt from protocol.md>)
 Agent(name: "worker-1", subagent_type: "pave-init:orchestrate-worker", model: "opus", run_in_background: true, prompt: <subtask>)'''
@@ -43,6 +43,9 @@ Teammate traffic reaches you **only between your turns**. After spawning, end yo
 - **Idle notifications.** Whenever a teammate ends a turn you get its last plain-text line as `result`. Workers end each waiting turn with `WAITING worker-N: round R sent to da-M`, so these are your heartbeat. They are not events; do not act on them.
 - **SendMessages.** These are the events. Act only on a message whose first line is one of these:'''
 PROVIDER_FAILURE = '''**Provider failures.** An idle notification with `idleReason: failed` and an API error as the reason (503/429 after exhausted retries) means the worker died mid-task, and its files may be half-written. Spawn a replacement under the **next unused index** (`worker-7`, never a reused name), with the same subtask plus a line saying which files the dead worker may have touched, and tell its DA the new name. Log it as `append RESPAWN <old> "-> <new> | <reason>"`. Each teammate launch gets its own identity slot from the teammate launcher, so a fresh spawn usually lands on a different quota than the one that failed.'''
+ASK_USER = "`AskUserQuestion` (plain text if it is unavailable)"
+HELPERS = '''Spawn helpers as plain background subagents, not teammates: leave out `name`, so each returns one report and ends without holding an agent slot. Use `Explore` on `sonnet` for an investigation question and `Plan` on `opus` for a draft approach (seats in `references/model-seats.md`).'''
+SIMPLIFY = '''Load the `simplify` skill with the plan file's path as its argument: it reviews the drafts through its four lenses (reuse, simplification, efficiency, altitude) and edits only that file.'''
 SHUTDOWN = "Then release the team: stop each agent that `append CLOSE` names with `TaskStop`."
 DONE_RELEASE = " Then stop the worker with `TaskStop` (task_id `worker-N`) and log `append RELEASE worker-N`. Stop a DA the same way once `releasable` lists it."
 NOTES_ROUTE = '''go to one fresh worker under the next unused index, reviewed by the DA that ran the whole-goal review, which checks only that each note was applied; there is no whole-goal re-review. Log it in the same `append --stdin` as the `REVIEW` line, as `PLAN worker-N "-> da-M | notes: <summary> | <acceptance>"`, so the release reminder keeps that DA until the notes worker's DONE.'''
@@ -55,7 +58,7 @@ HOOK_CONTRACT = '''The plugin's `hooks/hooks.json` registers three lead hooks, n
 - **Release reminder** fires after each command that writes the log, while `releasable` lists finished agents. Stop each one it names with `TaskStop` and log `append RELEASE <name>`.
 - **Speed-up question** fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once per 10 minutes (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, run in parallel, or be cut. Answer in one line: `optimal`, or the change you make now.'''
 RUNTIME_ANTIPATTERNS = '''- **Expecting peers to read each other's plain text.** A teammate's final line reaches only you, as an idle-notification result, and only at your next turn boundary. Worker-to-DA traffic must be SendMessage.
-- **Using an agent type with a restricted tool list.** No `SendMessage` in its tools means it can never reach its DA or you. `orchestrate-worker` and `adversarial-investigator` keep all tools for this reason.
+- **Using an agent type with a restricted tool list as a teammate.** No `SendMessage` in its tools means it can never reach its DA or you. `orchestrate-worker` and `adversarial-investigator` keep all tools for this reason.
 - **Running this headless.** `claude -p` never spawns teammates; the skill is for interactive sessions.'''
 MODEL_REFERENCE = "`references/model-seats.md` — which model each role gets and why `model:` must be explicit."
 PREFLIGHT_REFERENCE = "`scripts/preflight.py` — trust-dialog and agent-teams check; run with `--fix` before every spawn."
@@ -76,7 +79,7 @@ REASSIGN = '''```
 SendMessage(to: "worker-N", message: "Your reviewer is now da-K. Resend your current round brief to da-K, including the prior findings and your FIX/DEFER/FALSE_POSITIVE notes so da-K has the history.")
 SendMessage(to: "da-K", message: "worker-N is now yours in addition to your current workers. Its brief follows from the worker.")
 ```'''
-SHUTDOWN = '''After the final report, tell each agent `You are released; no further work.` Use `TaskStop` on any agent that stays busy.'''
+SHUTDOWN = '''Release agents as the skill's Steps 4 and 7 say: stop each one with `TaskStop`, then log `append RELEASE <name>`. Do not message a finished agent to announce shutdown; the message only wakes it.'''
 
 [skills.orchestrate.references.subtask]
 SPAWN_FIELD = "`prompt`"
@@ -90,14 +93,15 @@ SEAT_TABLE = '''| Role | Agent call | Why |
 |---|---|---|
 | Worker | `subagent_type: "pave-init:orchestrate-worker", model: "opus"` | Implementation is medium work; opus is fast enough and cheaper than fable per round. |
 | DA | `subagent_type: "pave-init:adversarial-investigator", model: "fable"` | Reviewing is the hard-judgment seat; a weak reviewer passes bad work. |
-| Evidence | DAs spawn `pave-init:research-delegate` on `sonnet` themselves; workers may spawn `Explore` on `sonnet` | Read-only lookups do not need judgment. |'''
+| Evidence | DAs spawn `pave-init:research-delegate` on `sonnet` themselves; workers may spawn `Explore` on `sonnet` | Read-only lookups do not need judgment. |
+| Step 1 helper | `subagent_type: "Explore", model: "sonnet"` to investigate; `subagent_type: "Plan", model: "opus"` to draft an approach; no `name` | Read-only and short-lived; a draft approach is medium work. |'''
 DISPATCH_GUIDANCE = '''## Always pass `model:` explicitly
 
-Teammate spawns **ignore the `model:` field in the agent's frontmatter** and use the Agent call's `model` parameter, inheriting the parent's model when it is omitted (verified 2026-09-30: an `orchestrate-worker` spawned without `model:` ran on Fable 5.1 under a fable parent). If you forget `model: "opus"` on a worker, the whole team silently runs on the orchestrator's model and the tiering rule is broken.
+Teammate spawns **ignore the `model:` field in the agent's frontmatter** and use the Agent call's `model` parameter, inheriting the parent's model when it is omitted. If you forget `model: "opus"` on a worker, the whole team silently runs on the orchestrator's model and the tiering rule is broken.
 
-## Why there is no 60/20/20 id spread here
+## Seats name a tier, not a model id
 
-The user's rule spreads each tier over several model ids for capacity (`opus` / `anthropic.claude-opus-5[1m]` / `anthropic.claude-opus-4-8[1m]`, and `fable` / `global.anthropic.claude-fable-5[1m]`). The Agent tool's `model` parameter only accepts `sonnet | opus | haiku | fable`, and agent-file frontmatter is ignored for teammates, so this skill cannot select a full id per seat. The only place a per-teammate id can be set is the teammate launch command (`CLAUDE_CODE_TEAMMATE_COMMAND`, the user's launcher wrapper), which already rotates AWS identity per teammate and receives `--model opus` on the command line. Rewriting `--model` there by seat is the follow-up that would restore the spread; until then, plain `opus` and `fable` are what every seat gets.'''
+The Agent tool's `model` parameter accepts only `sonnet`, `opus`, `haiku`, and `fable`, and teammates ignore agent-file frontmatter, so a seat cannot pin a full model id from here. Only the teammate launch command (`CLAUDE_CODE_TEAMMATE_COMMAND`) can set the id per teammate.'''
 
 [roles.orchestrate-worker]
 model = "opus"

@@ -1,4 +1,4 @@
-version: 2.9.0
+version: 2.10.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,15 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.10.0 (2026-10-30)
+
+- New — Orchestrate now investigates and designs before it builds, so you no longer type the method each run. Step 0 restates the goal and checks that the build can split. Step 1 sends read-only helpers to investigate, drafts one approach or several competing ones, simplifies the drafts and picks one, then splits the build into subtasks. Questions for you come in one batch after investigation. Step 1 notes go in a `<run id>.plan` file beside the run log, so they survive compaction and resume.
+  - Claude helpers are plain background subagents (`Explore` on sonnet, `Plan` on opus), so they hold no agent slot, and the lead loads the `simplify` skill on the plan file. Codex helpers are `research-delegate` agents, and the Codex lead writes the drafts itself. `init` now starts with the goal only. New binding slots: ASK_USER, HELPERS, SIMPLIFY. Source: the user's request of 2026-10-29.
+- New — Before the first wave starts, `da-1` reviews the plan, for at most two rounds. Findings still open after that go into the subtasks they affect.
+  - The protocol reference adds a plan brief. The verdict is logged as `REVIEW team-lead plan da-1 <verdict>`.
+- Fixed — The release reminder could free the last DA too early, because it counted any review PASS. Now only a whole-goal PASS counts.
+- Improved — A prompt audit of orchestrate. The protocol's shutdown and fix-round rules now match the skill. The DA prompt states the real cost of a false positive. The model notes drop a dated incident and old model IDs. The trigger description names one intent, not seven synonyms.
 
 ### 2.9.0 (2026-10-29)
 

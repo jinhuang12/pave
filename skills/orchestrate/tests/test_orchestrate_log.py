@@ -318,6 +318,7 @@ class OrchestrateLogTests(unittest.TestCase):
 
     def test_releasable_lists_finished_agents_and_keeps_one_reviewer(self):
         self.init(PLAN1, PLAN2, "worker-3 -> da-2 | c.py | test c | one agent: same")
+        self.run_log("append", "REVIEW", "team-lead", "plan da-1 PASS")  # not the whole-goal review
         self.run_log("append", "DONE", "worker-1", "r1 PASS")
         self.assertEqual(self.releasable(), ["worker-1"])  # da-1 still reviews worker-2
         self.run_log("append", "RESPAWN", "worker-3", "-> worker-4 | 503")

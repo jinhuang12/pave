@@ -94,7 +94,7 @@ def agents(lines):
         elif event == "REVIEW":
             if hit := re.search(r"whole-goal (\S+)", text):
                 see(hit.group(1))  # a fresh whole-goal DA may serve no worker
-            passed = bool(re.search(r"\bPASS\b", text)) and not re.search(r"\bREVISE\b", text)
+                passed = bool(re.search(r"\bPASS\b", text)) and not re.search(r"\bREVISE\b", text)
     workers = [w for w in state if w not in released]
     busy = {reviewer.get(w) for w in workers if state[w] == "open"}
     idle = [d for d in das if d not in busy and d not in released]
