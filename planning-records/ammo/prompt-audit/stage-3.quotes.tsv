@@ -1,0 +1,39 @@
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Each one reads the full profile and submits 2-3 candidates it grounded on its own.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	A scope objection may be closed only by the lead or critic, and only with cited evidence that the declared production boundary was actually measured.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Only production-boundary magnitude may enter expected-value ranking.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	For `vllm-neuron` (profile `pumice-neuron`), read `references/accelerator-binding.md` § Champion and load the Neuron skills it names.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	Check the current `exhausted_technologies[]`. Retry an exhausted component/technology/shape tuple only with documented new evidence or changed conditions.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	Submit 2-3 complete, independently eligible candidates, ranked by expected E2E return.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	Run the strongest bounded experiment the load-bearing claim needs
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	A proxy proves feasibility and bounds, but it cannot supply production EV magnitude.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	Every experiment uses production API, shapes, layouts, CUDA graphs, and `torch.compile`.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	When the lead requests a revision, increment `revision`, publish by temporary sibling plus atomic `mv`, then send only
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	The lead's `critique_assignment` names your critic op, the target op, its path and section, and your output path
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	- Evidence has two independent axes: how far you verified it (tier) and what it covers (scope).
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	Use `ammo-delegate` for bounded extraction, source tracing, arithmetic, prior-art search, and experiment execution.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-champion.md	Peer work reaches you through artifacts, and debate champions have no transcript monitor.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/debate-protocol.md	clean production sweep
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/debate-protocol.md	vLLM's Inductor passes may already fuse the chain
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/debate-protocol.md	Stage 3 does not modify vLLM source, download model weights, or run a clean full-model sweep
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/debate-protocol.md	Publish each artifact through a temporary sibling and an atomic rename, so appearance of the final path means the artifact is complete.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/debate-protocol.md	Before Stage 4, reconcile the selected proposals and outstanding validation obligations.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/debate-protocol.md	## Artifacts
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	`f_decode` stays in the ranking table as a diagnostic column; `f_e2e` is the column champions plug into Amdahl.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	From the motivating campaign (see Appendix A of the design spec).
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	There is one projection equation.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	Gate 5.2 measures the declared production boundary, including the production
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	So so an unfused Gate 5.2 baseline may measure against code that never runs in production.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	## Practical Usage in Phase 0 / Phase 4
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	No conversion is needed.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	- At BS=32, the same kernel may be 3% (`f_e2e = 0.03`) because (a) the kernel scales superlinearly
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	If the warm-cache vs cold-cache kernel speedup ratio exceeds 1.5× at any probed BS
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/e2e-delta-math.md	## Crossover Prediction from Kernel Data
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/crossover-probing.md	- The champion has evaluated gating feasibility and is running crossover probing itself
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/crossover-probing.md	If ALL are REGRESSED/CATASTROPHIC, the track FAILs.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/crossover-probing.md	Each track gets one gating attempt. After crossover probing completes and the champion implements gating:
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/crossover-probing.md	Record crossover probing results in `state.json` at
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/fusion-feasibility-heuristics.md	→ fusion is **low probability** *(advisory heuristic, NOT a ship/retract gate)*
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/fusion-feasibility-heuristics.md	## Search anchors
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/fusion-feasibility-heuristics.md	Fill in the baseline “already fused?” checklist first.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/fusion-feasibility-heuristics.md	- If `time_saved_max_us < 0.5 * required_savings_us`
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/fusion-feasibility-heuristics.md	as a conservative Hopper-class back-of-envelope.

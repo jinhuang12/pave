@@ -1,0 +1,407 @@
+{
+  "$defs": {
+    "Command": {
+      "additionalProperties": false,
+      "properties": {
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "timeout_s": {
+          "default": 3600,
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "title": "Timeout S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "argv"
+      ],
+      "title": "Command",
+      "type": "object"
+    },
+    "Policy": {
+      "additionalProperties": false,
+      "properties": {
+        "objective": {
+          "enum": [
+            "ttft_ms",
+            "tpot_ms",
+            "itl_ms",
+            "e2e_ms",
+            "goodput_rps"
+          ],
+          "title": "Objective",
+          "type": "string"
+        },
+        "percentile": {
+          "default": 99,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "title": "Percentile",
+          "type": "number"
+        },
+        "min_improvement_pct": {
+          "default": 0.5,
+          "exclusiveMaximum": 100,
+          "exclusiveMinimum": 0,
+          "title": "Min Improvement Pct",
+          "type": "number"
+        },
+        "regression_tolerance_pct": {
+          "default": 0.5,
+          "exclusiveMaximum": 100,
+          "minimum": 0,
+          "title": "Regression Tolerance Pct",
+          "type": "number"
+        },
+        "alpha": {
+          "default": 0.05,
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "repetitions": {
+          "default": 10,
+          "maximum": 1000,
+          "minimum": 6,
+          "title": "Repetitions",
+          "type": "integer"
+        },
+        "slo_ms": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "enum": [
+              "ttft_ms",
+              "tpot_ms",
+              "itl_ms",
+              "e2e_ms"
+            ]
+          },
+          "title": "Slo Ms",
+          "type": "object"
+        },
+        "max_error_rate": {
+          "default": 0,
+          "exclusiveMaximum": 1,
+          "minimum": 0,
+          "title": "Max Error Rate",
+          "type": "number"
+        },
+        "min_duration_s": {
+          "default": 30,
+          "exclusiveMinimum": 0,
+          "title": "Min Duration S",
+          "type": "number"
+        },
+        "max_client_queue_ms": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Max Client Queue Ms",
+          "type": "number"
+        },
+        "correctness_questions": {
+          "default": 1319,
+          "maximum": 1319,
+          "minimum": 1,
+          "title": "Correctness Questions",
+          "type": "integer"
+        },
+        "correctness_tolerance_pp": {
+          "default": 1,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Correctness Tolerance Pp",
+          "type": "number"
+        },
+        "correctness_max_tokens": {
+          "default": 1024,
+          "minimum": 1,
+          "title": "Correctness Max Tokens",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "objective",
+        "slo_ms"
+      ],
+      "title": "Policy",
+      "type": "object"
+    },
+    "Worker": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "prefill",
+            "decode",
+            "router"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "resource_ids": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Resource Ids",
+          "type": "array"
+        },
+        "command": {
+          "$ref": "#/$defs/Command"
+        },
+        "ready_url": {
+          "title": "Ready Url",
+          "type": "string"
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Env",
+          "type": "object"
+        },
+        "execution_ranks": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Execution Ranks",
+          "type": "integer"
+        },
+        "execution_identity": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Execution Identity",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "role",
+        "command",
+        "ready_url",
+        "execution_identity"
+      ],
+      "title": "Worker",
+      "type": "object"
+    },
+    "Workload": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "request_rate": {
+          "exclusiveMinimum": 0,
+          "title": "Request Rate",
+          "type": "number"
+        },
+        "num_prompts": {
+          "minimum": 2,
+          "title": "Num Prompts",
+          "type": "integer"
+        },
+        "command": {
+          "$ref": "#/$defs/Command"
+        },
+        "files": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Files",
+          "type": "object"
+        },
+        "output_tokens": {
+          "minimum": 2,
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "input_tokens": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Tokens"
+        }
+      },
+      "required": [
+        "id",
+        "request_rate",
+        "num_prompts",
+        "command",
+        "files",
+        "output_tokens"
+      ],
+      "title": "Workload",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "ammo_serving/2",
+      "default": "ammo_serving/2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "mode": {
+      "const": "pd",
+      "default": "pd",
+      "title": "Mode",
+      "type": "string"
+    },
+    "manager": {
+      "const": "local",
+      "default": "local",
+      "title": "Manager",
+      "type": "string"
+    },
+    "runtime_profile": {
+      "enum": [
+        "vllm-cuda",
+        "vllm-neuron",
+        "pumice-cuda",
+        "pumice-neuron"
+      ],
+      "title": "Runtime Profile",
+      "type": "string"
+    },
+    "lnc": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lnc"
+    },
+    "model_id": {
+      "minLength": 1,
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_revision": {
+      "title": "Model Revision",
+      "type": "string"
+    },
+    "dtype": {
+      "minLength": 1,
+      "title": "Dtype",
+      "type": "string"
+    },
+    "endpoint": {
+      "title": "Endpoint",
+      "type": "string"
+    },
+    "workers": {
+      "items": {
+        "$ref": "#/$defs/Worker"
+      },
+      "minItems": 3,
+      "title": "Workers",
+      "type": "array"
+    },
+    "workloads": {
+      "items": {
+        "$ref": "#/$defs/Workload"
+      },
+      "minItems": 1,
+      "title": "Workloads",
+      "type": "array"
+    },
+    "policy": {
+      "$ref": "#/$defs/Policy"
+    },
+    "seed": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "startup_timeout_s": {
+      "default": 1800,
+      "exclusiveMinimum": 0,
+      "maximum": 86400,
+      "title": "Startup Timeout S",
+      "type": "number"
+    },
+    "max_run_s": {
+      "default": 14400,
+      "exclusiveMinimum": 0,
+      "maximum": 172800,
+      "title": "Max Run S",
+      "type": "number"
+    },
+    "adapters": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Command"
+      },
+      "propertyNames": {
+        "enum": [
+          "component",
+          "mechanism",
+          "activation",
+          "timing_proof"
+        ]
+      },
+      "title": "Adapters",
+      "type": "object"
+    },
+    "environment": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Environment",
+      "type": "object"
+    },
+    "adapter_files": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Adapter Files",
+      "type": "object"
+    }
+  },
+  "required": [
+    "runtime_profile",
+    "model_id",
+    "model_revision",
+    "dtype",
+    "endpoint",
+    "workers",
+    "workloads",
+    "policy",
+    "adapters",
+    "adapter_files"
+  ],
+  "title": "ServingSpec",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

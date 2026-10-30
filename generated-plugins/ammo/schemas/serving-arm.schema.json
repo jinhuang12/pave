@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "Envelope": {
+      "additionalProperties": false,
+      "description": "Production-observable predicate, never a benchmark workload-ID switch.",
+      "properties": {
+        "roles": {
+          "items": {
+            "enum": [
+              "prefill",
+              "decode"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Roles",
+          "type": "array"
+        },
+        "min_input_tokens": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Min Input Tokens",
+          "type": "integer"
+        },
+        "max_input_tokens": {
+          "minimum": 1,
+          "title": "Max Input Tokens",
+          "type": "integer"
+        },
+        "predicate_symbol": {
+          "minLength": 1,
+          "title": "Predicate Symbol",
+          "type": "string"
+        },
+        "fallback_identity_sha256": {
+          "title": "Fallback Identity Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "roles",
+        "max_input_tokens",
+        "predicate_symbol",
+        "fallback_identity_sha256"
+      ],
+      "title": "Envelope",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "commit": {
+          "title": "Commit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "commit"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "sources": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "object"
+    },
+    "mechanism_env": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Mechanism Env",
+      "type": "object"
+    },
+    "envelope": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Envelope"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "enablement": {
+      "default": "all frozen workloads",
+      "minLength": 1,
+      "title": "Enablement",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "sources"
+  ],
+  "title": "Arm",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

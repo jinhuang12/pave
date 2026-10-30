@@ -1,0 +1,26 @@
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/audit-invariants.md	- **Exhaustion is specific (HIGH).** Failed component/technology/shape/failure
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	6. If the campaign is terminal and `REPORT.md` is absent, run Stage 7b.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-report-writer.md	2. JARGON COMPLIANCE: Scan REPORT.md for AMMO internal terminology that should have been translated.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-report-writer.md	- Kernel speedups and BW utilization must match rounds/{N}/mining/bottleneck_analysis.md
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	- After SHIP, if the change is material, create the next round at `2_bottleneck_mining` and mine the promoted prior-round Stage-6 integration/single-pass evidence.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/audit-invariants.md	- **Continuation belongs to Stage 7 (BLOCKING).** Stage 6 finalized the current
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/writing-style.md	Use this for proposals, critiques, rebuttals, validation reports, monitor logs, and decision records.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-report-writer.md	Return {"ok": false, "violations": [{"type": "hallucinated_number
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-delegate.md	- Fact-check a draft `REPORT.md` for the lead at Stage 7b: follow the assignment in your prompt and return its `ok` verdict with every violation cited.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	`ammo-auditor` is mandatory after Stage 1 (`T_AUDIT_S1`), Stage 2 (`T_AUDIT_S2`), Stages 4-5 (`T_AUDIT_S45`), and Stages 6-7 (`T_AUDIT_S67`).
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-report-writer.md	- Trace every quantitative claim to a primary campaign artifact.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo-report/SKILL.md	Legacy root paths such as `constraints.md`, `bottleneck_analysis.md`, `tracks/`, `e2e_latency/`, or timestamp-versioned sweep directories are fallback inputs only when
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo-report/SKILL.md	Preserve the independent fact-checker and existing report acceptance artifact.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-report-writer.md	**Serving targets:** If the frozen target has a `serving` block, read `references/serving-campaign.md` under the plugin root.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Never pick between them by narrative preference.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	A material SHIP may never use its pre-promotion mining for this decision.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	- Let every track in the current cohort reach a terminal state before you start the next round.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Do not stop for qualitative "good enough," time, difficulty, or token reasons.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Every new round entry must carry `"audit": {}` from creation, so the mandatory audit gates cannot fail open.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	It must build every factual claim from campaign artifacts and disclose missing or failed evidence.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/writing-style.md	The pipeline already proves your diligence structurally: a populated Candidate Declaration block, a passing gate, a cited log file.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/writing-style.md	Required fields and evidence take priority over brevity.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/writing-style.md	Include every material item; there is no row-count limit.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-report-writer.md	for the exact report bytes. This is a hard gate.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-report-writer.md	`REPORT.md` is the terminal report artifact.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/tests/test_guidance_semantic_contract.py	Claude runs the adversarial fact-checker as the report-writer's Stop hook.

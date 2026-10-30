@@ -1,0 +1,232 @@
+kind: graph
+semantic_diff: >-
+  Base: revision 0, digest
+  sha256:ca4687d250562775bab77bf8efcd27c92eddcb93bd5dd20381d59803f917a4be. Post-wave-1
+  name re-diff of the graph against the final skills/ammo/SKILL.md,
+  orchestration/*.md, agents/*.md, and scripts/transitions.json. Counts: 13
+  nodes, 47 edges, 45 outcomes, 13 roles, 5 control nodes unchanged; checks
+  30 become 31; evidence definitions 15 become 16. 10 hunks, 69 added lines
+  against 27 removed; 1314 lines become 1356. Every stage, audit, gate,
+  outcome token, and status name was already 1:1; the drift was in role text
+  only. (1) Spawn addresses: the nine agent-backed role purposes name the
+  plugin address ammo:<role> (references/harness-binding.md), for example
+  ammo:ammo-auditor. (2) Stage 7b fact-check: the report writer no longer runs
+  it. The lead spawns a fresh ammo-delegate as the fact-checker after the
+  writer returns, with only the plugin_root line, the artifact_dir line, and
+  the unchanged assignment in agents/ammo-report-writer.md, and writes
+  report_assets/report_fact_check.json with ok, findings, and report_sha256
+  (SKILL.md Stage 7b). Role report_fact_checker now says so;
+  ammo_report_writer gains two forbidden effects (spawn the fact-checker,
+  write the record); ammo_delegate names the separate fact-check seat. New
+  evidence report_fact_check, produced by stage_7b_report and required by
+  report_accepted. Check report_fact_check_ok keeps its evaluator and gains
+  the ok:false repair loop as on_failure. New lead check
+  report_fact_check_current (ok true, empty findings, report_sha256 equal to
+  the current REPORT.md bytes) guards both report_accepted edges.
+user_only_changes: none
+plan_evidence: verified
+usage_evidence: none
+changelog_entry: >-
+  Revision 1: role bindings name the ammo:<role> spawn address, and the
+  Stage 7b fact-check is a lead-run gate recorded in report_fact_check.json.
+approval: >-
+  team-lead subtask, post-wave-1 re-diff (2026-10-28): fix any name drift
+  against the final SKILL.md, orchestration, and agents files; update the
+  report_fact_checker role and the Stage 7b text to the lead-run fact-check;
+  use the ammo:<role> address where the graph names a spawn address.
+diff --git a/workflow.pave.yaml b/workflow.pave.yaml
+index fc815b2..9cf032b 100644
+--- a/workflow.pave.yaml
++++ b/workflow.pave.yaml
+@@ -92,13 +92,14 @@ pave:
+         scope, and may pause the campaign at any time.
+     ammo_researcher:
+       purpose: >-
+-        One-shot subagent (agent ammo-researcher, no name). Stage 1 baseline
++        One-shot subagent, spawned fresh at ammo:ammo-researcher with no name.
++        Stage 1 baseline
+         and attribution capture (task_type baseline) and Stage 2 bottleneck
+         mining (task_type mining); owns the mining derivation chain and
+         regenerates tables from primary data on repair.
+     ammo_champion:
+       purpose: >-
+-        Named team member (agent ammo-champion). Proposes 2-3 grounded
++        Named team member, spawned at ammo:ammo-champion. Proposes 2-3 grounded
+         candidates on its own, runs bounded micro-experiments, critiques one
+         rival candidate, and rebuts the critique of its own.
+       independence:
+@@ -106,7 +107,7 @@ pave:
+         - cannot close a scope objection against its own candidate
+     ammo_impl_champion:
+       purpose: >-
+-        Named team member (agent ammo-impl-champion), one per winner, in its
++        Named team member, spawned at ammo:ammo-impl-champion, one per winner, in its
+         own worktree and branch. Implements the selected candidate, runs gates
+         5.1a, 5.2, 5.3a, 5.1b, and 5.3b, and authors the track verdict in
+         validation_results.md. Also removes its own change in an isolated
+@@ -116,7 +117,7 @@ pave:
+         - loosen its own gate test to pass it
+     ammo_transcript_monitor:
+       purpose: >-
+-        Named team member (agent ammo-transcript-monitor), paired one to one
++        Named team member, spawned at ammo:ammo-transcript-monitor, paired one to one
+         with each impl champion for its full active lifetime. Reviews
+         methodology from the champion transcript and runs cross-track
+         collision checks.
+@@ -126,7 +127,7 @@ pave:
+         - write track or campaign evidence beyond its own monitor_audits record
+     ammo_resolver:
+       purpose: >-
+-        One-shot subagent (agent ammo-resolver). Resolves merge conflicts and
++        One-shot subagent, spawned at ammo:ammo-resolver. Resolves merge conflicts and
+         semantic interactions between accepted tracks at Stage 6 without
+         weakening any track's accepted boundary, fallback, or rollback control.
+     merge_reviewer:
+@@ -139,7 +140,7 @@ pave:
+         - never the resolver whose work it reviews
+     ammo_auditor:
+       purpose: >-
+-        One-shot subagent (agent ammo-auditor), fresh for every gate and every
++        One-shot subagent, spawned at ammo:ammo-auditor, fresh for every gate and every
+         re-audit. Writes Phase 1 independent reconstruction from primary
+         evidence before it sees the checklist; the hook then delivers Phase 2;
+         writes the verdict PASS, BLOCKED, or NEEDS_INVESTIGATION.
+@@ -151,29 +152,42 @@ pave:
+         - never repairs its own finding
+     ammo_delegate:
+       purpose: >-
+-        One-shot subagent (agent ammo-delegate) for one bounded evidence,
+-        profiling, or micro-experiment task. Its answers are evidence for the
+-        seat that spawned it to challenge, never verdicts.
++        One-shot subagent, spawned at ammo:ammo-delegate, for one bounded
++        evidence, profiling, or micro-experiment task. Its answers are evidence
++        for the seat that spawned it to challenge, never verdicts. The Stage 7b
++        fact-check is the separate seat report_fact_checker.
+       forbidden_effects:
+         - write campaign evidence
+     ammo_investigator:
+       purpose: >-
+-        One-shot subagent (agent ammo-investigator) for an ambiguous result, an
++        One-shot subagent, spawned at ammo:ammo-investigator, for an ambiguous result, an
+         unexplained correctness, activation, measurement, or integration
+         failure, or a consequential decision with no established answer. Gets
+         the primary artifacts and one concrete decision question.
+     ammo_report_writer:
+       purpose: >-
+-        One-shot subagent (agent ammo-report-writer), fresh at Stage 7b. Builds
+-        REPORT.md and report_assets/ from campaign artifacts only and
+-        discloses missing or failed evidence.
++        One-shot subagent, spawned fresh at ammo:ammo-report-writer at Stage
++        7b. Builds REPORT.md and report_assets/ from campaign artifacts only
++        and discloses missing or failed evidence. It does not check its own
++        report; when its prompt carries fact-check findings, it fixes each one
++        in REPORT.md and returns.
++      forbidden_effects:
++        - spawn the fact-checker
++        - write report_assets/report_fact_check.json
+     report_fact_checker:
+       purpose: >-
+-        The fresh adversarial fact-checker that the report writer's Stop hook
+-        runs. Traces every number, attribution, and method in REPORT.md to a
+-        campaign artifact and returns ok:true or the list of violations.
++        The adversarial fact-checker: a fresh ammo:ammo-delegate that the lead
++        spawns at Stage 7b after the report writer returns. Its prompt is the
++        plugin_root line, the artifact_dir line, and the fact-check assignment
++        in agents/ammo-report-writer.md, unchanged, with no expected answers
++        and no request to confirm the report. Traces every number, attribution,
++        and method in REPORT.md to a campaign artifact and returns ok:true or
++        the list of violations; the lead writes the record.
++      forbidden_effects:
++        - write campaign evidence
+       independence:
+         - never the report writer
++        - fresh for every REPORT.md version it checks
+ 
+   evidence:
+     target_contract:
+@@ -294,6 +308,16 @@ pave:
+       artifacts:
+         - .ammo/<campaign-id>/REPORT.md
+         - .ammo/<campaign-id>/report_assets/
++    report_fact_check:
++      kind: judgment
++      produced_by: stage_7b_report
++      subject: >-
++        The lead's record of the fresh fact-checker's verdict: ok, findings
++        (its violations, empty when ok is true), and report_sha256, the
++        SHA-256 of the exact REPORT.md bytes it reviewed. With the
++        fact-checker exchange it is the audit record; no state field or other
++        sidecar is added.
++      artifact: .ammo/<campaign-id>/report_assets/report_fact_check.json
+     blocker_record:
+       kind: observation
+       produced_by:
+@@ -564,10 +588,22 @@ pave:
+     report_fact_check_ok:
+       style: reviewed
+       question: >-
+-        Did a fresh adversarial fact-checker return ok:true for REPORT.md,
+-        with every number traced to a campaign artifact and no jargon leak,
+-        wrong attribution, or invented method?
++        Did the fresh adversarial fact-checker return ok:true for the exact
++        REPORT.md bytes, with every number traced to a campaign artifact and
++        no jargon leak, wrong attribution, or invented methodology?
+       evaluated_by: report_fact_checker
++      on_failure: >-
++        The lead writes ok:false and the violations as findings to
++        report_fact_check.json, spawns a fresh ammo-report-writer with the
++        findings, then a fresh fact-checker on the new report.
++      on_failure_route: stage_7b_report
++    report_fact_check_current:
++      style: mechanical
++      question: >-
++        Does report_assets/report_fact_check.json hold ok:true, an empty
++        findings list, and a report_sha256 equal to the SHA-256 of the current
++        REPORT.md bytes?
++      evaluated_by: lead
+       on_failure_route: stage_7b_report
+     status_is_campaign_complete:
+       style: mechanical
+@@ -947,16 +983,22 @@ pave:
+       purpose: >-
+         Stage 7b, at campaign_complete or campaign_exhausted (and on resume
+         of a terminal campaign without REPORT.md): a fresh
+-        ammo-report-writer builds every factual claim from campaign
+-        artifacts, discloses missing or failed evidence, and gets ok:true
+-        from a fresh adversarial fact-checker before it returns.
++        ammo-report-writer builds every factual claim from campaign artifacts
++        and discloses missing or failed evidence; it does not check its own
++        report. The lead runs the fact-check gate: when the writer returns, it
++        spawns a fresh ammo-delegate as the adversarial fact-checker and writes
++        the verdict to report_assets/report_fact_check.json with ok, findings,
++        and report_sha256. On ok:false a fresh writer gets the findings, then a
++        fresh fact-checker checks the new report.
+       roles: [lead, ammo_report_writer, report_fact_checker]
+       consumes: [campaign_state, audit_verdict, integration_result, track_evidence]
+-      produces: [campaign_report]
++      produces: [campaign_report, report_fact_check]
+       outcomes:
+         report_accepted:
+-          meaning: REPORT.md exists and the fact-checker returned ok:true.
+-          required_evidence: [campaign_report]
++          meaning: >-
++            report_fact_check.json holds ok:true and its report_sha256 matches
++            the current REPORT.md.
++          required_evidence: [campaign_report, report_fact_check]
+ 
+   edges:
+     - id: target_frozen_to_preflight
+@@ -1155,11 +1197,11 @@ pave:
+     - id: report_to_campaign_complete
+       from: stage_7b_report.report_accepted
+       to: campaign_complete
+-      checks: [report_fact_check_ok, status_is_campaign_complete]
++      checks: [report_fact_check_ok, report_fact_check_current, status_is_campaign_complete]
+     - id: report_to_campaign_exhausted
+       from: stage_7b_report.report_accepted
+       to: campaign_exhausted
+-      checks: [report_fact_check_ok, status_is_campaign_exhausted]
++      checks: [report_fact_check_ok, report_fact_check_current, status_is_campaign_exhausted]
+ 
+   control_nodes:
+     all_tracks_terminal:

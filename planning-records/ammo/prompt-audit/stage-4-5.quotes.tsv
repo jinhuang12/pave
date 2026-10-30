@@ -1,0 +1,37 @@
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Before a track may report `FAIL`, the implementer must exhaust the applicable fixes and the canonical fallback path in `references/impl-track-rules.md`.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-impl-champion.md	.venv/bin/python -c "import vllm; print(vllm.__file__)"
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-impl-champion.md	Enter your op worktree first with `EnterWorktree({"name": "{op_id}-<short-desc>"})`. `isolation: worktree` does not place you there;
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-impl-champion.md	For `vllm-neuron`, read `references/accelerator-binding.md` § Implementer and use `scripts/runtime_ops.py`; on `vllm-cuda`, follow this role's CUDA, Nsys, and NCU behavior.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-impl-champion.md	For an accuracy failure you may conclude the fix space is exhausted ONLY when both you and the monitor agree there are no untried options.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-impl-champion.md	Profiling, correctness, and timing must remain separate as required by `references/validation-defaults.md`.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-impl-champion.md	Write `rounds/{N}/tracks/{op_id}/validation_results.md` even on failure or a blocker.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-transcript-monitor.md	depends on them. On `vllm-neuron` (profile `pumice-neuron`) Nsys does not exist:
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-transcript-monitor.md	non-blocking context. If a CRITICAL finding goes unaddressed (check the
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/parallel-tracks.md	3. Spawn exactly one `ammo-impl-champion` and one continuously paired
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/parallel-tracks.md	summary in `rounds/{N}/constraints.md`; DO
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/parallel-tracks.md	The monitor is read-only with respect to track and campaign evidence. It covers
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/parallel-tracks.md	(atomic `.tmp` + `os.replace`; keys not yet observed stay absent or null).
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	The C++ kernel row applies to the vllm-* profiles.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	The user adds this `[patch.crates-io]` entry to `$CARGO_HOME/config.toml` before the first engine build
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	- Only the champion modifies source files (`csrc/`, `vllm/`, etc.).
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	- These gates run before the E2E sweep, so they need no GPU coordination.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	Derive your kernel correctness tests and benchmarks from the **optimization plan and debate summary**, not from the code you wrote.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	4. Champion completes the Self-Validation Gate checklist (root cause reasoning, smoke test, fix-attempt counter)
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	**DILUTED_PASS is not a target you implement toward.**
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	> **This is the canonical definition.** Other files reference this section.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	6. Champion registers env var in `vllm/envs.py`, defaulting off (`=0`).
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	**Never let the internal `op_id` become the flag name.**
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	The Stage 4-5 audit treats it as a BLOCKING finding.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	2. Is the dispatch site inside a custom op, layer forward(), or CUDA-graphed path?
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	# Reference: `torch.cond` in the fp8 GEMM dispatch (quantization/utils/fp8_utils.py)
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	NEVER use `--enforce-eager`, `TORCH_COMPILE_DISABLE=1`, or `VLLM_TORCH_COMPILE_LEVEL=0` to simplify the production comparator.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/session-development.md	# Campaign Development
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/torch-compile-contract.md	## Quick Reference
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/torch-compile-contract.md	Dynamo traces the model `forward()` ONCE and produces ONE FX graph.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	The result is deterministic, so no validator is involved.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	**Classification scope**: Lossless/lossy classification does NOT affect Gate 5.1b.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	On Neuron, the runner has no profiler flag (no `--accelerator-profile`;
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	The canonical track-level fallback ladder is `PASS → GATED_PASS → GATING_REQUIRED → RETRY_WITH_CONTINGENCY → FAIL`.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	Caveat: no significance test applies to the phase SCALARS in this table
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	**Ship conditions (0-6, ALL required, checked at EVERY swept BS row):**
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/audit-invariants.md	CUDA uses Nsys and counters only for counter-dependent claims. Neuron uses

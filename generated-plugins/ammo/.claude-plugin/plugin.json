@@ -1,0 +1,11 @@
+{
+  "name": "ammo",
+  "version": "1.0.0",
+  "description": "Run a staged, multi-agent campaign that profiles and optimizes Pumice inference latency on your own NVIDIA GPU host, inside a local Pumice checkout, with no server, container, or web UI. The campaign keeps the seven stages (baseline, bottleneck mining, debate, isolated implementation and validation tracks, integration, campaign evaluation), the fact-checked report, four independent audits, and five binding gates, and ships only changes that are production-active, correct, and statistically faster. Ships the lead skill (ammo:ammo), the report sub-skill (ammo:ammo-report), eight role agents (ammo:<role>), and the campaign hooks. Needs the pave-init plugin for its adversarial-investigator agent.",
+  "author": {
+    "name": "jinhuang12"
+  },
+  "dependencies": [
+    "pave-init"
+  ]
+}

@@ -1,0 +1,24 @@
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	Follow `orchestration/integration-logic.md` and keep the whole decision matrix:
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/skills/ammo/SKILL.md	On SHIP: run the pre-ship mechanical checks, integrate the exact validated change, promote its environment contract
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	shapes and status enums. `scripts/transitions.json` owns legal transitions.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	1. **No accepted track:** finalize the round as EXHAUSTED. Record why each track
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	Its Stage 5 production correctness, activation, and clean E2E result stay
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	3. **Multiple compatible accepted tracks:** put their exact validated commits
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	Do not select by a copied PASS/GATED/dilution matrix, and do not select by a
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	no new technical information. Preserve its PASS versus GATED_PASS semantics and promote
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	integration slot when the mechanical pre-ship checks require it there; do not
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	conflicting resolutions use `ammo-resolver` and a fresh independent reviewer;
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	`{baseline_label}_{tag}.json`. A round >= 2 integration sweep MUST import the
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	that authority with the best individual's result plus an assumed diluted-track
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	root, run the existing fail-closed mechanical
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	2. Promote the environment contract. The new baseline environment is **the
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	removes the implicated code, environment keys, current integration/shipped and
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/orchestration/integration-logic.md	Compute cumulative improvement directly from the original Round-1 production
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-resolver.md	description: Resolve merge conflicts when cherry-picking GATED_PASS tracks in AMMO Stage 6 integration.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-resolver.md	## Environment (BLOCKING)
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-resolver.md	Address evidence-backed findings, then request a fresh review.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-resolver.md	4. Check interactions, unique mechanism-derived `VLLM_*` flags
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/agents/ammo-resolver.md	2. Run the binding Gate 5.1b E2E check with `--verify-correctness` for every merged track.
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/validation-defaults.md	track worktree), where a fresh paired measurement is safe; in round >= 2 that
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/audit-invariants.md	correctness, clean paired E2E, all required buckets, and separate activation
+/Users/jinhun/GitHub/pave/generated-plugins/ammo/references/impl-track-rules.md	(lambda M: 2 <= M <= 16, fused_qkv_fn, "op012"),
