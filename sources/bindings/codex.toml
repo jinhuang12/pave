@@ -10,10 +10,11 @@ output = "codex/skills/orchestrate/SKILL.md"
 FRONTMATTER = '''---
 name: orchestrate
 description: >-
-  Turn yourself into a pure orchestrator for any complex task. Decompose the
-  goal into independent subtasks, run them in parallel on gpt-6.1-sol
-  `orchestrate-worker` agents, and give each group of 2-3 workers a shared
-  gpt-6-astra `adversarial-investigator` that reviews their work until it PASSes.
+  Turn yourself into a pure orchestrator for any complex task. Group the
+  user's asks into independent streams, investigate them in parallel, and
+  give each stream to a gpt-6.1-sol `orchestrate-worker` that designs and
+  builds it, with a shared gpt-6-astra `adversarial-investigator` per 2-3
+  workers that reviews their work until it PASSes.
   Use this skill whenever a task has 3 or more independent parts, spans many
   files or components, would take one agent more than roughly an hour, or when
   the user asks, in any wording, to split the work across parallel agents
@@ -44,8 +45,7 @@ Keep the lead active and use bounded `wait_agent` waits for arrivals; do not end
 - **Messages.** These are the events. Act only on a message whose first line is one of these:'''
 PROVIDER_FAILURE = '''**Provider failures.** An explicit runtime failure or confirmed dead agent means the worker died mid-task, and its files may be half-written. Spawn a replacement under the **next unused index** (`worker-7`, never a reused name), with the same subtask plus a line saying which files the dead worker may have touched, and tell its DA the new canonical path. Log it as `append RESPAWN <old> "-> <new> | <reason>"`. A new Codex agent does not imply a different provider identity or quota.'''
 ASK_USER = "a bounded plain-text question, or `request_user_input` when it is available"
-HELPERS = '''Spawn helpers with `spawn_agent` (`agent_type: "pave-init:research-delegate"`, `fork_turns: "none"`) within the capacity you counted for them. Start each brief with `PAVE_PLUGIN_ROOT: <absolute plugin root>` and collect the reports with `wait_agent`. That role reports evidence only, so you write every Step 1b draft yourself.'''
-SIMPLIFY = '''Give four helpers the plan file, one question each: does a draft reuse what already exists, can it have fewer parts or steps, does it waste work, does it change the right layer. Rule on each answer yourself and edit the plan file.'''
+HELPERS = '''Spawn helpers with `spawn_agent` (`agent_type: "pave-init:research-delegate"`, `fork_turns: "none"`) within the capacity you counted for them. Start each brief with `PAVE_PLUGIN_ROOT: <absolute plugin root>` and collect the reports with `wait_agent`.'''
 SHUTDOWN = '''Then release the team: use `interrupt_agent` for agents that remain busy. Idle completed agents need no close; do not wake them merely to announce shutdown.'''
 DONE_RELEASE = ""
 NOTES_ROUTE = "go to the owning workers to apply before CLOSE, with no `PLAN` line and no re-review."
@@ -104,11 +104,12 @@ Use `spawn_agent` with the named `agent_type` and `fork_turns: "none"` to retain
 sandbox_mode = "workspace-write"
 model = "gpt-6.1-sol"
 reasoning_effort = "xhigh"
-runtime = '''Use the canonical task paths supplied in the brief, not display labels. Read applicable skills from their listed SKILL.md files. Deliver review requests with followup_task(target=<reviewer path>, message=<full brief>), which wakes an idle reviewer. After sending, end your turn with WAITING <worker ID>: round R sent to <reviewer>. The reviewer's followup_task wakes you with the verdict. Send DONE, BLOCKED, ESCALATE, and BROKER to the lead with send_message; the lead waits actively. Do not rely on passive send_message to wake a peer. Do not start another reviewer.'''
+runtime = '''Use the canonical task paths supplied in the brief, not display labels. Read applicable skills from their listed SKILL.md files. Deliver review requests with followup_task(target=<reviewer path>, message=<full brief>), which wakes an idle reviewer. After sending, end your turn with WAITING <worker ID>: round R sent to <reviewer>. The reviewer's followup_task wakes you with the verdict. Send DONE, SPLIT, BLOCKED, ESCALATE, and BROKER to the lead with send_message; the lead waits actively. Do not rely on passive send_message to wake a peer. Do not start another reviewer.'''
 
 [roles.orchestrate-worker.slots]
 TESTING_SKILLS = "an available testing skill for code with tests, an available verification skill before you submit"
-DESCRIPTION = '''Implements one subtask issued by the orchestrate skill, loads the relevant skills, and loops with its assigned adversarial-investigator until the review PASSes. Dispatched by the orchestrate skill only, with the installed Codex custom-agent role; do not trigger from an implicit match.'''
+SIMPLIFY = ""
+DESCRIPTION = '''Designs and implements one stream or subtask issued by the orchestrate skill, loads the relevant skills, and loops with its assigned adversarial-investigator until the review PASSes. Dispatched by the orchestrate skill only, with the installed Codex custom-agent role; do not trigger from an implicit match.'''
 LEAD_ADDRESS = "(the canonical task path supplied in the brief)"
 SKILL_LOADER = "Read the listed SKILL.md files to load"
 REVIEW_WAIT = '''When acceptance passes, send your DA a brief with `followup_task`, then end your turn with one plain-text line: `WAITING <your name>: round 1 sent to <Reviewer>`. That line never reaches the DA; the orchestrator receives your turn completion. The DA's `followup_task` reply wakes you.'''

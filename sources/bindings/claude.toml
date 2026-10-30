@@ -10,10 +10,11 @@ output = "skills/orchestrate/SKILL.md"
 FRONTMATTER = '''---
 name: orchestrate
 description: >-
-  Turn yourself into a pure orchestrator for any complex task. Decompose the
-  goal into independent subtasks, run them in parallel on opus
-  `orchestrate-worker` agents, and give each group of 2-3 workers a shared
-  fable `adversarial-investigator` that reviews their work until it PASSes.
+  Turn yourself into a pure orchestrator for any complex task. Group the
+  user's asks into independent streams, investigate them in parallel, and
+  give each stream to an opus `orchestrate-worker` that designs and builds
+  it, with a shared fable `adversarial-investigator` per 2-3 workers that
+  reviews their work until it PASSes.
   Use this skill whenever a task has 3 or more independent parts, spans many
   files or components, would take one agent more than roughly an hour, or when
   the user asks, in any wording, to split the work across parallel agents
@@ -44,8 +45,7 @@ Teammate traffic reaches you **only between your turns**. After spawning, end yo
 - **SendMessages.** These are the events. Act only on a message whose first line is one of these:'''
 PROVIDER_FAILURE = '''**Provider failures.** An idle notification with `idleReason: failed` and an API error as the reason (503/429 after exhausted retries) means the worker died mid-task, and its files may be half-written. Spawn a replacement under the **next unused index** (`worker-7`, never a reused name), with the same subtask plus a line saying which files the dead worker may have touched, and tell its DA the new name. Log it as `append RESPAWN <old> "-> <new> | <reason>"`. Each teammate launch gets its own identity slot from the teammate launcher, so a fresh spawn usually lands on a different quota than the one that failed.'''
 ASK_USER = "`AskUserQuestion` (plain text if it is unavailable)"
-HELPERS = '''Spawn helpers as plain background subagents, not teammates: leave out `name`, so each returns one report and ends without holding an agent slot. Use `Explore` on `sonnet` for an investigation question and `Plan` on `opus` for a draft approach (seats in `references/model-seats.md`).'''
-SIMPLIFY = '''Load the `simplify` skill with the plan file's path as its argument: it reviews the drafts through its four lenses (reuse, simplification, efficiency, altitude) and edits only that file.'''
+HELPERS = '''Spawn helpers as plain background subagents, not teammates: leave out `name`, so each returns one report and ends without holding an agent slot. Use `Explore` on `sonnet` for each stream (seat in `references/model-seats.md`).'''
 SHUTDOWN = "Then release the team: stop each agent that `append CLOSE` names with `TaskStop`."
 DONE_RELEASE = " Then stop the worker with `TaskStop` (task_id `worker-N`) and log `append RELEASE worker-N`. Stop a DA the same way once `releasable` lists it."
 NOTES_ROUTE = '''go to one fresh worker under the next unused index, reviewed by the DA that ran the whole-goal review, which checks only that each note was applied; there is no whole-goal re-review. Log it in the same `append --stdin` as the `REVIEW` line, as `PLAN worker-N "-> da-M | notes: <summary> | <acceptance>"`, so the release reminder keeps that DA until the notes worker's DONE.'''
@@ -94,7 +94,7 @@ SEAT_TABLE = '''| Role | Agent call | Why |
 | Worker | `subagent_type: "pave-init:orchestrate-worker", model: "opus"` | Implementation is medium work; opus is fast enough and cheaper than fable per round. |
 | DA | `subagent_type: "pave-init:adversarial-investigator", model: "fable"` | Reviewing is the hard-judgment seat; a weak reviewer passes bad work. |
 | Evidence | DAs spawn `pave-init:research-delegate` on `sonnet` themselves; workers may spawn `Explore` on `sonnet` | Read-only lookups do not need judgment. |
-| Step 1 helper | `subagent_type: "Explore", model: "sonnet"` to investigate; `subagent_type: "Plan", model: "opus"` to draft an approach; no `name` | Read-only and short-lived; a draft approach is medium work. |'''
+| Step 1 helper | `subagent_type: "Explore", model: "sonnet"`, no `name`, one per stream | Read-only and short-lived; the worker designs. |'''
 DISPATCH_GUIDANCE = '''## Always pass `model:` explicitly
 
 Teammate spawns **ignore the `model:` field in the agent's frontmatter** and use the Agent call's `model` parameter, inheriting the parent's model when it is omitted. If you forget `model: "opus"` on a worker, the whole team silently runs on the orchestrator's model and the tiering rule is broken.
@@ -110,7 +110,8 @@ runtime = ""
 
 [roles.orchestrate-worker.slots]
 TESTING_SKILLS = '''`superpowers:test-driven-development` for code with tests, `superpowers:verification-before-completion` before you submit'''
-DESCRIPTION = '''Implements one subtask issued by the orchestrate skill, loads the relevant skills, and loops with its assigned adversarial-investigator until the review PASSes. Dispatched by the orchestrate skill only, as a teammate with model opus passed on the Agent call; do not trigger from an implicit match.'''
+SIMPLIFY = ''' When two or more drafts remain, or the leading one has 3 or more parallel parts and will split, then also load the `simplify` skill, with the scratch file's path as its argument: its four reviewers recheck the same questions in parallel and edit only that file. A flaw in a split design reaches every part's worker.'''
+DESCRIPTION = '''Designs and implements one stream or subtask issued by the orchestrate skill, loads the relevant skills, and loops with its assigned adversarial-investigator until the review PASSes. Dispatched by the orchestrate skill only, as a teammate with model opus passed on the Agent call; do not trigger from an implicit match.'''
 LEAD_ADDRESS = "(`team-lead`; sending to `main` fails because inside a teammate `main` means yourself)"
 SKILL_LOADER = "Use the `Skill` tool to load"
 REVIEW_WAIT = '''When acceptance passes, send your DA a brief, then end your turn with one plain-text line: `WAITING <your name>: round 1 sent to <Reviewer>`. That line never reaches the DA; it reaches the orchestrator as a heartbeat when you go idle. The DA's reply wakes you.'''

@@ -1,4 +1,4 @@
-version: 2.10.0
+version: 2.11.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,13 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.11.0 (2026-10-30)
+
+- Changed — Orchestrate now works in streams, so unrelated asks in one prompt no longer wait on one shared design. The lead groups related asks into streams, investigates every stream at the same time, and merges two streams only when the findings show they change the same files or depend on each other. Each stream then goes to one worker, who designs it, simplifies and picks an approach, builds it, and loops with its DA. Questions for you still come in one batch, from the lead, after investigation.
+  - The lead no longer drafts approaches, and the `da-1` plan review from 2.10.0 is gone. Claude Step 1 helpers are now `Explore` on sonnet only. The worker checks its drafts against the four simplify questions itself. The Claude `simplify` skill, with its 4 helper agents, runs only when two or more drafts remain or the design will split. The SIMPLIFY slot moved from the skill to the worker role. Source: the user's request of 2026-10-30.
+- New — A worker whose design has 3 or more parts that can be built at the same time sends `SPLIT` to the lead. The worker keeps one part and builds it at once. The lead starts a worker for each other part.
+- Changed — The final whole-goal review runs only when work spans workers: a split stream, a later wave that uses earlier work, or a shared interface or file. Unrelated streams close on their own reviews.
 
 ### 2.10.0 (2026-10-30)
 

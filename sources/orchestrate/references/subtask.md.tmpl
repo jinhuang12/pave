@@ -1,6 +1,6 @@
 # Worker subtask
 
-Send this as the {{SPAWN_FIELD}} of every `orchestrate-worker` spawn. Fill every field; the worker refuses to start on an empty goal or write set because those are what the DA reviews against.
+Send this as the {{SPAWN_FIELD}} of every `orchestrate-worker` spawn. Fill every field except Findings, which only a stream gets; the worker refuses to start on an empty goal or write set because those are what the DA reviews against.
 
 ```
 SUBTASK worker-N
@@ -24,6 +24,11 @@ Wave: 1 of 2
 - Read /abs/path/interfaces.py — implement `Foo` exactly as declared there.
 - Do not change the public signature of `bar()`.
 
+## Findings
+<a stream only: the plan file's path and this stream's section, plus the facts a design rests on, each with file:line. Leave the section out for a split part or a fix; its presence tells the worker to design first.>
+- /abs/repo/.orchestrate/<run id>.plan, section "Stream: <name>"
+- Parsing lives in /abs/path/a.py:40-88; tests/test_a.py covers only the happy path.
+
 ## Acceptance
 <commands or checks that prove the goal. Run them before you submit; the DA re-runs them.>
 - `cd /abs/repo && pytest tests/test_a.py -q` exits 0
@@ -40,9 +45,10 @@ Wave: 1 of 2
 ## Filling it well
 
 - **Goal**: if you cannot write an acceptance check for it, the goal is not yet a goal. Split or sharpen it.
-- **One agent**: one falsifiable line, `One agent: <why one agent can do this and decide its acceptance>` (`skills/pave-init/references/pave-spec.md` §9.12 in this plugin). Name what the worker does and how it decides done. A split that cannot state it is not a split: merge it with a sibling or split it further.
+- **One agent**: one falsifiable line, `One agent: <why one agent can do this and decide its acceptance>` (`skills/pave-init/references/pave-spec.md` §9.12 in this plugin). Name what the worker does and how it decides done. A stream that cannot state it is too wide, and its worker splits it after design; a split part that cannot state it goes back to its worker.
 - **Acceptance**: every check must hold while siblings edit their own files in the same tree at the same time. Scope checks to the worker's paths (`git status --short -- <its files>`, `git diff --quiet -- tests/`), never to whole-repo cleanliness; a repo-wide "only my file changed" check fails the moment a sibling saves.
-- **Write set**: list files, not "the auth module". A worker that needs a file outside its set sends `BLOCKED` and waits; that is the intended behaviour, not a failure.
+- **Write set**: list files or directories, not "the auth module". A stream's set is wide enough for any credible design. A worker that needs a file outside its set sends `BLOCKED` and waits; that is the intended behaviour, not a failure.
+- **Findings**: facts, not a design. The worker designs the stream itself.
 - **Inputs**: include interface contracts between workers verbatim or by path. Two workers guessing the same interface independently is the most common integration failure.
 - **Skills**: name the ones you know apply. The worker also scans the available list itself, so you do not have to be exhaustive.
 - **Context**: enough for the worker to make routine judgment calls without asking you.

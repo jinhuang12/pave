@@ -66,7 +66,6 @@ EXPECTED_SKILL_SLOTS = {
         "NOTES_ROUTE",
         "ASK_USER",
         "HELPERS",
-        "SIMPLIFY",
         "LIST_AGENTS",
         "NEW_SESSION",
         "HOOK_CONTRACT",
