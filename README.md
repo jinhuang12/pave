@@ -105,6 +105,11 @@ For Codex orchestration, invoke `$pave-init:orchestrate <task>` after the
 use `gpt-6-astra`, both at `xhigh`. Claude orchestration keeps `opus` workers
 and `fable` reviewers.
 
+For a hill-climb optimization loop on a system that runs on NVIDIA GPUs,
+pass `skills/orchestrate/examples/optimize-loop.md` to orchestrate with your
+system, metric, and correctness gate. `optimize-loop-fills.md` beside it has
+two worked fills and a ready-to-paste prompt.
+
 ## Install
 
 ```text

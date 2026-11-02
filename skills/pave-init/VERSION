@@ -1,4 +1,4 @@
-version: 2.11.1
+version: 2.11.2
 
 ## How changelog entries are written
 
@@ -17,6 +17,11 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.11.2 (2026-11-02)
+
+- New — Orchestrate ships an example prompt for a hill-climb optimization loop on any system that runs on NVIDIA GPUs. You fill in the system, the north-star metric, and the correctness gate. The loop runs baseline, bottleneck mining, a candidate debate ranked by Amdahl's law, parallel tracks on leased GPUs, and integration, round after round, until the metric is near its physical bound. Each shipped change comes with a floor argument that its reviewer agrees with.
+  - Files: `skills/orchestrate/examples/optimize-loop.md` and `optimize-loop-fills.md`, which has the vLLM and PyTorch training fills and a ready-to-paste invocation. The default GPU lease tool is the ammo plugin's `gpu_reservation.py`. Source: the user's request of 2026-11-02.
 
 ### 2.11.1 (2026-10-30)
 
