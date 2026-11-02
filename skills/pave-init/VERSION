@@ -1,4 +1,4 @@
-version: 2.11.0
+version: 2.11.1
 
 ## How changelog entries are written
 
@@ -17,6 +17,11 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.11.1 (2026-10-30)
+
+- Changed — The orchestrate speed-up question can now come once a minute, not once every 10 minutes. It still comes only after a run-log write that changes the plan.
+  - The `ORCHESTRATE_SPEEDUP_SECONDS` default is now 60. Source: the user's request of 2026-10-30.
 
 ### 2.11.0 (2026-10-30)
 

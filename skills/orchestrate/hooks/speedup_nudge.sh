@@ -7,7 +7,7 @@
 # is PLAN, DONE, BLOCKED, ESCALATE, RESPAWN, or INTEGRATE, the plan just
 # changed, so this hook asks whether anything else can overlap, run in
 # parallel, or be cut. At most once per ORCHESTRATE_SPEEDUP_SECONDS (default
-# 600) per run; the last firing time is kept beside the log in
+# 60) per run; the last firing time is kept beside the log in
 # <run-id>.speedup.
 #
 # Silent exit 0 when: no interpreter, unparsable payload, not a shell command
@@ -26,8 +26,8 @@ lead_wrote_log || exit 0
 find_owned_run || exit 0
 case "$(log_last_event "$RUN_LOG")" in PLAN|DONE|BLOCKED|ESCALATE|RESPAWN|INTEGRATE) ;; *) exit 0 ;; esac
 
-INTERVAL="${ORCHESTRATE_SPEEDUP_SECONDS:-600}"
-case "$INTERVAL" in ''|*[!0-9]*) INTERVAL=600 ;; esac
+INTERVAL="${ORCHESTRATE_SPEEDUP_SECONDS:-60}"
+case "$INTERVAL" in ''|*[!0-9]*) INTERVAL=60 ;; esac
 STAMP="${RUN_LOG%.md}.speedup"
 NOW="$(date +%s)"
 LAST="$(head -n 1 "$STAMP" 2>/dev/null || true)"

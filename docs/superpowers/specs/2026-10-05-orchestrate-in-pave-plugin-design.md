@@ -133,7 +133,7 @@ Discovery: `$root/.orchestrate/active-<payload session_id>` for `root` in payloa
 |---|---|---|
 | `goal_restate.sh` | SessionStart `resume\|compact` | `additionalContext`, exit 0. Prints the literal log `status` command and `ListAgents` for Claude or `list_agents` for Codex. Asks for the goal, open subtasks, and fewest steps to `CLOSE`; you orchestrate, you do not implement. Never throttled. |
 | `release_reminder.sh` | PostToolUse Bash after a run-log write (Claude only) | `additionalContext`, exit 0. Names the agents `orchestrate_log.py releasable` lists, with the `TaskStop` call and the `RELEASE` line to log. |
-| `speedup_nudge.sh` | PostToolUse Bash after a run-log write | `additionalContext`, exit 0, at most once per `ORCHESTRATE_SPEEDUP_SECONDS` (600). Asks whether anything else can overlap, run in parallel, or be cut. |
+| `speedup_nudge.sh` | PostToolUse Bash after a run-log write | `additionalContext`, exit 0, at most once per `ORCHESTRATE_SPEEDUP_SECONDS` (60). Asks whether anything else can overlap, run in parallel, or be cut. |
 
 The skill description discloses the hooks in one sentence, as the doctrine requires.
 

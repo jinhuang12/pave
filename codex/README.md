@@ -209,7 +209,7 @@ The Codex plugin registers six hook actions:
 4. A Socratic stop-alignment check with the canonical cooldown.
 5. Orchestrate's lead-only goal restatement on `SessionStart` resume or compact.
 6. Orchestrate's lead-only speed-up question after a run-log write, at most
-   once per 10 minutes.
+   once a minute.
 
 The canonical Bash scripts remain the policy implementations. The Codex Python
 file adapts only the `apply_patch` wire format and preserves caller identity.

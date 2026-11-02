@@ -23,8 +23,8 @@ description: >-
   user never mentions parallelism. Do not use it for single-file edits,
   trivial fixes, or tasks whose steps are strictly sequential with no parallel
   width. Registers two lead-only plugin hooks: a goal restate on session
-  resume and after compaction, and a speed-up question at most every 10
-  minutes. They never block.
+  resume and after compaction, and a speed-up question at most once a
+  minute. They never block.
 ---'''
 PEER_MESSAGES = "direct messages"
 RESOURCE_PATHS = '''`$SKILL` in this file means the shared script directory `<PAVE_PLUGIN_ROOT>/skills/orchestrate`. Resolve PAVE_PLUGIN_ROOT three directories above this skill directory (`<root>/codex/skills/orchestrate` to `<root>`). These are placeholders, not environment variables, so write literal absolute paths in commands. References/ paths resolve beside this Codex SKILL.md, under `<PAVE_PLUGIN_ROOT>/codex/skills/orchestrate/`; scripts/ and hooks/ resolve under `$SKILL`. Supply `ORCHESTRATE_ROOT: <absolute shared script directory>` in agent briefs.'''
@@ -55,7 +55,7 @@ NEW_SESSION = '''After a new session changes the session ID, `status` finds no r
 HOOK_CONTRACT = '''The plugin registers two lead hooks in `codex/hooks/hooks.json`. Review and trust them through `/hooks`. Each acts only in your own session and only for the run this session owns (its `.orchestrate/active-<session id>` marker); the hooks read the payload session ID and cwd, and the log uses `CODEX_THREAD_ID`. Each stays silent once the log's last line is a `CLOSE`, adds context, and never blocks. `ORCHESTRATE_PYTHON` sets the interpreter they use.
 
 - **Goal restate** fires on session resume and after compaction. It asks you to state the goal from the log header, run `status` and `list_agents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`. Answer it with Resume. It never throttles.
-- **Speed-up question** fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once per 10 minutes (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, run in parallel, or be cut. Answer in one line: `optimal`, or the change you make now.'''
+- **Speed-up question** fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once a minute (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, run in parallel, or be cut. Answer in one line: `optimal`, or the change you make now.'''
 RUNTIME_ANTIPATTERNS = '''- **Expecting peers to read each other's plain text.** Worker-to-DA briefs and verdicts must use `followup_task`; a final line only reports turn completion to the lead.
 - **Using an unavailable role or delivery operation.** Stop and report the missing capability; do not substitute a generic worker or rely on passive messages to wake an idle peer.
 - **Ending the lead turn while workers wait.** Stay active with `wait_agent` so lead events can be handled.'''

@@ -24,7 +24,7 @@ description: >-
   trivial fixes, or tasks whose steps are strictly sequential with no parallel
   width. Registers three lead-only plugin hooks: a goal restate on session
   resume and after compaction, a reminder to stop finished agents, and a
-  speed-up question at most every 10 minutes. They never block.
+  speed-up question at most once a minute. They never block.
 ---'''
 PEER_MESSAGES = "direct SendMessage"
 RESOURCE_PATHS = '''`$SKILL` in this file means this skill's base directory: the Skill tool printed it as `Base directory for this skill: <path>` when the skill loaded. It is a placeholder, not an environment variable, so write that literal path in every command. Do not guess an install path.'''
@@ -56,7 +56,7 @@ HOOK_CONTRACT = '''The plugin's `hooks/hooks.json` registers three lead hooks, n
 
 - **Goal restate** fires on session resume and after compaction. It asks you to state the goal from the log header, run `status` and `ListAgents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`. Answer it with Resume. It never throttles.
 - **Release reminder** fires after each command that writes the log, while `releasable` lists finished agents. Stop each one it names with `TaskStop` and log `append RELEASE <name>`.
-- **Speed-up question** fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once per 10 minutes (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, run in parallel, or be cut. Answer in one line: `optimal`, or the change you make now.'''
+- **Speed-up question** fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once a minute (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, run in parallel, or be cut. Answer in one line: `optimal`, or the change you make now.'''
 RUNTIME_ANTIPATTERNS = '''- **Expecting peers to read each other's plain text.** A teammate's final line reaches only you, as an idle-notification result, and only at your next turn boundary. Worker-to-DA traffic must be SendMessage.
 - **Using an agent type with a restricted tool list as a teammate.** No `SendMessage` in its tools means it can never reach its DA or you. `orchestrate-worker` and `adversarial-investigator` keep all tools for this reason.
 - **Running this headless.** `claude -p` never spawns teammates; the skill is for interactive sessions.'''
