@@ -186,8 +186,14 @@ differences are:
   with `resume|compact`, and its speed-up question for `PostToolUse` on Bash.
   Codex supports both. The hooks use the session-owned orchestrate marker;
   they do not register a PAVE campaign restatement hook or a `SubagentStart`
-  hook. The Claude-only release reminder is not registered: a finished Codex
-  thread needs no close.
+  hook. On Codex the speed-up question leaves out its line about stopping
+  finished agents: a finished Codex thread needs no close.
+- The run marker lives in `~/.orchestrate/`. The `workspace-write` sandbox
+  cannot write there, so the log script falls back to the project folder's
+  `.orchestrate/`. The hooks and later log commands then find the run only from
+  that folder, or with `--cwd`. Add
+  `~/.orchestrate` to `[sandbox_workspace_write] writable_roots` to find it
+  from any folder.
 - `apply_patch` needs a path/content adapter for the planning-layout hook.
 - Direct Codex caller identity is preserved so the canonical hooks remain the
   only authority for lead-versus-worker policy.

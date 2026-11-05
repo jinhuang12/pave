@@ -2,8 +2,11 @@
 """Append-only run log for the orchestrate skill (spec section 4.1); standard library only.
 
 Only the orchestrator calls it. The log is <cwd>/.orchestrate/<UTC stamp>.md; the marker
-<cwd>/.orchestrate/active-<session id> holds its absolute path. Select the runtime
-explicitly when both CLAUDE_CODE_SESSION_ID and CODEX_THREAD_ID are present.
+~/.orchestrate/active-<session id> (ORCHESTRATE_MARKER_DIR overrides the folder) holds its
+absolute path, so later commands and the hooks find the run from any folder. When that
+folder cannot be written (a sandbox), the marker falls back to <cwd>/.orchestrate/, which
+older versions used and which is still read. Select the runtime explicitly
+when both CLAUDE_CODE_SESSION_ID and CODEX_THREAD_ID are present.
 Subcommands: init, append, status, releasable, adopt. Exit 0 ok, 1 refused or invalid input, 2 usage.
 """
 
@@ -56,10 +59,22 @@ def event_line(event, actor, text):
     return f"- {clock} {event} {actor} {text}".rstrip() + "\n"
 
 
-def open_run(marker):
-    """This session's open log path, or None."""
-    log = marker.read_text(encoding="utf-8").strip() if marker.is_file() else ""
-    return log if log and os.path.isfile(log) and not is_closed(log) else None
+def marker_dir():
+    """The fixed marker folder: ORCHESTRATE_MARKER_DIR, or ~/.orchestrate."""
+    return Path(os.path.expanduser(os.environ.get("ORCHESTRATE_MARKER_DIR", "").strip() or "~/.orchestrate"))
+
+
+def pointed(marker):
+    return marker.read_text(encoding="utf-8").strip() if marker.is_file() else ""
+
+
+def open_run(markers):
+    """This session's open log path, or None. markers: the fixed marker, then the legacy one."""
+    for marker in markers:
+        log = pointed(marker)
+        if log and os.path.isfile(log) and not is_closed(log):
+            return log
+    return None
 
 
 def agents(lines):
@@ -112,8 +127,8 @@ def write(path, text, mode="a"):
         fail(f"could not write {path}: {exc}\n{text.rstrip()}")
 
 
-def cmd_init(args, home, marker):
-    if current := open_run(marker):
+def cmd_init(args, home, markers):
+    if current := open_run(markers):
         fail(f"this session already has an open run: {current}\n"
              f'close it with: {COMMAND} append CLOSE <actor> "incomplete | <reason>"')
     plans = [event_line("PLAN", *(p.split(None, 1) + ["", ""])[:2]) for p in args.plan]
@@ -127,11 +142,25 @@ def cmd_init(args, home, marker):
         time.sleep(1)
     goal = " ".join(args.goal.splitlines()).strip()
     write(log, f"# orchestrate run {run_id}\ngoal: {goal}\n\n" + "".join(plans), "x")
-    write(marker, f"{log}\n", "w")
+    point(markers, log)
     print(log)
 
 
-def cmd_append(args, home, marker):
+def point(markers, log):
+    """Write the fixed marker; if its folder cannot be written, write the project-folder one."""
+    fixed, legacy = markers
+    try:
+        fixed.parent.mkdir(parents=True, exist_ok=True)
+        fixed.write_text(f"{log}\n", encoding="utf-8")
+        return
+    except OSError as exc:
+        print(f"warning: could not write {fixed} ({exc.strerror or exc}); using {legacy}, "
+              "so the hooks and later commands find this run only from its project folder (or with --cwd)", file=sys.stderr)
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    write(legacy, f"{log}\n", "w")
+
+
+def cmd_append(args, home, markers):
     if args.stdin == bool(args.event):
         fail("usage: append EVENT ACTOR TEXT, or append --stdin", 2)
     if args.stdin:
@@ -143,19 +172,24 @@ def cmd_append(args, home, marker):
     lines = [event_line(*row) for row in rows]
     if any(row[0] == "CLOSE" for row in rows[:-1]):
         fail("CLOSE must be the last line appended")
-    if not (log := open_run(marker)):
+    if not (log := open_run(markers)):
         fail("no open run for this session; start one with init, or adopt an orphaned log")
     write(log, "".join(lines))
     if rows[-1][0] == "CLOSE":
-        marker.unlink()
+        for marker in markers:
+            if pointed(marker) == log:
+                try:
+                    marker.unlink()
+                except OSError:
+                    pass  # the log ends in CLOSE, so a leftover marker owns no run
         names = ", ".join(agents(read_lines(log))[1])
         print("run closed; release live team agents using the skill's runtime contract"
               + (f": {names}" if names else ""))
 
 
-def cmd_status(args, home, marker):
-    if not (log := open_run(marker)):
-        owned = {m.read_text(encoding="utf-8").strip() for m in home.glob("active-*") if m.is_file()}
+def cmd_status(args, home, markers):
+    if not (log := open_run(markers)):
+        owned = {pointed(m) for folder in (markers[0].parent, home) for m in folder.glob("active-*")}
         orphans = [p for p in sorted(home.glob("*.md")) if str(p) not in owned and not is_closed(p)]
         for path in orphans:
             print(f"no run for this session; adopt with: {COMMAND} adopt {shlex.quote(str(path))}")
@@ -186,19 +220,18 @@ def cmd_status(args, home, marker):
     print(f"last: {lines[-1] if lines else ''}")
 
 
-def cmd_releasable(args, home, marker):
-    if not (log := open_run(marker)):
+def cmd_releasable(args, home, markers):
+    if not (log := open_run(markers)):
         fail("no open run for this session")
     for name in agents(read_lines(log))[0]:
         print(name)
 
 
-def cmd_adopt(args, home, marker):
+def cmd_adopt(args, home, markers):
     log = Path(args.cwd, args.log).resolve()
     if not log.is_file() or is_closed(log):
         fail(f"cannot adopt {log}: it does not exist or is closed")
-    home.mkdir(parents=True, exist_ok=True)
-    write(marker, f"{log}\n", "w")
+    point(markers, log)
     print(log)
 
 
@@ -240,9 +273,9 @@ def main(argv=None):
     runtime, sid = session_identity(args.runtime)
     COMMAND = f"python3 {shlex.quote(SCRIPT)} --runtime {runtime}"
     home = Path(args.cwd).resolve() / ".orchestrate"
+    markers = (marker_dir() / f"active-{sid}", home / f"active-{sid}")  # fixed, then legacy
     {"init": cmd_init, "append": cmd_append, "status": cmd_status, "releasable": cmd_releasable,
-     "adopt": cmd_adopt}[args.cmd](
-        args, home, home / f"active-{sid}")
+     "adopt": cmd_adopt}[args.cmd](args, home, markers)
 
 
 if __name__ == "__main__":

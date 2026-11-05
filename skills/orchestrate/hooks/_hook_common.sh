@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # _hook_common.sh -- sourceable skeleton for the orchestrate lead hooks
-# (goal_restate.sh, release_reminder.sh, speedup_nudge.sh).
+# (goal_restate.sh, speedup_nudge.sh).
 #
 # It carries the parts that do not change between hooks: the payload parse
 # with a parse-fail sentinel and fail-open exit, the session-scoped run
@@ -18,7 +18,10 @@
 # Safe to source more than once.
 #
 # Run log (spec section 4): <root>/.orchestrate/<run-id>.md, append-only,
-# written by the orchestrator through scripts/orchestrate_log.py. Event lines
+# written by the orchestrator through scripts/orchestrate_log.py. The marker
+# that points to it is ~/.orchestrate/active-<session id>
+# (ORCHESTRATE_MARKER_DIR overrides the folder), so the root the lead's shell
+# was in does not matter. Event lines
 # are `- HH:MM EVENT <actor> <free text>`; the readers below parse exactly the
 # lines that script's LINE pattern parses, so the hooks and `status` agree.
 #
@@ -27,7 +30,7 @@
 if ! declare -F hook_read_payload >/dev/null 2>&1; then
 
 ORCH_PY="${ORCHESTRATE_PYTHON:-python3}"
-ORCH_PY="${ORCH_PY/#\~\//$HOME/}"   # expand a leading ~/ (env blocks do not tilde-expand)
+ORCH_PY="${ORCH_PY/#\~\//${HOME:-}/}"   # expand a leading ~/ (env blocks do not tilde-expand)
 
 # hook_read_payload -- read the hook payload from stdin and set SESSION_ID,
 # STOP_ACTIVE (1/0), AGENT_ID, AGENT_TYPE, HOOK_EVENT, HOOK_SOURCE, HOOK_CWD,
@@ -81,11 +84,14 @@ lead_wrote_log() {
   return 1
 }
 
-# find_owned_run -- set RUN_LOG to the open run this session owns and return
-# 0; return 1 with RUN_LOG="" otherwise.
-# Marker-authoritative and session-scoped (spec section 5): for root in
-# CLAUDE_PROJECT_DIR then $PWD, read `$root/.orchestrate/active-<session_id>`,
-# whose first line is the absolute log path. No marker, a missing or
+# find_owned_run -- set RUN_LOG to the open run this session owns and RUN_ROOT
+# to the folder that holds its .orchestrate/, and return 0; return 1 with
+# RUN_LOG="" otherwise.
+# Marker-authoritative and session-scoped (spec section 5): read the fixed
+# marker `${ORCHESTRATE_MARKER_DIR:-~/.orchestrate}/active-<session_id>`, then
+# the legacy `$root/.orchestrate/active-<session_id>` that versions up to
+# 2.11.2 wrote, for root in the payload cwd, CLAUDE_PROJECT_DIR, then $PWD.
+# A marker's first line is the absolute log path. No marker, a missing or
 # unreadable log, or a closed run: no run. A payload carrying agent_id is a
 # subagent and owns no run; an empty session id, or one that is not a plain
 # name, owns no run either (it is spliced into file names).
@@ -94,17 +100,20 @@ find_owned_run() {
   RUN_ROOT=""
   [ -z "${AGENT_ID:-}" ] || return 1
   case "${SESSION_ID:-}" in ''|*[!A-Za-z0-9._-]*) return 1 ;; esac
-  # Quoted iteration: root paths may contain spaces.
-  local root marker candidate
-  for root in "${HOOK_CWD:-}" "${CLAUDE_PROJECT_DIR:-}" "$PWD"; do
-    [ -n "$root" ] || continue
-    marker="$root/.orchestrate/active-$SESSION_ID"
+  # Quoted iteration: paths may contain spaces.
+  local fixed="${ORCHESTRATE_MARKER_DIR:-}" marker candidate
+  fixed="${fixed/#\~\//${HOME:-}/}"
+  [ -n "$fixed" ] || { [ -n "${HOME:-}" ] && fixed="$HOME/.orchestrate"; }
+  for marker in ${fixed:+"$fixed/active-$SESSION_ID"} \
+                ${HOOK_CWD:+"$HOOK_CWD/.orchestrate/active-$SESSION_ID"} \
+                ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/.orchestrate/active-$SESSION_ID"} \
+                "$PWD/.orchestrate/active-$SESSION_ID"; do
     [ -f "$marker" ] || continue
     candidate="$(head -n 1 "$marker" 2>/dev/null | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
     [ -n "$candidate" ] && [ -f "$candidate" ] && [ -r "$candidate" ] || continue
     log_is_closed "$candidate" && continue
     RUN_LOG="$candidate"
-    RUN_ROOT="$root"
+    RUN_ROOT="${candidate%/*}"; RUN_ROOT="${RUN_ROOT%/*}"   # <root>/.orchestrate/<id>.md -> <root>
     return 0
   done
   return 1

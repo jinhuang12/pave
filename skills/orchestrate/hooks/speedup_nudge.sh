@@ -6,9 +6,13 @@
 # writes the run log (orchestrate_log.py init or append) and the new last line
 # is PLAN, DONE, BLOCKED, ESCALATE, RESPAWN, or INTEGRATE, the plan just
 # changed, so this hook asks whether anything else can overlap, run in
-# parallel, or be cut. At most once per ORCHESTRATE_SPEEDUP_SECONDS (default
-# 60) per run; the last firing time is kept beside the log in
-# <run-id>.speedup.
+# parallel, or be cut. In Claude Code it also asks the lead to stop any agent
+# it no longer needs: a finished teammate keeps its agent slot until the lead
+# stops it. The lead decides which ones, because a DONE worker may still be
+# needed. At most once per ORCHESTRATE_SPEEDUP_SECONDS (default 60) per run;
+# the last firing time is kept beside the log in <run-id>.speedup.
+#
+# Usage: speedup_nudge.sh [claude|codex]   (default claude)
 #
 # Silent exit 0 when: no interpreter, unparsable payload, not a shell command
 # that wrote the log, a subagent payload, no open run owned by this session
@@ -20,6 +24,7 @@ set -uo pipefail
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 . "$HOOK_DIR/_hook_common.sh" 2>/dev/null || exit 0
 TAG="[orchestrate speedup_nudge]"
+RUNTIME="${1:-claude}"
 
 hook_read_payload
 lead_wrote_log || exit 0
@@ -36,8 +41,11 @@ case "$LAST" in ''|*[!0-9]*) LAST=0 ;; esac
 printf '%s\n' "$NOW" > "$STAMP" 2>/dev/null || exit 0
 
 OPEN="$(log_open_subtasks "$RUN_LOG" | paste -sd ' ' - | sed 's/ /, /g')"
+RELEASE=""
+[ "$RUNTIME" = "codex" ] || RELEASE="
+Also stop any agent you no longer need with \`TaskStop\`, then log \`append RELEASE <name>\`."
 TEXT="$TAG Anything else we can overlap, parallelize, or cut to speed this whole process up, or is it already optimal? (Open now: ${OPEN:-none}.)
-Answer in one line before you go on: \"optimal\", or the change you will make now."
+Answer in one line before you go on: \"optimal\", or the change you will make now.$RELEASE"
 
 emit_additional_context PostToolUse "$TEXT"
 exit 0

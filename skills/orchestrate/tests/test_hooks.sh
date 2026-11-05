@@ -4,8 +4,9 @@
 # sections 5, 7 and 8). Tests behaviour, not wording:
 #   discovery: silent with no marker, for a session that owns no run, when the
 #              marker's log is missing, after CLOSE, and for a session id that
-#              is not a plain name; a marker under $PWD counts when
-#              CLAUDE_PROJECT_DIR has none
+#              is not a plain name; the fixed marker finds a log outside every
+#              root; a legacy marker under $PWD counts when CLAUDE_PROJECT_DIR
+#              has none
 #   restate:   SessionStart compact and resume emit one additionalContext that
 #              names the open subtasks, derived in file order: a RESPAWN-ed
 #              replacement (either RESPAWN form) is open until its DONE, a
@@ -13,22 +14,24 @@
 #              worker, a RESPAWN of an unlogged worker does not hide its later
 #              PLAN, and "none" when every subtask is DONE or no PLAN exists;
 #              startup, clear, and any other event stay silent; never throttled
-#   release:   a lead log write names the finished agents; other commands are silent
-#   speed-up:  a lead log write asks the speed-up question, at most once per interval
+#   speed-up:  a lead log write asks the speed-up question, at most once per
+#              interval, and other commands are silent; in Claude Code it also
+#              asks the lead to stop agents it no longer needs, naming none;
+#              in Codex it does not
 #   registration: every orchestrate hook is plugin-level
 #   fail open: an unparsable payload, empty stdin, a non-object payload, and a
 #              missing interpreter leave the hook silent with exit 0
 #
 # Self-contained: fixture logs are written by hand inside a mktemp sandbox;
-# no real log or marker is touched. The release hook reads them through
-# orchestrate_log.py releasable.
+# no real log or marker is touched. ORCHESTRATE_MARKER_DIR points the fixed
+# marker folder into the sandbox; own() writes the legacy project-folder
+# marker, so most tests also cover runs started before 2.11.3.
 
 set -u
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 SKILL="$(cd "$HERE/.." && pwd)"
 RESTATE_HOOK="$SKILL/hooks/goal_restate.sh"
-RELEASE_HOOK="$SKILL/hooks/release_reminder.sh"
 SPEEDUP_HOOK="$SKILL/hooks/speedup_nudge.sh"
 COMMON="$SKILL/hooks/_hook_common.sh"
 
@@ -41,7 +44,8 @@ export TMPDIR="$WORK/tmp"
 mkdir -p "$TMPDIR"
 export CLAUDE_PROJECT_DIR="$WORK/proj with space"   # regression: roots with spaces
 LOGDIR="$CLAUDE_PROJECT_DIR/.orchestrate"
-mkdir -p "$LOGDIR" "$WORK/elsewhere"
+export ORCHESTRATE_MARKER_DIR="$WORK/markers"
+mkdir -p "$LOGDIR" "$WORK/elsewhere" "$ORCHESTRATE_MARKER_DIR"
 cd "$WORK/elsewhere" || exit 1   # the $PWD root holds no marker unless a test writes one
 unset ORCHESTRATE_PYTHON 2>/dev/null || true
 
@@ -117,11 +121,11 @@ GHOST_LOG="$(printf '%s\n' '- 12:03 PLAN worker-1 -> da-1 | a.py | pytest a' '- 
 
 # --- syntax ------------------------------------------------------------------
 
-for f in "$COMMON" "$RESTATE_HOOK" "$RELEASE_HOOK" "$SPEEDUP_HOOK"; do
+for f in "$COMMON" "$RESTATE_HOOK" "$SPEEDUP_HOOK"; do
   ok=0; [ -f "$f" ] && bash -n "$f" 2>/dev/null && ok=1
   report "syntax: bash -n $(basename "$f")" "$ok" "missing or syntax error"
 done
-ok=0; [ -x "$RESTATE_HOOK" ] && [ -x "$RELEASE_HOOK" ] && [ -x "$SPEEDUP_HOOK" ] && ok=1
+ok=0; [ -x "$RESTATE_HOOK" ] && [ -x "$SPEEDUP_HOOK" ] && ok=1
 report "syntax: the hooks are executable (hooks.json runs them directly)" "$ok" "mode"
 
 # --- discovery -----------------------------------------------------------------
@@ -151,6 +155,14 @@ run_hook "$RESTATE_HOOK" '{"session_id":"sub/x","hook_event_name":"SessionStart"
 ok=0; silent && ok=1
 report "discovery: a session id that is not a plain name is silent" "$ok" "rc=$RC out=$OUT"
 
+SCRATCH="$WORK/scratch run"   # the lead's shell was here at init: not a hook root
+mkdir -p "$SCRATCH/.orchestrate"
+printf '%s\n' "$PLAN3" "$DONE12" > "$SCRATCH/.orchestrate/run.md"
+printf '%s\n' "$SCRATCH/.orchestrate/run.md" > "$ORCHESTRATE_MARKER_DIR/active-d6"
+run_hook "$RESTATE_HOOK" "$(compact d6)"
+ok=0; open_is "worker-3" && has_out "status --cwd '$SCRATCH'" && ok=1
+report "discovery: the fixed marker finds a log outside every root" "$ok" "rc=$RC out=$OUT"
+
 PWD_PROJ="$WORK/pwd proj"
 mkdir -p "$PWD_PROJ/.orchestrate"
 printf '%s\n' "$PLAN3" "$DONE12" "$RESPAWN34" > "$PWD_PROJ/.orchestrate/run.md"
@@ -159,7 +171,7 @@ RC=x; OUT=""; ERR=""
 ( cd "$PWD_PROJ" && unset CLAUDE_PROJECT_DIR && printf '%s' "$(compact d5)" | bash "$RESTATE_HOOK" >"$WORK/out" 2>"$WORK/err" ); RC=$?
 OUT="$(cat "$WORK/out")"; ERR="$(cat "$WORK/err")"
 ok=0; open_is "worker-4" && ok=1
-report "discovery: a marker under \$PWD counts when CLAUDE_PROJECT_DIR has none" "$ok" "rc=$RC out=$OUT"
+report "discovery: a legacy marker under \$PWD counts when CLAUDE_PROJECT_DIR has none" "$ok" "rc=$RC out=$OUT"
 
 # --- restate: shape -----------------------------------------------------------------
 
@@ -243,7 +255,7 @@ run_hook "$RESTATE_HOOK" "$(compact o8)"
 ok=0; open_is "ghost" && ok=1
 report "restate: a RESPAWN of an unlogged worker does not hide its later PLAN" "$ok" "rc=$RC out=$OUT"
 
-# --- post-log-write reminders (release_reminder.sh, speedup_nudge.sh) --------------
+# --- speed-up question (speedup_nudge.sh) ------------------------------------------
 
 bash_payload() { # $1 session, $2 command
   python3 -c 'import json,sys; print(json.dumps({"session_id": sys.argv[1], "hook_event_name": "PostToolUse",
@@ -251,22 +263,25 @@ bash_payload() { # $1 session, $2 command
 }
 LOG_WRITE="python3 $SKILL/scripts/orchestrate_log.py --runtime claude append DONE worker-2 r2 PASS"
 
-own p1 "$OPEN_LOG"
-run_hook "$RELEASE_HOOK" "$(bash_payload p1 "$LOG_WRITE")"
-ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && has_out "worker-1, worker-2" && has_out "TaskStop" \
-  && has_out "append RELEASE" && ok=1
-report "release: a log write names the finished agents and how to stop and log them" "$ok" "rc=$RC out=$OUT err=$ERR"
-run_hook "$RELEASE_HOOK" "$(bash_payload p1 "git status")"
-ok=0; silent && ok=1
-report "release: a command that does not write the log is silent" "$ok" "rc=$RC out=$OUT"
-
 own p2 "$OPEN_LOG"
+run_hook "$SPEEDUP_HOOK" "$(bash_payload p2 "git status")"
+ok=0; silent && ok=1
+report "speed-up: a command that does not write the log is silent" "$ok" "rc=$RC out=$OUT"
 run_hook "$SPEEDUP_HOOK" "$(bash_payload p2 "$LOG_WRITE")"
 ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && has_out "overlap, parallelize, or cut" && has_out "worker-3" && ok=1
 report "speed-up: a log write asks the speed-up question and names open subtasks" "$ok" "rc=$RC out=$OUT err=$ERR"
+ok=0; has_out "no longer need" && has_out "TaskStop" && has_out "append RELEASE" \
+  && ! has_out "worker-1" && ! has_out "worker-2" && ok=1
+report "speed-up: in Claude Code it asks to stop agents no longer needed and names no finished agent" "$ok" "out=$OUT"
 run_hook "$SPEEDUP_HOOK" "$(bash_payload p2 "$LOG_WRITE")"
 ok=0; silent && ok=1
 report "speed-up: a second log write inside the interval is silent" "$ok" "rc=$RC out=$OUT"
+
+own p3 "$FIX_OPEN_LOG"   # its own log: the interval stamp is per run
+printf '%s' "$(bash_payload p3 "$LOG_WRITE")" | bash "$SPEEDUP_HOOK" codex >"$WORK/out" 2>"$WORK/err"; RC=$?
+OUT="$(cat "$WORK/out")"; ERR="$(cat "$WORK/err")"
+ok=0; [ "$RC" = "0" ] && has_out "overlap, parallelize, or cut" && ! has_out "TaskStop" && ok=1
+report "speed-up: in Codex it does not ask to stop agents" "$ok" "rc=$RC out=$OUT"
 
 # --- registration ------------------------------------------------------------------
 # Skill-frontmatter SessionStart hooks never run (Claude Code 2.1.312), and
@@ -280,9 +295,9 @@ root = Path(sys.argv[1])
 def cmds(path, event):
     return " ".join(h["command"] for g in json.load(open(root / path))["hooks"].get(event, []) for h in g["hooks"])
 assert "orchestrate/hooks/goal_restate.sh" in cmds("hooks/hooks.json", "SessionStart")
-assert "orchestrate/hooks/release_reminder.sh" in cmds("hooks/hooks.json", "PostToolUse")
-assert "orchestrate/hooks/speedup_nudge.sh" in cmds("hooks/hooks.json", "PostToolUse")
-assert "orchestrate/hooks/speedup_nudge.sh" in cmds("codex/hooks/hooks.json", "PostToolUse")
+assert "release_reminder" not in cmds("hooks/hooks.json", "PostToolUse")
+assert 'orchestrate/hooks/speedup_nudge.sh" claude' in cmds("hooks/hooks.json", "PostToolUse")
+assert 'orchestrate/hooks/speedup_nudge.sh" codex' in cmds("codex/hooks/hooks.json", "PostToolUse")
 front = (root / "skills/orchestrate/SKILL.md").read_text().split("\n---\n", 1)[0]
 assert "\nhooks:" not in front
 PY

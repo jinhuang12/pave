@@ -1,4 +1,4 @@
-version: 2.11.2
+version: 2.11.3
 
 ## How changelog entries are written
 
@@ -17,6 +17,13 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.11.3 (2026-11-05)
+
+- Fixed — The orchestrate hooks now find the run when the lead started it from another folder. Before, a run started outside the project folder got no speed-up question, no reminder to stop agents, and no goal restate after compaction.
+  - The session marker now lives in `~/.orchestrate/` (`ORCHESTRATE_MARKER_DIR` overrides it), so the log script and the hooks find the run from any folder. The run log stays where it was. A marker in the project folder, from 2.11.2 and earlier, is still read. Source: the user's report of 2026-11-05 on a run whose hooks stayed silent.
+- Changed — The reminder to stop finished agents is now one line in the speed-up question, and it names no agent. The lead decides what to stop, because a worker that is done may still be needed.
+  - `release_reminder.sh` is removed. In Claude Code, `speedup_nudge.sh` adds the line. Codex leaves it out. Source: the user's request of 2026-11-05.
 
 ### 2.11.2 (2026-11-02)
 

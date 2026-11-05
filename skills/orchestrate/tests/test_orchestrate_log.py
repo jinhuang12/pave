@@ -2,7 +2,8 @@
 """Tests for skills/orchestrate/scripts/orchestrate_log.py (spec section 4.1).
 
 Each test runs the script as a subprocess in a temporary directory with its own
-CLAUDE_CODE_SESSION_ID, so no test touches the real .orchestrate/ or session.
+CLAUDE_CODE_SESSION_ID and ORCHESTRATE_MARKER_DIR, so no test touches the real
+.orchestrate/, ~/.orchestrate/, or session.
 
 Run: python3 -m unittest discover -s skills/orchestrate/tests -p "test_orchestrate_log.py" -q
 """
@@ -29,12 +30,11 @@ class OrchestrateLogTests(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.root = Path(self._tmp.name).resolve()
         self.dir = self.root / ".orchestrate"
+        self.markers = self.root / "marker-home"
+        self.addCleanup(self._tmp.cleanup)  # a cleanup, so a test's later chmod restore runs first
 
-    def tearDown(self):
-        self._tmp.cleanup()
-
-    def run_log(self, *args, sid="sess-a", stdin=None, cwd=True, runtime="auto", extra_env=None):
-        env = dict(os.environ)
+    def run_log(self, *args, sid="sess-a", stdin=None, cwd=True, runtime="auto", extra_env=None, run_in=None):
+        env = dict(os.environ, ORCHESTRATE_MARKER_DIR=str(self.markers))
         env.pop("CLAUDE_CODE_SESSION_ID", None)
         env.pop("CODEX_THREAD_ID", None)
         if sid is not None:
@@ -44,10 +44,10 @@ class OrchestrateLogTests(unittest.TestCase):
         if cwd:
             argv += ["--cwd", str(self.root)]
         return subprocess.run(argv, input=stdin, capture_output=True, text=True,
-                              env=env, cwd=self.root)
+                              env=env, cwd=run_in or self.root)
 
     def marker(self, sid="sess-a"):
-        return self.dir / f"active-{sid}"
+        return self.markers / f"active-{sid}"
 
     def init(self, *plans, sid="sess-a", goal="make all tests pass"):
         args = ["init", "--goal", goal]
@@ -87,6 +87,60 @@ class OrchestrateLogTests(unittest.TestCase):
             self.assertEqual(line.split(" ", 2)[2], f"PLAN {plan}")
             self.assertUtcClock(line[2:7])
         self.assertEqual(self.marker().read_text(encoding="utf-8").strip(), str(log))
+
+    def test_init_writes_no_marker_in_the_project_folder(self):
+        self.init(PLAN1)
+        self.assertEqual(list(self.dir.glob("active-*")), [])
+
+    def test_commands_find_the_run_from_any_folder(self):
+        log = self.init(PLAN1)
+        other = self.root / "elsewhere"
+        other.mkdir()
+        res = self.run_log("append", "DONE", "worker-1", "r1 PASS", cwd=False, run_in=other)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertTrue(self.lines(log)[-1].endswith("DONE worker-1 r1 PASS"))
+        res = self.run_log("status", cwd=False, run_in=other)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("worker-1", res.stdout)
+        self.assertFalse((other / ".orchestrate").exists())
+
+    def test_legacy_marker_in_the_project_folder_still_works(self):
+        self.dir.mkdir()
+        log = self.dir / "2026-11-04-000000.md"
+        log.write_text("# orchestrate run old\ngoal: g\n\n", encoding="utf-8")
+        legacy = self.dir / "active-sess-a"
+        legacy.write_text(f"{log}\n", encoding="utf-8")
+        self.assertEqual(self.run_log("append", "PLAN", "worker-1", "x").returncode, 0)
+        self.assertEqual(self.run_log("init", "--goal", "g2").returncode, 1)
+        self.assertEqual(self.run_log("append", "CLOSE", "lead", "accepted | done").returncode, 0)
+        self.assertFalse(legacy.exists())
+        self.assertFalse(self.marker().exists())
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root ignores folder modes")
+    def test_unwritable_marker_folder_falls_back_to_the_project_folder(self):
+        self.markers.mkdir()
+        self.markers.chmod(0o500)  # a sandbox that cannot write the home folder
+        self.addCleanup(self.markers.chmod, 0o700)
+        res = self.run_log("init", "--goal", "g")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("warning: could not write", res.stderr)
+        log = Path(res.stdout.strip())
+        legacy = self.dir / "active-sess-a"
+        self.assertEqual(legacy.read_text(encoding="utf-8").strip(), str(log))
+        self.assertEqual(len(list(self.dir.glob("*.md"))), 1)
+        self.assertEqual(self.run_log("append", "CLOSE", "lead", "accepted | done").returncode, 0)
+        self.assertFalse(legacy.exists())
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root ignores folder modes")
+    def test_close_succeeds_when_the_marker_cannot_be_removed(self):
+        log = self.init(PLAN1)
+        self.markers.chmod(0o500)
+        self.addCleanup(self.markers.chmod, 0o700)
+        res = self.run_log("append", "CLOSE", "lead", "accepted | done")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("run closed", res.stdout)
+        self.assertTrue(self.lines(log)[-1].endswith("CLOSE lead accepted | done"))
+        self.assertEqual(self.run_log("status").returncode, 1)
 
     def test_init_defaults_to_process_cwd(self):
         res = self.run_log("init", "--goal", "g", cwd=False)

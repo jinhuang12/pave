@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${PLUGIN_ROOT}/skills/orchestrate/hooks/speedup_nudge.sh\"",
+            "command": "\"${PLUGIN_ROOT}/skills/orchestrate/hooks/speedup_nudge.sh\" codex",
             "timeout": 10,
             "additionalContextLimit": 5000
           }

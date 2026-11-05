@@ -83,7 +83,7 @@ class OrchestratePortTests(unittest.TestCase):
             with self.subTest(runtime=runtime), tempfile.TemporaryDirectory(prefix="orchestrate command ") as tmp:
                 project = Path(tmp).resolve()
                 env = dict(os.environ, CODEX_THREAD_ID="codex-owner", CLAUDE_CODE_SESSION_ID="claude-owner",
-                           ORCHESTRATE_PYTHON=sys.executable)
+                           ORCHESTRATE_PYTHON=sys.executable, ORCHESTRATE_MARKER_DIR=str(project / "markers"))
                 shell_bin = project / "shell-bin"
                 shell_bin.mkdir()
                 for name in ("bash", "dirname", "cat", "sed", "head", "awk", "paste"):
@@ -141,7 +141,7 @@ class OrchestratePortTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="orchestrate cwd ") as tmp:
             project = Path(tmp).resolve()
             env = dict(os.environ, CODEX_THREAD_ID="codex-test", CLAUDE_CODE_SESSION_ID="inherited",
-                       ORCHESTRATE_PYTHON=sys.executable)
+                       ORCHESTRATE_PYTHON=sys.executable, ORCHESTRATE_MARKER_DIR=str(project / "markers"))
             env.pop("CLAUDE_PROJECT_DIR", None)
             def log(*args):
                 return subprocess.run([sys.executable, str(LOG), "--runtime", "codex", *args,
