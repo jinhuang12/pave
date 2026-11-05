@@ -1,4 +1,4 @@
-version: 2.12.0
+version: 2.12.1
 
 ## How changelog entries are written
 
@@ -17,6 +17,11 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.12.1 (2026-11-05)
+
+- Improved — The orchestrate lead's speed-up question now also asks it to hand off work it lacks the context for: a helper finds missing facts, and a worker makes any file change. The lead still answers what it already knows, or can confirm in one or two reads. You no longer need to tell it to spawn a worker.
+  - One added line in `speedup_nudge.sh`, for Claude Code and Codex. It fires at the same times as before. Source: the user's request of 2026-11-05.
 
 ### 2.12.0 (2026-11-05)
 

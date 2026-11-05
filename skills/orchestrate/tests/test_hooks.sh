@@ -285,6 +285,8 @@ report "speed-up: a log write asks the speed-up question and names open subtasks
 ok=0; has_out "no longer need" && has_out "TaskStop" && has_out "append RELEASE" \
   && ! has_out "worker-1" && ! has_out "worker-2" && ok=1
 report "speed-up: in Claude Code it asks to stop agents no longer needed and names no finished agent" "$ok" "out=$OUT"
+ok=0; has_out "send a helper" && has_out "to a worker" && has_out "one or two reads" && ok=1
+report "speed-up: it asks the lead to hand off work it lacks the context for" "$ok" "out=$OUT"
 run_hook "$SPEEDUP_HOOK" "$(bash_payload p2 "$LOG_WRITE")"
 ok=0; silent && ok=1
 report "speed-up: a second log write inside the interval is silent" "$ok" "rc=$RC out=$OUT"
@@ -292,8 +294,8 @@ report "speed-up: a second log write inside the interval is silent" "$ok" "rc=$R
 own p3 "$FIX_OPEN_LOG"   # its own log: the interval stamp is per run
 printf '%s' "$(bash_payload p3 "$LOG_WRITE")" | bash "$SPEEDUP_HOOK" codex >"$WORK/out" 2>"$WORK/err"; RC=$?
 OUT="$(cat "$WORK/out")"; ERR="$(cat "$WORK/err")"
-ok=0; [ "$RC" = "0" ] && has_out "overlap, parallelize, or cut" && ! has_out "TaskStop" && ok=1
-report "speed-up: in Codex it does not ask to stop agents" "$ok" "rc=$RC out=$OUT"
+ok=0; [ "$RC" = "0" ] && has_out "overlap, parallelize, or cut" && has_out "send a helper" && ! has_out "TaskStop" && ok=1
+report "speed-up: in Codex it asks to hand off work but not to stop agents" "$ok" "rc=$RC out=$OUT"
 
 # --- maintainer nudge (maintainer_nudge.sh) ----------------------------------------
 # TMPDIR already points into the sandbox, so no real stamp is touched. The stamp
