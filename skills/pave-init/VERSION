@@ -1,4 +1,4 @@
-version: 2.11.3
+version: 2.12.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,15 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.12.0 (2026-11-05)
+
+- New — Orchestrate workers now build the change this project's maintainer would merge, and the plugin's reviewer reviews every change as that maintainer, inside orchestrate or not. When the goal touches speed, a worker measures the result against its floor or a target that you or the lead set, and closes or explains the gap. A worker also takes the simplest change that meets the goal. A reviewer sends work back when it falls short of its floor or has parts the goal does not need. Taste goes in notes. You no longer need to ask the lead for this in every prompt.
+  - The worker and the shared reviewer each gain a short bar section. The reviewer section applies only when the work is a change to a project. Review requests carry User goal, Speed and Simplest lines, DONE reports carry a Speed line, and the lead's report gives each worker's speed result. Subtasks carry your goal word for word, plus an optional Speed section with the tool, the floor and a target. Source: the user's request of 2026-11-05.
+- New — A worker gets a one-line reminder of that bar after a file edit, at most once a minute. Reviewers and the lead get none. It never blocks.
+  - `skills/orchestrate/hooks/maintainer_nudge.sh`, PostToolUse on the edit tools, keyed on the hook input's agent type. Only the plugin's own worker matches, not a user-level agent of the same name. `ORCHESTRATE_SEAT_SECONDS` sets the interval. Claude Code only. Source: the user's request of 2026-11-05.
+- Fixed — The lead's speed-up question no longer prints a shell error when it cannot record its firing time.
+  - `speedup_nudge.sh` now silences the redirect itself, not only the command. Found while building the worker hook.
 
 ### 2.11.3 (2026-11-05)
 

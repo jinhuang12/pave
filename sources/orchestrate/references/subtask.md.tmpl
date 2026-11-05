@@ -1,6 +1,6 @@
 # Worker subtask
 
-Send this as the {{SPAWN_FIELD}} of every `orchestrate-worker` spawn. Fill every field except Findings, which only a stream gets; the worker refuses to start on an empty goal or write set because those are what the DA reviews against.
+Send this as the {{SPAWN_FIELD}} of every `orchestrate-worker` spawn. Fill every field except Findings, which only a stream gets, and Speed, which only a stream or part that touches speed gets; the worker refuses to start on an empty goal or write set because those are what the DA reviews against.
 
 ```
 SUBTASK worker-N
@@ -10,6 +10,9 @@ Wave: 1 of 2
 
 ## Goal
 <one sentence, testable. This is the DA's anchor.>
+
+## User goal
+<the user's goal, verbatim from the log header. It sets the scope; the Goal above, held to the maintainer bar, decides PASS.>
 
 ## One agent
 <why one agent can do this and decide its acceptance in one bounded context>
@@ -34,6 +37,9 @@ Wave: 1 of 2
 - `cd /abs/repo && pytest tests/test_a.py -q` exits 0
 - `grep -c "def foo" /abs/path/a.py` returns 1
 
+## Speed
+<only when this work touches speed: what to measure, the tool, the floor, and the target (such as "within 10% of the floor") if the user or you set one. Leave the section out otherwise; the worker still judges from the goal.>
+
 ## Skills to load first
 {{TESTING_SKILL}}
 - <domain skill from the available list>
@@ -49,6 +55,7 @@ Wave: 1 of 2
 - **Acceptance**: every check must hold while siblings edit their own files in the same tree at the same time. Scope checks to the worker's paths (`git status --short -- <its files>`, `git diff --quiet -- tests/`), never to whole-repo cleanliness; a repo-wide "only my file changed" check fails the moment a sibling saves.
 - **Write set**: list files or directories, not "the auth module". A stream's set is wide enough for any credible design. A worker that needs a file outside its set sends `BLOCKED` and waits; that is the intended behaviour, not a failure.
 - **Findings**: facts, not a design. The worker designs the stream itself.
+- **Speed**: copy a target the user set, verbatim. Set one yourself only when the findings justify it, for example from the floor and a known baseline.
 - **Inputs**: include interface contracts between workers verbatim or by path. Two workers guessing the same interface independently is the most common integration failure.
 - **Skills**: name the ones you know apply. The worker also scans the available list itself, so you do not have to be exhaustive.
 - **Context**: enough for the worker to make routine judgment calls without asking you.

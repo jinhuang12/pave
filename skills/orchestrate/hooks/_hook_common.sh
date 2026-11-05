@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# _hook_common.sh -- sourceable skeleton for the orchestrate lead hooks
-# (goal_restate.sh, speedup_nudge.sh).
+# _hook_common.sh -- sourceable skeleton for the orchestrate hooks: the lead
+# hooks (goal_restate.sh, speedup_nudge.sh) and the worker hook
+# (maintainer_nudge.sh).
 #
 # It carries the parts that do not change between hooks: the payload parse
 # with a parse-fail sentinel and fail-open exit, the session-scoped run
@@ -66,7 +67,7 @@ print("\n".join(lines))
   SESSION_ID="$(printf '%s\n' "$fields" | sed -n 2p)"
   STOP_ACTIVE="$(printf '%s\n' "$fields" | sed -n 3p)"
   AGENT_ID="$(printf '%s\n' "$fields" | sed -n 4p)"
-  AGENT_TYPE="$(printf '%s\n' "$fields" | sed -n 5p)"   # parsed for completeness; never a seat signal alone
+  AGENT_TYPE="$(printf '%s\n' "$fields" | sed -n 5p)"   # maintainer_nudge.sh uses it to pick worker seats; the lead hooks do not
   HOOK_EVENT="$(printf '%s\n' "$fields" | sed -n 6p)"
   HOOK_SOURCE="$(printf '%s\n' "$fields" | sed -n 7p)"
   HOOK_CWD="$(printf '%s\n' "$fields" | sed -n 8p)"

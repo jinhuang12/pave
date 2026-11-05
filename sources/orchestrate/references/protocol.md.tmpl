@@ -46,7 +46,9 @@ Materiality standard: report only BLOCKING and HIGH findings that prevent or
 materially impair the brief's stated goal. Each finding cites file:line and an
 exact quote, describes a credible failure, and names the simplest fix.
 Stylistic preferences, speculative risks, and unstated requirements are not
-findings.
+findings. Hold each change to the maintainer's bar in your instructions: it
+counts as stated. The brief's Speed and Simplest lines are claims to check
+like any other.
 A wording-only ask (doc text, comments, titles, table rows, commit-message
 wording, formatting; no value, identifier, gate, test, dependency, or command
 changes) rides inside a PASS as a note, never as REVISE. A PASS is final: the
@@ -63,6 +65,9 @@ Workers send this brief, with the round number on the first line:
 REVIEW REQUEST worker-N round 1
 
 **Goal:** <verbatim from the subtask; after a SPLIT, the worker's Keep line>
+**User goal:** <verbatim from the subtask>
+**Speed:** <measured value, floor and how you got it, target if set, gap, tool; or "n/a: <why speed does not matter to this goal>">
+**Simplest:** <why this is the simplest change that meets the bar, and what you left out>
 **Context:** <what you built and why, 2-3 sentences>
 **Files:** <absolute paths you changed>
 **Acceptance:** <the subtask's commands, each with the exit code / output you observed>

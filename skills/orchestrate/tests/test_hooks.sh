@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Invariant tests for the orchestrate lead hooks (spec
+# Invariant tests for the orchestrate hooks (spec
 # docs/superpowers/specs/2026-10-05-orchestrate-in-pave-plugin-design.md,
 # sections 5, 7 and 8). Tests behaviour, not wording:
 #   discovery: silent with no marker, for a session that owns no run, when the
@@ -18,9 +18,20 @@
 #              interval, and other commands are silent; in Claude Code it also
 #              asks the lead to stop agents it no longer needs, naming none;
 #              in Codex it does not
-#   registration: every orchestrate hook is plugin-level
+#   maintainer nudge: a worker's file edit (agent type pave-init:orchestrate-worker;
+#              a bare orchestrate-worker is silent) emits one PostToolUse additionalContext
+#              naming the maintainer; silent for the lead, the reviewer, any
+#              other agent type, a non-edit tool, and a non-PostToolUse event;
+#              at most once per interval per agent (ORCHESTRATE_SEAT_SECONDS=0
+#              fires every time, a non-number falls back to 60); each session
+#              gets its own first firing; a stamp folder or file that cannot be
+#              written, and a session or agent id that is not a plain name,
+#              stay silent with exit 0 and nothing on stderr
+#   registration: every orchestrate hook is plugin-level; maintainer_nudge.sh is
+#              registered under PostToolUse with the edit-tool matcher, in
+#              Claude Code only
 #   fail open: an unparsable payload, empty stdin, a non-object payload, and a
-#              missing interpreter leave the hook silent with exit 0
+#              missing interpreter leave each hook silent with exit 0
 #
 # Self-contained: fixture logs are written by hand inside a mktemp sandbox;
 # no real log or marker is touched. ORCHESTRATE_MARKER_DIR points the fixed
@@ -33,6 +44,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 SKILL="$(cd "$HERE/.." && pwd)"
 RESTATE_HOOK="$SKILL/hooks/goal_restate.sh"
 SPEEDUP_HOOK="$SKILL/hooks/speedup_nudge.sh"
+MAINT_HOOK="$SKILL/hooks/maintainer_nudge.sh"
 COMMON="$SKILL/hooks/_hook_common.sh"
 
 PASS=0
@@ -121,11 +133,11 @@ GHOST_LOG="$(printf '%s\n' '- 12:03 PLAN worker-1 -> da-1 | a.py | pytest a' '- 
 
 # --- syntax ------------------------------------------------------------------
 
-for f in "$COMMON" "$RESTATE_HOOK" "$SPEEDUP_HOOK"; do
+for f in "$COMMON" "$RESTATE_HOOK" "$SPEEDUP_HOOK" "$MAINT_HOOK"; do
   ok=0; [ -f "$f" ] && bash -n "$f" 2>/dev/null && ok=1
   report "syntax: bash -n $(basename "$f")" "$ok" "missing or syntax error"
 done
-ok=0; [ -x "$RESTATE_HOOK" ] && [ -x "$SPEEDUP_HOOK" ] && ok=1
+ok=0; [ -x "$RESTATE_HOOK" ] && [ -x "$SPEEDUP_HOOK" ] && [ -x "$MAINT_HOOK" ] && ok=1
 report "syntax: the hooks are executable (hooks.json runs them directly)" "$ok" "mode"
 
 # --- discovery -----------------------------------------------------------------
@@ -283,6 +295,136 @@ OUT="$(cat "$WORK/out")"; ERR="$(cat "$WORK/err")"
 ok=0; [ "$RC" = "0" ] && has_out "overlap, parallelize, or cut" && ! has_out "TaskStop" && ok=1
 report "speed-up: in Codex it does not ask to stop agents" "$ok" "rc=$RC out=$OUT"
 
+# --- maintainer nudge (maintainer_nudge.sh) ----------------------------------------
+# TMPDIR already points into the sandbox, so no real stamp is touched. The stamp
+# is per session and agent, so each case uses its own session id.
+
+WORKER="pave-init:orchestrate-worker"
+seat_payload() { # $1 session, $2 agent_type ("" = none), $3 tool, $4 event, $5 agent_id ("" = null)
+  python3 -c 'import json,sys
+a = sys.argv
+print(json.dumps({"session_id": a[1], "hook_event_name": a[4], "tool_name": a[3],
+  "agent_type": a[2] or None, "agent_id": a[5] or None, "tool_input": {"file_path": "/tmp/x"}}))' \
+    "$1" "${2:-}" "${3:-Edit}" "${4:-PostToolUse}" "${5:-}"
+}
+# nudge_ok -- the last run printed one valid PostToolUse additionalContext that names the maintainer
+nudge_ok() {
+  [ "$RC" = "0" ] && [ -z "$ERR" ] && printf '%s' "$OUT" | python3 -c '
+import json, sys
+d = json.loads(sys.stdin.read())["hookSpecificOutput"]
+assert d["hookEventName"] == "PostToolUse"
+assert "[orchestrate maintainer_nudge]" in d["additionalContext"] and "maintainer" in d["additionalContext"]
+' 2>/dev/null
+}
+
+run_hook "$MAINT_HOOK" "$(seat_payload m1 "$WORKER")"
+ok=0; nudge_ok && ok=1
+report "maintainer nudge: a worker's Edit emits one PostToolUse additionalContext naming the maintainer" "$ok" "rc=$RC out=$OUT err=$ERR"
+ok=0; [ -f "$TMPDIR/orchestrate-seat/m1-main" ] && ok=1
+report "maintainer nudge: the firing time is kept in <tmp>/orchestrate-seat/<session>-main" "$ok" "$(ls "$TMPDIR/orchestrate-seat" 2>&1)"
+
+for tool in Write MultiEdit NotebookEdit; do
+  run_hook "$MAINT_HOOK" "$(seat_payload "m1-$tool" "$WORKER" "$tool")"
+  ok=0; nudge_ok && ok=1
+  report "maintainer nudge: a worker's $tool fires" "$ok" "rc=$RC out=$OUT err=$ERR"
+done
+
+run_hook "$MAINT_HOOK" "$(seat_payload m2 orchestrate-worker)"
+ok=0; silent && ok=1
+report "maintainer nudge: silent for the bare agent type orchestrate-worker (another workflow's agent)" "$ok" "rc=$RC out=$OUT err=$ERR"
+
+# Every case below shares session m3, and none of them may consume the stamp:
+# the worker edit at the end must still fire.
+run_hook "$MAINT_HOOK" "$(seat_payload m3 "")"
+ok=0; silent && ok=1
+report "maintainer nudge: silent for the lead (no agent type)" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload m3 pave-init:adversarial-investigator)"
+ok=0; silent && ok=1
+report "maintainer nudge: silent for the reviewer agent type" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload m3 general-purpose)"
+ok=0; silent && ok=1
+report "maintainer nudge: silent for another agent type" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload m3 other:orchestrate-worker)"
+ok=0; silent && ok=1
+report "maintainer nudge: silent for a near-miss agent type (the match is exact)" "$ok" "rc=$RC out=$OUT err=$ERR"
+for tool in Bash SendMessage Read; do
+  run_hook "$MAINT_HOOK" "$(seat_payload m3 "$WORKER" "$tool")"
+  ok=0; silent && ok=1
+  report "maintainer nudge: silent for a worker's $tool (not an edit tool)" "$ok" "rc=$RC out=$OUT err=$ERR"
+done
+run_hook "$MAINT_HOOK" "$(seat_payload m3 "$WORKER" Edit SessionStart)"
+ok=0; silent && ok=1
+report "maintainer nudge: silent for a SessionStart event" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload m3 "$WORKER" Edit PreToolUse)"
+ok=0; silent && ok=1
+report "maintainer nudge: silent for a PreToolUse event" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload m3 "$WORKER")"
+ok=0; nudge_ok && ok=1
+report "maintainer nudge: the silent cases left no stamp (the worker's first edit still fires)" "$ok" "rc=$RC out=$OUT err=$ERR"
+
+run_hook "$MAINT_HOOK" "$(seat_payload m1 "$WORKER")"
+ok=0; silent && ok=1
+report "maintainer nudge: a second worker edit inside the interval is silent" "$ok" "rc=$RC out=$OUT err=$ERR"
+ORCHESTRATE_SEAT_SECONDS=0 run_hook "$MAINT_HOOK" "$(seat_payload m1 "$WORKER")"
+ok=0; nudge_ok && ok=1
+report "maintainer nudge: with ORCHESTRATE_SEAT_SECONDS=0 it fires again" "$ok" "rc=$RC out=$OUT err=$ERR"
+
+run_hook "$MAINT_HOOK" "$(seat_payload m4 "$WORKER")"
+printf '%s\n' "$(($(date +%s) - 120))" > "$TMPDIR/orchestrate-seat/m4-main"
+ORCHESTRATE_SEAT_SECONDS=abc run_hook "$MAINT_HOOK" "$(seat_payload m4 "$WORKER")"
+ok=0; nudge_ok && ok=1
+report "maintainer nudge: a non-number interval falls back to 60 (a 120 s old firing fires again)" "$ok" "rc=$RC out=$OUT err=$ERR"
+ORCHESTRATE_SEAT_SECONDS=abc run_hook "$MAINT_HOOK" "$(seat_payload m4 "$WORKER")"
+ok=0; silent && ok=1
+report "maintainer nudge: a non-number interval falls back to 60, not 0 (a fresh firing stays silent)" "$ok" "rc=$RC out=$OUT err=$ERR"
+
+printf '%s\n' "$(($(date +%s) - 120))" > "$TMPDIR/orchestrate-seat/m4-main"
+run_hook "$MAINT_HOOK" "$(seat_payload m4 "$WORKER")"
+ok=0; nudge_ok && ok=1
+report "maintainer nudge: a firing time older than the interval fires again" "$ok" "rc=$RC out=$OUT err=$ERR"
+for junk in 'garbage' '99999999999999999999' '-5' ''; do
+  printf '%s\n' "$junk" > "$TMPDIR/orchestrate-seat/m4-main"
+  run_hook "$MAINT_HOOK" "$(seat_payload m4 "$WORKER")"
+  ok=0; nudge_ok && ok=1
+  report "maintainer nudge: an unreadable stamp ('$junk') counts as never fired" "$ok" "rc=$RC out=$OUT err=$ERR"
+done
+
+run_hook "$MAINT_HOOK" "$(seat_payload m5a "$WORKER")"
+ok=0; nudge_ok && ok=1
+report "maintainer nudge: session A gets its first firing" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload m5b "$WORKER")"
+ok=0; nudge_ok && ok=1
+report "maintainer nudge: session B gets its own first firing" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload m5a "$WORKER" Edit PostToolUse sub-1)"
+ok=0; nudge_ok && [ -f "$TMPDIR/orchestrate-seat/m5a-sub-1" ] && ok=1
+report "maintainer nudge: the same session with an agent id has its own stamp" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload m5a "$WORKER" Edit PostToolUse sub-1)"
+ok=0; silent && ok=1
+report "maintainer nudge: that agent's second edit inside the interval is silent" "$ok" "rc=$RC out=$OUT err=$ERR"
+
+# Unwritable stamp: a file where the folder should be, then a folder where the stamp should be.
+# Both fail for root too, unlike a read-only folder.
+mkdir -p "$WORK/blocked"
+: > "$WORK/blocked/orchestrate-seat"
+TMPDIR="$WORK/blocked" run_hook "$MAINT_HOOK" "$(seat_payload m6 "$WORKER")"
+ok=0; silent && ok=1
+report "maintainer nudge: a stamp folder that cannot be made is silent with exit 0" "$ok" "rc=$RC out=$OUT err=$ERR"
+mkdir -p "$TMPDIR/orchestrate-seat/m6b-main"
+run_hook "$MAINT_HOOK" "$(seat_payload m6b "$WORKER")"
+ok=0; silent && ok=1
+report "maintainer nudge: a stamp file that cannot be written is silent with exit 0" "$ok" "rc=$RC out=$OUT err=$ERR"
+
+# Ids are spliced into the stamp name, so only plain names count.
+run_hook "$MAINT_HOOK" "$(seat_payload "" "$WORKER")"
+ok=0; silent && ok=1
+report "maintainer nudge: an empty session id is silent" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload "a/b" "$WORKER")"
+ok=0; silent && [ ! -e "$TMPDIR/orchestrate-seat/a" ] && ok=1
+report "maintainer nudge: a session id that is not a plain name is silent" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" "$(seat_payload m7 "$WORKER" Edit PostToolUse "x/y")"
+ok=0; silent && [ ! -e "$TMPDIR/orchestrate-seat/m7-x" ] && ok=1
+report "maintainer nudge: an agent id that is not a plain name is silent" "$ok" "rc=$RC out=$OUT err=$ERR"
+
 # --- registration ------------------------------------------------------------------
 # Skill-frontmatter SessionStart hooks never run (Claude Code 2.1.312), and
 # frontmatter hooks are gone after --resume, so every orchestrate hook is
@@ -302,6 +444,26 @@ front = (root / "skills/orchestrate/SKILL.md").read_text().split("\n---\n", 1)[0
 assert "\nhooks:" not in front
 PY
 report "registration: all orchestrate hooks are plugin-level, none in the skill frontmatter" "$ok" "see hooks.json"
+
+# The worker hook runs inside teammates, so it is plugin-level too. It is
+# Claude Code only: the Codex hook list does not carry it.
+ok=0; python3 - "$PLUGIN_ROOT" <<'PY' && ok=1
+import json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+hooks = json.load(open(root / "hooks/hooks.json"))["hooks"]
+found = [(event, group.get("matcher", ""), h["command"])
+         for event, groups in hooks.items() for group in groups for h in group["hooks"]
+         if "maintainer_nudge.sh" in h["command"]]
+assert len(found) == 1, found
+event, matcher, command = found[0]
+assert event == "PostToolUse", event
+assert sorted(matcher.split("|")) == ["Edit", "MultiEdit", "NotebookEdit", "Write"], matcher
+assert command == '"${CLAUDE_PLUGIN_ROOT}/skills/orchestrate/hooks/maintainer_nudge.sh"', command
+assert (root / "skills/orchestrate/hooks/maintainer_nudge.sh").is_file()
+assert "maintainer_nudge" not in (root / "codex/hooks/hooks.json").read_text()
+PY
+report "registration: maintainer_nudge.sh is under PostToolUse with the edit-tool matcher, Claude Code only" "$ok" "see hooks.json"
 
 # --- fail open -----------------------------------------------------------------------
 
@@ -323,6 +485,22 @@ printf '%s' "$(compact f1)" | ORCHESTRATE_PYTHON="$WORK/no-python" bash "$RESTAT
 OUT="$(cat "$WORK/out")"; ERR="$(cat "$WORK/err")"
 ok=0; silent && ok=1
 report "fail open: a missing interpreter" "$ok" "rc=$RC out=$OUT"
+
+# The worker hook fails open the same way (a valid worker payload would fire).
+run_hook "$MAINT_HOOK" 'not json'
+ok=0; silent && ok=1
+report "fail open: maintainer nudge, unparsable payload" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" ''
+ok=0; silent && ok=1
+report "fail open: maintainer nudge, empty stdin" "$ok" "rc=$RC out=$OUT err=$ERR"
+run_hook "$MAINT_HOOK" '["f1"]'
+ok=0; silent && ok=1
+report "fail open: maintainer nudge, a non-object payload" "$ok" "rc=$RC out=$OUT err=$ERR"
+RC=x
+printf '%s' "$(seat_payload f2 "$WORKER")" | ORCHESTRATE_PYTHON="$WORK/no-python" bash "$MAINT_HOOK" >"$WORK/out" 2>"$WORK/err"; RC=$?
+OUT="$(cat "$WORK/out")"; ERR="$(cat "$WORK/err")"
+ok=0; silent && ok=1
+report "fail open: maintainer nudge, a missing interpreter" "$ok" "rc=$RC out=$OUT err=$ERR"
 
 echo
 echo "$PASS passed, $FAIL failed"

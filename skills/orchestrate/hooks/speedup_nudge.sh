@@ -38,7 +38,7 @@ NOW="$(date +%s)"
 LAST="$(head -n 1 "$STAMP" 2>/dev/null || true)"
 case "$LAST" in ''|*[!0-9]*) LAST=0 ;; esac
 [ $((NOW - LAST)) -ge "$INTERVAL" ] || exit 0
-printf '%s\n' "$NOW" > "$STAMP" 2>/dev/null || exit 0
+{ printf '%s\n' "$NOW" > "$STAMP"; } 2>/dev/null || exit 0
 
 OPEN="$(log_open_subtasks "$RUN_LOG" | paste -sd ' ' - | sed 's/ /, /g')"
 RELEASE=""

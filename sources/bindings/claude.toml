@@ -22,9 +22,11 @@ description: >-
   task mixes unrelated domains (e.g. backend + frontend + docs) even if the
   user never mentions parallelism. Do not use it for single-file edits,
   trivial fixes, or tasks whose steps are strictly sequential with no parallel
-  width. Registers two lead-only plugin hooks: a goal restate on session
-  resume and after compaction, and a speed-up question at most once a minute
-  that also asks the lead to stop agents it no longer needs. They never block.
+  width. Registers three plugin hooks that never block: for the lead, a goal
+  restate on session resume and after compaction, and a speed-up question at
+  most once a minute that also asks the lead to stop agents it no longer
+  needs; for workers, a reminder of the maintainer bar at most once a minute
+  after a file edit.
 ---'''
 PEER_MESSAGES = "direct SendMessage"
 RESOURCE_PATHS = '''`$SKILL` in this file means this skill's base directory: the Skill tool printed it as `Base directory for this skill: <path>` when the skill loaded. It is a placeholder, not an environment variable, so write that literal path in every command. Do not guess an install path.'''
@@ -52,10 +54,11 @@ NOTES_ROUTE = '''go to one fresh worker under the next unused index, reviewed by
 FIX_ROUTE = '''spawn a fresh worker for each finding under the next unused index, with the owning worker's write set and the finding, reviewed by a live DA (the owner was stopped at its DONE). Log one line per worker: `append PLAN worker-N "-> da-M | fix: <finding summary> | <acceptance>"`.'''
 LIST_AGENTS = "`ListAgents`"
 NEW_SESSION = '''After `/clear` the session id changes, so `status` finds no run for this session and prints the `adopt` command for the orphaned log. Run `adopt <log>` first, then the steps above.'''
-HOOK_CONTRACT = '''The plugin's `hooks/hooks.json` registers two lead hooks, not this skill's frontmatter: Claude Code never runs a skill-frontmatter SessionStart hook, and frontmatter hooks are gone after a resume. Each hook acts only in your own session and only for the run this session owns (its `~/.orchestrate/active-<session id>` marker), stays silent once the log's last line is a `CLOSE`, adds context, and never blocks. `ORCHESTRATE_PYTHON` sets the interpreter they use.
+HOOK_CONTRACT = '''The plugin's `hooks/hooks.json` registers three hooks, not this skill's frontmatter: Claude Code never runs a skill-frontmatter SessionStart hook, and frontmatter hooks are gone after a resume. The two lead hooks act only in your own session and only for the run this session owns (its `~/.orchestrate/active-<session id>` marker), and stay silent once the log's last line is a `CLOSE`. All three add context and never block. `ORCHESTRATE_PYTHON` sets the interpreter they use.
 
 - **Goal restate** fires on session resume and after compaction. It asks you to state the goal from the log header, run `status` and `ListAgents`, name each open subtask and what it waits on, and the fewest steps to `CLOSE`. Answer it with Resume. It never throttles.
-- **Speed-up question** fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once a minute (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, run in parallel, or be cut, and asks you to stop any agent you no longer need. Answer in one line: `optimal`, or the change you make now. Stop only agents you are done with: a DONE worker you still need, for a later leg or a shared change, stays.'''
+- **Speed-up question** fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once a minute (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, run in parallel, or be cut, and asks you to stop any agent you no longer need. Answer in one line: `optimal`, or the change you make now. Stop only agents you are done with: a DONE worker you still need, for a later leg or a shared change, stays.
+- **Maintainer reminder** fires in each worker, not in your session, at most once a minute after the worker edits a file (`ORCHESTRATE_SEAT_SECONDS`). It points the worker back to the maintainer bar in its instructions. You have nothing to answer.'''
 RUNTIME_ANTIPATTERNS = '''- **Expecting peers to read each other's plain text.** A teammate's final line reaches only you, as an idle-notification result, and only at your next turn boundary. Worker-to-DA traffic must be SendMessage.
 - **Using an agent type with a restricted tool list as a teammate.** No `SendMessage` in its tools means it can never reach its DA or you. `orchestrate-worker` and `adversarial-investigator` keep all tools for this reason.
 - **Running this headless.** `claude -p` never spawns teammates; the skill is for interactive sessions.'''

@@ -64,7 +64,7 @@ Orchestrate when there are two or more streams, or one stream large enough to ne
 
 Start the log with the goal only: `{{LOG_COMMAND}} init --goal "<user's goal, verbatim>"`. If `init` refuses because this session already has an open run, either resume that run (Resume) or close it with the `CLOSE incomplete` command `init` prints, then run `init` again.
 
-Give each stream to one helper, all in one message (up to 6 at a time); a stream whose facts you can confirm in one or two reads you check yourself. {{HELPERS}} Each brief carries the stream's asks, where to look, and a request for file:line evidence of where the behavior lives, which files a change would touch, which constraints and tests apply, and what only the user can answer. Helpers only read and report. Nobody designs or edits project files in this step: design belongs to the worker who builds the stream. Check each decisive claim against its cited lines, then write the findings under their stream in the plan file.
+Give each stream to one helper, all in one message (up to 6 at a time); a stream whose facts you can confirm in one or two reads you check yourself. {{HELPERS}} Each brief carries the stream's asks, where to look, and a request for file:line evidence of where the behavior lives, which files a change would touch, which constraints and tests apply, for a stream that touches speed the profiling tools at hand and what its floor depends on, and what only the user can answer. Helpers only read and report. Nobody designs or edits project files in this step: design belongs to the worker who builds the stream. Check each decisive claim against its cited lines, then write the findings under their stream in the plan file.
 
 - **Merge** two streams only when the findings show they change the same files, or one cannot be designed without the other. Otherwise keep them apart, even when they sound alike. A stream that needs another's finished output but shares no files goes in a later wave instead.
 - **Ask the user once**, with {{ASK_USER}}, about the gaps that only the user can close, for all streams together. For any other gap, write your assumption under its stream and go on.
@@ -79,6 +79,7 @@ Then write one entry per stream. Each must be externally verifiable by both its 
 - **findings** — the plan file's path and this stream's section, plus the facts a design rests on, each with file:line. Give facts, not a design.
 - **inputs** — files to read, prior decisions, constraints, and your answers from the user that bear on this stream.
 - **acceptance** — commands or checks that prove the goal is met (`pytest tests/x`, `npm run build`, a grep that must return N hits). Workers run these before submitting, adding checks their design needs; DAs re-run them.
+- **speed** — for a stream that touches speed: what to measure, the tool, the floor if the findings give one, and the target if the user set one (copy it verbatim) or the findings justify one. Without this line the worker still decides from the goal whether speed counts.
 - **skills** — skills from the available list the worker should load first ({{SKILL_EXAMPLES}}).
 
 Group streams into **waves** when one needs another's output. Everything in a wave runs in parallel; the next wave starts when the whole previous wave has PASSed.
@@ -157,7 +158,7 @@ Close the log with one stopping word (`skills/pave-init/references/pave-spec.md`
 - `incomplete` — required work remains open, including a run you abandon.
 - `exhausted` — the useful approaches are used up.
 
-Tell the user, in this order: the stopping word, leading the report, with the verdict for the whole goal; then per worker a one-line result with round count; then deferred items and anything you had to decide on their behalf. An `accepted` close needs no go from the user: if this run was one step of a larger task and the next step is reversible and touches nothing live, start it and say what started. Ask first only before an irreversible or production-facing step. {{SHUTDOWN}}
+Tell the user, in this order: the stopping word, leading the report, with the verdict for the whole goal; then per worker a one-line result with round count and its Speed line; then deferred items and anything you had to decide on their behalf. An `accepted` close needs no go from the user: if this run was one step of a larger task and the next step is reversible and touches nothing live, start it and say what started. Ask first only before an irreversible or production-facing step. {{SHUTDOWN}}
 
 ## Resume
 
@@ -193,4 +194,4 @@ There is no Stop hook. A one-session run keeps Steps 5-7 in context; an unclosed
 - {{MODEL_REFERENCE}}
 - {{PREFLIGHT_REFERENCE}}
 - `scripts/orchestrate_log.py` — the run log; `init`, `append`, `status`, `releasable`, `adopt`.
-- `hooks/` — the lead hooks listed under Hooks; `hooks/_hook_common.sh` is their sourced skeleton.
+- `hooks/` — the hooks listed under Hooks; `hooks/_hook_common.sh` is their sourced skeleton.

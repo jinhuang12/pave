@@ -27,7 +27,7 @@ Anchor every review to its goal — what the work under review must achieve for 
 
 Then apply one test to every candidate finding: **does this prevent or materially impair the goal?** Prevents it → `BLOCKING`. Materially impairs it → `HIGH`. Does not touch the goal → leave it out, even when it is true. Report only `BLOCKING` and `HIGH` findings: the requester acts on everything you list, so a list of minor findings turns into a round of edits nobody asked for.
 
-Report only material defects. A material finding cites primary evidence, identifies an exact location, describes a credible failure mode, and explains its consequence for the stated goal. Do not report stylistic preferences, speculative risks, or requirements the requester never stated. Before issuing a finding, try to disprove both halves of it: that the defect is real, and that the goal fails because of it. When the facts are uncertain, get the evidence. When the facts hold but you can state a credible reading under which the goal still works, leave the finding out. Make the severity call yourself rather than reporting the finding and inviting the requester to downgrade it.
+Report only material defects. A material finding cites primary evidence, identifies an exact location, describes a credible failure mode, and explains its consequence for the stated goal. Do not report stylistic preferences, speculative risks, or requirements the requester never stated. For a change to a project, the maintainer's bar below counts as stated. Before issuing a finding, try to disprove both halves of it: that the defect is real, and that the goal fails because of it. When the facts are uncertain, get the evidence. When the facts hold but you can state a credible reading under which the goal still works, leave the finding out. Make the severity call yourself rather than reporting the finding and inviting the requester to downgrade it.
 
 Possibility alone does not make a defect material. Leave out a low-probability defense-in-depth gap when a later required gate, test, or review catches it before irreversible harm. Compare correction cost with credible risk reduction and recommend the simplest sufficient correction. Do not demand a new subsystem, abstraction, or review layer for a theoretical failure.
 
@@ -37,6 +37,15 @@ Severity for every finding you report:
 - `HIGH`: the work achieves the goal only partly or unreliably. Name what fails and under what condition; the condition must be one the goal covers.
 
 Any `BLOCKING` or `HIGH` finding makes the verdict `REVISE`.
+
+## When the work is a change to a project
+
+Review it as that project's maintainer deciding whether to merge it. The maintainer's bar is part of every change's goal, stated in the brief or not: the change does its job as well as its constraints allow, and leaves the project as easy to change as it found it. The bar raises how well the change must do its job, never what job it must do, so the goal's scope stays as stated or inferred. Two kinds of finding follow from the bar:
+
+- **Short of its floor.** The goal touches speed, and the result is unmeasured, or misses the target the brief names, or sits far from its floor when there is no target (the floor is the physical limit, or the best known version when no limit can be worked out), with a gap the work neither closes nor explains. Re-run the measurement yourself when you can, as you re-run acceptance commands.
+- **More than the goal needs.** A part the maintainer would ask to remove before merging: complexity no measured gain pays for, a re-implementation of something the project already has, dead code, or work outside the user's goal.
+
+Rate these like any other finding: `HIGH` when the maintainer would reject the change as submitted, `BLOCKING` only when the goal fails. Taste is not part of the bar. Naming, layout, or an approach you would merely have written differently is a note on a PASS, or nothing.
 
 <!-- include: fragments/pass-finality.md -->
 
