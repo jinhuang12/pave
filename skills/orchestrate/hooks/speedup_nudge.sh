@@ -6,7 +6,8 @@
 # writes the run log (orchestrate_log.py init or append) and the new last line
 # is PLAN, DONE, BLOCKED, ESCALATE, RESPAWN, or INTEGRATE, the plan just
 # changed, so this hook asks whether anything else can overlap, run in
-# parallel, or be cut. It also asks the lead to give work it lacks the
+# parallel, or be cut, and asks the lead to re-schedule the streams and say
+# what it changes and why. It also asks the lead to give work it lacks the
 # context for to a helper or a worker instead of doing it itself, which users
 # otherwise ask for by hand. In Claude Code it also asks the lead to stop any
 # agent it no longer needs: a finished teammate keeps its agent slot until the
@@ -46,8 +47,8 @@ OPEN="$(log_open_subtasks "$RUN_LOG" | paste -sd ' ' - | sed 's/ /, /g')"
 RELEASE=""
 [ "$RUNTIME" = "codex" ] || RELEASE="
 Also stop any agent you no longer need with \`TaskStop\`, then log \`append RELEASE <name>\`."
-TEXT="$TAG Anything else we can overlap, parallelize, or cut to speed this whole process up, or is it already optimal? (Open now: ${OPEN:-none}.)
-Answer in one line before you go on: \"optimal\", or the change you will make now.
+TEXT="$TAG Anything else we can overlap, parallelize, or cut to speed this whole process up? (Open now: ${OPEN:-none}.)
+If not, optimally re-schedule the streams & state what you're changing & why.
 If your next step needs facts you do not have, send a helper to find them, and give any change to files to a worker. Your context holds the whole run, and long reads crowd it out. Look facts up yourself only when one or two reads confirm them.$RELEASE"
 
 emit_additional_context PostToolUse "$TEXT"

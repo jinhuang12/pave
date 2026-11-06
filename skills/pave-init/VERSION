@@ -1,4 +1,4 @@
-version: 2.12.1
+version: 2.12.2
 
 ## How changelog entries are written
 
@@ -17,6 +17,11 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.12.2 (2026-11-06)
+
+- Changed — The orchestrate lead's speed-up question no longer accepts a one-word "optimal". The lead now re-schedules the streams and says what it changes and why. In a test, a lead that had answered "optimal" made changes as soon as it was asked the same question again.
+  - New wording in `speedup_nudge.sh`, for Claude Code and Codex. Same trigger and timing. Source: the user's edit of 2026-11-06.
 
 ### 2.12.1 (2026-11-05)
 
