@@ -14,6 +14,9 @@ Wave: 1 of 2
 ## User goal
 <the user's goal, verbatim from the log header. It sets the scope; the Goal above, held to the maintainer bar, decides PASS.>
 
+## User rules
+<the lines of the plan file's `User rules` section that bear on this work, verbatim: bars, decisions, and standing rules the user gave for the run. The DA holds the work to them as stated requirements. Write "none" when there are none.>
+
 ## One agent
 <why one agent can do this and decide its acceptance in one bounded context>
 
@@ -38,7 +41,7 @@ Wave: 1 of 2
 - `grep -c "def foo" /abs/path/a.py` returns 1
 
 ## Speed
-<only when this work touches speed: what to measure, the tool, the floor, and the target (such as "within 10% of the floor") if the user or you set one. Leave the section out otherwise; the worker still judges from the goal.>
+<only when this work touches speed: what to measure, the tool, the floor, the target (such as "at most 120 ms") if the user or you set one, and where this work stands in the end-to-end number the user's goal names, if the findings give it: its share, and `tail: yes` or `tail: no` (Step 1 of the skill). Leave the section out otherwise; the worker still judges from the goal.>
 
 ## Skills to load first
 {{TESTING_SKILL}}
@@ -52,10 +55,11 @@ Wave: 1 of 2
 
 - **Goal**: if you cannot write an acceptance check for it, the goal is not yet a goal. Split or sharpen it.
 - **One agent**: one falsifiable line, `One agent: <why one agent can do this and decide its acceptance>` (`skills/pave-init/references/pave-spec.md` §9.12 in this plugin). Name what the worker does and how it decides done. A stream that cannot state it is too wide, and its worker splits it after design; a split part that cannot state it goes back to its worker.
-- **Acceptance**: every check must hold while siblings edit their own files in the same tree at the same time. Scope checks to the worker's paths (`git status --short -- <its files>`, `git diff --quiet -- tests/`), never to whole-repo cleanliness; a repo-wide "only my file changed" check fails the moment a sibling saves.
+- **User rules**: copy them verbatim, and only the ones that bear on this work. The DA reviews against what the subtask states, so a rule the user gave that is missing here is a rule nobody enforces.
+- **Acceptance**: every check must hold while siblings edit their own files in the same tree at the same time. Scope checks to the worker's paths (`git status --short -- <its files>`, `git diff --quiet -- tests/`), never to whole-repo cleanliness; a repo-wide "only my file changed" check fails the moment a sibling saves. When the deliverable is something posted for others to review, such as a pull request, include the steps that follow posting (rebase onto the target branch, answer the review comments): the worker's job ends at its DONE, so work left for after it has no owner.
 - **Write set**: list files or directories, not "the auth module". A stream's set is wide enough for any credible design. A worker that needs a file outside its set sends `BLOCKED` and waits; that is the intended behaviour, not a failure.
 - **Findings**: facts, not a design. The worker designs the stream itself.
-- **Speed**: copy a target the user set, verbatim. Set one yourself only when the findings justify it, for example from the floor and a known baseline.
+- **Speed**: copy a target the user set, verbatim. Set one yourself only when the findings justify it, for example from a known baseline, and not from the floor when the goal asks for the best the system can do. Give the share and the tail mark when the findings have them: a tail part is done once it works, and the run's effort belongs to the parts that decide the result.
 - **Inputs**: include interface contracts between workers verbatim or by path. Two workers guessing the same interface independently is the most common integration failure.
 - **Skills**: name the ones you know apply. The worker also scans the available list itself, so you do not have to be exhaustive.
 - **Context**: enough for the worker to make routine judgment calls without asking you.

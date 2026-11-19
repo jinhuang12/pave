@@ -1,4 +1,4 @@
-version: 2.12.2
+version: 2.13.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,27 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.13.0 (2026-11-19)
+
+- Changed — An orchestrate wave has no fixed size. The lead opens a worker for every stream that has a testable goal, its own files, and the resources it needs. Before, a wave stopped at 6 workers and ready work waited.
+  - The limits it names instead: write sets that stay disjoint, resources that cannot be shared, and the machine's agent slots and memory. A stream entry now names a resource it needs to itself. Changed in `SKILL.md` Steps 1 and 4; the "more than 6 workers" anti-pattern is removed.
+- New — Bars, decisions, and rules you give during a run reach every agent. The lead keeps them in a `User rules` section of the plan file, copies them into each subtask and DA prompt, sends them to open workers and DAs when you add one, and restates them with the goal after a context rebuild. Reviewers hold the work to them as stated requirements.
+  - `## User rules` in the subtask; the DA spawn prompt, the `RULE` message, and the whole-goal brief in `protocol.md`; worker and reviewer instructions; new wording in `goal_restate.sh`. The log's goal line stays frozen.
+- Changed — How far a part is pushed toward its speed floor now comes from the measured breakdown of the end-to-end number your goal names, not from a percent you set. The lead marks the tail, the small parts that together hold the last 5% of what is left to save, and a tail part is finished once it works. In every other part the worker does the work that pays most for its cost first and stops at the dearest 5%.
+  - Worker bar, reviewer "short of its floor" finding, the lead's stream entry, and the Speed lines in the subtask and the review brief.
+  - `examples/optimize-loop.md` derives its backstop the same way. The `FLOOR_GAP_PCT` and `BACKSTOP_PCT` slots are removed, a candidate carries its cycles, ranking is by expected gain for each cycle, and "under the backstop" is a valid floor argument.
+  - Checked on one flat list of work from one optimization campaign: the derived cut gave the same go or stop as a hand-set threshold on 53 of the 55 rows that had a ruling. The two-level form used here (the lead ranks parts, then each worker ranks its own list) was replayed on the same rows with the parts grouped by name. That replay counts go against not-go only, on the 44 rows the user's bar did not decide, so its numbers do not compare with the 53 of 55: the two-level form agreed with the rulings on 38 and the flat list on 40, and they kept 92% and 95% of the saving. The example's component form was not replayed.
+  - The lead also says what a number in your goal means. A finish line is the run's target, and a speed stream is done when the run meets it. A least-acceptable number leaves the tail to decide.
+- Improved — A change to work a DA already passed goes back to that DA, and the lead keeps a DA whose work may still change.
+- Improved — The lead's reports name each stream by its subject. Worker names and round counts stay in the log.
+- Improved — When a result calls for a next step inside the goal, the lead starts it mid-run, as it already did at close. It still asks before an irreversible or production-facing step.
+- Improved — At close the lead removes the build output, caches, and scratch files that workers list under `Paths created`, and keeps branches and evidence. The list is kept in the plan file, so it survives a context rebuild.
+- Improved — The speed-up question says a stream you asked for stays in the run: "cut" means work the goal does not need. A new anti-pattern names cutting scope to finish sooner.
+  - One added line in `speedup_nudge.sh`, for Claude Code and Codex. Same trigger and timing.
+- Fixed — The note on replacing a failed worker said a fresh spawn usually lands on a different quota. That is true only where the launcher gives each teammate its own account, and the note now says so.
+- Improved — A stream that only reads and reports can run on `sonnet` in Claude Code. When a deliverable is posted for review, its acceptance includes the steps after posting.
+  - Source for this release: the user's request of 2026-11-19, from lessons recorded during orchestrate runs, checked with a prompt audit.
 
 ### 2.12.2 (2026-11-06)
 

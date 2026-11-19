@@ -194,8 +194,9 @@ ok=0; [ "$RC" = "0" ] && [ -z "$ERR" ] && has_out '"hookEventName": "SessionStar
 report "restate: compact emits additionalContext naming the log" "$ok" "rc=$RC out=$OUT"
 ok=0; has_out "status" && has_out "live agents" && has_out "open subtask" && has_out "CLOSE" \
   && has_out "goal" && has_out "ou orchestrate, you do not implement" \
-  && has_out "orchestrate_log.py" && has_out "\[orchestrate goal_restate\]" && ok=1
-report "restate: text asks for goal, status, live agents, open subtasks, fewest steps to CLOSE" "$ok" "out=$OUT"
+  && has_out "orchestrate_log.py" && has_out "\[orchestrate goal_restate\]" \
+  && has_out "User rules in ${OPEN_LOG%.md}.plan" && has_out "not measured yet" && ok=1
+report "restate: text asks for goal, user rules, status, live agents, open subtasks, fewest steps to CLOSE" "$ok" "out=$OUT"
 ok=0; printf '%s' "$OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["hookSpecificOutput"]["hookEventName"]=="SessionStart"; assert d["hookSpecificOutput"]["additionalContext"]' 2>/dev/null && ok=1
 report "restate: output is one valid JSON object" "$ok" "out=$OUT"
 ok=0; open_is "worker-3" && ok=1
@@ -285,8 +286,9 @@ report "speed-up: a log write asks the speed-up question and names open subtasks
 ok=0; has_out "no longer need" && has_out "TaskStop" && has_out "append RELEASE" \
   && ! has_out "worker-1" && ! has_out "worker-2" && ok=1
 report "speed-up: in Claude Code it asks to stop agents no longer needed and names no finished agent" "$ok" "out=$OUT"
-ok=0; has_out "send a helper" && has_out "to a worker" && has_out "one or two reads" && has_out "re-schedule the streams" && ok=1
-report "speed-up: it asks the lead to re-schedule and to hand off work it lacks the context for" "$ok" "out=$OUT"
+ok=0; has_out "send a helper" && has_out "to a worker" && has_out "one or two reads" && has_out "re-schedule the streams" \
+  && has_out "a stream the user asked for stays in the run" && ok=1
+report "speed-up: it asks the lead to re-schedule, to keep asked-for streams, and to hand off work it lacks the context for" "$ok" "out=$OUT"
 run_hook "$SPEEDUP_HOOK" "$(bash_payload p2 "$LOG_WRITE")"
 ok=0; silent && ok=1
 report "speed-up: a second log write inside the interval is silent" "$ok" "rc=$RC out=$OUT"

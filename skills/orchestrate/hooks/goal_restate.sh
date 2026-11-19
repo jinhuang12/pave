@@ -6,7 +6,7 @@
 # most likely to have lost the goal and the state of its subtasks, and to
 # start inventing state or doing worker tasks itself. This hook asks the lead
 # to rebuild both from the run log before acting: the goal from the log's
-# header, the subtasks from the log script's `status` and the live agent
+# header and the bars and rules the user added later from the plan file, the subtasks from the log script's `status` and the live agent
 # roster, each open subtask and what it waits on, and the fewest steps to
 # CLOSE. It names the subtasks the log shows open (open state is derived in
 # file order, so a fix-round PLAN reopens its worker) but never injects the
@@ -33,6 +33,7 @@ case "$HOOK_SOURCE" in resume|compact) ;; *) exit 0 ;; esac
 find_owned_run || exit 0
 
 LOG_SCRIPT="$(cd "$HOOK_DIR/.." && pwd)/scripts/orchestrate_log.py"
+PLAN_FILE="${RUN_LOG%.md}.plan"
 OPEN="$(log_open_subtasks "$RUN_LOG" | paste -sd ' ' - | sed 's/ /, /g')"
 
 # The Codex registration supplies its runtime; direct calls can detect it from
@@ -55,7 +56,7 @@ print(" ".join(shlex.quote(s) for s in [sys.executable, sys.argv[1], "--runtime"
 ' "$LOG_SCRIPT" "$RUNTIME" "$RUN_ROOT" 2>/dev/null)" || exit 0
 
 TEXT="$TAG Your context was just rebuilt ($HOOK_SOURCE). This session owns an open orchestrate run; its log is $RUN_LOG and the file wins over memory. Before acting, in a few lines:
-(1) the goal, as written on the log's goal: line;
+(1) the goal, as written on the log's goal: line, then every bar and rule under User rules in $PLAN_FILE, each with its current number or \"not measured yet\";
 (2) run \`$STATUS_COMMAND\` and \`$ROSTER\` to list live agents;
 (3) each open subtask, and what it waits on (Open in the log now: ${OPEN:-none});
 (4) the fewest steps from here to CLOSE.

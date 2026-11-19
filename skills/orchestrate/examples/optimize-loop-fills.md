@@ -35,8 +35,6 @@ GATE_NAME: GSM8K accuracy, higher is better
 GATE_COMMAND: lm_eval --model vllm --model_args pretrained=<path>,<engine args> --tasks gsm8k --num_fewshot 5 --batch_size auto --output_path <dir>
 SCOPE: config and flags, kernels, engine code, numerics
 BUILD: git worktree, a new venv, pip install -e . (precompiled wheels when no C++ changes)
-FLOOR_GAP_PCT: <10>
-BACKSTOP_PCT: <2>
 ```
 
 Slots with a default may be left out: `METRIC_RUNS`, `GATE_RUNS`,

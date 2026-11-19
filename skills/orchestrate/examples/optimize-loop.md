@@ -36,8 +36,6 @@ the baseline. Every change is compared to the incumbent.
 | `{{BUILD}}` | How to make an isolated copy: worktree, env, build or install steps |
 | `{{BOUND_HINTS}}` | Optional. A known bound model, peak numbers, or limits from the vendor |
 | `{{LEASE_TOOL}}` | A GPU lease tool (default: `generated-plugins/ammo/scripts/gpu_reservation.py` under the pave-init plugin root, copied into the run folder; standard library only) |
-| `{{FLOOR_GAP_PCT}}` | Stop when the metric is this close to the bound |
-| `{{BACKSTOP_PCT}}` | The smallest metric gain worth building |
 | `{{RUN_DIR}}` | Run folder, outside version control (default `<code>/.optimize/<run-id>/`) |
 | `{{BRANCH}}` | Run branch (default `optimize/<run-id>`) |
 
@@ -66,9 +64,9 @@ the baseline. Every change is compared to the incumbent.
    are unchanged. A reviewer reruns only the number that decides a verdict,
    under its own lease, and reads saved profiles instead of capturing new
    ones.
-6. **Arithmetic lives in scripts.** Mined numbers, the noise rule, the gate
-   rule, EV, and the stop verdict each come from one script, written once
-   and kept in `{{RUN_DIR}}`. Never compute, copy, or edit them by hand.
+6. **Arithmetic lives in scripts.** Mined numbers, the cut, the noise rule,
+   the gate rule, EV, and the stop verdict each come from one script, written
+   once and kept in `{{RUN_DIR}}`. Never compute, copy, or edit them by hand.
 
 ## GPU leases
 
@@ -133,9 +131,23 @@ item). For a throughput metric, use its inverse. Then, for any component:
 | `removable` | (component time - component bound) / component time |
 
 - **Projected gain** = `f x (1 - 1/s)`.
-- **Addressable share** = `f x removable`. No candidate may project more. A
-  component whose addressable share is below `{{BACKSTOP_PCT}}` cannot pay
-  off.
+- **Addressable share** = `f x removable`. No candidate may project more.
+- **Spread** = 1 minus the incumbent's best metric run over its worst run,
+  at that operating point. A smaller gain cannot pass condition 3.
+- **Cycles** = the build cycles a piece of work needs, where one cycle is
+  one build, its metric runs, and one review: 0.3 for a setting, 1 for most
+  changes, 3 for a new kernel. Estimate it, then correct it from the rounds
+  already run.
+- **The cut** is derived each round from the mined tables. Nobody picks a
+  percent, so it moves with the metric and the workload. Rank the components
+  by addressable share. The **tail** is the smallest components that
+  together hold no more than 5% of the total addressable share. The cut is
+  the largest addressable share in the tail, or 0 when the tail is empty.
+- **Backstop** = the smallest gain worth building for one piece of work: the
+  larger of the spread and `cut x cycles`. A component whose addressable
+  share is below its backstop for one cycle cannot pay off. A piece of work
+  within a factor of 2 of its backstop is borderline: the cheaper one goes
+  first.
 - **Required speedup** to reach the backstop (both as fractions):
   `s_req = 1 / (1 - backstop / f)`.
 - Shares are always of `T`, never of a sum of phase times.
@@ -147,7 +159,7 @@ item). For a throughput metric, use its inverse. Then, for any component:
 ## The loop
 
 Plan one stage at a time, from the previous wave's files. Each stage is one
-or more waves, within the skill's wave cap. The lead reads files and rules;
+or more waves. The lead reads files and rules;
 every number and every decision table comes from a worker.
 
 Workers and reviewers never see this file unless a subtask points to it.
@@ -265,6 +277,7 @@ mechanism, or technology. Each candidate carries:
 - Evidence: <tier: analysis | measured | profiler-confirmed> and
   <scope: bound | proxy | production boundary>
 - Projection: <per operating point: f, s, f x (1 - 1/s), s_req>
+- Cycles: <the build cycles it needs, and why>
 ```
 
 A champion may run small experiments to test its claim, on a lease, with
@@ -284,15 +297,16 @@ one small experiment when that settles a point.
 
 **3d. Select (one worker, with a script).** For each surviving candidate:
 1. Its admissible projected gain `f x (1 - 1/s)`, from bound or
-   production-boundary evidence, reaches `{{BACKSTOP_PCT}}`. A proxy-only
+   production-boundary evidence, reaches its backstop. A proxy-only
    gain, or an open objection that the evidence does not cover the
    production boundary, makes it zero.
 2. `P`, 0-10, the chance it passes stage 4 as proposed, judged from its
    evidence tier and the critiques it could not answer. Write the reason
    beside each `P`.
 3. `EV = P/10 x projected gain`.
-4. Rank by `EV`. Take winners in rank order, up to the GPU count divided by
-   `{{WORLD_SIZE}}` and within the wave cap. No two winners are the same bet
+4. Rank by `EV / cycles`, the expected gain for each cycle of work. Take
+   winners in rank order, up to the GPU count divided by
+   `{{WORLD_SIZE}}`. No two winners are the same bet
    (same slice, same mechanism kind, same technology). Prefer winners on
    disjoint slices, so their gains add. One slot may go to the largest
    admissible gain with `P` of 3 or more, as a long shot that must prove its
@@ -340,6 +354,10 @@ Gates, all four in the track's Acceptance:
    - **Tried:** an approach that could close the gap was built, measured,
      and lost. Cite its numbers, and say why no other known approach
      applies.
+   - **Under the backstop:** the gap that is left, as a share of `T`, is
+     below the backstop of every piece of work that could close it. Cite the
+     gap, the cut from this round's tables, and the cycles of the cheapest
+     such piece of work.
 
    "Not tried", "too hard", and "no time" are not reasons.
 
@@ -351,8 +369,9 @@ code changes. After a REVISE, rerun only the gates the change can affect.
 The track's reviewer reviews gate 4 like every other gate, and its job there
 is to find headroom: rerun the number that decides it, test each reason
 against its evidence, and look for known approaches the worker never tried.
-A headroom claim that names an approach and its projected gain is a HIGH
-finding; a claim that names none is not a finding. The reviewer's PASS
+A headroom claim that names an approach and a projected gain that reaches
+its backstop is a HIGH finding; a claim that names no approach, or a gain
+under its backstop, is not a finding. The reviewer's PASS
 states in one line that it agrees the implementation cannot get faster
 under the stated constraints, with the gap that remains. Headroom is a
 REVISE: the worker improves the implementation and reruns the gates it
@@ -390,10 +409,9 @@ Exit: `decision.json` exists, and every number in it traces to an artifact.
 ### 6. Stop or loop
 
 The lead reads the stop verdict in `decision.json`:
-- Every operating point within `{{FLOOR_GAP_PCT}}` of its bound: stop. The
-  bound is reached.
-- Top addressable share below `{{BACKSTOP_PCT}}`: stop. Nothing big enough
-  is left.
+- No component's addressable share reaches its backstop for one cycle, at
+  any operating point: stop. No change that is left can be shown to be
+  better, so the bound is reached as closely as a metric run can show.
 - Two rounds in a row ship nothing: stop as exhausted.
 - The round shipped: start the next round at 2b, on stage 5's tables.
 - The round shipped nothing: start the next round at stage 3 on the same
