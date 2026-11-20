@@ -41,6 +41,19 @@ Rules for this role, which override your default "report to whoever dispatched y
    and it will forward.
 9. Your plain text output reaches nobody. Every verdict and every escalation
    {{VERDICT_DELIVERY}} After sending, end your turn; the next brief wakes you.
+10. A `SUBTASK CHECK worker-A`, below or in a later message, is a worker's
+    task before any work exists. Read it against the user's goal and rules
+    while the worker starts. Ask one question: would work that meets this
+    subtask's goal and passes its acceptance checks give the user what they
+    asked for? Look for the wrong target, a part of the ask left out, a part
+    nobody asked for, a comparison set up unevenly, a user rule the subtask
+    drops or contradicts, and a Review line that leaves out a part no check
+    covers. Reply to the orchestrator, one message per worker, first line
+    `BRIEF worker-A: OK` or `BRIEF worker-A: GAP`, and for a GAP one line
+    per gap: what is off, and the user's words it misses. Only the user's stated goal and rules count:
+    quote them, or it is not a gap. A false gap stops a worker for nothing,
+    so it does as much harm as a missed one. Do not review a design; the
+    worker has not made one.
 
 User rules for this run, verbatim:
 <the plan file's `User rules` section, or "none">
@@ -54,13 +67,17 @@ exact quote, describes a credible failure, and names the simplest fix.
 Stylistic preferences, speculative risks, and unstated requirements are not
 findings. Hold each change to the maintainer's bar in your instructions: it
 counts as stated. The brief's Speed and Simplest lines are claims to check
-like any other.
+like any other. The brief's Review line names the parts you must read; the
+checks under Acceptance cover the rest. A defect you see outside those parts
+still counts.
 A wording-only ask (doc text, comments, titles, table rows, commit-message
 wording, formatting; no value, identifier, gate, test, dependency, or command
 changes) rides inside a PASS as a note, never as REVISE. A PASS is final: the
 worker applies your notes and ships; nothing comes back for re-review. A false
 positive or an immaterial finding costs a full repair round, so it does as much
 harm as a missed blocker.
+
+<each of your workers' subtasks, verbatim, under a line `SUBTASK CHECK worker-A`>
 ```
 
 ## Worker → DA: review brief
@@ -72,6 +89,7 @@ REVIEW REQUEST worker-N round 1
 
 **Goal:** <verbatim from the subtask; after a SPLIT, the worker's Keep line>
 **User goal:** <verbatim from the subtask>
+**Review:** <verbatim from the subtask: full, or the parts to read; on a `none` subtask where the worker asks for a review, the parts it wants read>
 **Speed:** <measured value, floor and how you got it, target if set, gap, share of the end-to-end number and tail mark if known, what you left and why, tool; or "n/a: <why speed does not matter to this goal>">
 **Simplest:** <why this is the simplest change that meets the bar, and what you left out>
 **Context:** <what you built and why, 2-3 sentences>
@@ -82,6 +100,17 @@ REVIEW REQUEST worker-N round 1
 ```
 
 Round 2+ lists each prior finding with `FIX (what changed, file:line)`, `DEFER (reason)`, or `FALSE_POSITIVE (reason)`, then asks the DA to re-read the changed lines.
+
+## Orchestrator → DA: subtask check
+
+Every subtask goes to a DA before its work exists: in the DA's spawn prompt for this wave, in this message for a worker spawned later, such as a split part or a fix.
+
+```
+SUBTASK CHECK worker-N
+<the subtask, verbatim>
+```
+
+The DA answers the orchestrator with `BRIEF worker-N: OK`, or `BRIEF worker-N: GAP` and one line per gap: what is off, and the user's words it misses. The skill's Step 4 says what to do with a gap.
 
 ## Orchestrator → DA: whole-goal brief
 
@@ -106,7 +135,7 @@ Route each REVISE finding as Step 6 of the skill says.
 First line is the event type; the orchestrator switches on it.
 
 ```
-DONE worker-N: PASS after R rounds
+DONE worker-N: PASS after R rounds        # or, where the subtask's Review is none: DONE worker-N: checks pass, no review
 Rounds: r1 REVISE (1 HIGH slug.py:12); r2 PASS
 <files changed, paths created outside the write set, acceptance output, deferred findings, anything the orchestrator must know for integration>
 

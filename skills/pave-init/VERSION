@@ -1,4 +1,4 @@
-version: 2.13.0
+version: 2.14.0
 
 ## How changelog entries are written
 
@@ -17,6 +17,15 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.14.0 (2026-11-20)
+
+- Changed — In an orchestrate run the lead now decides what a reviewer reads, stream by stream, instead of sending every deliverable to a full review. The test is one question for each part: if this part were wrong, would a check the stream must pass fail? All parts covered means no review, some means the reviewer reads only the rest, none means a full review. A worker may ask for a review it was not given and never skips one it was given.
+  - A `review` line in the stream entry, a `## Review` section in the subtask, a `**Review:**` line in the review brief, and a `checks pass, no review` form of `DONE` (logged as `r0 CHECKS`). The lead holds that `DONE`'s acceptance output against the subtask.
+  - Why: in an audit of 836 reviewed deliverables from one campaign, a reviewer found the most where no other check existed (plans, findings, tables, scripts nothing runs first) and the least in code that arrived tested.
+- New — Each subtask is read against your own goal and rules as its work starts. The reviewer answers `BRIEF worker-N: OK` or `GAP` with your words quoted, and the lead corrects the subtask or asks you.
+  - `SUBTASK CHECK` in `protocol.md`, rule 10 in the DA spawn prompt, a `BRIEF` row in Step 4. Only your stated goal and rules count as a gap.
+  - Tried on saved material from 27 past tasks: it flagged 9, among them an uneven comparison that the user later rejected in the finished work, and none of the 4 tasks whose work passed clean. The other flags were not graded.
 
 ### 2.13.0 (2026-11-19)
 
