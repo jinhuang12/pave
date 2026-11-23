@@ -1,4 +1,4 @@
-version: 2.14.0
+version: 2.14.1
 
 ## How changelog entries are written
 
@@ -17,6 +17,13 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.14.1 (2026-11-23)
+
+- Improved — Work that measures or compares follows four rules in an orchestrate run: compare like with like, name each side in full, measure only the side that changed, and use the shortest run that shows the result. Before, they held only when you gave them as your own rules.
+  - A paragraph in Step 1 for the lead, a paragraph in the worker's bar, and a sentence in the DA spawn prompt: a difference between the sides that the work does not explain is a finding.
+- Improved — A fix that helps more than the case that found it goes in as a general feature, with no name, switch, or constant for that one case.
+  - One sentence in the worker's bar, and one clause in the reviewer's "More than the goal needs".
 
 ### 2.14.0 (2026-11-20)
 
