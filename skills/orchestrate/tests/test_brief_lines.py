@@ -8,6 +8,8 @@ COPIES = (
     "skills/orchestrate/references/protocol.md",
     "codex/agents/pave_init_orchestrate_worker.toml",
     "codex/skills/orchestrate/references/protocol.md",
+    "antigravity/agents/orchestrate-worker.md",
+    "antigravity/skills/orchestrate/references/protocol.md",
 )
 LINES = ("**User goal:**", "**Speed:**", "**Simplest:**")
 

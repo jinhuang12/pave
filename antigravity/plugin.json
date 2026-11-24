@@ -1,0 +1,10 @@
+{
+  "name": "pave-init",
+  "displayName": "PAVE Init",
+  "version": "2.14.1",
+  "description": "Native Antigravity CLI package for PAVE Init (Phase 1: orchestrate skill on swarm, custom worker/reviewer/research agents, and lifecycle hooks).",
+  "author": {
+    "name": "jinhuang12"
+  },
+  "repository": "https://github.com/jinhuang12/pave"
+}

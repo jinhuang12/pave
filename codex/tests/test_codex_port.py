@@ -153,13 +153,14 @@ class PackageStructureTests(unittest.TestCase):
         self.assertEqual(schema["properties"]["version"]["const"], 1)
         role_sources = sorted((REPO_ROOT / "sources" / "roles").glob("*.md.tmpl"))
         self.assertEqual(len(role_sources), 10)
+        self.assertEqual(schema["properties"]["skills"]["minProperties"], 1)
         self.assertEqual(
-            set(schema["properties"]["skills"]["required"]),
+            set(schema["properties"]["skills"]["properties"]),
             {"pave-init", "pave-evolve", "orchestrate"},
         )
         self.assertEqual(
             {path.name for path in (REPO_ROOT / "sources" / "bindings").glob("*.toml")},
-            {"claude.toml", "codex.toml"},
+            {"antigravity.toml", "claude.toml", "codex.toml"},
         )
 
     def test_check_rejects_missing_binding_and_orphaned_output(self) -> None:

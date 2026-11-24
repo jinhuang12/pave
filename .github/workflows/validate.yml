@@ -17,6 +17,8 @@ jobs:
         run: python3 -m pip install -r requirements-test.txt
       - name: Run Codex port tests
         run: python3 -m unittest discover -s codex/tests
+      - name: Run Antigravity port tests
+        run: python3 -m unittest discover -s antigravity/tests
       - name: Check generated packages
         run: python3 scripts/build_packages.py --check
       - name: Check release stamps

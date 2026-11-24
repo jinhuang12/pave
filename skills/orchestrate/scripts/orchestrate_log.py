@@ -6,7 +6,8 @@ Only the orchestrator calls it. The log is <cwd>/.orchestrate/<UTC stamp>.md; th
 absolute path, so later commands and the hooks find the run from any folder. When that
 folder cannot be written (a sandbox), the marker falls back to <cwd>/.orchestrate/, which
 older versions used and which is still read. Select the runtime explicitly
-when both CLAUDE_CODE_SESSION_ID and CODEX_THREAD_ID are present.
+when more than one of CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, or
+ANTIGRAVITY_CONVERSATION_ID is present.
 Subcommands: init, append, status, releasable, adopt. Exit 0 ok, 1 refused or invalid input, 2 usage.
 """
 
@@ -28,7 +29,11 @@ RESPAWN = re.compile(r"(\S+) -> (\S+)")
 REVIEWER = re.compile(r"^-> (\S+)")
 SCRIPT = os.path.abspath(__file__)
 COMMAND = f"python3 {shlex.quote(SCRIPT)}"
-SESSION_KEYS = {"claude": "CLAUDE_CODE_SESSION_ID", "codex": "CODEX_THREAD_ID"}
+SESSION_KEYS = {
+    "claude": "CLAUDE_CODE_SESSION_ID",
+    "codex": "CODEX_THREAD_ID",
+    "antigravity": "ANTIGRAVITY_CONVERSATION_ID",
+}
 
 
 def fail(msg, code=1):
@@ -240,7 +245,11 @@ def session_identity(runtime):
     if runtime == "auto":
         present = [name for name, key in SESSION_KEYS.items() if os.environ.get(key, "").strip()]
         if len(present) != 1:
-            fail("set CLAUDE_CODE_SESSION_ID or CODEX_THREAD_ID; use --runtime claude|codex when both are set", 2)
+            fail(
+                "set CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, or ANTIGRAVITY_CONVERSATION_ID; "
+                "use --runtime claude|codex|antigravity when more than one is set",
+                2,
+            )
         runtime = present[0]
     key = SESSION_KEYS[runtime]
     sid = os.environ.get(key, "").strip()
@@ -254,7 +263,7 @@ def session_identity(runtime):
 def main(argv=None):
     global COMMAND
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--runtime", choices=("auto", "claude", "codex"), default="auto")
+    parser.add_argument("--runtime", choices=("auto", "claude", "codex", "antigravity"), default="auto")
     sub = parser.add_subparsers(dest="cmd", required=True)
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--cwd", default=os.getcwd(), help="project directory (default: current)")

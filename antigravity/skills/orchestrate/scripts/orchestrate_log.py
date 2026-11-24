@@ -1,0 +1,291 @@
+#!/usr/bin/env python3
+"""Append-only run log for the orchestrate skill (spec section 4.1); standard library only.
+
+Only the orchestrator calls it. The log is <cwd>/.orchestrate/<UTC stamp>.md; the marker
+~/.orchestrate/active-<session id> (ORCHESTRATE_MARKER_DIR overrides the folder) holds its
+absolute path, so later commands and the hooks find the run from any folder. When that
+folder cannot be written (a sandbox), the marker falls back to <cwd>/.orchestrate/, which
+older versions used and which is still read. Select the runtime explicitly
+when more than one of CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, or
+ANTIGRAVITY_CONVERSATION_ID is present.
+Subcommands: init, append, status, releasable, adopt. Exit 0 ok, 1 refused or invalid input, 2 usage.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import os
+import re
+import shlex
+import sys
+import time
+from pathlib import Path
+
+EVENTS = ("PLAN", "DONE", "BLOCKED", "ESCALATE", "RESPAWN", "RELEASE", "REVIEW", "INTEGRATE", "CLOSE")
+STOPS = ("accepted", "closed_unaccepted", "blocked", "incomplete", "exhausted")
+LINE = re.compile(r"^- \d\d:\d\d (\S+) (\S+) ?(.*)$")
+RESPAWN = re.compile(r"(\S+) -> (\S+)")
+REVIEWER = re.compile(r"^-> (\S+)")
+SCRIPT = os.path.abspath(__file__)
+COMMAND = f"python3 {shlex.quote(SCRIPT)}"
+SESSION_KEYS = {
+    "claude": "CLAUDE_CODE_SESSION_ID",
+    "codex": "CODEX_THREAD_ID",
+    "antigravity": "ANTIGRAVITY_CONVERSATION_ID",
+}
+
+
+def fail(msg, code=1):
+    print(msg, file=sys.stderr)
+    sys.exit(code)
+
+
+def read_lines(log):
+    return [l for l in Path(log).read_text(encoding="utf-8").splitlines() if l.strip()]
+
+
+def is_closed(log):
+    lines = read_lines(log)
+    m = LINE.match(lines[-1]) if lines else None
+    return bool(m) and m.group(1) == "CLOSE"
+
+
+def event_line(event, actor, text):
+    """Return the log line for one event; exit 1 on an unknown event or a bad CLOSE."""
+    if event not in EVENTS:
+        fail(f"unknown event {event!r}; use one of {' '.join(EVENTS)}")
+    if not actor or any(c.isspace() for c in actor):
+        fail(f"{event} needs an actor with no spaces")
+    text = " ".join(text.splitlines()).strip()
+    if event == "CLOSE" and re.match(r"\w*", text).group() not in STOPS:
+        fail(f"CLOSE text must begin with one of {', '.join(STOPS)}")
+    clock = dt.datetime.now(dt.timezone.utc).strftime("%H:%M")
+    return f"- {clock} {event} {actor} {text}".rstrip() + "\n"
+
+
+def marker_dir():
+    """The fixed marker folder: ORCHESTRATE_MARKER_DIR, or ~/.orchestrate."""
+    return Path(os.path.expanduser(os.environ.get("ORCHESTRATE_MARKER_DIR", "").strip() or "~/.orchestrate"))
+
+
+def pointed(marker):
+    return marker.read_text(encoding="utf-8").strip() if marker.is_file() else ""
+
+
+def open_run(markers):
+    """This session's open log path, or None. markers: the fixed marker, then the legacy one."""
+    for marker in markers:
+        log = pointed(marker)
+        if log and os.path.isfile(log) and not is_closed(log):
+            return log
+    return None
+
+
+def agents(lines):
+    """(releasable, unreleased) agent names, in log order.
+
+    A worker is releasable once DONE or replaced by a RESPAWN. A DA is releasable
+    once none of its workers is open, but while nothing is open and no whole-goal
+    REVIEW has PASSed, the DA that saw the latest DONE stays for that review.
+    RELEASE removes a name from both lists.
+    """
+    state, reviewer, das, last_done, released, passed = {}, {}, [], {}, set(), False
+
+    def see(da):
+        if da not in das:
+            das.append(da)
+
+    for i, (event, actor, text) in enumerate(m.groups() for m in map(LINE.match, lines) if m):
+        swap = RESPAWN.search(f"{actor} {text}") if event == "RESPAWN" else None
+        if swap:
+            old, new = swap.groups()
+            state[old], state[new], reviewer[new] = "gone", "open", reviewer.get(old)
+        elif event == "PLAN":
+            state[actor] = "open"
+            if hit := REVIEWER.match(text):
+                reviewer[actor] = hit.group(1)
+                see(hit.group(1))
+        elif event == "DONE":
+            state[actor] = "done"
+            last_done[reviewer.get(actor)] = i
+        elif event == "RELEASE":
+            released.add(actor)
+        elif event == "REVIEW":
+            if hit := re.search(r"whole-goal (\S+)", text):
+                see(hit.group(1))  # a fresh whole-goal DA may serve no worker
+                passed = bool(re.search(r"\bPASS\b", text)) and not re.search(r"\bREVISE\b", text)
+    workers = [w for w in state if w not in released]
+    busy = {reviewer.get(w) for w in workers if state[w] == "open"}
+    idle = [d for d in das if d not in busy and d not in released]
+    if idle and not passed and not busy - released - {None}:
+        idle.remove(max(idle, key=lambda d: last_done.get(d, -1)))
+    finished = [w for w in workers if state[w] != "open"] + idle
+    return finished, workers + [d for d in das if d not in released]
+
+
+def write(path, text, mode="a"):
+    try:
+        with open(path, mode, encoding="utf-8") as fh:
+            fh.write(text)
+    except OSError as exc:
+        fail(f"could not write {path}: {exc}\n{text.rstrip()}")
+
+
+def cmd_init(args, home, markers):
+    if current := open_run(markers):
+        fail(f"this session already has an open run: {current}\n"
+             f'close it with: {COMMAND} append CLOSE <actor> "incomplete | <reason>"')
+    plans = [event_line("PLAN", *(p.split(None, 1) + ["", ""])[:2]) for p in args.plan]
+    home.mkdir(parents=True, exist_ok=True)
+    write(home / ".gitignore", "*\n", "w")
+    for _ in range(3):  # another session may have started a run this same second
+        run_id = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d-%H%M%S")
+        log = home / f"{run_id}.md"
+        if not log.exists():
+            break
+        time.sleep(1)
+    goal = " ".join(args.goal.splitlines()).strip()
+    write(log, f"# orchestrate run {run_id}\ngoal: {goal}\n\n" + "".join(plans), "x")
+    point(markers, log)
+    print(log)
+
+
+def point(markers, log):
+    """Write the fixed marker; if its folder cannot be written, write the project-folder one."""
+    fixed, legacy = markers
+    try:
+        fixed.parent.mkdir(parents=True, exist_ok=True)
+        fixed.write_text(f"{log}\n", encoding="utf-8")
+        return
+    except OSError as exc:
+        print(f"warning: could not write {fixed} ({exc.strerror or exc}); using {legacy}, "
+              "so the hooks and later commands find this run only from its project folder (or with --cwd)", file=sys.stderr)
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    write(legacy, f"{log}\n", "w")
+
+
+def cmd_append(args, home, markers):
+    if args.stdin == bool(args.event):
+        fail("usage: append EVENT ACTOR TEXT, or append --stdin", 2)
+    if args.stdin:
+        rows = [(l.split(None, 2) + ["", ""])[:3] for l in sys.stdin.read().splitlines() if l.strip()]
+    else:
+        rows = [(args.event, args.actor or "", " ".join(args.text))]
+    if not rows:
+        fail("no event lines on stdin")
+    lines = [event_line(*row) for row in rows]
+    if any(row[0] == "CLOSE" for row in rows[:-1]):
+        fail("CLOSE must be the last line appended")
+    if not (log := open_run(markers)):
+        fail("no open run for this session; start one with init, or adopt an orphaned log")
+    write(log, "".join(lines))
+    if rows[-1][0] == "CLOSE":
+        for marker in markers:
+            if pointed(marker) == log:
+                try:
+                    marker.unlink()
+                except OSError:
+                    pass  # the log ends in CLOSE, so a leftover marker owns no run
+        names = ", ".join(agents(read_lines(log))[1])
+        print("run closed; release live team agents using the skill's runtime contract"
+              + (f": {names}" if names else ""))
+
+
+def cmd_status(args, home, markers):
+    if not (log := open_run(markers)):
+        owned = {pointed(m) for folder in (markers[0].parent, home) for m in folder.glob("active-*")}
+        orphans = [p for p in sorted(home.glob("*.md")) if str(p) not in owned and not is_closed(p)]
+        for path in orphans:
+            print(f"no run for this session; adopt with: {COMMAND} adopt {shlex.quote(str(path))}")
+        sys.exit(1) if orphans else fail("no open run for this session")
+    lines = read_lines(log)
+    # In file order: PLAN opens w, RESPAWN closes old and opens new, DONE closes w.
+    plan, state, order = {}, {}, []  # state[w]: ("open", replaced-or-None) | ("done", text) | ("gone", None)
+    for event, actor, text in (m.groups() for m in map(LINE.match, lines) if m):
+        swap = RESPAWN.search(f"{actor} {text}") if event == "RESPAWN" else None
+        if swap:
+            old, actor = swap.groups()
+            state[old], state[actor], plan[actor] = ("gone", None), ("open", old), plan.get(old, "")
+        elif event == "PLAN":
+            state[actor], plan[actor] = ("open", None), text
+        elif event == "DONE":
+            state[actor] = ("done", text)
+        if (event == "PLAN" or swap) and actor not in order:
+            order.append(actor)
+    print(next((l for l in lines if l.startswith("goal:")), "goal:"))
+    for worker in order:
+        kind, info = state[worker]
+        head = f"{worker} {plan.get(worker, '').split('|')[0].strip()}".rstrip()
+        if kind == "done":
+            print(f"{head} — DONE {info}".rstrip())
+        elif kind == "open":
+            tail = f", replaced {info}" if info else ""
+            print(f"{head} — open{tail}" + (f"\n    {plan[worker]}" if plan[worker] else ""))
+    print(f"last: {lines[-1] if lines else ''}")
+
+
+def cmd_releasable(args, home, markers):
+    if not (log := open_run(markers)):
+        fail("no open run for this session")
+    for name in agents(read_lines(log))[0]:
+        print(name)
+
+
+def cmd_adopt(args, home, markers):
+    log = Path(args.cwd, args.log).resolve()
+    if not log.is_file() or is_closed(log):
+        fail(f"cannot adopt {log}: it does not exist or is closed")
+    point(markers, log)
+    print(log)
+
+
+def session_identity(runtime):
+    """Choose one runtime's session without crossing a nested process boundary."""
+    if runtime == "auto":
+        present = [name for name, key in SESSION_KEYS.items() if os.environ.get(key, "").strip()]
+        if len(present) != 1:
+            fail(
+                "set CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, or ANTIGRAVITY_CONVERSATION_ID; "
+                "use --runtime claude|codex|antigravity when more than one is set",
+                2,
+            )
+        runtime = present[0]
+    key = SESSION_KEYS[runtime]
+    sid = os.environ.get(key, "").strip()
+    if not sid:
+        fail(f"{key} is not set; run this from a {runtime} session", 2)
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", sid):
+        fail(f"{key} is not a safe session id", 2)
+    return runtime, sid
+
+
+def main(argv=None):
+    global COMMAND
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--runtime", choices=("auto", "claude", "codex", "antigravity"), default="auto")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--cwd", default=os.getcwd(), help="project directory (default: current)")
+    p = sub.add_parser("init", parents=[common], help="start a run; prints the log path")
+    p.add_argument("--goal", required=True)
+    p.add_argument("--plan", action="append", default=[], help='"ACTOR TEXT"; repeatable')
+    p = sub.add_parser("append", parents=[common], help="add event lines to this session's run")
+    p.add_argument("event", nargs="?")
+    p.add_argument("actor", nargs="?")
+    p.add_argument("text", nargs="*")
+    p.add_argument("--stdin", action="store_true", help="read EVENT ACTOR TEXT lines from stdin")
+    sub.add_parser("status", parents=[common], help="goal, one line per subtask, last line")
+    sub.add_parser("releasable", parents=[common], help="finished agents not yet logged as released")
+    sub.add_parser("adopt", parents=[common], help="point this session's marker at LOG").add_argument("log")
+    args = parser.parse_args(argv)
+    runtime, sid = session_identity(args.runtime)
+    COMMAND = f"python3 {shlex.quote(SCRIPT)} --runtime {runtime}"
+    home = Path(args.cwd).resolve() / ".orchestrate"
+    markers = (marker_dir() / f"active-{sid}", home / f"active-{sid}")  # fixed, then legacy
+    {"init": cmd_init, "append": cmd_append, "status": cmd_status, "releasable": cmd_releasable,
+     "adopt": cmd_adopt}[args.cmd](args, home, markers)
+
+
+if __name__ == "__main__":
+    main()

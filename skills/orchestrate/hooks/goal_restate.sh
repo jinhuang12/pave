@@ -43,11 +43,14 @@ if [ "$RUNTIME" = auto ]; then
   RUNTIME=claude
   if [ -n "${CODEX_THREAD_ID:-}" ] && [ "$SESSION_ID" = "$CODEX_THREAD_ID" ]; then
     RUNTIME=codex
+  elif [ -n "${ANTIGRAVITY_CONVERSATION_ID:-}" ] && [ "$SESSION_ID" = "$ANTIGRAVITY_CONVERSATION_ID" ]; then
+    RUNTIME=antigravity
   fi
 fi
 case "$RUNTIME" in
   claude) ROSTER=ListAgents ;;
   codex) ROSTER=list_agents ;;
+  antigravity) ROSTER='swarm(action: "status")' ;;
   *) exit 0 ;;
 esac
 STATUS_COMMAND="$("$ORCH_PY" -c '

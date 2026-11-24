@@ -1,0 +1,147 @@
+version = 1
+harness = "antigravity"
+agent_output_kind = "antigravity_markdown"
+
+[skills.orchestrate]
+template = "sources/orchestrate/SKILL.md.tmpl"
+output = "antigravity/skills/orchestrate/SKILL.md"
+
+[skills.orchestrate.slots]
+FRONTMATTER = '''---
+name: orchestrate
+description: >-
+  Turn yourself into a pure orchestrator for any complex task. Group the
+  user's asks into independent streams, investigate them in parallel, and
+  give each stream to an `orchestrate-worker` in a swarm that designs and
+  builds it, with a shared `adversarial-investigator` per 2-3 workers that
+  reviews their work until it PASSes.
+  Use this skill whenever a task has 3 or more independent parts, spans many
+  files or components, would take one agent more than roughly an hour, or when
+  the user asks, in any wording, to split the work across parallel agents
+  (including "/orchestrate"). Also use it when a task mixes unrelated domains
+  (e.g. backend + frontend + docs) even if the user never mentions parallelism.
+  Do not use it for single-file edits, trivial fixes, or tasks whose steps are
+  strictly sequential with no parallel width. Registers three plugin hooks via
+  `hooks.json` that never block: for the coordinator, a goal restate on
+  session resume and a speed-up question at most once a minute that also asks
+  to kill finished agents; for workers, a reminder of the maintainer bar at
+  most once a minute after a file edit.
+---'''
+PEER_MESSAGES = "shared swarm board @mentions"
+RESOURCE_PATHS = '''`$SKILL` in this file means this skill's directory (`<PLUGIN_ROOT>/skills/orchestrate`), and `<PLUGIN_ROOT>` is two directories above it (containing `plugin.json` and `agents/`). Derive both literal absolute paths from the path where you loaded this `SKILL.md`; they are placeholders, not environment variables. Write literal paths in every command and brief. `references/`, `scripts/`, and `hooks/` all resolve directly under `$SKILL`.'''
+LOG_COMMAND = "python3 $SKILL/scripts/orchestrate_log.py --runtime antigravity"
+ISOLATION = '''give each `workspace: "share"` on `swarm(action: "add", ...)` (and land/merge its branch before `swarm(action: "kill", ...)`)'''
+TEAM_MODELS = '''Run `swarm(action: "models", all: true)` to confirm live models and quotas. Pin DAs to `gemini-4-neon-xhigh`, design-and-build workers to `gemini-4-neon-high`, and read-and-report workers to `gemini-4-hydrogen-high`. See `references/model-seats.md` for tiering and quota failover via `swarm(action: "model", ...)`.'''
+PREFLIGHT = '''**Pre-flight first.** Run `swarm(action: "models", all: true)` to confirm live swarm models and remaining quotas, and confirm `swarm` and `invoke_subagent` (with `research-delegate`) are available in this session. Set a short swarm title with `swarm(action: "title", title: "<short goal>")`. Review plugin hooks with `/hooks` if you have not already.'''
+SPAWN_RUNTIME = '''Spawn every worker and DA onto the shared swarm board with `swarm(action: "add", name: "<id>", ...)`. Roster names (`da-1`, `worker-1`, ...) are the exact `@mention` addresses used by the run log and board. Because `swarm(action: "add")` starts each member fresh without auto-loading `agents/*.md`, every brief opens by pointing the member to its generated contract file (`<PLUGIN_ROOT>/agents/adversarial-investigator.md` or `<PLUGIN_ROOT>/agents/orchestrate-worker.md`) to read first via `read_file`. Use `workspace: "inherit"` when write sets are disjoint; use `workspace: "share"` when conflicting streams need isolated working copies (and merge/land the branch before killing the worker). After spawning, call `swarm(action: "status")` once to confirm every member is active.'''
+SPAWN_ORDER = "in parallel `swarm(action: \"add\", ...)` calls"
+SPAWN_ADDRESSES = '''Read `references/protocol.md` for the exact DA spawn prompt and `references/subtask.md` for the worker subtask. Members address you as **`@coordinator`**, their reviewer as **`@da-M`**, and workers as **`@worker-N`** on the shared swarm board. Keep `SUBTASK worker-N` on the first line of every worker brief (the maintainer hook keys on it).'''
+SPAWN_EXAMPLE = '''swarm(action: "add", name: "da-1", model: "gemini-4-neon-xhigh", workspace: "inherit", brief: <DA prompt from protocol.md>)
+swarm(action: "add", name: "worker-1", model: "gemini-4-neon-high", workspace: "inherit", brief: <subtask>)'''
+MONITOR_DELIVERY = '''Workers and DAs collaborate directly on the shared swarm board using `@mentions` (`@da-1`, `@worker-1`, `@coordinator`). Idle members stay asleep in `waiting` state at zero token cost until mentioned. You wait. Do not poll `swarm(action: "status")` in a loop or send "are you done?" posts.
+
+Antigravity wakes you automatically when a member mentions `@coordinator` — end your turn (call no more tools) after spawning to wait for notifications. Two kinds of board traffic matter:
+
+- **Waiting turns.** Workers ending a turn with `WAITING worker-N: round R sent to da-M` (without mentioning `@coordinator`) are sleeping while their DA reviews, not DONE. Do not interrupt them.
+- **`@coordinator` posts.** These are your events. Act only on a message whose first line is one of these:'''
+PROVIDER_FAILURE = '''**Provider failures and quota limits.** If a member stalls on quota or capacity and enters `waiting`, switch its model in-place with `swarm(action: "model", name: "worker-N", model: "<alternate from swarm models>")` (stating why) — it keeps its conversation and resumes without losing work. If a member permanently fails or is `killed`, spawn a replacement under the **next unused index** (`worker-7`, never a reused name) with the same subtask plus a note naming files the dead worker may have touched, notify `@da-M`, and log `append RESPAWN <old> "-> <new> | <reason>"`.'''
+ASK_USER = "`ask_question` for multi-choice decisions (plain text for yes/no or open discovery)"
+HELPERS = '''Spawn read-only helpers off-board with `invoke_subagent(TypeName: "research-delegate", Role: "Stream helper", Model: "flash", Prompt: ...)` so they load `agents/research-delegate.md` directly and finish without cluttering the swarm board or needing `swarm kill`.'''
+SHUTDOWN = '''Then release the team: land/merge any `workspace: "share"` branches first (killing deletes a share workspace), then call `swarm(action: "kill", name: "<name>")` for each remaining agent `append CLOSE` names and log `append RELEASE <name>`.'''
+DONE_RELEASE = ''' If the worker used `workspace: "inherit"` and is no longer needed, stop it with `swarm(action: "kill", name: "worker-N")` and log `append RELEASE worker-N` (if it used `workspace: "share"`, land/merge its branch first before killing!). Kill a DA the same way once `releasable` lists it and none of its passed work is still open to change (Follow-ups, below).'''
+NOTES_ROUTE = '''go to one fresh worker under the next unused index, reviewed by the DA that ran the whole-goal review, which checks only that each note was applied; there is no whole-goal re-review. Log it in the same `append --stdin` as the `REVIEW` line, as `PLAN worker-N "-> da-M | notes: <summary> | <acceptance>"`, so `releasable` keeps that DA until the notes worker's DONE.'''
+FIX_ROUTE = '''spawn a fresh worker for each finding under the next unused index, with the owning worker's write set and the finding, reviewed by the DA that passed the owner's work when it is still live (`swarm(action: "status")`), otherwise by another live DA. Log one line per worker: `append PLAN worker-N "-> da-M | fix: <finding summary> | <acceptance>"`.'''
+LIST_AGENTS = '`swarm(action: "status")`'
+NEW_SESSION = '''After starting a new conversation (which rotates `ANTIGRAVITY_CONVERSATION_ID`), `status` finds no run for this conversation and prints the `adopt` command for the orphaned log. Run `adopt <log>` first, then the steps above. Note that `stopped` swarm members from before a restart revive automatically when `@mentioned` on the board; only `killed` members need a respawn.'''
+HOOK_CONTRACT = '''The plugin registers three hooks in `<PLUGIN_ROOT>/hooks.json` via `hooks/ag_hook_adapter.py` (`SessionStart`, `PostToolUse`, and `PostInvocation`). Because Antigravity `PostToolUse` cannot inject context directly, `PostToolUse` evaluates the canonical hooks and spools any reminder per `conversationId`, which `PostInvocation` drains and injects as a `systemMessage` right before the next model turn. All three hooks never block and fail open. `ORCHESTRATE_PYTHON` sets the interpreter they use.
+
+- **Goal restate** (`SessionStart`) fires when a conversation owning an open run (`~/.orchestrate/active-<ANTIGRAVITY_CONVERSATION_ID>`) starts or resumes (fresh conversations with no active marker stay silent; Antigravity does not emit a separate `compact` event). It asks you to restate the goal from the log header and every bar and rule in `<run id>.plan`, run `status` and `swarm(action: "status")`, name each open subtask, and name the fewest steps to `CLOSE`. Answer it with Resume.
+- **Speed-up question** (`PostToolUse` on `run_command` → `PostInvocation`) fires after a log write whose last line is `PLAN`, `DONE`, `BLOCKED`, `ESCALATE`, `RESPAWN`, or `INTEGRATE`, at most once a minute (`ORCHESTRATE_SPEEDUP_SECONDS`). It asks whether anything else can overlap, parallelize, or be cut, asks you to hand off work you lack context for, and asks you to kill finished agents no longer needed (after landing any `share` workspace).
+- **Maintainer reminder** (`PostToolUse` on `write_file|edit_file|write_to_file|replace_file_content` → `PostInvocation`) fires only inside `orchestrate-worker` conversations (identified by `SUBTASK worker-` on line 1 of the initial brief and absence of a lead marker), at most once a minute (`ORCHESTRATE_SEAT_SECONDS`). You have nothing to answer.'''
+RUNTIME_ANTIPATTERNS = '''- **Mentioning `@coordinator` on routine worker-to-DA traffic.** Every `@coordinator` mention wakes the lead and fills its context. Worker-to-DA briefs and verdicts mention only `@da-M` or `@worker-N`.
+- **Killing a `workspace: "share"` worker before landing its changes.** `swarm(action: "kill")` permanently deletes a `share` workspace. Merge or copy its work first.
+- **Killing a quota-limited worker instead of switching its model.** Use `swarm(action: "model", ...)` on a `waiting` worker to preserve its conversation and work.'''
+MODEL_REFERENCE = "`references/model-seats.md` — how to pick models from `swarm(action: \"models\")` and switch models on quota limits."
+PREFLIGHT_REFERENCE = "`swarm(action: \"models\")` and `/hooks` — live model/quota check and hook inspection before spawning."
+SKILL_EXAMPLES = "domain skills from `<skills>`, available testing skills, etc."
+
+[skills.orchestrate.references.protocol]
+DELIVERY = '''Everything between peers travels as a post on the shared swarm board mentioning the recipient (`@da-M`, `@worker-N`, `@coordinator`). An unmentioned turn leaves peers asleep in `waiting` state at zero token cost; mentioning a `waiting` (or `stopped`) member wakes it automatically. Never mention `@coordinator` on routine worker↔DA review rounds.'''
+LEAD_NAME = "`@coordinator`"
+NAMING = '''Roster names (`worker-1`, `da-1`, ...) are valid swarm names (lowercase `a-z`, `0-9`, `-`, `_`, max 24 chars). Indices continue across waves. Never reuse a name in one run; `killed` names are gone permanently.'''
+DA_ADDRESSES = '''@worker-A, @worker-B, @worker-C. The orchestrator is `@coordinator`.
+Role contract: Read `<PLUGIN_ROOT>/agents/adversarial-investigator.md` first via `read_file` before taking any action.'''
+WAIT_BRIEFS = "Wait for review briefs posted to you (`@da-M`) on the swarm board."
+VERDICT_DELIVERY = "is a swarm board post mentioning `@worker-A` (for routine reviews) or `@coordinator` (for escalations, `BRIEF` checks, relays, and whole-goal reviews)."
+WHOLE_GOAL_REPLY = "Post to `@coordinator` with first line"
+LEAD_EVENTS = '''Workers mention `@coordinator` only for these events (`DONE`, `SPLIT`, `BLOCKED`, `ESCALATE`, `BROKER`). While waiting for their DA, workers end their turn with `WAITING worker-N: round R sent to da-M` (without mentioning `@coordinator`) and sleep in `waiting` state.'''
+ROSTER = '`swarm(action: "status")` shows the peer missing or `killed`'
+REASSIGN = '''Post on the swarm board mentioning each member:
+```
+@worker-N Your reviewer is now @da-K. Resend your current round brief mentioning @da-K, including the prior findings and your FIX/DEFER/FALSE_POSITIVE notes so @da-K has the history.
+@da-K worker-N is now yours in addition to your current workers. Its brief follows from @worker-N.
+```'''
+SHUTDOWN = '''Release agents as Steps 4 and 7 say: land/merge any `workspace: "share"` branches first, then call `swarm(action: "kill", name: "<name>")` and log `append RELEASE <name>`. Do not `@mention` a finished agent just to announce shutdown; that wakes it unnecessarily.'''
+
+[skills.orchestrate.references.subtask]
+SPAWN_FIELD = "`brief`"
+ADDRESSES = '''Orchestrator: @coordinator
+Reviewer: @da-M
+Role contract: Read <PLUGIN_ROOT>/agents/orchestrate-worker.md first via read_file before taking any action.'''
+TESTING_SKILL = "- <available testing or verification skill from `<skills>`>"
+
+[skills.orchestrate.references.model-seats]
+MODEL_DOCTRINE = '''Run `swarm(action: "models", all: true)` before Step 3 to confirm live models and remaining quotas. Give each seat the cheapest model that meets its judgment bar: `gemini-4-neon-xhigh` for DAs, `gemini-4-neon-high` for design-and-build workers, and `gemini-4-hydrogen-high` for read-and-report streams (or `flash` for off-board `invoke_subagent` research helpers).'''
+SEAT_TABLE = '''| Role | Dispatch | Model |
+|---|---|---|
+| DA | `swarm(action: "add", name: "da-M", model: "gemini-4-neon-xhigh", ...)` | `gemini-4-neon-xhigh` (hard judgment / review). Static `agents/adversarial-investigator.md` uses `inherit`. |
+| Worker (design & build) | `swarm(action: "add", name: "worker-N", model: "gemini-4-neon-high", ...)` | `gemini-4-neon-high` (hard/medium design and implementation). Static `agents/orchestrate-worker.md` uses `pro`. |
+| Read-and-report worker | `swarm(action: "add", name: "worker-N", model: "gemini-4-hydrogen-high", ...)` | `gemini-4-hydrogen-high` (read-and-cite streams with no code edits). |
+| Evidence & Step 1 helpers | `invoke_subagent(TypeName: "research-delegate", Model: "flash", ...)` | `flash` off-board (`invoke_subagent` accepts only `inherit`/`pro`/`flash`/`flash_lite`; use `gemini-4-hydrogen-high` if spawning a helper on the swarm board). |'''
+DISPATCH_GUIDANCE = '''## Live model selection & quota switching
+
+1. Call `swarm(action: "models", all: true)` to confirm `gemini-4-neon-xhigh`, `gemini-4-neon-high`, `gemini-4-hydrogen-high`, and live `quota_remaining`.
+2. If a `waiting` worker hits quota or capacity limits, call `swarm(action: "model", name: "worker-N", model: "<alternate>")` and state why — never `kill` and re-`add` just to change models, as `model` preserves the worker's full conversation.
+3. Keep `antigravity/agents/*.md` on Antigravity's static model tiers (`inherit`, `pro`, `flash`) because the plugin loader rejects full model IDs in agent frontmatter.'''
+
+[roles.orchestrate-worker]
+model = "pro"
+mainAgent = false
+subagent = true
+runtime = '''You are running as a named worker (`worker-N`) on an Antigravity swarm board. Read your subtask carefully, load relevant skills by reading their `SKILL.md` files via `read_file`, and communicate with peers by posting on the shared swarm board mentioning `@<Reviewer>` or `@coordinator`. Never mention `@coordinator` on routine review requests to your DA. After posting a review request or `BLOCKED` notice, end your turn so you sleep in `waiting` state until mentioned.'''
+
+[roles.orchestrate-worker.slots]
+TESTING_SKILLS = "any available testing or verification skill from `<skills>`"
+SIMPLIFY = ""
+DESCRIPTION = '''Designs and implements one stream or subtask issued by the orchestrate skill, loads relevant skills, and loops with its assigned adversarial-investigator on the swarm board until the review PASSes. Dispatched by the orchestrate skill only; do not trigger from an implicit match.'''
+LEAD_ADDRESS = "(`@coordinator`)"
+SKILL_LOADER = "Read the `SKILL.md` files via `read_file` for"
+REVIEW_WAIT = '''When acceptance passes, post your review brief on the swarm board mentioning `@<Reviewer>` (do NOT mention `@coordinator`), then end your turn with `WAITING <your name>: round 1 sent to <Reviewer>`. You sleep in `waiting` state until `@<Reviewer>` posts a verdict mentioning `@<your name>`.'''
+REVIEW_SEND = "Post on the shared swarm board mentioning @<Reviewer> (body:"
+DONE_SEND = "`DONE` post mentioning `@coordinator`"
+PEER_FAILURE = '''If posting to `@<Reviewer>` fails or `swarm(action: "status")` shows it missing or `killed`'''
+BLOCKED_ADDRESS = "`WAITING <your name>: BLOCKED sent to @coordinator`"
+MESSAGE_DELIVERY = '''- Every message to your DA or orchestrator is a post on the shared swarm board mentioning `@<Reviewer>` or `@coordinator`. Do not mention `@coordinator` during routine worker↔DA review loops.'''
+
+[roles.adversarial-investigator]
+model = "inherit"
+mainAgent = true
+subagent = true
+runtime = '''For standalone reviews, return findings directly to the user. When dispatched on an Antigravity swarm board (`da-M`), follow the swarm board rules in your brief: mention `@<worker-N>` for routine review verdicts (never mention `@coordinator` for routine verdicts), and mention `@coordinator` only for `BRIEF worker-N: OK|GAP`, `ESCALATE da-M`, `RELAY to worker-N:`, or whole-goal reviews. Load relevant skills by reading their `SKILL.md` files via `read_file`. End your turn after posting so you sleep in `waiting` state until the next mention.'''
+
+[roles.adversarial-investigator.slots]
+GOAL_CHANNEL = "(posting on the swarm board mentioning `@coordinator`)"
+SKILL_LOADER = "Read the `SKILL.md` files via `read_file` for"
+SKILL_EXAMPLE = "`agy-customizations`"
+RESEARCH_DISPATCH = '''For each high-priority claim, decide what would confirm it and what would refute it, then get that evidence. Read the cited files and run the cited commands yourself. Delegate when it pays: several independent reads that can run at once, or a search whose bulk you do not need in your own context, go to `research-delegate` subagents via `invoke_subagent(TypeName: "research-delegate", Role: "Evidence lookup", Model: "flash", Prompt: ...)` spawned in parallel in one turn (or built-in `research`). Questions about Antigravity itself (plugins, hooks, skills, CLI, swarm) go through the `antigravity-guide` and `agy-customizations` skills.'''
+TEAM_OUTPUT = "### When Part of a Swarm (post mentioning `@worker-N` or `@coordinator`)"
+STANDALONE_OUTPUT = "rather than posting to a swarm board"
+COMMUNICATION = '''- When dispatched as a swarm DA (`da-M`): post verdicts on the shared swarm board mentioning `@worker-N`, and escalations / `BRIEF` checks / whole-goal verdicts mentioning `@coordinator`.
+- When invoked standalone or as a direct subagent: output findings directly as text.'''
+
+[roles.research-delegate]
+model = "flash"
+mainAgent = false
+subagent = true
+commandExecutionPolicy = "sandbox"
+runtime = '''Return the bounded research result directly to the parent agent. Do not modify files.'''

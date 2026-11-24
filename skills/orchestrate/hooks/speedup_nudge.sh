@@ -16,7 +16,7 @@
 # needed. At most once per ORCHESTRATE_SPEEDUP_SECONDS (default 60) per run;
 # the last firing time is kept beside the log in <run-id>.speedup.
 #
-# Usage: speedup_nudge.sh [claude|codex]   (default claude)
+# Usage: speedup_nudge.sh [claude|codex|antigravity]   (default claude)
 #
 # Silent exit 0 when: no interpreter, unparsable payload, not a shell command
 # that wrote the log, a subagent payload, no open run owned by this session
@@ -46,8 +46,13 @@ case "$LAST" in ''|*[!0-9]*) LAST=0 ;; esac
 
 OPEN="$(log_open_subtasks "$RUN_LOG" | paste -sd ' ' - | sed 's/ /, /g')"
 RELEASE=""
-[ "$RUNTIME" = "codex" ] || RELEASE="
-Also stop any agent you no longer need with \`TaskStop\`, then log \`append RELEASE <name>\`."
+case "$RUNTIME" in
+  codex) ;;
+  antigravity) RELEASE="
+Also stop any finished agent you no longer need with \`swarm(action: \"kill\", name: \"<name>\")\` (after landing any \`share\` workspace first), then log \`append RELEASE <name>\`." ;;
+  *) RELEASE="
+Also stop any agent you no longer need with \`TaskStop\`, then log \`append RELEASE <name>\`." ;;
+esac
 TEXT="$TAG Anything else we can overlap, parallelize, or cut to speed this whole process up? (Open now: ${OPEN:-none}.)
 If not, optimally re-schedule the streams & state what you're changing & why.
 Cut only work the goal does not need: a stream the user asked for stays in the run.
