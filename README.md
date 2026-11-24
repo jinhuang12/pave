@@ -198,3 +198,10 @@ sibling binding inside the same plugin directory (`.codex-plugin/` +
   — when debate, monitors, audits, and revision logs earn their cost, and when
   they hurt.
 - [`skills/pave-init/VERSION`](skills/pave-init/VERSION) — the changelog.
+
+## License
+
+The pave-init plugin (everything in this repository outside
+`generated-plugins/`) is released under the MIT License; see
+[`LICENSE`](LICENSE). The plugins under `generated-plugins/` are not covered
+by it.
