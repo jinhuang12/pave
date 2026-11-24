@@ -31,12 +31,12 @@ PEER_MESSAGES = "shared swarm board @mentions"
 RESOURCE_PATHS = '''`$SKILL` in this file means this skill's directory (`<PLUGIN_ROOT>/skills/orchestrate`), and `<PLUGIN_ROOT>` is two directories above it (containing `plugin.json` and `agents/`). Derive both literal absolute paths from the path where you loaded this `SKILL.md`; they are placeholders, not environment variables. Write literal paths in every command and brief. `references/`, `scripts/`, and `hooks/` all resolve directly under `$SKILL`.'''
 LOG_COMMAND = "python3 $SKILL/scripts/orchestrate_log.py --runtime antigravity"
 ISOLATION = '''give each `workspace: "share"` on `swarm(action: "add", ...)` (and land/merge its branch before `swarm(action: "kill", ...)`)'''
-TEAM_MODELS = '''Run `swarm(action: "models", all: true)` to confirm live models and quotas. Pin DAs to `gemini-4-carbon-high`, design-and-build workers to `gemini-4-neon-high`, and read-and-report workers to `gemini-4-hydrogen-high`. See `references/model-seats.md` for tiering and quota failover via `swarm(action: "model", ...)`.'''
+TEAM_MODELS = '''Run `swarm(action: "models", all: true)` to confirm live models and quotas. Pin DAs to `gemini-4-neon-xhigh`, design-and-build workers to `gemini-4-neon-high`, and read-and-report workers to `gemini-4-hydrogen-high`. See `references/model-seats.md` for tiering and quota failover via `swarm(action: "model", ...)`.'''
 PREFLIGHT = '''**Pre-flight first.** Run `swarm(action: "models", all: true)` to confirm live swarm models and remaining quotas, and confirm `swarm` and `invoke_subagent` (with `research-delegate`) are available in this session. Set a short swarm title with `swarm(action: "title", title: "<short goal>")`. Review plugin hooks with `/hooks` if you have not already.'''
 SPAWN_RUNTIME = '''Spawn every worker and DA onto the shared swarm board with `swarm(action: "add", name: "<id>", ...)`. Roster names (`da-1`, `worker-1`, ...) are the exact `@mention` addresses used by the run log and board. Because `swarm(action: "add")` starts each member fresh without auto-loading `agents/*.md`, every brief opens by pointing the member to its generated contract file (`<PLUGIN_ROOT>/agents/adversarial-investigator.md` or `<PLUGIN_ROOT>/agents/orchestrate-worker.md`) to read first via `read_file`. Use `workspace: "inherit"` when write sets are disjoint; use `workspace: "share"` when conflicting streams need isolated working copies (and merge/land the branch before killing the worker). After spawning, call `swarm(action: "status")` once to confirm every member is active.'''
 SPAWN_ORDER = "in parallel `swarm(action: \"add\", ...)` calls"
 SPAWN_ADDRESSES = '''Read `references/protocol.md` for the exact DA spawn prompt and `references/subtask.md` for the worker subtask. Members address you as **`@coordinator`**, their reviewer as **`@da-M`**, and workers as **`@worker-N`** on the shared swarm board. Keep `SUBTASK worker-N` on the first line of every worker brief (the maintainer hook keys on it).'''
-SPAWN_EXAMPLE = '''swarm(action: "add", name: "da-1", model: "gemini-4-carbon-high", workspace: "inherit", brief: <DA prompt from protocol.md>)
+SPAWN_EXAMPLE = '''swarm(action: "add", name: "da-1", model: "gemini-4-neon-xhigh", workspace: "inherit", brief: <DA prompt from protocol.md>)
 swarm(action: "add", name: "worker-1", model: "gemini-4-neon-high", workspace: "inherit", brief: <subtask>)'''
 MONITOR_DELIVERY = '''Workers and DAs collaborate directly on the shared swarm board using `@mentions` (`@da-1`, `@worker-1`, `@coordinator`). Idle members stay asleep in `waiting` state at zero token cost until mentioned. You wait. Do not poll `swarm(action: "status")` in a loop or send "are you done?" posts.
 
@@ -91,16 +91,16 @@ Role contract: Read <PLUGIN_ROOT>/agents/orchestrate-worker.md first via read_fi
 TESTING_SKILL = "- <available testing or verification skill from `<skills>`>"
 
 [skills.orchestrate.references.model-seats]
-MODEL_DOCTRINE = '''Run `swarm(action: "models", all: true)` before Step 3 to confirm live models and remaining quotas. Give each seat the cheapest model that meets its judgment bar: `gemini-4-carbon-high` for DAs, `gemini-4-neon-high` for design-and-build workers, and `gemini-4-hydrogen-high` for read-and-report streams (or `flash` for off-board `invoke_subagent` research helpers).'''
+MODEL_DOCTRINE = '''Run `swarm(action: "models", all: true)` before Step 3 to confirm live models and remaining quotas. Give each seat the cheapest model that meets its judgment bar: `gemini-4-neon-xhigh` for DAs, `gemini-4-neon-high` for design-and-build workers, and `gemini-4-hydrogen-high` for read-and-report streams (or `flash` for off-board `invoke_subagent` research helpers).'''
 SEAT_TABLE = '''| Role | Dispatch | Model |
 |---|---|---|
-| DA | `swarm(action: "add", name: "da-M", model: "gemini-4-carbon-high", ...)` | `gemini-4-carbon-high` (hard judgment / review). Static `agents/adversarial-investigator.md` uses `inherit`. |
+| DA | `swarm(action: "add", name: "da-M", model: "gemini-4-neon-xhigh", ...)` | `gemini-4-neon-xhigh` (hard judgment / review). Static `agents/adversarial-investigator.md` uses `inherit`. |
 | Worker (design & build) | `swarm(action: "add", name: "worker-N", model: "gemini-4-neon-high", ...)` | `gemini-4-neon-high` (hard/medium design and implementation). Static `agents/orchestrate-worker.md` uses `pro`. |
 | Read-and-report worker | `swarm(action: "add", name: "worker-N", model: "gemini-4-hydrogen-high", ...)` | `gemini-4-hydrogen-high` (read-and-cite streams with no code edits). |
 | Evidence & Step 1 helpers | `invoke_subagent(TypeName: "research-delegate", Model: "flash", ...)` | `flash` off-board (`invoke_subagent` accepts only `inherit`/`pro`/`flash`/`flash_lite`; use `gemini-4-hydrogen-high` if spawning a helper on the swarm board). |'''
 DISPATCH_GUIDANCE = '''## Live model selection & quota switching
 
-1. Call `swarm(action: "models", all: true)` to confirm `gemini-4-carbon-high`, `gemini-4-neon-high`, `gemini-4-hydrogen-high`, and live `quota_remaining`.
+1. Call `swarm(action: "models", all: true)` to confirm `gemini-4-neon-xhigh`, `gemini-4-neon-high`, `gemini-4-hydrogen-high`, and live `quota_remaining`.
 2. If a `waiting` worker hits quota or capacity limits, call `swarm(action: "model", name: "worker-N", model: "<alternate>")` and state why — never `kill` and re-`add` just to change models, as `model` preserves the worker's full conversation.
 3. Keep `antigravity/agents/*.md` on Antigravity's static model tiers (`inherit`, `pro`, `flash`) because the plugin loader rejects full model IDs in agent frontmatter.'''
 
