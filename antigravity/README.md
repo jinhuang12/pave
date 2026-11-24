@@ -8,9 +8,9 @@ Phase 1 ships the **`orchestrate`** skill bound to Antigravity's native **`swarm
 
 - **Skill:** `skills/orchestrate/SKILL.md` (kept under Antigravity's 24,000-byte skill-body cap via `references/execution-and-close.md`)
 - **Agents:**
-  - `agents/orchestrate-worker.md` (`model: "pro"`) — read by `worker-N` swarm members at startup
-  - `agents/adversarial-investigator.md` (`model: "inherit"`) — read by `da-M` swarm members at startup, also usable standalone
-  - `agents/research-delegate.md` (`model: "flash"`) — dispatched off-board via `invoke_subagent` for read-only lookups
+  - `agents/orchestrate-worker.md` (swarm: `gemini-4-neon-high`, read-and-report: `gemini-4-hydrogen-high`; static frontmatter: `pro`) — read by `worker-N` swarm members at startup
+  - `agents/adversarial-investigator.md` (swarm: `gemini-4-carbon-high`; static frontmatter: `inherit`) — read by `da-M` swarm members at startup, also usable standalone
+  - `agents/research-delegate.md` (static frontmatter: `flash`) — dispatched off-board via `invoke_subagent` for read-only lookups
 - **Hooks (`hooks.json` + `hooks/ag_hook_adapter.py`):**
   - `SessionStart`: `goal_restate.sh` (restate open run goal, user rules, `orchestrate_log.py --runtime antigravity status`, and `swarm(action: "status")`)
   - `PostToolUse` (`run_command`) → `PostInvocation`: `speedup_nudge.sh` (at most once a minute after a lead run-log write)
