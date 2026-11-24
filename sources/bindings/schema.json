@@ -12,15 +12,11 @@
   "additionalProperties": false,
   "properties": {
     "version": {"const": 1},
-    "harness": {"enum": ["claude", "codex"]},
-    "agent_output_kind": {"enum": ["markdown", "toml"]},
+    "harness": {"enum": ["claude", "codex", "antigravity"]},
+    "agent_output_kind": {"enum": ["markdown", "toml", "antigravity_markdown"]},
     "skills": {
       "type": "object",
-      "required": [
-        "pave-init",
-        "pave-evolve",
-        "orchestrate"
-      ],
+      "minProperties": 1,
       "additionalProperties": false,
       "properties": {
         "orchestrate": {

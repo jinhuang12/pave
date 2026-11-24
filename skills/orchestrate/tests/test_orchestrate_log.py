@@ -37,8 +37,13 @@ class OrchestrateLogTests(unittest.TestCase):
         env = dict(os.environ, ORCHESTRATE_MARKER_DIR=str(self.markers))
         env.pop("CLAUDE_CODE_SESSION_ID", None)
         env.pop("CODEX_THREAD_ID", None)
+        env.pop("ANTIGRAVITY_CONVERSATION_ID", None)
         if sid is not None:
-            env["CODEX_THREAD_ID" if runtime == "codex" else "CLAUDE_CODE_SESSION_ID"] = sid
+            key = {
+                "codex": "CODEX_THREAD_ID",
+                "antigravity": "ANTIGRAVITY_CONVERSATION_ID",
+            }.get(runtime, "CLAUDE_CODE_SESSION_ID")
+            env[key] = sid
         env.update(extra_env or {})
         argv = [sys.executable, str(SCRIPT), "--runtime", runtime, *args]
         if cwd:
@@ -475,8 +480,22 @@ class OrchestrateLogTests(unittest.TestCase):
         self.assertIn("--runtime", result.stderr)
         self.assertFalse(self.dir.exists())
 
+    def test_antigravity_run_lifecycle_and_auto_detection(self):
+        result = self.run_log("init", "--goal", "agy goal", "--plan", PLAN1,
+                              sid="conv-a", runtime="antigravity")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        log = Path(result.stdout.strip())
+        self.assertEqual(self.marker("conv-a").read_text().strip(), str(log))
+        self.assertEqual(self.run_log("status", sid="conv-b", runtime="antigravity").returncode, 1)
+        status = self.run_log("status", sid=None, extra_env={"ANTIGRAVITY_CONVERSATION_ID": "conv-a"})
+        self.assertEqual(status.returncode, 0, status.stderr)
+        self.assertIn("worker-1", status.stdout)
+        result = self.run_log("append", "CLOSE", "lead", "accepted | done", sid="conv-a", runtime="antigravity")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.marker("conv-a").exists())
+
     def test_session_id_cannot_escape_marker_directory(self):
-        for runtime in ("claude", "codex"):
+        for runtime in ("claude", "codex", "antigravity"):
             result = self.run_log("init", "--goal", "g", sid="../bad", runtime=runtime)
             self.assertEqual(result.returncode, 2)
         self.assertFalse(self.dir.exists())

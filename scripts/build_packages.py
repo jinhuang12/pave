@@ -18,7 +18,7 @@ ROLE_SOURCE_DIR = ROOT / "sources" / "roles"
 FRAGMENT_DIR = ROOT / "sources" / "fragments"
 BINDING_DIR = ROOT / "sources" / "bindings"
 SCHEMA_PATH = BINDING_DIR / "schema.json"
-EXPECTED_BINDING_FILES = {"claude.toml", "codex.toml"}
+EXPECTED_BINDING_FILES = {"antigravity.toml", "claude.toml", "codex.toml"}
 EXPECTED_ROLE_NAMES = {
     "adversarial-investigator",
     "forward-tester",
@@ -31,6 +31,40 @@ EXPECTED_ROLE_NAMES = {
     "update-reviewer",
     "workflow-updater",
 }
+EXPECTED_HARNESS_ROLES = {
+    "claude": EXPECTED_ROLE_NAMES,
+    "codex": EXPECTED_ROLE_NAMES,
+    "antigravity": {
+        "adversarial-investigator",
+        "orchestrate-worker",
+        "research-delegate",
+    },
+}
+ANTIGRAVITY_MODEL_TIERS = {"inherit", "flash_lite", "flash", "pro"}
+ANTIGRAVITY_SKILL_MAX_BODY_BYTES = 24000
+ANTIGRAVITY_SKILL_SPLIT_HEADING = "\n## Step 4: Monitor and broker\n"
+ANTIGRAVITY_MIRROR_FILES = (
+    (
+        "skills/orchestrate/scripts/orchestrate_log.py",
+        "antigravity/skills/orchestrate/scripts/orchestrate_log.py",
+    ),
+    (
+        "skills/orchestrate/hooks/_hook_common.sh",
+        "antigravity/skills/orchestrate/hooks/_hook_common.sh",
+    ),
+    (
+        "skills/orchestrate/hooks/goal_restate.sh",
+        "antigravity/skills/orchestrate/hooks/goal_restate.sh",
+    ),
+    (
+        "skills/orchestrate/hooks/speedup_nudge.sh",
+        "antigravity/skills/orchestrate/hooks/speedup_nudge.sh",
+    ),
+    (
+        "skills/orchestrate/hooks/maintainer_nudge.sh",
+        "antigravity/skills/orchestrate/hooks/maintainer_nudge.sh",
+    ),
+)
 # One authority for the skill table: which skills exist, where each template
 # lives, and which slots each template consumes.
 EXPECTED_SKILL_TEMPLATES = {
@@ -94,6 +128,11 @@ EXPECTED_SKILL_SLOTS = {
         "DISPATCH_CONTRACT",
     },
 }
+EXPECTED_HARNESS_SKILLS = {
+    "claude": set(EXPECTED_SKILL_SLOTS),
+    "codex": set(EXPECTED_SKILL_SLOTS),
+    "antigravity": {"orchestrate"},
+}
 EXPECTED_SKILL_KEYS = {"template", "output", "slots"}
 EXPECTED_TOP_LEVEL = {
     "version",
@@ -103,6 +142,7 @@ EXPECTED_TOP_LEVEL = {
     "roles",
 }
 GENERATED_SKILL_OUTPUTS = (
+    "antigravity/skills/orchestrate/SKILL.md",
     "codex/skills/orchestrate/SKILL.md",
     "skills/orchestrate/SKILL.md",
     "codex/skills/pave-evolve/SKILL.md",
@@ -147,10 +187,14 @@ FORBIDDEN_SHARED_MECHANICS = (
     "sonnet",
     "opus",
     "fable",
+    "invoke_subagent",
+    "manage_subagents",
+    "ANTIGRAVITY_CONVERSATION_ID",
+    "ag_hook_adapter",
 )
 HARNESS_SECTION = re.compile(
-    r"<!--\s*harness-specific:(?:claude|codex):start\s*-->.*?"
-    r"<!--\s*harness-specific:(?:claude|codex):end\s*-->",
+    r"<!--\s*harness-specific:(?:claude|codex|antigravity):start\s*-->.*?"
+    r"<!--\s*harness-specific:(?:claude|codex|antigravity):end\s*-->",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -235,8 +279,8 @@ def validate_schema_contract() -> dict:
     skills_schema = schema.get("properties", {}).get("skills", {})
     if skills_schema.get("additionalProperties") is not False:
         raise BuildError(f"{SCHEMA_PATH}: skill additionalProperties must be false")
-    if set(skills_schema.get("required", [])) != set(EXPECTED_SKILL_SLOTS):
-        raise BuildError(f"{SCHEMA_PATH}: skill keys differ from generator contract")
+    if skills_schema.get("minProperties") != 1:
+        raise BuildError(f"{SCHEMA_PATH}: skills must require minProperties == 1")
     skill_properties = skills_schema.get("properties", {})
     if set(skill_properties) != set(EXPECTED_SKILL_SLOTS):
         raise BuildError(
@@ -315,6 +359,14 @@ def validate_shared_runtime_sources() -> None:
 def load_binding(path: Path, schema: dict) -> dict:
     with path.open("rb") as handle:
         binding = tomllib.load(handle)
+    harness = binding.get("harness")
+    skills_obj = binding.get("skills")
+    if isinstance(harness, str) and harness in EXPECTED_HARNESS_SKILLS and isinstance(skills_obj, dict):
+        missing_skills = sorted(EXPECTED_HARNESS_SKILLS[harness] - set(skills_obj))
+        if missing_skills:
+            raise BuildError(
+                f"{display_path(path)}.skills: schema validation failed: missing {missing_skills}"
+            )
     validate_schema_value(binding, schema, display_path(path))
     unknown = set(binding) - EXPECTED_TOP_LEVEL
     missing = EXPECTED_TOP_LEVEL - set(binding)
@@ -324,12 +376,13 @@ def load_binding(path: Path, schema: dict) -> dict:
         raise BuildError(f"{path}: unsupported binding version {binding['version']!r}")
     if binding["harness"] != path.stem:
         raise BuildError(f"{path}: harness must match file name")
-    if binding["agent_output_kind"] not in {"markdown", "toml"}:
+    if binding["agent_output_kind"] not in {"markdown", "toml", "antigravity_markdown"}:
         raise BuildError(f"{path}: invalid agent_output_kind")
     skills = binding["skills"]
-    if set(skills) != set(EXPECTED_SKILL_SLOTS):
+    expected_skills = EXPECTED_HARNESS_SKILLS.get(binding["harness"])
+    if expected_skills is None or set(skills) != expected_skills:
         raise BuildError(
-            f"{path}: binding skills differ: expected={sorted(EXPECTED_SKILL_SLOTS)} "
+            f"{path}: binding skills differ: expected={sorted(expected_skills or ())} "
             f"actual={sorted(skills)}"
         )
     for skill_name, entry in sorted(skills.items()):
@@ -531,13 +584,16 @@ def render_roles(binding: dict) -> dict[Path, str]:
             f"role source set differs: expected={sorted(EXPECTED_ROLE_NAMES)} "
             f"actual={sorted(source_names)}"
         )
-    if set(role_settings) != source_names:
+    expected_roles = EXPECTED_HARNESS_ROLES.get(binding["harness"])
+    if expected_roles is None or set(role_settings) != expected_roles:
         raise BuildError(
             f"{binding['harness']}: role binding mismatch: "
-            f"sources={sorted(source_names)} settings={sorted(role_settings)}"
+            f"expected={sorted(expected_roles or ())} settings={sorted(role_settings)}"
         )
     for source in sources:
         role_name = source.name.removesuffix(".md.tmpl")
+        if role_name not in expected_roles:
+            continue
         settings = role_settings[role_name]
         fields, body, expanded = parse_role(source, settings.get("slots"))
         if fields["name"] != role_name:
@@ -571,6 +627,41 @@ def render_roles(binding: dict) -> dict[Path, str]:
                 digest,
             )
             output_path = ROOT / "agents" / f"{role_name}.md"
+        elif binding["agent_output_kind"] == "antigravity_markdown":
+            required = {"model", "runtime", "subagent", "mainAgent"}
+            optional = {"slots", "commandExecutionPolicy"}
+            unknown = set(settings) - required - optional
+            missing = required - set(settings)
+            if unknown or missing:
+                raise BuildError(
+                    f"{source}: Antigravity role settings invalid: "
+                    f"unknown={sorted(unknown)} missing={sorted(missing)}"
+                )
+            if settings["model"] not in ANTIGRAVITY_MODEL_TIERS:
+                raise BuildError(
+                    f"{source}: invalid Antigravity model tier {settings['model']!r}"
+                )
+            ag_fields: dict[str, object] = {
+                "name": fields["name"],
+                "description": fields["description"],
+                "model": settings["model"],
+                "mainAgent": bool(settings["mainAgent"]),
+                "subagent": bool(settings["subagent"]),
+            }
+            if "commandExecutionPolicy" in settings:
+                ag_fields["commandExecutionPolicy"] = settings["commandExecutionPolicy"]
+            frontmatter_lines = []
+            for key, value in ag_fields.items():
+                if isinstance(value, bool):
+                    frontmatter_lines.append(f"{key}: {'true' if value else 'false'}")
+                else:
+                    frontmatter_lines.append(f"{key}: {json.dumps(value, ensure_ascii=False)}")
+            frontmatter = "\n".join(frontmatter_lines)
+            output = add_markdown_marker(
+                f"---\n{frontmatter}\n---\n\n" + (runtime.strip() + "\n\n" if runtime.strip() else "") + body,
+                digest,
+            )
+            output_path = ROOT / "antigravity" / "agents" / f"{role_name}.md"
         else:
             allowed = {"model", "reasoning_effort", "runtime", "sandbox_mode"}
             if set(settings) - {"slots"} != allowed:
@@ -643,7 +734,38 @@ def build_outputs() -> dict[Path, str]:
                 raise BuildError(f"duplicate generated output {skill_path}")
             rendered = render_template(template, entry["slots"], template_path)
             digest = source_hash(template, binding_text)
-            outputs[skill_path] = add_markdown_marker(rendered, digest)
+            if binding["harness"] == "antigravity" and skill_name == "orchestrate":
+                if ANTIGRAVITY_SKILL_SPLIT_HEADING not in rendered:
+                    raise BuildError(
+                        f"{template_path}: missing split heading {ANTIGRAVITY_SKILL_SPLIT_HEADING!r}"
+                    )
+                head, tail = rendered.split(ANTIGRAVITY_SKILL_SPLIT_HEADING, 1)
+                pointer = (
+                    "\n## Step 4-7, Resume, Hooks, and Anti-patterns\n\n"
+                    "Read `references/execution-and-close.md` (beside this `SKILL.md`) in full "
+                    "before handling worker/DA replies, integrating waves, running final review, "
+                    "closing the run, or resuming after a context rebuild.\n"
+                )
+                skill_content = add_markdown_marker(head.rstrip() + "\n" + pointer, digest)
+                body_bytes = len(skill_content.split("\n---\n", 1)[1].encode("utf-8"))
+                if body_bytes > ANTIGRAVITY_SKILL_MAX_BODY_BYTES:
+                    raise BuildError(
+                        f"{skill_path}: Antigravity SKILL.md body is {body_bytes} bytes, "
+                        f"exceeding the {ANTIGRAVITY_SKILL_MAX_BODY_BYTES}-byte loader cap"
+                    )
+                outputs[skill_path] = skill_content
+                continuation_path = skill_path.parent / "references" / "execution-and-close.md"
+                continuation_body = (
+                    f"<!-- {EDIT_WARNING} {GENERATED_MARKER} {digest} -->\n\n"
+                    "# Orchestrate: Monitoring, Integration, Close, and Resume\n\n"
+                    + ANTIGRAVITY_SKILL_SPLIT_HEADING.lstrip("\n")
+                    + tail
+                )
+                if continuation_path in outputs:
+                    raise BuildError(f"duplicate generated output {continuation_path}")
+                outputs[continuation_path] = continuation_body
+            else:
+                outputs[skill_path] = add_markdown_marker(rendered, digest)
             for name, relative in REFERENCE_TEMPLATES.get(skill_name, {}).items():
                 source = ROOT / relative
                 reference = read_utf8(source)
@@ -658,6 +780,12 @@ def build_outputs() -> dict[Path, str]:
             if path in outputs:
                 raise BuildError(f"duplicate generated output {path}")
             outputs[path] = content
+    for src_rel, dst_rel in ANTIGRAVITY_MIRROR_FILES:
+        src_path = ROOT / src_rel
+        dst_path = ROOT / dst_rel
+        if dst_path in outputs:
+            raise BuildError(f"duplicate generated output {dst_path}")
+        outputs[dst_path] = read_utf8(src_path)
     return outputs
 
 
@@ -665,9 +793,11 @@ def marked_generated_files() -> set[Path]:
     candidates = {
         *(ROOT / relative for relative in GENERATED_SKILL_OUTPUTS),
         *(ROOT / "agents").glob("*.md"),
+        *(ROOT / "antigravity" / "agents").glob("*.md"),
         *(ROOT / "codex" / "agents").glob("*.toml"),
         *(ROOT / "skills" / "orchestrate" / "references").glob("*.md"),
         *(ROOT / "codex" / "skills" / "orchestrate" / "references").glob("*.md"),
+        *(ROOT / "antigravity" / "skills" / "orchestrate" / "references").glob("*.md"),
     }
     marked: set[Path] = set()
     for path in candidates:
@@ -714,7 +844,8 @@ def staged_output(path: Path, content: str) -> Path:
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
-        temp_path.chmod(0o644)
+        mode = 0o755 if path.suffix == ".sh" or path.name == "orchestrate_log.py" else 0o644
+        temp_path.chmod(mode)
         return temp_path
     except BaseException:
         temp_path.unlink(missing_ok=True)

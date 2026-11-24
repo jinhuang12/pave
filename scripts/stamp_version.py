@@ -16,6 +16,7 @@ MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
 JSON_PATHS = (
     PLUGIN_MANIFEST_PATH,
     ROOT / ".codex-plugin" / "plugin.json",
+    ROOT / "antigravity" / "plugin.json",
     MARKETPLACE_PATH,
 )
 VERSION_LINE = re.compile(r"^version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$")
