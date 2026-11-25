@@ -1,4 +1,4 @@
-version: 2.14.1
+version: 2.14.2
 
 ## How changelog entries are written
 
@@ -17,6 +17,13 @@ Add each release at the top of `## Changelog`, newest first. Bump the `version:`
 line and use the release date.
 
 ## Changelog
+
+### 2.14.2 (2026-11-25)
+
+- Improved — A document people read later, such as a handoff, a design, a results page, or a runbook, is now written to one set of rules in an orchestrate run: explain it the way you would to a colleague, outline first, use real names, keep tables for data, leave working material out, and list sources once at the end. Before, a worker wrote such a page in report style and a reviewer checked only its facts.
+  - One shared section, "When the work is a document people read", in the worker, the reviewer, and the lead's skill. The reviewer reads the page once as its reader. In such a document, text, headings, tables and formatting are the work and no longer count as wording-only.
+  - The build expands fragment includes in skill templates as well as in roles.
+- New — The `human-docs` skill gives any session with the plugin, in Claude Code, Codex, or Antigravity, the same rules when it writes or edits a document people read later, with or without an orchestrate run. It does not cover a reply or a status report to you, a commit message, or instructions written for an agent.
 
 ### 2.14.1 (2026-11-23)
 

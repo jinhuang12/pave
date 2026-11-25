@@ -222,6 +222,11 @@ DISPATCH_CONTRACT = '''Both seats are registered agent types from this plugin. A
 
 If `pave-init:workflow-updater` or `pave-init:update-reviewer` is unavailable, pause and report an incomplete pave-init installation. Do not substitute an ordinary worker and claim equivalent review.'''
 
+[skills.human-docs]
+template = "sources/human-docs/SKILL.md.tmpl"
+output = "skills/human-docs/SKILL.md"
+slots = {}
+
 [roles.forward-tester]
 sandbox_mode = "workspace-write"
 model = "inherit"

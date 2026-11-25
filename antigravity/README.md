@@ -4,9 +4,10 @@ This directory is the self-contained native Antigravity CLI (`agy`) plugin packa
 
 ## Phase 1 scope
 
-Phase 1 ships the **`orchestrate`** skill bound to Antigravity's native **`swarm`** primitive, together with its three custom role agents and three lifecycle hooks:
+Phase 1 ships the **`orchestrate`** skill bound to Antigravity's native **`swarm`** primitive, together with its three custom role agents and three lifecycle hooks, and the **`human-docs`** skill:
 
 - **Skill:** `skills/orchestrate/SKILL.md` (kept under Antigravity's 24,000-byte skill-body cap via `references/execution-and-close.md`)
+- **Skill:** `skills/human-docs/SKILL.md`, the rules for a document people read later, which any session loads when it writes or edits one
 - **Agents:**
   - `agents/orchestrate-worker.md` (swarm: `gemini-4-neon-high`, read-and-report: `gemini-4-hydrogen-high`; static frontmatter: `pro`) — read by `worker-N` swarm members at startup
   - `agents/adversarial-investigator.md` (swarm: `gemini-4-neon-xhigh`; static frontmatter: `inherit`) — read by `da-M` swarm members at startup, also usable standalone

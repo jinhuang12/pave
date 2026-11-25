@@ -249,6 +249,25 @@
               }
             }
           }
+        },
+        "human-docs": {
+          "type": "object",
+          "required": [
+            "template",
+            "output",
+            "slots"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "template": {"type": "string"},
+            "output": {"type": "string"},
+            "slots": {
+              "type": "object",
+              "required": [],
+              "additionalProperties": false,
+              "properties": {}
+            }
+          }
         }
       }
     },

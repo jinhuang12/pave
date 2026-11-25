@@ -86,6 +86,8 @@ Then write one entry per stream. Each must be externally verifiable by both its 
 
 A stream that measures or compares needs three more things from you. Under inputs, name the saved results it compares against: only the changed side is measured, and a missing reference is a line in the report, not a new run. In the goal, name both sides in full and set them up alike on every setting that moves the number. In the acceptance, size the run: the shortest one that still shows the result, no long run on a case whose cause is already known until its fix is in the build, and one build for every ready fix when a start is slow.
 
+A stream whose deliverable is a document people read, such as a handoff, a design, a results page, or a runbook, says so in its goal. Its worker writes it to the rules in "When the work is a document people read", and its DA reviews it against them as its reader. The same rules hold when the user has you write or edit such a page yourself.
+
 Group streams into **waves** when one needs another's output. Everything in a wave runs in parallel; the next wave starts when the whole previous wave is DONE.
 
 A wave has no fixed size. Open a worker for every stream that has a testable goal, a disjoint write set, and the resources it needs: ready work that waits for a slot it does not need makes the whole run slower. The limits are real ones: write sets that stay disjoint, resources that cannot be shared, and the agent slots and memory of the machine you run on. Your own context stays small because you act on first lines and log one line per event; when it fills, hand reading to helpers rather than shrinking the team.
@@ -174,6 +176,8 @@ Close the log with one stopping word (`skills/pave-init/references/pave-spec.md`
 Tell the user, in this order: the stopping word, leading the report, with the verdict for the whole goal; then one line per stream, named by its subject, with its result and its Speed line; then deferred items and anything you had to decide on their behalf. Name streams by subject in everything the user reads, here and in status updates: `worker-N`, `da-M`, and round counts are addresses and bookkeeping for the log, and the user has never seen them. An `accepted` close needs no go from the user: if this run was one step of a larger task and the next step is reversible and touches nothing live, start it and say what started. Ask first only before an irreversible or production-facing step.
 
 Before you release the team, remove what the run built only to do its work: the paths in the plan file's `Paths created` section (build output, caches, scratch files, finished worktrees). Keep branches, evidence, and any tree with uncommitted changes, and tell the user what you removed. {{SHUTDOWN}}
+
+<!-- include: fragments/human-docs.md -->
 
 ## Resume
 

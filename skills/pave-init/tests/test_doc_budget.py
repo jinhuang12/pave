@@ -58,6 +58,8 @@ import measure_artifact as ma  # noqa: E402
 # PASS; a PASS is final) is included by the two gate reviewers; reviewer-core item 3
 # gains the equal-weight clause; the pave-init gate and pave-evolve step 2 each gain
 # one sentence of the lead side.
+# 2026-11-24 (2.14.2): the pass-finality fragment scopes a wording-only change to work
+# that is not itself a document people read, so such a document is reviewed as work.
 CEILINGS = {
     "skills/pave-init/SKILL.md": (267, 38741),
     "skills/pave-init/README.md": (451, 26261),
@@ -75,7 +77,7 @@ CEILINGS = {
     "skills/pave-init/orchestration/interview-and-fitness.md": (131, 7073),
     "skills/pave-init/orchestration/review-and-build.md": (134, 14386),
     "sources/fragments/reviewer-core.md": (21, 3382),
-    "sources/fragments/pass-finality.md": (5, 928),
+    "sources/fragments/pass-finality.md": (5, 978),
     "sources/roles/forward-tester.md.tmpl": (21, 1783),
     "sources/roles/node-planner.md.tmpl": (72, 12795),
     "sources/roles/pave-material-reviewer.md.tmpl": (93, 15913),

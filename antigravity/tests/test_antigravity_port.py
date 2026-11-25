@@ -131,7 +131,7 @@ class AntigravityPackageTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + "\n" + result.stderr)
-        self.assertIn("skills 1", result.stdout)
+        self.assertIn("skills 2", result.stdout)
         self.assertIn("agents 3", result.stdout)
         self.assertIn("hooks 1", result.stdout)
 

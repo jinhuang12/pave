@@ -71,6 +71,7 @@ EXPECTED_SKILL_TEMPLATES = {
     "orchestrate": "sources/orchestrate/SKILL.md.tmpl",
     "pave-init": "sources/pave-init/SKILL.md.tmpl",
     "pave-evolve": "sources/pave-evolve/SKILL.md.tmpl",
+    "human-docs": "sources/human-docs/SKILL.md.tmpl",
 }
 REFERENCE_TEMPLATES = {
     "orchestrate": {
@@ -127,11 +128,13 @@ EXPECTED_SKILL_SLOTS = {
         "FRONTMATTER",
         "DISPATCH_CONTRACT",
     },
+    # One text for every harness, so its frontmatter lives in the template.
+    "human-docs": set(),
 }
 EXPECTED_HARNESS_SKILLS = {
     "claude": set(EXPECTED_SKILL_SLOTS),
     "codex": set(EXPECTED_SKILL_SLOTS),
-    "antigravity": {"orchestrate"},
+    "antigravity": {"orchestrate", "human-docs"},
 }
 EXPECTED_SKILL_KEYS = {"template", "output", "slots"}
 EXPECTED_TOP_LEVEL = {
@@ -149,6 +152,9 @@ GENERATED_SKILL_OUTPUTS = (
     "codex/skills/pave-init/SKILL.md",
     "skills/pave-evolve/SKILL.md",
     "skills/pave-init/SKILL.md",
+    "antigravity/skills/human-docs/SKILL.md",
+    "codex/skills/human-docs/SKILL.md",
+    "skills/human-docs/SKILL.md",
 )
 PLACEHOLDER = re.compile(r"\{\{([A-Z][A-Z0-9_]*)\}\}")
 INCLUDE_LINE = re.compile(r"^<!-- include: ([A-Za-z0-9_./-]+) -->$")
@@ -715,7 +721,7 @@ def build_outputs() -> dict[Path, str]:
         binding_text = read_utf8(binding_path)
         for skill_name, entry in sorted(binding["skills"].items()):
             template_path = templates[skill_name]
-            template = read_utf8(template_path)
+            template = expand_includes(template_path, read_utf8(template_path))
             skill_path = ROOT / entry["output"]
             resolved = skill_path.resolve()
             if not resolved.is_relative_to(ROOT.resolve()):
@@ -744,7 +750,8 @@ def build_outputs() -> dict[Path, str]:
                     "\n## Step 4-7, Resume, Hooks, and Anti-patterns\n\n"
                     "Read `references/execution-and-close.md` (beside this `SKILL.md`) in full "
                     "before handling worker/DA replies, integrating waves, running final review, "
-                    "closing the run, or resuming after a context rebuild.\n"
+                    "closing the run, or resuming after a context rebuild. It also holds "
+                    "the section \"When the work is a document people read\".\n"
                 )
                 skill_content = add_markdown_marker(head.rstrip() + "\n" + pointer, digest)
                 body_bytes = len(skill_content.split("\n---\n", 1)[1].encode("utf-8"))

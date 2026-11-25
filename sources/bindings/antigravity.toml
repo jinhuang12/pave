@@ -104,6 +104,11 @@ DISPATCH_GUIDANCE = '''## Live model selection & quota switching
 2. If a `waiting` worker hits quota or capacity limits, call `swarm(action: "model", name: "worker-N", model: "<alternate>")` and state why — never `kill` and re-`add` just to change models, as `model` preserves the worker's full conversation.
 3. Keep `antigravity/agents/*.md` on Antigravity's static model tiers (`inherit`, `pro`, `flash`) because the plugin loader rejects full model IDs in agent frontmatter.'''
 
+[skills.human-docs]
+template = "sources/human-docs/SKILL.md.tmpl"
+output = "antigravity/skills/human-docs/SKILL.md"
+slots = {}
+
 [roles.orchestrate-worker]
 model = "pro"
 mainAgent = false

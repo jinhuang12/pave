@@ -198,6 +198,11 @@ DISPATCH_CONTRACT = '''Resolve `PAVE_PLUGIN_ROOT` as the absolute path three dir
 
 Before the first dispatch, run `python3 <PAVE_PLUGIN_ROOT>/codex/preflight.py --project <project-root> --evidence-dir <fresh-evidence-dir>` unless this session already passed it; it proves Codex V2 and the installed `pave-init:*` roles through a live nested dispatch. If a role is unavailable, pause and report the setup commands from `codex/README.md`. Do not use a generic worker and claim equivalent review.'''
 
+[skills.human-docs]
+template = "sources/human-docs/SKILL.md.tmpl"
+output = "codex/skills/human-docs/SKILL.md"
+slots = {}
+
 [roles.forward-tester]
 model = "inherit"
 reasoning_effort = "inherit"

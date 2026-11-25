@@ -85,15 +85,19 @@ run-state schema, and a README rendered from the approved plan. The shared PAVE
 graph, system evidence, references, scripts, and traceability record remain one
 physical source.
 
-The 26 native lead and role files are generated installation artifacts. Do not
+The 28 native lead and role files are generated installation artifacts. Do not
 edit them directly. The six orchestrate reference files are also generated.
 Change `sources/` or a shared reference for another skill, inspect
 `python3 scripts/build_packages.py --check`, then regenerate explicitly with
 `python3 scripts/build_packages.py --force`.
-`pave-init`, `pave-evolve`, and `orchestrate` share workflow sources under
-`sources/`. Platform settings generate separate Claude Code and Codex skills
-and roles. Orchestrate also generates separate platform references from one
-source. Its run log and reminder script remain shared.
+`pave-init`, `pave-evolve`, `orchestrate`, and `human-docs` share workflow
+sources under `sources/`. Platform settings generate separate Claude Code and
+Codex skills and roles. Orchestrate also generates separate platform references
+from one source. Its run log and reminder script remain shared.
+
+The `human-docs` skill gives any session with the plugin the rules for a
+document people read later, such as a handoff, a design, a results page, or a
+runbook.
 
 The Codex package requires V2 nested agents with 16 child slots and 17 total
 slots. PAVE campaign `fable` and `opus` roles map to `gpt-5.6-sol`; `sonnet` roles map

@@ -16,6 +16,8 @@ When the work measures or compares, four rules keep the result usable. Compare l
 
 Your stream goal, held to this bar, decides PASS. The user's goal, in your subtask, sets the scope: work it does not need is work the maintainer would ask you to remove.
 
+<!-- include: fragments/human-docs.md -->
+
 ## When to invoke
 
 - **Dispatched by the orchestrate skill.** The prompt is a SUBTASK with Orchestrator, Reviewer, Goal, User goal, User rules, Write set, Inputs, Acceptance, Review, Skills, Context, and, for a stream, Findings. A subtask that touches speed may also carry Speed. This is the only supported entry point.
@@ -105,7 +107,7 @@ Integration notes: <anything the orchestrator needs to wire your piece to others
 
 On a subtask whose Review line is `none`, when you asked for no review, the first line is `DONE <your name>: checks pass, no review`, and the `Rounds:` and `Applied notes:` lines are left out.
 
-A PASS is final. Apply any note the DA attached (a wording fix, a label, a commit-message word), list it under `Applied notes:`, and ship. Never resend a PASS for re-review, and never send a wording-only edit of your own (doc text, comments, titles, table rows, commit-message wording, formatting; no value, identifier, gate, test, dependency, or command changes) back to the DA: apply it and list it. A re-review of wording buys nothing and costs everyone a round.
+A PASS is final. Apply any note the DA attached (a wording fix, a label, a commit-message word), list it under `Applied notes:`, and ship. Never resend a PASS for re-review, and never send a wording-only edit of your own (in work that is not itself a document people read: doc text, comments, titles, table rows, commit-message wording, formatting; no value, identifier, gate, test, dependency, or command changes) back to the DA: apply it and list it. A re-review of wording buys nothing and costs everyone a round.
 
 **REVISE:** for each finding, open the cited file:line yourself and check two things: the evidence shows what the DA says, and the goal really fails without the fix. Reject a finding only with a specific reason: the evidence does not show the defect, or the goal holds without the fix.
 

@@ -156,7 +156,7 @@ class PackageStructureTests(unittest.TestCase):
         self.assertEqual(schema["properties"]["skills"]["minProperties"], 1)
         self.assertEqual(
             set(schema["properties"]["skills"]["properties"]),
-            {"pave-init", "pave-evolve", "orchestrate"},
+            {"pave-init", "pave-evolve", "orchestrate", "human-docs"},
         )
         self.assertEqual(
             {path.name for path in (REPO_ROOT / "sources" / "bindings").glob("*.toml")},
